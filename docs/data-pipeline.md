@@ -2,6 +2,7 @@
 
 The collector reads `sources.json`, fetches each feed at a pinned Git commit, and
 writes `data/output.json` plus source snapshots in `data/raw/`.
+See [data flow and record relationships](data-flow.md) for diagrams.
 
 ## Sources
 

@@ -4,11 +4,12 @@ A static dashboard data pipeline for ROCm engine qualification and model perform
 The first stage collects producer feeds; the website and hosting follow separately.
 
 ```sh
-python3 -m unittest discover -s tests -v
-python3 scripts/collect.py --sources sources.json --output-dir data
+uv run --no-project --python 3.12 python -m unittest discover -s tests -v
+uv run --no-project --python 3.12 python scripts/collect.py --sources sources.json --output-dir data
 ```
 
-Python 3.9+ is sufficient, with no third-party runtime dependencies. The collector
+Use `uv` to run the commands above with Python 3.12. The collector has no
+third-party runtime dependencies and supports Python 3.9+. The collector
 writes `data/output.json` and commit-pinned source snapshots under `data/raw/`.
 Generated datasets and logs are not committed. See [the data contract](docs/data-pipeline.md)
 for extraction rules, source inventory, limitations, and onboarding.

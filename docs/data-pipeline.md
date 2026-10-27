@@ -1,6 +1,6 @@
 # Data pipeline
 
-The collector reads `sources.json`, fetches each feed at a pinned Git commit, and
+The collector reads `sources.json`, fetches the latest data from each configured branch, and
 writes `data/output.json` plus source snapshots in `data/raw/`.
 See the [data flow](data-flow.md) for an overview.
 
@@ -69,14 +69,14 @@ the benchmark feed uses `forks` to map backend variants. Both examples are in
 | --- | --- |
 | `generated_at`, `collection_status` | Collection time and `complete` or `degraded` |
 | `engines`, `reference_model` | Card metadata and the fixed model; model selection is pending |
-| `sources` | Status, pinned URL/commit, snapshot path/hash, observation time, count, destination |
+| `sources` | Status, source URL/revision, snapshot path/hash, observation time, count, destination |
 | `builds` | Qualification records keyed by `(source_id, build_id)` |
 | `measurements` | Latest and historical performance records |
 | `systems` | Hardware metadata keyed by `(source_id, id)` |
 
 Each record has a `source_id` and JSON `source_pointer` into its raw snapshot.
 `sha256` hashes the saved snapshot bytes. Full qualification reports are linked
-at the same pinned commit. Consumers read snapshots listed in `output.json`;
+at the same source revision. Consumers read snapshots listed in `output.json`;
 local reruns can leave older, unreferenced files in `raw/`.
 
 ## Interpretation
@@ -99,7 +99,7 @@ local reruns can leave older, unreferenced files in `raw/`.
 See the [README](../README.md) for `uv` commands. Actions runs on PRs, main pushes,
 manual dispatch, and daily at 11:17 UTC. The schedule activates after merge.
 Each run logs fetches, validation, counts, and destinations, then uploads a dataset
-artifact retained for 30 days. It does not publish Pages or commit generated data.
+artifact retained for 30 days. Site publishing is the next implementation stage.
 
 Source status is `fresh`, `stale`, `empty`, `awaiting_data`, or `error`. Staleness
 uses the newest observation, with an initial 72-hour threshold; individual records

@@ -15,11 +15,16 @@ The daily job reads the source list, fetches the latest data, and combines it.
 ```mermaid
 flowchart LR
     Config["Source list<br/>sources.json"] --> Fetch["Fetch JSON"]
-    Data["llama.cpp data<br/>vLLM data<br/>Model performance data"] --> Fetch
+    subgraph Data["Data"]
+        Sources["llama.cpp<br/>vLLM<br/>Model performance"]
+    end
+    Fetch -->|Request| Sources
+    Sources -->|JSON response| Fetch
     Fetch --> Map["Validate and map fields"]
     Map --> Output["Combined dataset<br/>output.json"]
 ```
 
+Fetch JSON requests each source file and receives its JSON response.
 Each entry in the source list specifies a repository, branch, file, and mapping.
 The job uploads the dataset and original JSON files as a downloadable artifact.
 Manual and pull request runs follow the same steps.

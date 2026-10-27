@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-10-27T16:05:08.288782+00:00",
+  "systems": [
+    {
+      "id": "system-1",
+      "gpu": "gfx1151",
+      "os": "linux"
+    }
+  ],
+  "by_model_scenario": {
+    "model|context-32k": [
+      {
+        "model": "Gemma-4-26B-A4B-it-GGUF",
+        "scenario": "context-32k",
+        "fork_id": "llamacpp-rocm-nightly",
+        "fork_label": "llama.cpp ROCm Nightly (lemonade-sdk)",
+        "fork_repo": "lemonade-sdk/llamacpp-rocm",
+        "fork_version": "b1355",
+        "backend": "rocm",
+        "ctx_size": 32768,
+        "quant": "Q4_K_M",
+        "tps_mean": 36.79,
+        "tps_p95": 36.9,
+        "tg_tps": 36.79,
+        "ttft_ms_mean": 20817.47,
+        "ttft_ms_best": 20776.12,
+        "pp_tps": 1154.56235203023,
+        "accuracy": 0.8222,
+        "accuracy_passed": 37,
+        "accuracy_total": 45,
+        "input_tokens": 24035,
+        "vram_peak_gb": 18.610782623291016,
+        "timestamp": "2026-10-27T06:17:57Z",
+        "lemonade_version": "v2026.43.3",
+        "hw_id": "system-1",
+        "run_id": "40459300755",
+        "run_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40459300755",
+        "commit": "4830d4819ef56549a723a1d23208d2a0927b7999",
+        "accuracy_deviations": 0,
+        "accuracy_pass": true
+      }
+    ]
+  },
+  "history": {
+    "Gemma-4-26B-A4B-it-GGUF": {
+      "context-32k": {
+        "llamacpp-rocm-nightly": [
+          {
+            "version": "b1354",
+            "timestamp": "2026-10-26T08:15:06Z",
+            "tps_mean": 37.06,
+            "tps_p95": 37.28,
+            "tg_tps": 37.06,
+            "ttft_ms_mean": 21469.21,
+            "ttft_ms_best": 21435.52,
+            "pp_tps": 1119.5121070785872,
+            "accuracy": 1,
+            "vram_peak_gb": 18.632064819335938,
+            "input_tokens": 24035,
+            "quant": "Q4_K_M",
+            "lemonade_version": "v2026.43.3",
+            "run_id": "40290464171",
+            "run_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40290464171"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "performance",
+  "engine": "llamacpp",
+  "adapter": "lemonade-leaderboard-v1",
+  "forks": {
+    "llamacpp-rocm-nightly": {
+      "engine": "llamacpp",
+      "channel": "nightly",
+      "backend": "rocm",
+      "repository": "lemonade-sdk/llamacpp-rocm"
+    }
+  }
+}

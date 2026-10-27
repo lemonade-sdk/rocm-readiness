@@ -1,44 +1,41 @@
 # Data flow
 
-Data moves at two different times: Actions refreshes the dataset on a schedule,
-and the browser reads that dataset when someone opens the dashboard.
+## Data sources
+
+| Name in the diagrams | Repository |
+| --- | --- |
+| llama.cpp data | [lemonade-sdk/llama.cpp](https://github.com/lemonade-sdk/llama.cpp) |
+| vLLM data | [lemonade-sdk/vllm-rocm](https://github.com/lemonade-sdk/vllm-rocm) |
+| Model performance data | [lemonade-sdk/lemonade](https://github.com/lemonade-sdk/lemonade) |
+
+## 1. Scheduled ingestion
+
+The daily job reads the source list, fetches the latest data, and combines it.
 
 ```mermaid
-flowchart TB
-    subgraph Ingestion["1. Scheduled ingestion — GitHub Actions"]
-        Start["Daily run starts"] --> Config["Read sources.json"]
-        Config --> Fetch["For each source:<br/>fetch JSON from its configured branch"]
-        Fetch --> Map["Validate and map fields"]
-        Map --> Output["Write combined output.json"]
-        Output --> Artifact["Upload dataset artifact"]
-    end
-
-    subgraph Repositories["Source repositories"]
-        Llama["lemonade-sdk/llama.cpp<br/>qualification-data branch"]
-        Vllm["lemonade-sdk/vllm-rocm<br/>qualification-data branch"]
-        Bench["lemonade-sdk/lemonade<br/>benchmark-data branch"]
-    end
-    Llama --> Fetch
-    Vllm --> Fetch
-    Bench --> Fetch
-
-    Artifact -. "Publish dataset with the site (planned)" .-> Hosted["Hosted output.json"]
-
-    subgraph Runtime["2. Page load — browser (planned)"]
-        Open["User opens dashboard"] --> Load["Fetch hosted output.json"]
-        Load --> Display["Populate dashboard views"]
-    end
-    Hosted --> Load
+flowchart LR
+    Config["Source list<br/>sources.json"] --> Fetch["Fetch JSON"]
+    Data["llama.cpp data<br/>vLLM data<br/>Model performance data"] --> Fetch
+    Fetch --> Map["Validate and map fields"]
+    Map --> Output["Combined dataset<br/>output.json"]
 ```
 
-Each ingestion run reads the latest revision of each configured branch and records
-which revision supplied the data. Original JSON copies accompany the combined
-dataset so results can be traced back to their sources. Manual and pull request
-runs use the same ingestion steps.
+Each entry in the source list specifies a repository, branch, file, and mapping.
+The job uploads the dataset and original JSON files as a downloadable artifact.
+Manual and pull request runs follow the same steps.
 
-Ingestion currently produces a downloadable Actions artifact. Site publishing and
-browser loading are the next implementation stage. Once connected, page loads
-use the published dataset; scheduled ingestion refreshes it independently.
+## 2. Page load
+
+When someone opens the dashboard, the browser reads the published dataset.
+
+```mermaid
+flowchart LR
+    Open["Open dashboard"] --> Load["Load dataset<br/>output.json"]
+    Load --> Display["Populate views"]
+```
+
+Site publishing and page loading are planned. Publishing will place the dataset
+alongside the web app; each daily ingestion run will provide a new dataset.
 
 See [adding or changing a source](data-pipeline.md#adding-or-changing-a-source)
-for a configuration example and the pull request workflow.
+for an example and the pull request workflow.

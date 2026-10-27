@@ -2,7 +2,7 @@
 
 The collector reads `sources.json`, fetches each feed at a pinned Git commit, and
 writes `data/output.json` plus source snapshots in `data/raw/`.
-See [data flow and record relationships](data-flow.md) for diagrams.
+See the [data flow](data-flow.md) for an overview.
 
 ## Sources
 
@@ -19,11 +19,47 @@ Linux-only; its existing records include historical stable and nightly builds.
 Producer qualification schemas: [llama.cpp](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/SCHEMA.md),
 [vLLM](https://github.com/lemonade-sdk/vllm-rocm/blob/qualification-data/qualification/SCHEMA.md).
 
-To add a source, set its engine, repository, ref, path, adapter, channel, and
-freshness threshold in `sources.json`. Qualification channels can come from the
-record; benchmark forks map to engines, channels, and backends through `forks`.
-An existing adapter needs only configuration. A new format needs an adapter and
-fixture tests in `tests/`.
+## Adding or changing a source
+
+Each object in the `sources` array tells the collector where to find one feed
+and how to read it. This is an existing entry:
+
+```json
+{
+  "id": "llamacpp-stable-qualification",
+  "engine": "llamacpp",
+  "adapter": "qualification-v1",
+  "repository": "lemonade-sdk/llama.cpp",
+  "ref": "qualification-data",
+  "path": "qualification/index.json",
+  "channel": "stable",
+  "stale_after_hours": 72
+}
+```
+
+| Field | Purpose |
+| --- | --- |
+| `id` | Unique name for this source |
+| `engine` | Which configured engine receives its results |
+| `repository` | GitHub repository containing the JSON |
+| `ref` | Branch, tag, or commit to read |
+| `path` | JSON file path within that repository |
+| `adapter` | Existing mapping code for the source's JSON format |
+| `channel` | Stable/nightly label, or `from-record` / `from-fork` to read the label from the data or fork configuration |
+| `stale_after_hours` | Age after which the newest result is labeled stale |
+
+1. Append another object to `sources` with a different `id`, or edit an existing
+   object. The collector processes every entry on each run and combines the results.
+2. Open a pull request. Its Actions run validates the configuration and uploads
+   a preview dataset for review.
+3. Merge the pull request. A main-branch run collects the updated sources immediately;
+   subsequent daily runs use the same updated list.
+
+For an existing engine and supported format, only `sources.json` changes. A new
+engine also needs an entry in `engines`; a new JSON format needs mapping code and
+fixture tests. Some formats need extra settings: vLLM supplies `os: "linux"`, and
+the benchmark feed uses `forks` to map backend variants. Both examples are in
+[sources.json](../sources.json).
 
 ## Output
 

@@ -1,8 +1,7 @@
 # Data pipeline
 
-The collector reads `sources.json`, fetches the latest data from each configured branch, and
-writes `data/output.json` plus source snapshots in `data/raw/`.
-See the [data flow](data-flow.md) for an overview.
+The collector reads `sources.json`, fetches the latest data from each configured
+branch, and prepares files for the dashboard. See the [data flow](data-flow.md).
 
 ## Sources
 
@@ -61,55 +60,65 @@ fixture tests. Some formats need extra settings: vLLM supplies `os: "linux"`, an
 the benchmark feed uses `forks` to map backend variants. Both examples are in
 [sources.json](../sources.json).
 
-## Output
+## Generated files
 
-`output.json` uses schema version 1:
+The UI dataset uses schema version 2:
 
-| Field | Contents |
-| --- | --- |
-| `generated_at`, `collection_status` | Collection time and `complete` or `degraded` |
-| `engines`, `reference_model` | Card metadata and the fixed model; model selection is pending |
-| `sources` | Status, source URL/revision, snapshot path/hash, observation time, count, destination |
-| `builds` | Qualification records keyed by `(source_id, build_id)` |
-| `measurements` | Latest and historical performance records |
-| `systems` | Hardware metadata keyed by `(source_id, id)` |
+```text
+data/
+├── index.json
+├── rocm/<version>/
+│   ├── overview.json
+│   └── history/<month>.json
+├── performance/unassigned.json
+└── raw/<source>.json
+```
 
-Each record has a `source_id` and JSON `source_pointer` into its raw snapshot.
-`sha256` hashes the saved snapshot bytes. Full qualification reports are linked
-at the same source revision. Consumers read snapshots listed in `output.json`;
-local reruns can leave older, unreferenced files in `raw/`.
+- `index.json` lists ROCm versions, overview paths, source status, and collection time.
+- Each overview contains engine cards, latest builds for each channel/OS/GPU target,
+  build counts, and links to monthly history chunks.
+- History chunks contain compact build records: build number, version, date,
+  platform, qualification verdict, counts, coverage, and evidence links.
+- `report_url` opens the producer's full build report when details are requested.
+- Performance records awaiting reliable ROCm attribution live in `unassigned.json`.
+  Each version's overview identifies its performance coverage.
+- `raw/` contains source copies for inspection in the Actions artifact. Records
+  retain their source identity and JSON location; historical builds also carry
+  the original source URL at the revision that supplied them.
 
-## Interpretation
+The browser loads the version index and selected overview first. Browsing builds
+loads a history chunk; opening a build loads its report. A comparison loads the
+other version's overview. Model, workload, quantization, and hardware establish
+which measurements can be compared.
 
-- Keep the producer's `qualified` verdict and test counts. Warnings or missing
-  tests can coexist with a passing gate. `version_qualified` is a separate release
-  gate. Compiled gfx coverage and hardware validation are separate fields.
-- Performance `kind` is `latest` or `history`; these can overlap. Filter by kind
-  before counting. Missing historical hardware or workload metadata stays null.
-- Metric names retain producer units: TPS, milliseconds for TTFT, and GB for VRAM.
-- `qualification_build_id` and `rocm_version` stay null: benchmark records do not
-  identify a unique qualified archive. A matching engine tag is insufficient.
-- `producer_accuracy` retains upstream observations; `accuracy_verdict` stays null
-  until the evaluation contract is agreed.
-- Compare measurements only when model, quantization, scenario, system, and workload
-  match. Missing metadata does not establish comparability.
+## History across runs
 
-## Runs and failures
+`--previous-data <directory>` carries build history forward from a complete dataset.
+New records update matching `(source_id, build_id)` entries; older records and
+ROCm versions remain available. The collector projects only the fields used by
+the UI. Each monthly file groups many builds.
 
-See the [README](../README.md) for `uv` commands. Actions runs on PRs, main pushes,
-manual dispatch, and daily at 11:17 UTC. The schedule activates after merge.
-Each run logs fetches, validation, counts, and destinations, then uploads a dataset
-artifact retained for 30 days. Site publishing is the next implementation stage.
+Actions restores the latest successful main-branch dataset before ingestion.
+Each successful run carries that history into its new artifact. Artifacts are
+retained for 30 days; after an interruption longer than retention, restore a
+saved dataset before resuming the history chain. Performance history follows
+the observations currently supplied by the benchmark feed.
 
-Source status is `fresh`, `stale`, `empty`, `awaiting_data`, or `error`. Staleness
-uses the newest observation, with an initial 72-hour threshold; individual records
-can be older. Historical nightly records do not establish current readiness.
+## Status and evidence
 
-Invalid schemas, future timestamps, unknown forks, and invalid hardware references
-fail the source. It contributes no normalized records; collection becomes
-`degraded` and exits 1. Other sources still run, and Actions uploads the diagnostic
-artifact. Inspect the source error and snapshot, correct the configuration or
-adapter, and rerun. Stale, empty, and pending feeds do not fail collection.
+Sources report `fresh`, `stale`, `empty`, `awaiting_data`, or `error`. The initial
+freshness threshold is 72 hours, measured from the newest observation. Each build
+retains its own date and the producer's `qualified` verdict. Release qualification,
+compiled GPU coverage, and hardware validation remain separate fields.
 
-Every run reads the history currently retained by producers. Artifacts are not a
-permanent archive; a producer can prune its own feed.
+A failed source produces an error status and a `degraded` diagnostic dataset;
+the command exits 1. Complete collections produce datasets suitable for publishing.
+Unsupported schemas, future timestamps, unknown forks, and invalid hardware
+references fail validation. Upstream accuracy observations remain separate from
+an agreed readiness accuracy verdict.
+
+Actions runs `scripts/check.py`, the same test-and-ingestion entry point used
+locally. It runs on PRs, main pushes, manual dispatch, and daily at 11:17 UTC. Each run
+logs fetched sources, validation, record counts, and generated destinations. The
+job summary and downloadable artifact provide the run's evidence. Site publishing
+and browser views are the next implementation stage.

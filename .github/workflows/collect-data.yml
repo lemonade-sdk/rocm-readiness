@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: collect-data-${{ github.ref }}
@@ -27,12 +28,27 @@ jobs:
         with:
           version: '0.13.6'
           enable-cache: false
-      - name: Test adapters and collection
-        run: uv run --no-project --python 3.12 python -m unittest discover -s tests -v
-      - name: Collect immutable source snapshots
+      - name: Restore previous main dataset
         env:
           GH_TOKEN: ${{ github.token }}
-        run: uv run --no-project --python 3.12 python scripts/collect.py --sources sources.json --output-dir data
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          prior_record=$(gh api "repos/${GH_REPO}/actions/workflows/collect-data.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0] | if . then "\(.id) \(.run_attempt)" else "" end')
+          if [ -n "$prior_record" ]; then
+            read -r prior_run_id prior_attempt <<< "$prior_record"
+            gh run download "$prior_run_id" --pattern "readiness-data-${prior_run_id}-${prior_attempt}" --dir previous-data
+            test -f previous-data/index.json
+          fi
+      - name: Run pipeline tests and ingestion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(--sources sources.json --output-dir data)
+          if [ -f previous-data/index.json ]; then
+            args+=(--previous-data previous-data)
+          fi
+          uv run --no-project --python 3.12 python scripts/check.py "${args[@]}"
       - name: Upload dataset and source evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

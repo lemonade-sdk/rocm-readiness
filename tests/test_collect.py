@@ -2,6 +2,8 @@ import copy
 import json
 from pathlib import Path
 import tempfile
+import subprocess
+import sys
 import unittest
 
 from scripts.collect import collect, normalize_qualification, normalize_performance
@@ -65,6 +67,17 @@ class QualificationTests(unittest.TestCase):
         data["builds"][0]["qualified"] = "false"
         with self.assertRaisesRegex(ValueError, "qualified"):
             normalize_qualification(source, data, "https://example.com/index.json")
+
+    def test_rejects_non_integer_or_negative_run_attempts(self):
+        source = {"id": "x", "engine": "llamacpp", "channel": "stable"}
+        for attempt in ("2", "10", -1, True, None):
+            with self.subTest(attempt=attempt):
+                data = fixture("llama.json")
+                data["builds"][0]["run_attempt"] = attempt
+                with self.assertRaisesRegex(ValueError, "run_attempt"):
+                    normalize_qualification(
+                        source, data, "https://example.com/index.json"
+                    )
 
     def test_rejects_report_path_escape(self):
         data = fixture("llama.json")
@@ -173,12 +186,80 @@ class CollectionTests(unittest.TestCase):
             self.assertTrue((Path(folder) / "raw/llama.json").exists())
             self.assertEqual(output["builds"][0]["source_id"], "llama")
 
+    def test_exports_versioned_ui_files_instead_of_combined_mirror(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder:
+            collect(self.config(), Path(folder), fetch, now="2026-10-27T16:00:00Z")
+            index = json.loads((Path(folder) / "index.json").read_text())
+            self.assertEqual(index["schema_version"], 2)
+            self.assertEqual(index["versions"][0]["rocm_version"], "10.0")
+            overview = json.loads(
+                (Path(folder) / index["versions"][0]["overview"]).read_text()
+            )
+            self.assertEqual(overview["rocm_version"], "10.0")
+            self.assertFalse((Path(folder) / "output.json").exists())
+
+    def test_collection_carries_prior_builds_forward_when_source_prunes_them(self):
+        data = fixture("llama.json")
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else data
+
+        with tempfile.TemporaryDirectory() as folder:
+            previous = Path(folder) / "previous"
+            current = Path(folder) / "current"
+            collect(self.config(), previous, fetch, now="2026-10-27T16:00:00Z")
+            data["builds"][0]["build_id"] = "new-build"
+            collect(
+                self.config(),
+                current,
+                fetch,
+                now="2026-10-27T17:00:00Z",
+                previous_data=previous,
+            )
+            index = json.loads((current / "index.json").read_text())
+            self.assertEqual(index["versions"][0]["build_count"], 2)
+
+    def test_cli_marks_output_degraded_when_previous_history_is_invalid(self):
+        config = self.config()
+        config["sources"] = [config["sources"][1]]
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            sources = base / "sources.json"
+            sources.write_text(json.dumps(config))
+            output = base / "data"
+            output.mkdir()
+            (output / "index.json").write_text(
+                '{"collection_status":"complete","versions":[]}'
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve().parents[1] / "scripts/collect.py"),
+                    "--sources",
+                    str(sources),
+                    "--output-dir",
+                    str(output),
+                    "--previous-data",
+                    str(base / "missing"),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 1)
+            index = json.loads((output / "index.json").read_text())
+            self.assertEqual(index["collection_status"], "degraded")
+            self.assertEqual(index["versions"], [])
+
     def test_failed_source_does_not_become_healthy_or_reuse_previous_output(self):
         def fetch(url):
             raise OSError("offline")
 
         with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / "output.json").write_text('{"old": true}')
+            (Path(folder) / "index.json").write_text('{"old": true}')
             output = collect(
                 self.config(), Path(folder), fetch, now="2026-10-27T16:00:00Z"
             )
@@ -186,7 +267,7 @@ class CollectionTests(unittest.TestCase):
             self.assertEqual(output["sources"][0]["status"], "error")
             self.assertEqual(output["builds"], [])
             self.assertNotIn(
-                "old", json.loads((Path(folder) / "output.json").read_text())
+                "old", json.loads((Path(folder) / "index.json").read_text())
             )
 
     def test_duplicate_ids_and_path_traversal_fail_before_fetch(self):

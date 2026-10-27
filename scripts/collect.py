@@ -14,6 +14,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
+if __package__:
+    from .dataset import write_dataset
+else:
+    from dataset import write_dataset
+
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
 METRICS = (
     "tps_mean",
@@ -114,6 +119,10 @@ def normalize_qualification(source, data, url):
         require(row["build_id"] not in seen, "duplicate build_id")
         seen.add(row["build_id"])
         timestamp(row["generated_at"])
+        require(
+            type(row.get("run_attempt")) is int and row["run_attempt"] >= 0,
+            "run_attempt must be a nonnegative integer",
+        )
         require(type(row.get("qualified")) is bool, "qualified must be boolean")
         require(row.get("overall") in ("pass", "warn", "fail"), "invalid overall")
         require(isinstance(row.get("tests"), dict), "missing tests")
@@ -283,7 +292,7 @@ def write_json(path, data):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def collect(config, destination, fetch=fetch_json, now=None):
+def collect(config, destination, fetch=fetch_json, now=None, previous_data=None):
     validate_config(config)
     now = now or datetime.now(timezone.utc).isoformat()
     clock = timestamp(now)
@@ -355,21 +364,29 @@ def collect(config, destination, fetch=fetch_json, now=None):
                 latest_observation_at=latest.isoformat() if latest else None,
                 age_hours=round(age, 2) if age is not None else None,
                 record_count=len(rows),
-                destination=target,
+                destination=(
+                    "rocm/*/history/*.json"
+                    if target == "builds"
+                    else "performance/unassigned.json"
+                ),
                 stale_after_hours=source["stale_after_hours"],
             )
             output[target].extend(rows)
             if target == "measurements":
                 output["systems"].extend(systems)
             print(
-                f'{sid}: validated {len(rows)} records -> output.json/{target} ({state["status"]})',
+                f'{sid}: validated {len(rows)} records -> {state["destination"]} ({state["status"]})',
                 flush=True,
             )
         except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
             state.update(status="error", error=f"{type(error).__name__}: {error}")
             output["collection_status"] = "degraded"
             print(f'{sid}: ERROR {state["error"]}', file=sys.stderr, flush=True)
-    write_json(destination / "output.json", output)
+    output["dataset"] = write_dataset(output, destination, previous_data=previous_data)
+    print(
+        f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
+        flush=True,
+    )
     return output
 
 
@@ -377,13 +394,33 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sources", type=Path, default=Path("sources.json"))
     parser.add_argument("--output-dir", type=Path, default=Path("data"))
+    parser.add_argument(
+        "--previous-data",
+        type=Path,
+        help="Previous complete dataset to carry build history forward",
+    )
     args = parser.parse_args()
     try:
         output = collect(
-            json.loads(args.sources.read_text(encoding="utf-8")), args.output_dir
+            json.loads(args.sources.read_text(encoding="utf-8")),
+            args.output_dir,
+            previous_data=args.previous_data,
         )
     except (ValueError, KeyError, TypeError, OSError) as error:
-        print(f"Configuration error: {error}", file=sys.stderr)
+        print(f"Collection error: {error}", file=sys.stderr)
+        try:
+            write_json(
+                args.output_dir / "index.json",
+                {
+                    "schema_version": 2,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "collection_status": "degraded",
+                    "error": str(error),
+                    "versions": [],
+                },
+            )
+        except OSError as write_error:
+            print(f"Could not write diagnostic index: {write_error}", file=sys.stderr)
         return 1
     lines = [
         "## Data collection",

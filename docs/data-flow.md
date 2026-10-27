@@ -2,11 +2,11 @@
 
 ## Data sources
 
-| Name in the diagrams | Repository |
-| --- | --- |
-| llama.cpp data | [lemonade-sdk/llama.cpp](https://github.com/lemonade-sdk/llama.cpp) |
-| vLLM data | [lemonade-sdk/vllm-rocm](https://github.com/lemonade-sdk/vllm-rocm) |
-| Model performance data | [lemonade-sdk/lemonade](https://github.com/lemonade-sdk/lemonade) |
+| Data | Repository branch | JSON file |
+| --- | --- | --- |
+| llama.cpp | [llama.cpp / qualification-data](https://github.com/lemonade-sdk/llama.cpp/tree/qualification-data) | [qualification/index.json](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) |
+| vLLM | [vllm-rocm / qualification-data](https://github.com/lemonade-sdk/vllm-rocm/tree/qualification-data) | [qualification/index.json](https://github.com/lemonade-sdk/vllm-rocm/blob/qualification-data/qualification/index.json) |
+| Model performance | [lemonade / benchmark-data](https://github.com/lemonade-sdk/lemonade/tree/benchmark-data) | [leaderboard.json](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json) |
 
 ## 1. Scheduled ingestion
 

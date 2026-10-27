@@ -31,16 +31,22 @@ Manual and pull request runs follow the same steps.
 
 ## 2. Page load
 
-When someone opens the dashboard, the browser reads the published dataset.
+When someone opens the dashboard, the browser reads the version index and the
+overview for the selected ROCm version.
 
 ```mermaid
 flowchart LR
-    Open["Open dashboard"] --> Load["Load dataset<br/>output.json"]
+    Open["Open dashboard"] --> Index["Load version index"]
+    Index --> Load["Load selected version"]
     Load --> Display["Populate views"]
 ```
 
-Site publishing and page loading are planned. Publishing will place the dataset
-alongside the web app; each daily ingestion run will provide a new dataset.
+Each version's overview will group engine and model summaries. Selecting or
+comparing another version loads its overview; build details load when opened.
+The browser downloads the needed JSON from the site and processes it locally.
+
+Version-specific files, site publishing, and page loading are planned. The current
+collector writes one combined `output.json`.
 
 See [adding or changing a source](data-pipeline.md#adding-or-changing-a-source)
 for an example and the pull request workflow.

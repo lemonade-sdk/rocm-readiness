@@ -112,10 +112,9 @@ New records update matching `(source_id, build_id)` entries; older records and
 ROCm versions remain available. The collector projects only the fields used by
 the UI. Each monthly file groups many builds.
 
-Actions restores the last published dataset from the repository's `dashboard-data`
-branch. Final build/model records preserve history and verified attribution without
+Actions restores the last published dataset from `main/data/`. Final build/model records preserve history and verified attribution without
 raw files or intermediate evidence caches. The latest pointer identifies one
-immutable dataset commit. See [data publication](data-publication.md).
+immutable dataset commit in `main`. See [data publication](data-publication.md).
 
 Raw source copies, logs, errors files, and intermediate evidence stay in CI
 artifacts for 30 days. They provide diagnostics for that run.

@@ -1,4 +1,4 @@
-"""Restore and publish the final dashboard dataset on a dedicated Git branch."""
+"""Restore and publish the final dashboard dataset on the main branch."""
 
 import argparse
 from datetime import datetime, timezone
@@ -36,8 +36,8 @@ def resolve_remote(remote):
 
 
 def remote_head(remote, branch):
-    if branch in ("main", "master"):
-        raise ValueError("publication requires a dedicated data branch")
+    if branch != "main":
+        raise ValueError("publication target must be main")
     git(None, "check-ref-format", f"refs/heads/{branch}")
     result = git(
         None,
@@ -165,7 +165,9 @@ def valid_sync(dataset):
 
 
 def pointer(root):
-    latest = read_json(root / "latest.json")
+    if (root / "data").is_symlink():
+        raise ValueError("unsafe data directory")
+    latest = read_json(root / "data/latest.json")
     commit = latest.get("data_commit")
     if (
         latest.get("schema_version") != 1
@@ -178,7 +180,7 @@ def pointer(root):
         or not re.fullmatch(
             r"https://raw\.githubusercontent\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/"
             + commit
-            + r"/index\.json",
+            + r"/data/index\.json",
             latest["index_url"],
         )
     ):
@@ -186,26 +188,59 @@ def pointer(root):
     return latest
 
 
-def restore(remote, branch, work_dir, output_dir, state_file):
+def restore(remote, branch, work_dir, output_dir, state_file, source_commit=None):
     resolved = resolve_remote(remote)
     Path(state_file).unlink(missing_ok=True)
     head = remote_head(resolved, branch)
+    if head is None:
+        raise ValueError("main branch does not exist")
     tmp, root = scratch(work_dir, resolved, head)
     try:
+        if source_commit is not None:
+            if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+                raise ValueError("invalid source commit")
+            if git(
+                root, "cat-file", "-e", f"{source_commit}^{{commit}}", check=False
+            ).returncode:
+                raise ValueError("source commit is unavailable")
+            diff = git(
+                root,
+                "diff",
+                "--quiet",
+                source_commit,
+                head,
+                "--",
+                ".",
+                ":(exclude,top)data",
+                check=False,
+            )
+            if diff.returncode == 1:
+                raise ValueError("source tree changed since the workflow started")
+            if diff.returncode:
+                raise ValueError(f"cannot compare source commit: {diff.stderr.strip()}")
         out = Path(output_dir)
         staging = Path(tempfile.mkdtemp(dir=Path(work_dir), prefix="restore-"))
         try:
-            if head:
+            if (root / "data").is_symlink():
+                raise ValueError("unsafe data directory")
+            if (root / "data/latest.json").exists() or (
+                root / "data/latest.json"
+            ).is_symlink():
                 latest = pointer(root)
                 commit = latest["data_commit"]
                 if commit:
                     git(root, "cat-file", "-e", f"{commit}^{{commit}}")
                     git(root, "merge-base", "--is-ancestor", commit, head)
-                    tree = git(root, "ls-tree", "-r", "-z", commit).stdout
+                    tree = git(
+                        root, "ls-tree", "-r", "-z", commit, "--", "data/"
+                    ).stdout
                     for entry in tree.split("\0"):
                         if not entry:
                             continue
                         meta, name = entry.split("\t", 1)
+                        if not name.startswith("data/"):
+                            raise ValueError("unexpected published path")
+                        name = name[len("data/") :]
                         mode, kind, obj = meta.split()
                         if (
                             mode != "100644"
@@ -259,7 +294,17 @@ def restore(remote, branch, work_dir, output_dir, state_file):
         tmp.cleanup()
 
 
-def publish(remote, branch, repository, work_dir, dataset, state_file):
+def publish(
+    remote,
+    branch,
+    repository,
+    work_dir,
+    dataset,
+    state_file,
+    collection_result="success",
+):
+    if collection_result not in ("success", "failure", "cancelled", "skipped"):
+        raise ValueError("invalid collection result")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise ValueError("invalid repository")
     state = read_json(Path(state_file))
@@ -274,15 +319,24 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
     ):
         raise ValueError("invalid publication state")
     expected = state["head"]
+    if expected is None:
+        raise ValueError("main branch does not exist")
     resolved = resolve_remote(remote)
     if remote_head(resolved, branch) != expected:
         raise ValueError("remote branch changed since restore")
     tmp, root = scratch(work_dir, resolved, expected)
     try:
-        prior = pointer(root) if expected else {"data_commit": None, "index_url": None}
+        if (root / "data").is_symlink():
+            raise ValueError("unsafe data directory")
+        has_pointer = (root / "data/latest.json").exists() or (
+            root / "data/latest.json"
+        ).is_symlink()
+        prior = (
+            pointer(root) if has_pointer else {"data_commit": None, "index_url": None}
+        )
         dataset = Path(dataset)
         prior_sync = prior.get("sync")
-        if expected and prior_sync is None:
+        if has_pointer and prior_sync is None:
             raise ValueError("published pointer is missing sync metadata")
         if prior_sync is not None:
             with tempfile.TemporaryDirectory() as temp:
@@ -316,6 +370,19 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
 
         try:
             sync = valid_sync(dataset)
+            if collection_result != "success" and (
+                sync["status"] != "failed"
+                or (
+                    prior_sync
+                    and datetime.fromisoformat(
+                        sync["attempted_at"].replace("Z", "+00:00")
+                    )
+                    <= datetime.fromisoformat(
+                        prior_sync["attempted_at"].replace("Z", "+00:00")
+                    )
+                )
+            ):
+                raise ValueError("fresh failure metadata unavailable")
             if prior_sync and datetime.fromisoformat(
                 sync["attempted_at"].replace("Z", "+00:00")
             ) < datetime.fromisoformat(
@@ -325,6 +392,8 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
             if sync["status"] == "failed":
                 sync = {**sync, "last_successful_at": last_success}
         except (ValueError, KeyError, TypeError, OSError) as error:
+            if collection_result != "success":
+                error = f"collection job {collection_result}; fresh failure metadata unavailable: {error}"
             sync = failure(error)
         success = sync["status"] == "success"
         if success:
@@ -336,11 +405,14 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
                 success = False
                 sync = failure(error)
         if success:
-            for child in root.iterdir():
-                if child.name != ".git":
-                    shutil.rmtree(child) if child.is_dir() else child.unlink()
+            git(root, "switch", "-c", "dashboard-data")
+            data_root = root / "data"
+            if data_root.exists():
+                if not data_root.is_dir():
+                    raise ValueError("unsafe data directory")
+                shutil.rmtree(data_root)
             for relative in paths:
-                target = root / relative
+                target = data_root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if relative == "index.json":
                     index = read_json(dataset / relative)
@@ -349,13 +421,16 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
                     write(target, index)
                 else:
                     shutil.copyfile(checked(dataset, relative), target)
-            write(root / "sync.json", {"schema_version": 1, "sync": sync})
-            git(root, "add", "-A")
+            write(data_root / "sync.json", {"schema_version": 1, "sync": sync})
+            git(root, "add", "-f", "-A", "--", "data")
+            git(root, "commit", "--allow-empty", "-qm", "Stage dashboard data")
+            git(root, "checkout", "-q", "--detach", expected)
+            git(root, "merge", "--squash", "dashboard-data")
             git(root, "commit", "--allow-empty", "-qm", "Publish dashboard data")
             commit = git(root, "rev-parse", "HEAD").stdout.strip()
             prior = {
                 "data_commit": commit,
-                "index_url": f"https://raw.githubusercontent.com/{repository}/{commit}/index.json",
+                "index_url": f"https://raw.githubusercontent.com/{repository}/{commit}/data/index.json",
             }
         latest = {
             "schema_version": 1,
@@ -363,8 +438,8 @@ def publish(remote, branch, repository, work_dir, dataset, state_file):
             "index_url": prior["index_url"],
             "sync": sync,
         }
-        write(root / "latest.json", latest)
-        git(root, "add", "latest.json")
+        write(root / "data/latest.json", latest)
+        git(root, "add", "-f", "--", "data/latest.json")
         git(
             root,
             "commit",
@@ -396,14 +471,20 @@ def main():
     for name in ("restore", "publish"):
         p = sub.add_parser(name)
         p.add_argument("--remote", required=True)
-        p.add_argument("--branch", default="dashboard-data")
+        p.add_argument("--branch", default="main")
         p.add_argument("--work-dir", type=Path, required=True)
         p.add_argument("--state-file", type=Path, required=True)
         if name == "restore":
             p.add_argument("--output-dir", type=Path, required=True)
+            p.add_argument("--source-commit")
         else:
             p.add_argument("--repository", required=True)
             p.add_argument("--dataset", type=Path, required=True)
+            p.add_argument(
+                "--collection-result",
+                choices=("success", "failure", "cancelled", "skipped"),
+                default="success",
+            )
     args = parser.parse_args()
     try:
         if args.command == "restore":
@@ -413,6 +494,7 @@ def main():
                 args.work_dir,
                 args.output_dir,
                 args.state_file,
+                source_commit=args.source_commit,
             )
             return 0
         return (
@@ -424,6 +506,7 @@ def main():
                 args.work_dir,
                 args.dataset,
                 args.state_file,
+                collection_result=args.collection_result,
             )
             else 1
         )

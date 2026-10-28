@@ -16,15 +16,17 @@ The daily job reads the source list, fetches the latest data, and combines it.
 flowchart LR
     Config["Source list<br/>sources.json"] --> Fetch["Fetch JSON"]
     subgraph Data["Data"]
-        Sources["llama.cpp<br/>vLLM<br/>Model performance"]
+        LlamaCpp["llama.cpp"]
+        Vllm["vLLM"]
+        Performance["Model performance"]
     end
-    Fetch -->|Request| Sources
-    Sources -->|JSON response| Fetch
+    Fetch <-->|Request| Data
     Fetch --> Map["Map fields<br/>Associate stable packages"]
     Map --> Output["Version index<br/>Builds + model performance"]
-    Fetch --> Copies["Save source copies"]
-    Output --> Publish["Commit final JSON<br/>dashboard-data branch"]
-    Publish --> Latest["latest.json<br/>Pinned dataset + sync"]
+    Map --> Copies["Save source copies"]
+    Output --> Publish["Stage final JSON<br/>Working branch"]
+    Publish --> Main["Squash into main<br/>data/"]
+    Main --> Latest["latest.json<br/>Pinned dataset + sync"]
     Copies --> Artifact["CI evidence<br/>30 days"]
     Map --> Sync["Sync status + errors"]
     Sync --> Artifact
@@ -34,8 +36,9 @@ flowchart LR
 Fetch JSON requests each source file and receives its JSON response.
 Each entry in the source list specifies a repository, branch, file, and mapping.
 The job groups builds by ROCm version, writes compact summaries and monthly
-history chunks. Trusted main runs commit final JSON and update the latest pointer.
-Each run restores build and model history from the published data branch.
+history chunks. Trusted runs stage final JSON on a temporary working branch,
+squash those changes into `main`, and update the latest pointer in the same push.
+Each run restores build and model history from `main/data/`.
 Stable package associations use saved evidence and authenticated benchmark job logs.
 PR runs validate and upload temporary artifacts. Raw copies and logs remain in
 those artifacts. Failed main runs update only the latest sync status.

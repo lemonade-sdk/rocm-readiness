@@ -1,0 +1,103 @@
+name: Collect dashboard data
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['data/**']
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 11 * * *'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: collect-data-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Create fresh run output
+        run: |
+          output_dir=$(mktemp -d "$RUNNER_TEMP/readiness-output.XXXXXX")
+          printf 'DATA_OUTPUT=%s\n' "$output_dir" >> "$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.13.6'
+          enable-cache: false
+      - name: Restore published dataset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          args=(--remote "https://github.com/${GH_REPO}.git" --branch main
+                --work-dir publication-work --output-dir previous-data
+                --state-file "$DATA_OUTPUT/publication-state.json")
+          if [ "$GITHUB_REF" = 'refs/heads/main' ]; then
+            args+=(--source-commit "$GITHUB_SHA")
+          fi
+          uv run --no-project --python 3.12 python scripts/publish.py restore "${args[@]}"
+      - name: Run pipeline tests and ingestion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(--sources sources.json --output-dir "$DATA_OUTPUT")
+          if [ -f previous-data/index.json ]; then
+            args+=(--previous-data previous-data)
+          fi
+          uv run --no-project --python 3.12 python scripts/check.py "${args[@]}"
+      - name: Upload dataset and source evidence
+        if: ${{ always() && env.DATA_OUTPUT != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: readiness-data-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.DATA_OUTPUT }}/
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    needs: collect
+    if: ${{ always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.collect.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.13.6'
+          enable-cache: false
+      - name: Publish validated data or latest failure status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_ATTEMPT: ${{ github.run_attempt }}
+          COLLECTION_RESULT: ${{ needs.collect.result }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          artifact_dir=$(mktemp -d "$RUNNER_TEMP/readiness-download.XXXXXX")
+          gh run download "$GH_RUN_ID" --repo "$GH_REPO" \
+            --name "readiness-data-${GH_RUN_ID}-${GH_RUN_ATTEMPT}" --dir "$artifact_dir"
+          gh auth setup-git
+          uv run --no-project --python 3.12 python scripts/publish.py publish \
+            --remote "https://github.com/${GH_REPO}.git" --branch main \
+            --repository "$GH_REPO" --work-dir publication-work \
+            --dataset "$artifact_dir" --state-file "$artifact_dir/publication-state.json" \
+            --collection-result "$COLLECTION_RESULT"

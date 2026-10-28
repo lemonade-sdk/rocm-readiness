@@ -21,14 +21,14 @@ flowchart LR
         Performance["Model performance"]
     end
     Fetch <-->|Request| Data
-    Fetch --> Map["Map fields<br/>Associate stable packages"]
-    Map --> Output["Version index<br/>Builds + model performance"]
+    Fetch --> Map["Mapping"]
+    Map --> Output["Indexing"]
     Map --> Copies["Save source copies"]
-    Output --> Publish["Stage final JSON<br/>Working branch"]
-    Publish --> Main["Squash into main<br/>data/"]
+    Output --> Publish["Stage final JSON"]
+    Publish --> Main["Squash into main"]
     Main --> Latest["latest.json<br/>Pinned dataset + sync"]
-    Copies --> Artifact["CI evidence<br/>30 days"]
-    Map --> Sync["Sync status + errors"]
+    Copies --> Artifact["CI evidence<br/>30D retention"]
+    Map --> Sync["Sync status"]
     Sync --> Artifact
     Sync --> Latest
 ```

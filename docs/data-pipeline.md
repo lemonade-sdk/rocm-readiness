@@ -23,6 +23,20 @@ No separate ROCm nightly feed is enabled. vLLM scope is unchanged, including its
 available stable/nightly Linux history. Whisper and Stable Diffusion remain
 `availability: "awaiting_data"` until their producers supply data.
 
+## What we retain
+
+| Source | Data kept in the published dataset |
+| --- | --- |
+| llama.cpp qualification index | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts and test counts, GPU coverage, hardware-validation flag, dates, and evidence links |
+| vLLM qualification index | The same available build-summary fields, including each Linux build's stable/nightly channel |
+| Lemonade leaderboard | Stable llama.cpp model/workload/quantization, throughput/latency/VRAM metrics, hardware, producer accuracy when supplied, benchmark date/run link, and verified engine tag/package/ROCm association |
+| Whisper / Stable Diffusion | None yet; awaiting producer feeds |
+
+Qualification `results` (individual test statuses) are currently omitted from the
+published summaries. Full reports and `latest/` files are not fetched; report
+links are retained. [#11](https://github.com/lemonade-sdk/rocm-readiness/issues/11)
+tracks deciding which additional fields the dashboard needs.
+
 ## Adding or changing a source
 
 A source points to one entry file on a producer branch. For example:

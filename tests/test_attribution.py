@@ -48,6 +48,94 @@ def evidence(**changes):
 
 
 class AttributionTests(unittest.TestCase):
+    def test_reuses_only_the_same_previously_assigned_observation(self):
+        original = measurement(
+            model="m",
+            scenario="s",
+            quant="q",
+            system_id="gpu",
+            context_size=1024,
+            input_tokens=32,
+            source_url="https://raw.githubusercontent.com/a/b/"
+            + "a" * 40
+            + "/data.json",
+        )
+        attribute_stable({"measurements": [original]}, [evidence()])
+        current = measurement(
+            model="m",
+            scenario="s",
+            quant="q",
+            system_id="gpu",
+            context_size=1024,
+            input_tokens=32,
+            source_url="https://raw.githubusercontent.com/a/b/"
+            + "b" * 40
+            + "/data.json",
+            metrics={"tps": 17},
+        )
+
+        def unavailable(row):
+            raise OSError("logs unavailable")
+
+        attribute_stable(
+            {"measurements": [current]},
+            [],
+            unavailable,
+            previous_measurements=[original],
+        )
+        self.assertEqual(current["package_url"], PACKAGE)
+        self.assertEqual(current["attribution"]["log_sha256"], "a" * 64)
+        self.assertEqual(current["metrics"], {"tps": 17})
+        with self.assertRaises(PipelineValidationError):
+            attribute_stable(
+                {
+                    "measurements": [
+                        dict(current, package_url=PACKAGE.replace("10.1", "10.0"))
+                    ]
+                },
+                [evidence()],
+                previous_measurements=[original],
+            )
+        with self.assertRaises(PipelineValidationError):
+            attribute_stable(
+                {
+                    "measurements": [
+                        measurement(
+                            model="m",
+                            scenario="s",
+                            quant="q",
+                            system_id="gpu",
+                            context_size=1024,
+                            input_tokens=32,
+                            source_url=original["source_url"],
+                        )
+                    ]
+                },
+                [evidence(package_url=PACKAGE.replace("10.1", "10.0"))],
+                previous_measurements=[original],
+            )
+        for field, value in (
+            ("engine_version", "b124"),
+            ("run_id", "43"),
+            ("engine_repository", "other/repo"),
+            ("system_id", "other"),
+            ("context_size", 2048),
+            ("model", "unknown"),
+            (
+                "source_url",
+                "https://raw.githubusercontent.com/c/d/" + "b" * 40 + "/data.json",
+            ),
+            ("package_url", PACKAGE.replace("10.1", "10.0")),
+        ):
+            with self.subTest(field=field), self.assertRaises(PipelineValidationError):
+                changed = dict(current, **{field: value})
+                attribute_stable(
+                    {"measurements": [changed]},
+                    [],
+                    unavailable,
+                    previous_measurements=[original],
+                )
+
     def test_exact_package_assigns_rocm_and_retains_evidence(self):
         row = measurement()
         output = {"measurements": [row]}

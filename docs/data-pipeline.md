@@ -65,7 +65,8 @@ the benchmark feed uses `forks` to map backend variants. Both examples are in
 
 ## Generated files
 
-The UI dataset uses schema version 2:
+Local/CI output uses dataset schema version 2. The publication step retains the
+final files described in [data publication](data-publication.md):
 
 ```text
 data/
@@ -111,11 +112,13 @@ New records update matching `(source_id, build_id)` entries; older records and
 ROCm versions remain available. The collector projects only the fields used by
 the UI. Each monthly file groups many builds.
 
-Actions restores the latest successful main-branch dataset before ingestion.
-Each successful run carries that history into its new artifact. Artifacts are
-retained for 30 days; after an interruption longer than retention, restore a
-saved dataset before resuming the history chain. Assigned model measurements,
-their hardware descriptions, and package evidence also carry forward across runs.
+Actions restores the last published dataset from the repository's `dashboard-data`
+branch. Final build/model records preserve history and verified attribution without
+raw files or intermediate evidence caches. The latest pointer identifies one
+immutable dataset commit. See [data publication](data-publication.md).
+
+Raw source copies, logs, errors files, and intermediate evidence stay in CI
+artifacts for 30 days. They provide diagnostics for that run.
 
 ## Stable model associations
 
@@ -150,8 +153,8 @@ an agreed readiness accuracy verdict.
 Actions runs `scripts/check.py`, the same test-and-ingestion entry point used
 locally. It runs on PRs, main pushes, manual dispatch, and daily at 11:17 UTC. Each run
 logs fetched sources, validation, record counts, and generated destinations. The
-job summary and downloadable artifact provide the run's evidence. Site publishing
-and browser views are the next implementation stage.
+job summary and downloadable artifact provide the run's evidence. Trusted main
+runs publish finalized JSON; browser views are the next implementation stage.
 
 ## Synchronization status
 
@@ -160,6 +163,6 @@ The common `sync` object has `attempted_at`, `status` (`success` or `failed`),
 time and identify the affected source and field. A failed test gate records the
 same status before ingestion.
 
-The app can read `sync.json` independently to display an error beside the last
-successful dataset. Site publishing should refresh this status on failed attempts
-and publish dataset files only after successful validation.
+In published data, the app reads the current `sync` object from `latest.json`.
+A failed run updates that status while preserving the pointer to the last good
+dataset. The dataset's embedded sync metadata describes its own successful run.

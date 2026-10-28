@@ -16,12 +16,12 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .attribution import attribute_stable, resolve_package
-    from .dataset import write_dataset
+    from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
 else:
     from attribution import attribute_stable, resolve_package
-    from dataset import write_dataset
+    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
 
@@ -753,25 +753,33 @@ def collect(
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
     write_json(destination / "errors.json", {"errors": output["errors"]})
     evidence = list(package_evidence or [])
+    previous_measurements = []
+    system_matches = None
     if previous_data is not None:
-        previous_root = Path(previous_data).resolve()
-        prior_evidence = previous_root / "provenance/packages.json"
-        if prior_evidence.exists():
-            prior_evidence.resolve().relative_to(previous_root)
-            saved = json.loads(prior_evidence.read_text(encoding="utf-8"))
-            if (
-                not isinstance(saved, dict)
-                or saved.get("schema_version") != 1
-                or not isinstance(saved.get("packages"), list)
-            ):
-                raise PipelineValidationError(
-                    "package-evidence",
-                    str(prior_evidence),
-                    "package_evidence",
-                    "invalid previous package evidence",
+        _, prior_measurements, prior_systems = _load_previous(previous_data)
+        current_systems = {
+            (system["source_id"], system["id"]): system for system in output["systems"]
+        }
+        previous_measurements = prior_measurements.values()
+
+        def system_matches(row, previous):
+            current = current_systems.get((row["source_id"], row["system_id"]))
+            old = prior_systems.get(
+                (previous["rocm_version"], previous["source_id"], previous["system_id"])
+            )
+            return (
+                current is not None
+                and old is not None
+                and all(
+                    current.get(field) == old.get(field)
+                    for field in SYSTEM_FIELDS
+                    if field not in ("id", "source_pointer")
                 )
-            evidence.extend(saved["packages"])
-    attribute_stable(output, evidence, resolve_packages)
+            )
+
+    attribute_stable(
+        output, evidence, resolve_packages, previous_measurements, system_matches
+    )
     for source in output["sources"]:
         if source["adapter"] == "lemonade-leaderboard-v1" and source["status"] not in (
             "error",

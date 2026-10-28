@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: collect-data-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   collect:
@@ -28,18 +28,18 @@ jobs:
         with:
           version: '0.13.6'
           enable-cache: false
-      - name: Restore previous main dataset
+      - name: Restore published dataset
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          GIT_TERMINAL_PROMPT: '0'
         run: |
           set -euo pipefail
-          prior_record=$(gh api "repos/${GH_REPO}/actions/workflows/collect-data.yml/runs?branch=main&status=success&per_page=1" --jq '.workflow_runs[0] | if . then "\(.id) \(.run_attempt)" else "" end')
-          if [ -n "$prior_record" ]; then
-            read -r prior_run_id prior_attempt <<< "$prior_record"
-            gh run download "$prior_run_id" --pattern "readiness-data-${prior_run_id}-${prior_attempt}" --dir previous-data
-            test -f previous-data/index.json
-          fi
+          gh auth setup-git
+          uv run --no-project --python 3.12 python scripts/publish.py restore \
+            --remote "https://github.com/${GH_REPO}.git" --branch dashboard-data \
+            --work-dir publication-work --output-dir previous-data \
+            --state-file data/publication-state.json
       - name: Run pipeline tests and ingestion
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,3 +57,36 @@ jobs:
           path: data/
           if-no-files-found: warn
           retention-days: 30
+
+  publish:
+    needs: collect
+    if: ${{ always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.collect.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.13.6'
+          enable-cache: false
+      - name: Publish validated data or latest failure status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_RUN_ATTEMPT: ${{ github.run_attempt }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          set -euo pipefail
+          gh run download "$GH_RUN_ID" --repo "$GH_REPO" \
+            --name "readiness-data-${GH_RUN_ID}-${GH_RUN_ATTEMPT}" --dir data
+          gh auth setup-git
+          uv run --no-project --python 3.12 python scripts/publish.py publish \
+            --remote "https://github.com/${GH_REPO}.git" --branch dashboard-data \
+            --repository "$GH_REPO" --work-dir publication-work \
+            --dataset data --state-file data/publication-state.json

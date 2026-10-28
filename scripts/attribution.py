@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import subprocess
+from urllib.parse import urlparse
 
 if __package__:
     from .validation import PipelineValidationError
@@ -225,7 +226,9 @@ def resolve_package(row, run=_gh):
     return record
 
 
-def attribute_stable(output, evidence, resolve=None):
+def attribute_stable(
+    output, evidence, resolve=None, previous_measurements=(), system_matches=None
+):
     _require(isinstance(evidence, list), "package evidence must be an array")
     records = []
     identities = {}
@@ -286,6 +289,25 @@ def attribute_stable(output, evidence, resolve=None):
                 "package-evidence", f"/packages/{index}", "package_evidence", str(error)
             ) from error
     resolved = {}
+    identity_fields = (
+        "source_id",
+        "fork_id",
+        "engine_version",
+        "model",
+        "scenario",
+        "quant",
+        "measured_at",
+        "run_id",
+        "engine",
+        "engine_repository",
+        "channel",
+        "backend",
+        "run_url",
+    )
+    prior = {}
+    for previous in previous_measurements:
+        key = tuple(previous.get(field) for field in identity_fields)
+        prior.setdefault(key, []).append(previous)
     for row in output["measurements"]:
         if not (
             row["engine"] == "llamacpp"
@@ -310,6 +332,63 @@ def attribute_stable(output, evidence, resolve=None):
                 "package_evidence",
                 "conflicting measurement package evidence",
             )
+        prior_key = tuple(row.get(field) for field in identity_fields)
+        previous_rows = prior.get(prior_key, [])
+        if len(previous_rows) == 1:
+            previous = previous_rows[0]
+            current_url = urlparse(row.get("source_url") or "")
+            previous_url = urlparse(previous.get("source_url") or "")
+            current_origin = (current_url.netloc, current_url.path.split("/")[1:3])
+            previous_origin = (previous_url.netloc, previous_url.path.split("/")[1:3])
+            consistent = all(
+                row.get(field) is None or row[field] == previous.get(field)
+                for field in ("package_url", "package_os", "rocm_version")
+            ) and (
+                row.get("attribution") is None
+                or row["attribution"] == previous.get("attribution")
+            )
+            if current_origin == previous_origin and (
+                not consistent
+                or any(
+                    item["package_url"] != previous["package_url"]
+                    for item in candidates
+                )
+            ):
+                raise PipelineValidationError(
+                    row["source_id"],
+                    row["source_pointer"],
+                    "package_evidence",
+                    "conflicting previously verified package attribution",
+                )
+            compatible_context = all(
+                row.get(field) is None or row[field] == previous.get(field)
+                for field in ("context_size", "input_tokens")
+            ) and (
+                row.get("system_id") is None
+                or (
+                    system_matches(row, previous)
+                    if system_matches is not None
+                    else row["system_id"] == previous.get("system_id")
+                )
+            )
+            if (
+                current_origin == previous_origin
+                and compatible_context
+                and not candidates
+            ):
+                row.update(
+                    rocm_version=previous["rocm_version"],
+                    package_url=previous["package_url"],
+                    package_os=previous["package_os"],
+                    attribution={
+                        "status": "rocm_identified",
+                        "evidence_url": previous["attribution"]["evidence_url"],
+                        "log_sha256": previous["attribution"]["log_sha256"],
+                        "package_url": previous["package_url"],
+                    },
+                    qualification_build_id=None,
+                )
+                continue
         if not candidates and resolve is not None:
             try:
                 item = resolve(row)

@@ -459,7 +459,7 @@ class CollectionTests(unittest.TestCase):
                 index["errors"],
             )
 
-    def test_malformed_previous_provenance_rejected(self):
+    def test_missing_previous_final_dataset_rejected(self):
         def fetch(url):
             return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
 
@@ -467,7 +467,7 @@ class CollectionTests(unittest.TestCase):
             root = Path(folder)
             (root / "prior/provenance").mkdir(parents=True)
             (root / "prior/provenance/packages.json").write_text("[]")
-            with self.assertRaises(PipelineValidationError) as raised:
+            with self.assertRaises(ValueError):
                 collect(
                     self.config(),
                     root / "new",
@@ -475,7 +475,6 @@ class CollectionTests(unittest.TestCase):
                     now="2026-10-27T12:00:00Z",
                     previous_data=root / "prior",
                 )
-            self.assertEqual(raised.exception.diagnostic["field"], "package_evidence")
 
     def test_source_failure_publishes_contextual_errors(self):
         def fetch(url):
@@ -798,7 +797,7 @@ class StableIntegrationTests(unittest.TestCase):
         }
         config["sources"] = [source]
         data = {
-            "systems": [],
+            "systems": [{"id": "system-1", "gpu": "gfx1151", "os": "linux"}],
             "by_model_scenario": {
                 "model|scenario": [
                     {
@@ -809,6 +808,9 @@ class StableIntegrationTests(unittest.TestCase):
                         "timestamp": "2026-10-27T10:05:00Z",
                         "run_id": "42",
                         "run_url": measurement()["run_url"],
+                        "hw_id": "system-1",
+                        "ctx_size": 2048,
+                        "input_tokens": 32,
                         "tps_mean": 12,
                         "ttft_ms_mean": 100,
                         "accuracy": 0.8,
@@ -846,3 +848,161 @@ class StableIntegrationTests(unittest.TestCase):
             self.assertIn("/" + "a" * 40 + "/", perf["measurements"][0]["source_url"])
             saved = json.loads((Path(folder) / "provenance/packages.json").read_text())
             self.assertEqual(saved["packages"], [evidence()])
+
+            import shutil
+
+            previous = Path(folder) / "previous"
+            previous.mkdir()
+            shutil.copy(Path(folder) / "index.json", previous / "index.json")
+            shutil.copytree(Path(folder) / "rocm", previous / "rocm")
+
+            def unavailable(row):
+                raise OSError("logs unavailable")
+
+            data["by_model_scenario"]["model|scenario"][0]["tps_mean"] = 15
+            fresh = Path(folder) / "fresh"
+            collect(
+                config,
+                fresh,
+                fetch,
+                now="2026-10-27T12:00:00Z",
+                previous_data=previous,
+                resolve_packages=unavailable,
+            )
+            result = json.loads((fresh / "rocm/10.1/performance.json").read_text())
+            self.assertEqual(result["measurements"][0]["metrics"]["tps_mean"], 15)
+            self.assertEqual(
+                result["measurements"][0]["attribution"]["log_sha256"], "a" * 64
+            )
+
+            latest = data["by_model_scenario"].pop("model|scenario")[0]
+            data["systems"] = []
+            data["history"] = {
+                "model": {
+                    "scenario": {
+                        "llamacpp-rocm-stable": [
+                            {
+                                "version": "b123",
+                                "timestamp": latest["timestamp"],
+                                "run_id": "42",
+                                "run_url": latest["run_url"],
+                                "tps_mean": 16,
+                                "ttft_ms_mean": 100,
+                            }
+                        ]
+                    }
+                }
+            }
+            sparse = Path(folder) / "sparse"
+            collect(
+                config,
+                sparse,
+                fetch,
+                now="2026-10-27T12:00:00Z",
+                previous_data=previous,
+                resolve_packages=unavailable,
+            )
+            sparse_result = json.loads(
+                (sparse / "rocm/10.1/performance.json").read_text()
+            )
+            self.assertEqual(
+                sparse_result["measurements"][0]["metrics"]["tps_mean"], 16
+            )
+            self.assertEqual(sparse_result["measurements"][0]["system_id"], "system-1")
+            self.assertEqual(sparse_result["measurements"][0]["context_size"], 2048)
+            self.assertEqual(sparse_result["measurements"][0]["input_tokens"], 32)
+            self.assertEqual(sparse_result["systems"][0]["gpu"], "gfx1151")
+            data["history"] = {}
+            data["systems"] = [{"id": "system-1", "gpu": "gfx1151", "os": "linux"}]
+            data["by_model_scenario"]["model|scenario"] = [latest]
+
+            data["systems"][0]["gpu"] = "gfx9999"
+            with self.assertRaises(PipelineValidationError):
+                collect(
+                    config,
+                    Path(folder) / "hardware",
+                    fetch,
+                    now="2026-10-27T12:00:00Z",
+                    previous_data=previous,
+                    resolve_packages=unavailable,
+                )
+            data["systems"][0]["gpu"] = "gfx1151"
+            data["by_model_scenario"]["model|scenario"][0]["fork_version"] = "b124"
+            with self.assertRaises(PipelineValidationError):
+                collect(
+                    config,
+                    Path(folder) / "changed",
+                    fetch,
+                    now="2026-10-27T12:00:00Z",
+                    previous_data=previous,
+                    resolve_packages=unavailable,
+                )
+
+            latest.update(
+                fork_version="b123",
+                run_id="43",
+                run_url=latest["run_url"].replace("/42", "/43"),
+                timestamp="2026-10-27T10:06:00Z",
+            )
+            data["systems"][0]["gpu"] = "gfx9999"
+            next_data = Path(folder) / "next"
+            collect(
+                config,
+                next_data,
+                fetch,
+                now="2026-10-27T12:00:00Z",
+                previous_data=previous,
+                package_evidence=[
+                    evidence(
+                        run_id="43",
+                        evidence_url="https://github.com/lemonade-sdk/lemonade/actions/runs/43/job/99",
+                    )
+                ],
+                resolve_packages=unavailable,
+            )
+            next_performance = json.loads(
+                (next_data / "rocm/10.1/performance.json").read_text()
+            )
+            changed_row = next(
+                row for row in next_performance["measurements"] if row["run_id"] == "43"
+            )
+            self.assertTrue(changed_row["system_id"].startswith("system-1--"))
+            next_previous = Path(folder) / "next-previous"
+            next_previous.mkdir()
+            shutil.copy(next_data / "index.json", next_previous / "index.json")
+            shutil.copytree(next_data / "rocm", next_previous / "rocm")
+            again = Path(folder) / "again"
+            collect(
+                config,
+                again,
+                fetch,
+                now="2026-10-27T12:00:00Z",
+                previous_data=next_previous,
+                resolve_packages=unavailable,
+            )
+            again_performance = json.loads(
+                (again / "rocm/10.1/performance.json").read_text()
+            )
+            restored = next(
+                row
+                for row in again_performance["measurements"]
+                if row["run_id"] == "43"
+            )
+            restored_system = next(
+                system
+                for system in again_performance["systems"]
+                if system["id"] == restored["system_id"]
+            )
+            self.assertEqual(restored_system["gpu"], "gfx9999")
+            self.assertEqual(restored["attribution"]["log_sha256"], "a" * 64)
+
+            (previous / "rocm/10.1/overview.json").write_text("{}")
+            with self.assertRaises(ValueError):
+                collect(
+                    config,
+                    Path(folder) / "invalid",
+                    fetch,
+                    now="2026-10-27T12:00:00Z",
+                    previous_data=previous,
+                    resolve_packages=unavailable,
+                )

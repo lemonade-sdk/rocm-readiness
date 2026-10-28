@@ -5,8 +5,10 @@ import tempfile
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 
 from scripts.collect import collect, normalize_qualification, normalize_performance
+from scripts.validation import PipelineValidationError
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -16,6 +18,54 @@ def fixture(name):
 
 
 class QualificationTests(unittest.TestCase):
+    def test_qualification_diagnostic_has_exact_field_and_record(self):
+        data = fixture("llama.json")
+        del data["builds"][0]["tag"]
+        with self.assertRaises(PipelineValidationError) as raised:
+            normalize_qualification(
+                {"id": "llama", "engine": "llamacpp", "channel": "stable"},
+                data,
+                "https://example.com/index.json",
+            )
+        self.assertEqual(raised.exception.diagnostic["record"], "/builds/0")
+        self.assertEqual(raised.exception.diagnostic["field"], "tag")
+
+    def test_qualification_requires_test_counts(self):
+        for field in ("passed", "failed", "total"):
+            data = fixture("llama.json")
+            del data["builds"][0]["tests"][field]
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_qualification(
+                    {"id": "llama", "engine": "llamacpp", "channel": "stable"},
+                    data,
+                    "https://example.com/index.json",
+                )
+            self.assertEqual(raised.exception.diagnostic["field"], f"tests/{field}")
+
+    def test_qualification_projection_types_have_source_context(self):
+        for field, value, expected in (
+            ("artifact", [], "artifact"),
+            ("gfx_target", {}, "gfx_target"),
+            ("gfx", {"requested": -1}, "gfx/requested"),
+            ("gfx", {"missing": [1]}, "gfx/missing"),
+            ("blocked_by", [1], "blocked_by"),
+            ("blocking_tests", "bad", "blocking_tests"),
+        ):
+            data = fixture("llama.json")
+            data["builds"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_qualification(
+                    {"id": "llama", "engine": "llamacpp", "channel": "stable"},
+                    data,
+                    "https://example.com/index.json",
+                )
+            self.assertEqual(raised.exception.diagnostic["field"], expected)
+            self.assertEqual(raised.exception.diagnostic["record"], "/builds/0")
+
     def test_preserves_producer_gate_despite_warnings_and_missing_tests(self):
         source = {
             "id": "llama",
@@ -91,6 +141,140 @@ class QualificationTests(unittest.TestCase):
 
 
 class PerformanceTests(unittest.TestCase):
+    def test_precise_diagnostics_for_required_metrics_identity_and_containers(self):
+        source = fixture("performance-source.json")
+        for field in (
+            "fork_version",
+            "run_id",
+            "model",
+            "scenario",
+            "tps_mean",
+            "ttft_ms_mean",
+        ):
+            data = fixture("performance.json")
+            del data["by_model_scenario"]["model|context-32k"][0][field]
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_performance(source, data)
+            self.assertEqual(
+                raised.exception.diagnostic,
+                {
+                    "source_id": source["id"],
+                    "record": "/by_model_scenario/model|context-32k/0",
+                    "field": field,
+                    "reason": "missing or invalid required value",
+                },
+            )
+        for field, value in (
+            ("tps_mean", True),
+            ("ttft_ms_mean", float("nan")),
+            ("accuracy", 1.5),
+            ("accuracy_pass", "yes"),
+            ("accuracy_total", -1),
+        ):
+            data = fixture("performance.json")
+            data["by_model_scenario"]["model|context-32k"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_performance(source, data)
+            self.assertEqual(raised.exception.diagnostic["field"], field)
+        data = fixture("performance.json")
+        data["history"]["Gemma-4-26B-A4B-it-GGUF"]["context-32k"] = []
+        with self.assertRaises(PipelineValidationError) as raised:
+            normalize_performance(source, data)
+        self.assertEqual(
+            raised.exception.diagnostic["record"],
+            "/history/Gemma-4-26B-A4B-it-GGUF/context-32k",
+        )
+
+    def test_optional_nulls_and_all_run_identity_are_validated(self):
+        source = fixture("performance-source.json")
+        data = fixture("performance.json")
+        latest = data["by_model_scenario"]["model|context-32k"][0]
+        latest.update(tps_p95=None, accuracy=None, accuracy_pass=None)
+        normalize_performance(source, data)
+        for field, value in (
+            ("fork_repo", "wrong/repository"),
+            ("backend", "wrong"),
+            ("run_id", "not-a-number"),
+            ("run_url", "https://github.com/lemonade-sdk/lemonade/actions/runs/7"),
+        ):
+            broken = copy.deepcopy(data)
+            broken["by_model_scenario"]["model|context-32k"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_performance(source, broken)
+            self.assertEqual(raised.exception.diagnostic["field"], field)
+        broken = copy.deepcopy(data)
+        history = broken["history"]["Gemma-4-26B-A4B-it-GGUF"]["context-32k"][
+            "llamacpp-rocm-nightly"
+        ][0]
+        history["run_url"] = (
+            "https://github.com/elsewhere/repo/actions/runs/40290464171"
+        )
+        source["repository"] = "lemonade-sdk/lemonade"
+        with self.assertRaises(PipelineValidationError) as raised:
+            normalize_performance(source, broken)
+        self.assertEqual(raised.exception.diagnostic["field"], "run_url")
+        self.assertTrue(raised.exception.diagnostic["record"].startswith("/history/"))
+
+    def test_rejects_invalid_optional_consumed_values(self):
+        source = fixture("performance-source.json")
+        for field, value in (
+            ("ctx_size", {}),
+            ("ctx_size", 0),
+            ("input_tokens", "5"),
+            ("input_tokens", -1),
+            ("quant", {}),
+        ):
+            data = fixture("performance.json")
+            data["by_model_scenario"]["model|context-32k"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_performance(source, data)
+            self.assertEqual(raised.exception.diagnostic["field"], field)
+        for field, value in (
+            ("cpu", {}),
+            ("gpu", 1),
+            ("gpu_full", {}),
+            ("os", False),
+            ("ram_gb", True),
+            ("vram_gb", float("inf")),
+        ):
+            data = fixture("performance.json")
+            data["systems"][0][field] = value
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
+                normalize_performance(source, data)
+            self.assertEqual(raised.exception.diagnostic["field"], field)
+            self.assertEqual(raised.exception.diagnostic["record"], "/systems/0")
+
+    def test_producer_gpu_array_accepts_published_shape_and_empty(self):
+        data = fixture("performance.json")
+        gpu = {
+            "integrated": True,
+            "name": "AMD Radeon Graphics (gfx1151)",
+            "type": "amd",
+            "vram_gb": 32.0,
+        }
+        for value in ([gpu], [], "legacy GPU"):
+            data["systems"][0]["gpu_full"] = value
+            normalize_performance(fixture("performance-source.json"), data)
+        for value in (
+            [{"name": []}],
+            [{"name": "GPU", "integrated": "yes"}],
+            [{"name": "GPU", "vram_gb": -1}],
+            [{}],
+        ):
+            data["systems"][0]["gpu_full"] = value
+            with self.subTest(value=value), self.assertRaises(PipelineValidationError):
+                normalize_performance(fixture("performance-source.json"), data)
+
     def test_keeps_build_attribution_unknown_and_accuracy_separate(self):
         source = fixture("performance-source.json")
         rows = normalize_performance(source, fixture("performance.json"))
@@ -164,6 +348,159 @@ class CollectionTests(unittest.TestCase):
                 },
             ],
         }
+
+    def test_main_fatal_evidence_writes_diagnostic_index_and_summary(self):
+        from scripts.collect import main
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "sources.json").write_text(json.dumps(self.config()))
+            (root / "evidence.json").write_text(
+                json.dumps({"schema_version": 1, "packages": []})
+            )
+            output = root / "data"
+            output.mkdir()
+            (output / "index.json").write_text(
+                json.dumps(
+                    {
+                        "collection_status": "complete",
+                        "generated_at": "2026-10-01T00:00:00Z",
+                    }
+                )
+            )
+            diagnostic = PipelineValidationError(
+                "performance", "/history/m/s/f/0", "package", "evidence unavailable"
+            )
+            with patch(
+                "sys.argv",
+                [
+                    "collect",
+                    "--sources",
+                    str(root / "sources.json"),
+                    "--output-dir",
+                    str(output),
+                    "--package-evidence",
+                    str(root / "evidence.json"),
+                ],
+            ), patch("scripts.collect.collect", side_effect=diagnostic), patch.dict(
+                "os.environ", {"GITHUB_STEP_SUMMARY": str(root / "summary")}
+            ):
+                self.assertEqual(main(), 1)
+            self.assertEqual(
+                json.loads((output / "errors.json").read_text()),
+                {"errors": [diagnostic.diagnostic]},
+            )
+            index = json.loads((output / "index.json").read_text())
+            self.assertEqual(index["collection_status"], "degraded")
+            self.assertEqual(index["errors"], [diagnostic.diagnostic])
+            self.assertEqual(
+                index["sync"]["last_successful_at"], "2026-10-01T00:00:00Z"
+            )
+            self.assertEqual(index["sync"]["status"], "failed")
+            self.assertEqual(
+                json.loads((output / "sync.json").read_text())["sync"], index["sync"]
+            )
+            self.assertIn("/history/m/s/f/0", (root / "summary").read_text())
+
+    def test_fetch_failure_diagnostic_contains_url(self):
+        def fetch(url):
+            raise OSError("offline")
+
+        with tempfile.TemporaryDirectory() as folder:
+            output = collect(
+                self.config(), Path(folder), fetch, now="2026-10-27T12:00:00Z"
+            )
+            diagnostic = output["errors"][0]
+            self.assertEqual(
+                (diagnostic["source_id"], diagnostic["field"]), ("llama", "fetch")
+            )
+            self.assertIn(
+                "https://api.github.com/repos/a/b/commits/", diagnostic["reason"]
+            )
+
+    def test_malformed_root_evidence_file_overwrites_stale_complete(self):
+        from scripts.collect import main
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            output = root / "data"
+            output.mkdir()
+            (output / "index.json").write_text(
+                json.dumps(
+                    {
+                        "collection_status": "complete",
+                        "generated_at": "2026-10-01T00:00:00Z",
+                    }
+                )
+            )
+            (root / "evidence.json").write_text("[]")
+            (root / "sources.json").write_text(json.dumps(self.config()))
+            with patch(
+                "sys.argv",
+                [
+                    "collect",
+                    "--sources",
+                    str(root / "sources.json"),
+                    "--output-dir",
+                    str(output),
+                    "--package-evidence",
+                    str(root / "evidence.json"),
+                ],
+            ):
+                self.assertEqual(main(), 1)
+            index = json.loads((output / "index.json").read_text())
+            self.assertEqual(index["collection_status"], "degraded")
+            self.assertEqual(index["sync"]["status"], "failed")
+            self.assertEqual(
+                index["sync"]["last_successful_at"], "2026-10-01T00:00:00Z"
+            )
+            self.assertEqual(
+                json.loads((output / "errors.json").read_text())["errors"],
+                index["errors"],
+            )
+
+    def test_malformed_previous_provenance_rejected(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "prior/provenance").mkdir(parents=True)
+            (root / "prior/provenance/packages.json").write_text("[]")
+            with self.assertRaises(PipelineValidationError) as raised:
+                collect(
+                    self.config(),
+                    root / "new",
+                    fetch,
+                    now="2026-10-27T12:00:00Z",
+                    previous_data=root / "prior",
+                )
+            self.assertEqual(raised.exception.diagnostic["field"], "package_evidence")
+
+    def test_source_failure_publishes_contextual_errors(self):
+        def fetch(url):
+            if "/commits/" in url:
+                return {"sha": "a" * 40}
+            data = fixture("llama.json")
+            del data["builds"][0]["tag"]
+            return data
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            output = collect(self.config(), root, fetch, now="2026-10-27T12:00:00Z")
+            self.assertEqual(output["collection_status"], "degraded")
+            self.assertEqual(output["dataset"]["sync"]["status"], "failed")
+            self.assertEqual(output["dataset"]["sync"]["errors"], output["errors"])
+            self.assertEqual(output["errors"][0]["record"], "/builds/0")
+            self.assertEqual(output["errors"][0]["field"], "tag")
+            self.assertEqual(
+                json.loads((root / "errors.json").read_text()),
+                {"errors": output["errors"]},
+            )
+            self.assertEqual(
+                json.loads((root / "index.json").read_text())["collection_status"],
+                "degraded",
+            )
 
     def test_pins_source_snapshot_and_marks_stale_by_observation_time(self):
         calls = []
@@ -351,6 +688,95 @@ if __name__ == "__main__":
 
 
 class StableIntegrationTests(unittest.TestCase):
+    def test_real_cli_package_access_failure_publishes_sync_diagnostics(self):
+        from scripts.collect import main
+        from scripts.sync import publish_sync
+        from tests.test_attribution import measurement
+
+        source = fixture("performance-source.json")
+        source.update(
+            id="performance",
+            repository="lemonade-sdk/lemonade",
+            ref="benchmark-data",
+            path="leaderboard.json",
+            stale_after_hours=72,
+            channel="from-fork",
+        )
+        source["forks"]["stable"] = {
+            "engine": "llamacpp",
+            "channel": "stable",
+            "backend": "rocm",
+            "repository": "lemonade-sdk/llama.cpp",
+        }
+        config = CollectionTests().config()
+        config["sources"] = [source]
+        data = {
+            "systems": [],
+            "history": {},
+            "by_model_scenario": {
+                "m|s": [
+                    {
+                        "model": "m",
+                        "scenario": "s",
+                        "fork_id": "stable",
+                        "fork_version": "b123",
+                        "timestamp": "2026-10-27T10:05:00Z",
+                        "run_id": "42",
+                        "run_url": measurement()["run_url"],
+                        "tps_mean": 12,
+                        "ttft_ms_mean": 100,
+                    }
+                ]
+            },
+        }
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else data
+
+        original_collect = collect
+
+        def injected(config, destination, **kwargs):
+            return original_collect(config, destination, fetch=fetch, **kwargs)
+
+        def denied(*args, **kwargs):
+            raise PermissionError("logs unavailable")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            output = root / "data"
+            publish_sync(output, "2026-10-01T00:00:00Z", "success", None, [])
+            (root / "sources.json").write_text(json.dumps(config))
+            (root / "evidence.json").write_text(
+                json.dumps({"schema_version": 1, "packages": []})
+            )
+            with patch(
+                "sys.argv",
+                [
+                    "collect",
+                    "--sources",
+                    str(root / "sources.json"),
+                    "--output-dir",
+                    str(output),
+                    "--package-evidence",
+                    str(root / "evidence.json"),
+                ],
+            ), patch("scripts.collect.collect", side_effect=injected), patch(
+                "scripts.collect.resolve_package", side_effect=denied
+            ):
+                self.assertEqual(main(), 1)
+            index = json.loads((output / "index.json").read_text())
+            error = json.loads((output / "errors.json").read_text())["errors"][0]
+            self.assertEqual(index["collection_status"], "degraded")
+            self.assertEqual(error["field"], "package_evidence")
+            self.assertEqual(error["record"], "/by_model_scenario/m|s/0")
+            self.assertEqual(index["sync"]["status"], "failed")
+            self.assertEqual(
+                index["sync"]["last_successful_at"], "2026-10-01T00:00:00Z"
+            )
+            self.assertEqual(
+                json.loads((output / "sync.json").read_text())["sync"], index["sync"]
+            )
+
     def test_seed_evidence_publishes_version_performance_and_provenance(self):
         from tests.test_attribution import evidence, measurement
 
@@ -384,6 +810,7 @@ class StableIntegrationTests(unittest.TestCase):
                         "run_id": "42",
                         "run_url": measurement()["run_url"],
                         "tps_mean": 12,
+                        "ttft_ms_mean": 100,
                         "accuracy": 0.8,
                         "accuracy_pass": False,
                     }

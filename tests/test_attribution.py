@@ -4,6 +4,7 @@ import json
 import unittest
 
 from scripts.attribution import attribute_stable, resolve_package
+from scripts.validation import PipelineValidationError
 
 PACKAGE = "https://github.com/lemonade-sdk/llama.cpp/releases/download/b123/llama-b123-bin-ubuntu-rocm-10.1-x64.tar.gz"
 
@@ -57,12 +58,16 @@ class AttributionTests(unittest.TestCase):
         self.assertEqual(row["attribution"]["log_sha256"], "a" * 64)
         self.assertEqual(output["package_evidence"], [evidence()])
 
-    def test_unknown_and_outside_job_window_stay_unassigned(self):
+    def test_unknown_and_outside_job_window_fail_with_record_context(self):
         for records in ([], [evidence(completed_at="2026-10-27T10:01:00Z")]):
             row = measurement()
-            attribute_stable({"measurements": [row]}, records)
-            self.assertIsNone(row["rocm_version"])
-            self.assertEqual(row["attribution"]["status"], "awaiting_evidence")
+            with self.assertRaises(PipelineValidationError) as error:
+                attribute_stable({"measurements": [row]}, records)
+            self.assertEqual(error.exception.diagnostic["source_id"], "performance")
+            self.assertEqual(
+                error.exception.diagnostic["record"], row["source_pointer"]
+            )
+            self.assertEqual(error.exception.diagnostic["field"], "package_evidence")
 
     def test_rejects_conflicting_or_malformed_seed_evidence(self):
         for records in (
@@ -80,10 +85,13 @@ class AttributionTests(unittest.TestCase):
         def unavailable(row):
             raise OSError("logs unavailable")
 
-        attribute_stable({"measurements": [nightly, stable]}, [], unavailable)
+        with self.assertRaisesRegex(
+            PipelineValidationError, "logs unavailable"
+        ) as error:
+            attribute_stable({"measurements": [nightly, stable]}, [], unavailable)
         self.assertIsNone(nightly["rocm_version"])
-        self.assertEqual(stable["attribution"]["status"], "awaiting_evidence")
-        self.assertIn("unavailable", stable["attribution"]["reason"])
+        self.assertEqual(error.exception.diagnostic["field"], "package_evidence")
+        self.assertIsInstance(error.exception.__cause__, OSError)
 
     def test_resolver_selects_job_by_measurement_time_and_actual_download(self):
         job = {
@@ -204,7 +212,8 @@ class AttributionTests(unittest.TestCase):
             ),
         )
         future = measurement(measured_at="2026-10-29T10:05:00Z")
-        attribute_stable({"measurements": [future]}, [record])
+        with self.assertRaises(PipelineValidationError):
+            attribute_stable({"measurements": [future]}, [record])
         self.assertIsNone(future["rocm_version"])
 
     def test_persisted_evidence_can_extend_seed_observation_coverage(self):
@@ -246,7 +255,8 @@ class AttributionTests(unittest.TestCase):
             ),
         )
         row = measurement(measured_at="2026-10-27T10:09:00Z")
-        attribute_stable({"measurements": [row]}, [record])
+        with self.assertRaises(PipelineValidationError):
+            attribute_stable({"measurements": [row]}, [record])
         self.assertIsNone(row["rocm_version"])
 
     def test_grouped_benchmark_jobs_must_agree_on_the_stable_package(self):
@@ -300,3 +310,11 @@ class AttributionTests(unittest.TestCase):
         )
         self.assertEqual(len(output["package_evidence"]), 1)
         self.assertEqual(len(output["package_evidence"][0]["job_evidence"]), 2)
+
+    def test_invalid_evidence_timestamp_has_structured_context(self):
+        with self.assertRaises(PipelineValidationError) as error:
+            attribute_stable(
+                {"measurements": [measurement()]}, [evidence(started_at=None)]
+            )
+        self.assertEqual(error.exception.diagnostic["record"], "/packages/0")
+        self.assertEqual(error.exception.diagnostic["field"], "package_evidence")

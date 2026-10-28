@@ -70,6 +70,8 @@ The UI dataset uses schema version 2:
 ```text
 data/
 ├── index.json
+├── sync.json
+├── errors.json
 ├── rocm/<version>/
 │   ├── overview.json
 │   ├── history/<month>.json
@@ -80,6 +82,9 @@ data/
 ```
 
 - `index.json` lists ROCm versions, overview paths, source status, and collection time.
+- `sync.json` exposes the latest attempt, its result, the last successful sync, and
+  affected-source errors. The same `sync` object appears in `index.json`.
+- `errors.json` records each failure's source, JSON location, field, and reason.
 - Each overview contains engine cards, latest builds for each channel/OS/GPU target,
   build counts, and links to monthly history chunks.
 - History chunks contain compact build records: build number, version, date,
@@ -123,8 +128,8 @@ record is unavailable.
 Verified historical mappings are stored in `provenance/llamacpp-stable-packages.json`.
 New mappings use the authenticated GitHub CLI (`gh`); Actions supplies its job token.
 Each mapping retains job links, log hashes, and the observation timestamps it covers.
-Repeated job attempts must agree on the package. Unavailable or ambiguous evidence
-leaves that observation awaiting evidence. Available producer accuracy values stay
+Repeated job attempts must agree on the package. Unavailable or ambiguous stable evidence
+fails collection with the source, record, field, and reason. Available producer accuracy values stay
 with the model measurement, separately from build qualification.
 
 ## Status and evidence
@@ -135,7 +140,9 @@ retains its own date and the producer's `qualified` verdict. Release qualificati
 compiled GPU coverage, and hardware validation remain separate fields.
 
 A failed source produces an error status and a `degraded` diagnostic dataset;
-the command exits 1. Complete collections produce datasets suitable for publishing.
+the command exits 1. Required-field, metric, schema, and association errors also
+fail collection. Configured future feeds keep their expected awaiting-data status.
+Complete collections produce datasets suitable for publishing.
 Unsupported schemas, future timestamps, unknown forks, and invalid hardware
 references fail validation. Upstream accuracy observations remain separate from
 an agreed readiness accuracy verdict.
@@ -145,3 +152,14 @@ locally. It runs on PRs, main pushes, manual dispatch, and daily at 11:17 UTC. E
 logs fetched sources, validation, record counts, and generated destinations. The
 job summary and downloadable artifact provide the run's evidence. Site publishing
 and browser views are the next implementation stage.
+
+## Synchronization status
+
+The common `sync` object has `attempted_at`, `status` (`success` or `failed`),
+`last_successful_at`, and `errors`. Failed attempts preserve the last successful
+time and identify the affected source and field. A failed test gate records the
+same status before ingestion.
+
+The app can read `sync.json` independently to display an error beside the last
+successful dataset. Site publishing should refresh this status on failed attempts
+and publish dataset files only after successful validation.

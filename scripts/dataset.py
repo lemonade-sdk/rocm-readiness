@@ -12,8 +12,10 @@ from urllib.parse import urlparse
 
 if __package__:
     from .attribution import PACKAGE, RUN
+    from .validation import PipelineValidationError
 else:
     from attribution import PACKAGE, RUN
+    from validation import PipelineValidationError
 
 BUILD_FIELDS = """
 source_id build_id engine tag artifact rocm_version channel os gfx_target hardware_validated gfx
@@ -452,6 +454,13 @@ def _join_measurement(row, builds):
             == build.get("artifact")
         ):
             matches.append(build)
+    if len(matches) > 1:
+        raise PipelineValidationError(
+            row["source_id"],
+            row["source_pointer"],
+            "qualification_build_id",
+            "ambiguous qualification builds for the exact package",
+        )
     row["attribution"] = dict(row["attribution"])
     row["qualification_build_id"] = (
         matches[0]["build_id"] if len(matches) == 1 else None
@@ -586,7 +595,10 @@ def _write_version(
 
 
 def write_dataset(
-    output: Dict, destination: Path, previous_data: Optional[Path] = None
+    output: Dict,
+    destination: Path,
+    previous_data: Optional[Path] = None,
+    publish_index: bool = True,
 ) -> Dict:
     """Write schema-v2 UI files for a normalized schema-v1 collector output."""
     _require(
@@ -792,5 +804,6 @@ def write_dataset(
             ),
         },
     }
-    _write_json(destination / "index.json", index)
+    if publish_index:
+        _write_json(destination / "index.json", index)
     return index

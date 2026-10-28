@@ -564,25 +564,25 @@ class DatasetTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            write_dataset(
-                normalized(
-                    [
-                        build(
-                            "a", artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
-                        ),
-                        build(
-                            "b", artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
-                        ),
-                    ],
-                    [row],
-                ),
-                root / "ambiguous",
-            )
-            result = json.loads(
-                (root / "ambiguous/rocm/7.14/performance.json").read_text()
-            )["measurements"][0]
-            self.assertIsNone(result["qualification_build_id"])
-            self.assertIn("reason", result["attribution"])
+            with self.assertRaisesRegex(
+                ValueError, "qualification_build_id.*ambiguous"
+            ):
+                write_dataset(
+                    normalized(
+                        [
+                            build(
+                                "a",
+                                artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz",
+                            ),
+                            build(
+                                "b",
+                                artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz",
+                            ),
+                        ],
+                        [row],
+                    ),
+                    root / "ambiguous",
+                )
             write_dataset(normalized([], [row]), root / "alone")
             self.assertTrue((root / "alone/rocm/7.14/performance.json").exists())
 
@@ -941,6 +941,14 @@ class DatasetTests(unittest.TestCase):
                 [item["rocm_version"] for item in index["versions"]], ["7.15"]
             )
             self.assertEqual(marker.read_text(), "keep")
+
+    def test_collector_can_stage_dataset_before_publishing_sync_index(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            index = write_dataset(normalized([build()]), root, publish_index=False)
+            self.assertEqual(index["collection_status"], "complete")
+            self.assertFalse((root / "index.json").exists())
+            self.assertTrue((root / "rocm/7.14/overview.json").exists())
 
 
 if __name__ == "__main__":

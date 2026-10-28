@@ -7,6 +7,11 @@ import json
 import re
 import subprocess
 
+if __package__:
+    from .validation import PipelineValidationError
+else:
+    from validation import PipelineValidationError
+
 PACKAGE = re.compile(
     r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/releases/download/"
     r"(b[0-9]+)/llama-\2-bin-(ubuntu|win)-rocm-([0-9]+(?:\.[0-9]+)*)-x64\.(tar\.gz|zip)"
@@ -22,6 +27,7 @@ def _require(condition, message):
 
 
 def _time(value):
+    _require(isinstance(value, str), "evidence timestamp must be a string")
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     _require(parsed.tzinfo is not None, "missing evidence timezone")
     return parsed
@@ -125,8 +131,11 @@ def _gh(args):
         ["gh", *args], capture_output=True, text=True, timeout=60, check=False
     )
     if process.returncode:
+        http_status = re.search(r"HTTP [0-9]{3}", process.stderr)
         raise OSError(
-            "benchmark job evidence unavailable; authenticated GitHub log access may be required"
+            f"benchmark job evidence access failed (exit {process.returncode}"
+            + (f", {http_status[0]}" if http_status else "")
+            + "); authenticated GitHub log access may be required"
         )
     _require(
         len(process.stdout.encode()) <= 32 * 1024 * 1024, "job evidence exceeds 32 MiB"
@@ -269,9 +278,13 @@ def attribute_stable(output, evidence, resolve=None):
         )
         return previous
 
-    for item in evidence:
-        store(item)
-    failures = {}
+    for index, item in enumerate(evidence):
+        try:
+            store(item)
+        except (ValueError, KeyError, TypeError) as error:
+            raise PipelineValidationError(
+                "package-evidence", f"/packages/{index}", "package_evidence", str(error)
+            ) from error
     resolved = {}
     for row in output["measurements"]:
         if not (
@@ -290,10 +303,14 @@ def attribute_stable(output, evidence, resolve=None):
             ):
                 fresh["measurement_times"].append(row["measured_at"])
         candidates = [item for item in records if _matches(row, item)]
-        _require(len(candidates) <= 1, "conflicting measurement package evidence")
-        key = (row.get("run_url"), row.get("engine_version"), row.get("fork_id"))
-        reason = failures.get(key, "exact package evidence has not been collected")
-        if not candidates and resolve is not None and key not in failures:
+        if len(candidates) > 1:
+            raise PipelineValidationError(
+                row["source_id"],
+                row["source_pointer"],
+                "package_evidence",
+                "conflicting measurement package evidence",
+            )
+        if not candidates and resolve is not None:
             try:
                 item = resolve(row)
                 validate_evidence(item)
@@ -309,12 +326,20 @@ def attribute_stable(output, evidence, resolve=None):
                 KeyError,
                 TypeError,
                 subprocess.TimeoutExpired,
-            ):
-                reason = "exact package evidence unavailable; retry with authenticated benchmark log access"
-                failures[key] = reason
+            ) as error:
+                raise PipelineValidationError(
+                    row["source_id"],
+                    row["source_pointer"],
+                    "package_evidence",
+                    f"run={row.get('run_id')} engine={row.get('engine_version')}: {error}",
+                ) from error
         if not candidates:
-            row["attribution"] = {"status": "awaiting_evidence", "reason": reason}
-            continue
+            raise PipelineValidationError(
+                row["source_id"],
+                row["source_pointer"],
+                "package_evidence",
+                f"run={row.get('run_id')}: exact downloaded package evidence is missing",
+            )
         item = candidates[0]
         package = validate_evidence(item)
         row.update(

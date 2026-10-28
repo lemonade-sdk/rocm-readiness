@@ -17,9 +17,13 @@ from urllib.request import Request, urlopen
 if __package__:
     from .attribution import attribute_stable, resolve_package
     from .dataset import write_dataset
+    from .validation import PipelineValidationError
+    from .sync import load_last_success, publish_sync
 else:
     from attribution import attribute_stable, resolve_package
     from dataset import write_dataset
+    from validation import PipelineValidationError
+    from sync import load_last_success, publish_sync
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
 METRICS = (
@@ -110,45 +114,162 @@ def validate_config(config):
                 )
 
 
+def _check(
+    source, record, field, condition, reason="missing or invalid required value"
+):
+    if not condition:
+        raise PipelineValidationError(source["id"], record, field, reason)
+
+
 def normalize_qualification(source, data, url):
-    require(data.get("schema_version") == 1, "unsupported qualification schema_version")
-    require(isinstance(data.get("builds"), list), "builds must be an array")
-    rows = []
-    seen = set()
-    for row in data["builds"]:
+    _check(source, "", "document", isinstance(data, dict), "expected object")
+    _check(
+        source,
+        "",
+        "schema_version",
+        data.get("schema_version") == 1,
+        "unsupported schema version",
+    )
+    _check(source, "", "builds", isinstance(data.get("builds"), list), "expected array")
+    rows, seen = [], set()
+    for index, row in enumerate(data["builds"]):
+        location = f"/builds/{index}"
+        _check(source, location, "record", isinstance(row, dict), "expected object")
         for field in ("build_id", "generated_at", "rocm_version", "run_url", "tag"):
-            require(isinstance(row.get(field), str) and row[field], f"missing {field}")
-        require(row["build_id"] not in seen, "duplicate build_id")
+            _check(
+                source,
+                location,
+                field,
+                isinstance(row.get(field), str) and bool(row[field]),
+            )
+        _check(
+            source,
+            location,
+            "build_id",
+            row["build_id"] not in seen,
+            "duplicate build_id",
+        )
         seen.add(row["build_id"])
-        timestamp(row["generated_at"])
-        require(
+        try:
+            timestamp(row["generated_at"])
+        except (ValueError, TypeError) as error:
+            raise PipelineValidationError(
+                source["id"], location, "generated_at", "invalid timestamp"
+            ) from error
+        _check(
+            source,
+            location,
+            "run_attempt",
             type(row.get("run_attempt")) is int and row["run_attempt"] >= 0,
-            "run_attempt must be a nonnegative integer",
         )
-        require(type(row.get("qualified")) is bool, "qualified must be boolean")
-        require(row.get("overall") in ("pass", "warn", "fail"), "invalid overall")
-        require(isinstance(row.get("tests"), dict), "missing tests")
-        require(isinstance(row.get("results"), dict), "missing results")
-        require(
-            all(
-                s in ("pass", "fail", "warn", "skip", "missing")
-                for s in row["results"].values()
-            ),
-            "invalid test result",
+        _check(source, location, "qualified", type(row.get("qualified")) is bool)
+        _check(
+            source, location, "overall", row.get("overall") in ("pass", "warn", "fail")
         )
+        _check(source, location, "tests", isinstance(row.get("tests"), dict))
+        for name in ("passed", "failed", "total"):
+            value = row["tests"].get(name)
+            _check(
+                source,
+                location,
+                f"tests/{name}",
+                type(value) is int and value >= 0,
+                "missing or invalid test count",
+            )
+        for name, value in row["tests"].items():
+            _check(
+                source,
+                location,
+                f"tests/{pointer(name)}",
+                type(value) is int and value >= 0,
+                "invalid test count",
+            )
+        for field in ("version_qualified", "hardware_validated"):
+            _check(
+                source,
+                location,
+                field,
+                row.get(field) is None or type(row[field]) is bool,
+            )
+        _check(
+            source,
+            location,
+            "rocm_version",
+            re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", row["rocm_version"]) is not None,
+        )
+        for field in ("artifact", "gfx_target"):
+            _check(
+                source,
+                location,
+                field,
+                row.get(field) is None or isinstance(row[field], str),
+                "invalid optional value",
+            )
+        for field in ("blocked_by", "blocking_tests"):
+            value = row.get(field)
+            _check(
+                source,
+                location,
+                field,
+                value is None
+                or isinstance(value, list)
+                and all(isinstance(item, str) for item in value),
+                "invalid list of strings",
+            )
+        gfx = row.get("gfx")
+        _check(
+            source,
+            location,
+            "gfx",
+            gfx is None or isinstance(gfx, dict),
+            "invalid gfx metadata",
+        )
+        if gfx is not None:
+            for field in ("requested", "present"):
+                value = gfx.get(field)
+                _check(
+                    source,
+                    location,
+                    f"gfx/{field}",
+                    value is None or (type(value) is int and value >= 0),
+                    "invalid gfx count",
+                )
+            value = gfx.get("missing")
+            _check(
+                source,
+                location,
+                "gfx/missing",
+                value is None
+                or isinstance(value, list)
+                and all(isinstance(item, str) for item in value),
+                "invalid gfx targets",
+            )
+        _check(source, location, "results", isinstance(row.get("results"), dict))
+        for name, value in row["results"].items():
+            _check(
+                source,
+                location,
+                f"results/{pointer(name)}",
+                value in ("pass", "fail", "warn", "skip", "missing"),
+                "invalid test result",
+            )
         report = row.get("report_url")
-        require(
-            safe_path(report) and report.startswith("reports/"), "invalid report_url"
+        _check(
+            source,
+            location,
+            "report_url",
+            safe_path(report) and report.startswith("reports/"),
         )
         channel = (
             row.get("channel")
             if source["channel"] == "from-record"
             else source["channel"]
         )
-        require(channel in ("stable", "nightly"), "invalid qualification channel")
+        _check(source, location, "channel", channel in ("stable", "nightly"))
         system_os = row.get("os") or source.get("os")
+        _check(source, location, "os", isinstance(system_os, str))
         system_os = {"ubuntu": "linux", "win": "windows"}.get(system_os, system_os)
-        require(system_os in ("linux", "windows", "macos"), "unknown qualification os")
+        _check(source, location, "os", system_os in ("linux", "windows", "macos"))
         rows.append(
             {
                 **row,
@@ -158,7 +279,7 @@ def normalize_qualification(source, data, url):
                 "os": system_os,
                 "hardware_validated": row.get("hardware_validated"),
                 "report_url": urljoin(url, report),
-                "source_pointer": f"/builds/{len(rows)}",
+                "source_pointer": location,
             }
         )
     return rows
@@ -169,40 +290,243 @@ def pointer(value):
 
 
 def normalize_performance(source, data):
-    require(
-        isinstance(data.get("by_model_scenario"), dict), "missing by_model_scenario"
+    _check(source, "", "document", isinstance(data, dict), "expected object")
+    _check(
+        source,
+        "",
+        "by_model_scenario",
+        isinstance(data.get("by_model_scenario"), dict),
+        "expected object",
     )
-    require(isinstance(data.get("history"), dict), "missing history")
-    require(isinstance(data.get("systems"), list), "missing systems")
-    require(
-        all(
-            isinstance(system, dict) and isinstance(system.get("id"), str)
-            for system in data["systems"]
-        ),
-        "invalid system metadata",
+    _check(
+        source, "", "history", isinstance(data.get("history"), dict), "expected object"
     )
-    system_ids = [system["id"] for system in data["systems"]]
-    require(len(system_ids) == len(set(system_ids)), "duplicate system id")
-    rows = []
-
-    def append(row, fork_id, model, scenario, kind, location):
-        require(fork_id in source["forks"], f"unknown fork: {fork_id}")
-        fork = source["forks"][fork_id]
-        require(
-            row.get("hw_id") is None or row["hw_id"] in system_ids, "unknown system id"
+    _check(
+        source, "", "systems", isinstance(data.get("systems"), list), "expected array"
+    )
+    system_ids = set()
+    for index, system in enumerate(data["systems"]):
+        location = f"/systems/{index}"
+        _check(
+            source,
+            location,
+            "system",
+            isinstance(system, dict),
+            "invalid system metadata",
         )
-        for field in ("timestamp", "run_url"):
-            require(isinstance(row.get(field), str) and row[field], f"missing {field}")
-        timestamp(row["timestamp"])
-        for metric in METRICS:
-            value = row.get(metric)
-            require(
+        _check(
+            source,
+            location,
+            "id",
+            isinstance(system.get("id"), str) and bool(system["id"]),
+            "invalid system id",
+        )
+        _check(
+            source,
+            location,
+            "id",
+            system["id"] not in system_ids,
+            "duplicate system id",
+        )
+        system_ids.add(system["id"])
+        for field in ("cpu", "gpu", "os"):
+            _check(
+                source,
+                location,
+                field,
+                system.get(field) is None or isinstance(system[field], str),
+                "invalid system metadata",
+            )
+        gpu_full = system.get("gpu_full")
+        _check(
+            source,
+            location,
+            "gpu_full",
+            gpu_full is None or isinstance(gpu_full, (str, list)),
+            "invalid GPU metadata",
+        )
+        if isinstance(gpu_full, list):
+            for gpu_index, gpu in enumerate(gpu_full):
+                field = f"gpu_full/{gpu_index}"
+                _check(
+                    source,
+                    location,
+                    field,
+                    isinstance(gpu, dict),
+                    "expected GPU object",
+                )
+                _check(
+                    source,
+                    location,
+                    f"{field}/name",
+                    isinstance(gpu.get("name"), str) and bool(gpu["name"]),
+                    "invalid GPU name",
+                )
+                _check(
+                    source,
+                    location,
+                    f"{field}/type",
+                    gpu.get("type") is None or isinstance(gpu["type"], str),
+                    "invalid GPU type",
+                )
+                _check(
+                    source,
+                    location,
+                    f"{field}/integrated",
+                    gpu.get("integrated") is None or type(gpu["integrated"]) is bool,
+                    "invalid GPU integrated flag",
+                )
+                vram = gpu.get("vram_gb")
+                _check(
+                    source,
+                    location,
+                    f"{field}/vram_gb",
+                    vram is None
+                    or (
+                        type(vram) in (int, float) and math.isfinite(vram) and vram >= 0
+                    ),
+                    "invalid GPU memory",
+                )
+        for field in ("ram_gb", "vram_gb"):
+            value = system.get(field)
+            _check(
+                source,
+                location,
+                field,
                 value is None
                 or (
                     type(value) in (int, float) and math.isfinite(value) and value >= 0
                 ),
-                f"invalid {metric}",
+                "invalid system metadata",
             )
+    rows = []
+
+    def append(row, fork_id, model, scenario, kind, location):
+        _check(source, location, "record", isinstance(row, dict), "expected object")
+        if kind == "latest":
+            for field in ("fork_id", "model", "scenario"):
+                _check(
+                    source,
+                    location,
+                    field,
+                    isinstance(row.get(field), str) and bool(row[field]),
+                )
+            fork_id, model, scenario = row["fork_id"], row["model"], row["scenario"]
+        _check(
+            source,
+            location,
+            "fork_id",
+            isinstance(fork_id, str) and fork_id in source["forks"],
+            "unknown fork",
+        )
+        fork = source["forks"][fork_id]
+        for field, expected in (
+            ("fork_repo", fork["repository"]),
+            ("backend", fork["backend"]),
+        ):
+            _check(
+                source,
+                location,
+                field,
+                field not in row or row[field] == expected,
+                "producer identity differs from configured fork",
+            )
+        for field, value in (("model", model), ("scenario", scenario)):
+            _check(source, location, field, isinstance(value, str) and bool(value))
+        for field, minimum in (("ctx_size", 1), ("input_tokens", 0)):
+            value = row.get(field)
+            _check(
+                source,
+                location,
+                field,
+                value is None or (type(value) is int and value >= minimum),
+                "invalid optional value",
+            )
+        _check(
+            source,
+            location,
+            "quant",
+            row.get("quant") is None or isinstance(row["quant"], str),
+            "invalid optional value",
+        )
+        version_field = "fork_version" if kind == "latest" else "version"
+        _check(
+            source,
+            location,
+            version_field,
+            isinstance(row.get(version_field), str) and bool(row[version_field]),
+        )
+        run_id = row.get("run_id")
+        _check(
+            source,
+            location,
+            "run_id",
+            (isinstance(run_id, str) and re.fullmatch(r"[0-9]+", run_id) is not None)
+            or (type(run_id) is int and run_id >= 0),
+        )
+        _check(
+            source,
+            location,
+            "hw_id",
+            row.get("hw_id") is None
+            or (isinstance(row["hw_id"], str) and row["hw_id"] in system_ids),
+            "unknown system id",
+        )
+        for field in ("timestamp", "run_url"):
+            _check(
+                source,
+                location,
+                field,
+                isinstance(row.get(field), str) and bool(row[field]),
+            )
+        run = re.fullmatch(
+            r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/actions/runs/([0-9]+)",
+            row["run_url"],
+        )
+        _check(
+            source,
+            location,
+            "run_url",
+            run is not None
+            and run[2] == str(run_id)
+            and (not source.get("repository") or run[1] == source["repository"]),
+            "run URL does not match source and run_id",
+        )
+        try:
+            timestamp(row["timestamp"])
+        except (ValueError, TypeError) as error:
+            raise PipelineValidationError(
+                source["id"], location, "timestamp", "invalid timestamp"
+            ) from error
+        for metric in METRICS:
+            value = row.get(metric)
+            valid = type(value) in (int, float) and math.isfinite(value) and value >= 0
+            _check(
+                source,
+                location,
+                metric,
+                (
+                    valid
+                    if metric in ("tps_mean", "ttft_ms_mean")
+                    else value is None or valid
+                ),
+            )
+        for field in ACCURACY:
+            value = row.get(field)
+            if value is None:
+                continue
+            valid = (
+                type(value) is bool
+                if field == "accuracy_pass"
+                else (
+                    type(value) in (int, float)
+                    and math.isfinite(value)
+                    and 0 <= value <= 1
+                    if field == "accuracy"
+                    else type(value) is int and value >= 0
+                )
+            )
+            _check(source, location, field, valid, "invalid accuracy value")
         rows.append(
             {
                 "source_id": source["id"],
@@ -213,9 +537,7 @@ def normalize_performance(source, data):
                 "backend": fork["backend"],
                 "fork_id": fork_id,
                 "engine_repository": fork["repository"],
-                "engine_version": (
-                    row.get("fork_version") if kind == "latest" else row.get("version")
-                ),
+                "engine_version": row[version_field],
                 "model": model,
                 "scenario": scenario,
                 "quant": row.get("quant"),
@@ -223,7 +545,7 @@ def normalize_performance(source, data):
                 "context_size": row.get("ctx_size"),
                 "input_tokens": row.get("input_tokens"),
                 "measured_at": row["timestamp"],
-                "run_id": row.get("run_id"),
+                "run_id": run_id,
                 "run_url": row["run_url"],
                 "lemonade_version": row.get("lemonade_version"),
                 "metrics": {key: row.get(key) for key in METRICS},
@@ -235,19 +557,37 @@ def normalize_performance(source, data):
         )
 
     for group, entries in data["by_model_scenario"].items():
-        require(isinstance(entries, list), "performance entries must be an array")
+        location = f"/by_model_scenario/{pointer(group)}"
+        _check(source, location, "entries", isinstance(entries, list), "expected array")
         for index, row in enumerate(entries):
-            append(
-                row,
-                row["fork_id"],
-                row["model"],
-                row["scenario"],
-                "latest",
-                f"/by_model_scenario/{pointer(group)}/{index}",
-            )
+            append(row, None, None, None, "latest", f"{location}/{index}")
     for model, scenarios in data["history"].items():
+        location = f"/history/{pointer(model)}"
+        _check(
+            source,
+            location,
+            "scenarios",
+            isinstance(scenarios, dict),
+            "expected object",
+        )
         for scenario, forks in scenarios.items():
+            location_scenario = f"{location}/{pointer(scenario)}"
+            _check(
+                source,
+                location_scenario,
+                "forks",
+                isinstance(forks, dict),
+                "expected object",
+            )
             for fork_id, entries in forks.items():
+                location_fork = f"{location_scenario}/{pointer(fork_id)}"
+                _check(
+                    source,
+                    location_fork,
+                    "entries",
+                    isinstance(entries, list),
+                    "expected array",
+                )
                 for index, row in enumerate(entries):
                     append(
                         row,
@@ -255,7 +595,7 @@ def normalize_performance(source, data):
                         model,
                         scenario,
                         "history",
-                        f"/history/{pointer(model)}/{pointer(scenario)}/{pointer(fork_id)}/{index}",
+                        f"{location_fork}/{index}",
                     )
     return rows
 
@@ -304,6 +644,7 @@ def collect(
     resolve_packages=None,
 ):
     validate_config(config)
+    last_success = load_last_success(destination, previous_data)
     now = now or datetime.now(timezone.utc).isoformat()
     clock = timestamp(now)
     output = {
@@ -316,6 +657,7 @@ def collect(
         "builds": [],
         "measurements": [],
         "systems": [],
+        "errors": [],
     }
     commits = {}
     for source in config["sources"]:
@@ -332,13 +674,15 @@ def collect(
         if source.get("availability") == "awaiting_data":
             print(f"{sid}: awaiting_data (not fetched)", flush=True)
             continue
+        fetch_url = None
         try:
             repo, ref = source["repository"], source["ref"]
             key = (repo, ref)
             if key not in commits:
-                commits[key] = fetch(
+                fetch_url = (
                     f'https://api.github.com/repos/{repo}/commits/{quote(ref, safe="")}'
-                )["sha"]
+                )
+                commits[key] = fetch(fetch_url)["sha"]
             commit = commits[key]
             require(
                 re.fullmatch(r"[a-f0-9]{40}", commit) is not None,
@@ -347,11 +691,9 @@ def collect(
             url = f'https://raw.githubusercontent.com/{repo}/{commit}/{quote(source["path"], safe="/")}'
             state.update(repository=repo, ref=ref, commit=commit, url=url)
             print(f"{sid}: fetching {url}", flush=True)
+            fetch_url = url
             data = fetch(url)
-            snapshot = f"raw/{sid}.json"
-            state.update(
-                snapshot=snapshot, sha256=write_json(destination / snapshot, data)
-            )
+            fetch_url = None
             if source["adapter"] == "qualification-v1":
                 rows = normalize_qualification(source, data, url)
                 target, date_key = "builds", "generated_at"
@@ -362,6 +704,10 @@ def collect(
                     for index, system in enumerate(data["systems"])
                 ]
                 target, date_key = "measurements", "measured_at"
+            snapshot = f"raw/{sid}.json"
+            state.update(
+                snapshot=snapshot, sha256=write_json(destination / snapshot, data)
+            )
             latest = max((timestamp(row[date_key]) for row in rows), default=None)
             age = (clock - latest).total_seconds() / 3600 if latest else None
             require(age is None or age >= 0, "observation timestamp is in the future")
@@ -391,9 +737,21 @@ def collect(
                 flush=True,
             )
         except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
-            state.update(status="error", error=f"{type(error).__name__}: {error}")
+            if isinstance(error, PipelineValidationError):
+                diagnostic = error.diagnostic
+            elif fetch_url:
+                diagnostic = PipelineValidationError(
+                    sid, "", "fetch", f"{fetch_url}: {type(error).__name__}: {error}"
+                ).diagnostic
+            else:
+                diagnostic = PipelineValidationError(
+                    sid, "", "source", f"{type(error).__name__}: {error}"
+                ).diagnostic
+            output["errors"].append(diagnostic)
+            state.update(status="error", error=str(error), diagnostic=diagnostic)
             output["collection_status"] = "degraded"
-            print(f'{sid}: ERROR {state["error"]}', file=sys.stderr, flush=True)
+            print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
+    write_json(destination / "errors.json", {"errors": output["errors"]})
     evidence = list(package_evidence or [])
     if previous_data is not None:
         previous_root = Path(previous_data).resolve()
@@ -401,8 +759,17 @@ def collect(
         if prior_evidence.exists():
             prior_evidence.resolve().relative_to(previous_root)
             saved = json.loads(prior_evidence.read_text(encoding="utf-8"))
-            require(saved.get("schema_version") == 1, "invalid package evidence schema")
-            require(isinstance(saved.get("packages"), list), "invalid package evidence")
+            if (
+                not isinstance(saved, dict)
+                or saved.get("schema_version") != 1
+                or not isinstance(saved.get("packages"), list)
+            ):
+                raise PipelineValidationError(
+                    "package-evidence",
+                    str(prior_evidence),
+                    "package_evidence",
+                    "invalid previous package evidence",
+                )
             evidence.extend(saved["packages"])
     attribute_stable(output, evidence, resolve_packages)
     for source in output["sources"]:
@@ -420,7 +787,20 @@ def collect(
             "packages": output["package_evidence"],
         },
     )
-    output["dataset"] = write_dataset(output, destination, previous_data=previous_data)
+    output["dataset"] = write_dataset(
+        output, destination, previous_data=previous_data, publish_index=False
+    )
+    write_json(destination / "errors.json", {"errors": output["errors"]})
+    if output["errors"]:
+        output["dataset"]["errors"] = output["errors"]
+    output["dataset"]["sync"] = publish_sync(
+        destination,
+        now,
+        "success" if output["collection_status"] == "complete" else "failed",
+        last_success,
+        output["errors"],
+    )
+    write_json(destination / "index.json", output["dataset"])
     print(
         f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
         flush=True,
@@ -451,19 +831,57 @@ def main():
         help="Previous complete dataset to carry build history forward",
     )
     args = parser.parse_args()
+    attempted_at = datetime.now(timezone.utc).isoformat()
+    last_success = None
+    errors_initialized = False
     try:
+        last_success = load_last_success(args.output_dir, args.previous_data)
+        write_json(args.output_dir / "errors.json", {"errors": []})
+        errors_initialized = True
         evidence = json.loads(args.package_evidence.read_text(encoding="utf-8"))
-        require(evidence.get("schema_version") == 1, "invalid package evidence schema")
+        if (
+            not isinstance(evidence, dict)
+            or evidence.get("schema_version") != 1
+            or not isinstance(evidence.get("packages"), list)
+        ):
+            raise PipelineValidationError(
+                "package-evidence",
+                str(args.package_evidence),
+                "package_evidence",
+                "invalid package evidence",
+            )
         output = collect(
             json.loads(args.sources.read_text(encoding="utf-8")),
             args.output_dir,
+            now=attempted_at,
             previous_data=args.previous_data,
             package_evidence=evidence["packages"],
             resolve_packages=resolve_package,
         )
-    except (ValueError, KeyError, TypeError, OSError) as error:
+    except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
         print(f"Collection error: {error}", file=sys.stderr)
+        diagnostic = (
+            error.diagnostic
+            if isinstance(error, PipelineValidationError)
+            else PipelineValidationError(
+                "pipeline", "", "pipeline", f"{type(error).__name__}: {error}"
+            ).diagnostic
+        )
         try:
+            errors = []
+            try:
+                prior_errors = json.loads(
+                    (args.output_dir / "errors.json").read_text(encoding="utf-8")
+                )
+                if errors_initialized and isinstance(prior_errors.get("errors"), list):
+                    errors = prior_errors["errors"]
+            except (OSError, ValueError, AttributeError):
+                pass
+            errors.append(diagnostic)
+            write_json(args.output_dir / "errors.json", {"errors": errors})
+            sync = publish_sync(
+                args.output_dir, attempted_at, "failed", last_success, errors
+            )
             write_json(
                 args.output_dir / "index.json",
                 {
@@ -471,11 +889,18 @@ def main():
                     "generated_at": datetime.now(timezone.utc).isoformat(),
                     "collection_status": "degraded",
                     "error": str(error),
+                    "errors": errors,
+                    "sync": sync,
                     "versions": [],
                 },
             )
         except OSError as write_error:
             print(f"Could not write diagnostic index: {write_error}", file=sys.stderr)
+        if os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(
+                os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8"
+            ) as handle:
+                handle.write(f"## Data collection failed\n\n{error}\n")
         return 1
     lines = [
         "## Data collection",
@@ -489,6 +914,8 @@ def main():
         f'| {s["id"]} | {s["status"]} | {s["record_count"]} | {s.get("destination", "—")} |'
         for s in output["sources"]
     )
+    if output["errors"]:
+        lines.extend(["", "### Errors", *[f"- {error}" for error in output["errors"]]])
     summary = "\n".join(lines) + "\n"
     print(summary)
     if os.environ.get("GITHUB_STEP_SUMMARY"):

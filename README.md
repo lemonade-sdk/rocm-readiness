@@ -30,5 +30,7 @@ GitHub Actions runs tests and live collection on PRs, pushes to `main`, daily at
 11:17 UTC, and manual dispatch. Download the `readiness-data-*` artifact from the
 run; fetch/validation details appear in its logs and summary. A source failure
 makes the job fail while preserving a partial diagnostic artifact. Check
-`collection_status` before consuming a dataset. The workflow carries build history forward from the latest successful main run.
+`collection_status` before consuming a dataset. `sync.json` reports the latest
+attempt, last successful sync, and source/record/field diagnostics. Required
+stable association failures stop collection and CI. The workflow carries build history forward from the latest successful main run.
 Site publishing follows separately.

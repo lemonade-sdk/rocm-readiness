@@ -25,6 +25,8 @@ flowchart LR
     Fetch --> Copies["Save source copies"]
     Output --> Artifact["Dataset artifact"]
     Copies --> Artifact
+    Map --> Sync["Sync status + errors"]
+    Sync --> Artifact
 ```
 
 Fetch JSON requests each source file and receives its JSON response.
@@ -38,7 +40,8 @@ Manual and pull request runs follow the same steps.
 ## 2. Page load
 
 When someone opens the dashboard, the browser reads the version index and the
-overview for the selected ROCm version.
+overview for the selected ROCm version. It can read `sync.json` alongside the index
+to show the latest sync result and affected-source errors.
 
 ```mermaid
 flowchart LR

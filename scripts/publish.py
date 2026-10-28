@@ -11,10 +11,20 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 if __package__:
-    from .dataset import _load_previous, _read_previous
+    from .dataset import (
+        _load_previous,
+        _read_previous,
+        _validate_comparison,
+        _systems_for,
+    )
     from .sync import load_last_success
 else:
-    from dataset import _load_previous, _read_previous
+    from dataset import (
+        _load_previous,
+        _read_previous,
+        _validate_comparison,
+        _systems_for,
+    )
     from sync import load_last_success
 
 
@@ -118,10 +128,15 @@ def checked(root, relative):
     return path
 
 
-def manifest(root):
+def manifest(root, allow_legacy=False):
     root = Path(root)
     checked(root, "index.json")
     index = read_json(root / "index.json")
+    if not allow_legacy and (
+        type(index.get("attribution_version")) is not int
+        or index["attribution_version"] != 2
+    ):
+        raise ValueError("current attribution version is required for publication")
     paths = {"index.json"}
     for item in index["versions"]:
         overview_path = item["overview"]
@@ -131,24 +146,52 @@ def manifest(root):
         paths.update(entry["path"] for entry in overview["history"])
         if overview.get("performance", {}).get("path"):
             paths.add(overview["performance"]["path"])
-    unassigned = index.get("unassigned_performance")
+    entries = [
+        ("comparison_performance", "performance/comparisons.json"),
+        ("unassigned_performance", "performance/unassigned.json"),
+    ]
+    present = [(key, path) for key, path in entries if key in index]
+    if len(present) != 1:
+        raise ValueError("invalid performance partition manifest")
+    key, expected_path = present[0]
+    if key == "unassigned_performance" and not allow_legacy:
+        raise ValueError(
+            "legacy performance partition is only supported for restoration"
+        )
+    partition = index[key]
     if (
-        not isinstance(unassigned, dict)
-        or unassigned.get("path") != "performance/unassigned.json"
-        or type(unassigned.get("count")) is not int
-        or unassigned["count"] < 0
+        not isinstance(partition, dict)
+        or partition.get("path") != expected_path
+        or type(partition.get("count")) is not int
+        or partition["count"] < 0
     ):
-        raise ValueError("invalid unassigned performance manifest")
-    data = read_json(checked(root, unassigned["path"]))
+        raise ValueError("invalid performance partition manifest")
+    data = read_json(checked(root, partition["path"]))
     if (
         not isinstance(data, dict)
         or data.get("schema_version") != 2
         or not isinstance(data.get("measurements"), list)
         or not isinstance(data.get("systems"), list)
-        or len(data["measurements"]) != unassigned["count"]
+        or len(data["measurements"]) != partition["count"]
     ):
-        raise ValueError("invalid unassigned performance data")
-    paths.add(unassigned["path"])
+        raise ValueError("invalid performance partition data")
+    if key == "comparison_performance":
+        for row in data["measurements"]:
+            _validate_comparison(row)
+        systems = {}
+        for system in data["systems"]:
+            if (
+                not isinstance(system, dict)
+                or not isinstance(system.get("id"), str)
+                or not isinstance(system.get("source_id"), str)
+            ):
+                raise ValueError("invalid comparison system")
+            system_key = (system["source_id"], system["id"])
+            if system_key in systems:
+                raise ValueError("duplicate comparison system")
+            systems[system_key] = system
+        _systems_for(data["measurements"], systems)
+    paths.add(partition["path"])
     for path in paths:
         checked(root, path)
     _load_previous(root)
@@ -260,7 +303,7 @@ def restore(remote, branch, work_dir, output_dir, state_file, source_commit=None
                         target.write_text(
                             git(root, "cat-file", "blob", obj).stdout, encoding="utf-8"
                         )
-                    allowed = manifest(staging)
+                    allowed = manifest(staging, allow_legacy=True)
                     if read_json(staging / "index.json").get("sync") != valid_sync(
                         staging
                     ):

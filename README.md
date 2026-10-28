@@ -22,7 +22,7 @@ writes `data/index.json`, per-version build and model-performance overviews,
 monthly build history, and source
 copies under `data/raw/`. Use `--previous-data <directory>` to carry forward an
 earlier complete dataset, including assigned model measurements and package evidence.
-The authenticated GitHub CLI (`gh`) retrieves evidence for newly observed stable
+The authenticated GitHub CLI (`gh`) retrieves evidence for newly observed ROCm
 benchmark runs; verified backfill mappings are included in the repository.
 Final JSON is staged on a temporary working branch and squashed into `main`;
 raw files and logs stay in CI artifacts.
@@ -35,8 +35,12 @@ run; fetch/validation details appear in its logs and summary. A source failure
 makes the job fail while preserving a partial diagnostic artifact. Check
 `collection_status` before consuming a dataset. The published `latest.json`
 reports the current sync result; local artifacts expose it in `sync.json`. Required
-stable association failures stop collection and CI. Trusted main-branch runs
+ROCm association failures stop collection and CI. Trusted main-branch runs
 restore history from `main/data/` and publish updates;
 PR runs validate without writing it. Raw files remain in 30-day CI artifacts.
 See [data publication](docs/data-publication.md) for bootstrap and recovery.
+The intended app loading sequence is `latest.json` → pinned `index.json` → the
+selected ROCm version's `overview.json`. History, full performance data, and
+Vulkan/HRX comparisons load on demand. Raw sources and standalone diagnostics
+stay in CI artifacts. See the [runtime file inventory](docs/data-publication.md#published-files-and-ci-artifacts).
 The web app follows separately.

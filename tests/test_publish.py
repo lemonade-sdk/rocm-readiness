@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -6,6 +7,8 @@ from unittest.mock import patch
 from pathlib import Path
 
 from scripts import publish
+from scripts.attribution import attribute_stable
+from tests.test_attribution import evidence, measurement
 from scripts.dataset import write_dataset
 from tests.test_dataset import build, normalized
 
@@ -65,19 +68,20 @@ class PublicationTest(unittest.TestCase):
                     json.dumps(
                         {
                             "schema_version": 2,
+                            "attribution_version": 2,
                             "collection_status": "complete",
                             "versions": [],
                             "sources": [],
                             "sync": sync,
-                            "unassigned_performance": {
+                            "comparison_performance": {
                                 "count": 0,
-                                "path": "performance/unassigned.json",
+                                "path": "performance/comparisons.json",
                             },
                         }
                     )
                 )
                 (dataset / "performance").mkdir(exist_ok=True)
-                (dataset / "performance/unassigned.json").write_text(
+                (dataset / "performance/comparisons.json").write_text(
                     json.dumps({"schema_version": 2, "measurements": [], "systems": []})
                 )
                 (dataset / "raw").mkdir(exist_ok=True)
@@ -598,6 +602,223 @@ class PublicationTest(unittest.TestCase):
                     root / "state.json",
                 )
             self.assertFalse((root / "state.json").exists())
+
+    def test_manifest_rejects_rocm_rows_in_comparisons(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized(), root)
+            index = json.loads((root / "index.json").read_text())
+            index["comparison_performance"]["count"] = 1
+            (root / "index.json").write_text(json.dumps(index))
+            row = {
+                "source_id": "bench",
+                "fork_id": "vulkan",
+                "engine_version": "b123",
+                "model": "model",
+                "scenario": "chat",
+                "measured_at": "2026-10-01T00:00:00Z",
+                "backend": "rocm",
+                "rocm_version": "7.14",
+            }
+            (root / "performance/comparisons.json").write_text(
+                json.dumps({"schema_version": 2, "measurements": [row], "systems": []})
+            )
+            with self.assertRaisesRegex(ValueError, "cannot claim ROCm"):
+                publish.manifest(root)
+
+    def test_manifest_accepts_legacy_unassigned_for_restore(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized(), root)
+            index = json.loads((root / "index.json").read_text())
+            index["unassigned_performance"] = index.pop("comparison_performance")
+            index["unassigned_performance"]["path"] = "performance/unassigned.json"
+            (root / "performance/comparisons.json").rename(
+                root / "performance/unassigned.json"
+            )
+            (root / "index.json").write_text(json.dumps(index))
+            self.assertIn(
+                "performance/unassigned.json", publish.manifest(root, allow_legacy=True)
+            )
+            with self.assertRaisesRegex(ValueError, "attribution|legacy|partition"):
+                publish.manifest(root)
+
+    def test_cached_registry_evidence_survives_publication_and_restore(self):
+        row = measurement(
+            channel="nightly",
+            fork_id="llamacpp-rocm-nightly",
+            engine_repository="lemonade-sdk/llamacpp-rocm",
+            engine_version="b1356",
+            model="model",
+            scenario="chat",
+            source_url="https://raw.githubusercontent.com/lemonade-sdk/lemonade/"
+            + "a" * 40
+            + "/leaderboard.json",
+        )
+        package = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1356/llama-b1356-ubuntu-rocm-gfx1151-x64.zip"
+        body = json.dumps(
+            {
+                "forks": [
+                    {
+                        "fork_id": row["fork_id"],
+                        "repo": row["engine_repository"],
+                        "arch": "gfx1151",
+                        "binary_url_linux": package.replace("b1356", "{version}"),
+                    }
+                ]
+            }
+        )
+        registry = {
+            "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/"
+            + "b" * 40
+            + "/src/cpp/resources/benchmark_forks.json",
+            "body": body,
+            "sha256": hashlib.sha256(body.encode()).hexdigest(),
+        }
+        runtime_body = "**ROCm Version**: 10.3.0a20261027"
+        item = evidence(
+            fork_id=row["fork_id"],
+            engine_repository=row["engine_repository"],
+            engine_version=row["engine_version"],
+            package_url=package,
+            scope="all_available_attempts",
+            measurement_times=[row["measured_at"]],
+            runtime_evidence={
+                "url": "https://api.github.com/repos/lemonade-sdk/llamacpp-rocm/releases/tags/b1356",
+                "body": runtime_body,
+                "sha256": hashlib.sha256(runtime_body.encode()).hexdigest(),
+            },
+            job_evidence=[
+                {
+                    "job_id": "99",
+                    "evidence_url": row["run_url"] + "/job/99",
+                    "package_url": package,
+                    "log_sha256": "a" * 64,
+                    "method": "cached_binary_registry_match",
+                    "registry_evidence": registry,
+                }
+            ],
+        )
+        attribute_stable({"measurements": [row]}, [item])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            remote = seed_remote(root)
+            data = root / "data"
+            write_dataset(normalized(measurements=[row]), data)
+            sync = {
+                "attempted_at": "2026-10-28T00:00:00Z",
+                "status": "success",
+                "last_successful_at": "2026-10-28T00:00:00Z",
+                "errors": [],
+            }
+            index = json.loads((data / "index.json").read_text())
+            index["sync"] = sync
+            (data / "index.json").write_text(json.dumps(index))
+            (data / "sync.json").write_text(
+                json.dumps({"schema_version": 1, "sync": sync})
+            )
+            previous = root / "previous"
+            state = root / "state.json"
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertTrue(
+                publish.publish(
+                    str(remote), "main", "owner/repo", root / "work", data, state
+                )
+            )
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            path = previous / "rocm/10.3.0/performance.json"
+            restored = json.loads(path.read_text())
+            final = restored["measurements"][0]
+            self.assertEqual(final["attribution"]["job_evidence"], item["job_evidence"])
+            self.assertEqual(
+                final["attribution"]["job_evidence"][0]["registry_evidence"], registry
+            )
+            self.assertEqual(final["runtime_version"], "10.3.0a20261027")
+            self.assertIsNone(final["qualification_build_id"])
+            final["attribution"]["job_evidence"][0]["registry_evidence"]["sha256"] = (
+                "0" * 64
+            )
+            path.write_text(json.dumps(restored))
+            with self.assertRaisesRegex(ValueError, "registry checksum"):
+                publish.manifest(previous)
+            self.assertFalse(
+                publish.publish(
+                    str(remote), "main", "owner/repo", root / "work", previous, state
+                )
+            )
+
+    def test_new_publication_requires_current_attribution_version(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized(), root)
+            index = json.loads((root / "index.json").read_text())
+            index.pop("attribution_version")
+            (root / "index.json").write_text(json.dumps(index))
+            with self.assertRaisesRegex(ValueError, "attribution"):
+                publish.manifest(root)
+            self.assertIn(
+                "performance/comparisons.json",
+                publish.manifest(root, allow_legacy=True),
+            )
+
+    def test_legacy_dataset_restores_but_cannot_publish_as_success(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            remote = seed_remote(root)
+            source = root / "source"
+            data = source / "data"
+            write_dataset(normalized(), data)
+            index = json.loads((data / "index.json").read_text())
+            index.pop("attribution_version")
+            index["unassigned_performance"] = {
+                "count": 0,
+                "path": "performance/unassigned.json",
+            }
+            index.pop("comparison_performance")
+            (data / "performance/comparisons.json").rename(
+                data / "performance/unassigned.json"
+            )
+            sync = {
+                "attempted_at": "2026-01-01T00:00:00Z",
+                "status": "success",
+                "last_successful_at": "2026-01-01T00:00:00Z",
+                "errors": [],
+            }
+            index["sync"] = sync
+            (data / "index.json").write_text(json.dumps(index))
+            (data / "sync.json").write_text(
+                json.dumps({"schema_version": 1, "sync": sync})
+            )
+            publish.git(source, "add", "-f", "data")
+            publish.git(source, "commit", "-qm", "Legacy data")
+            commit = publish.git(source, "rev-parse", "HEAD").stdout.strip()
+            (data / "latest.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "data_commit": commit,
+                        "index_url": f"https://raw.githubusercontent.com/owner/repo/{commit}/data/index.json",
+                        "sync": sync,
+                    }
+                )
+            )
+            publish.git(source, "add", "-f", "data/latest.json")
+            publish.git(source, "commit", "-qm", "Legacy pointer")
+            publish.git(source, "push", "-q", str(remote), "main")
+            state = root / "state.json"
+            previous = root / "previous"
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertTrue((previous / "performance/unassigned.json").exists())
+            self.assertFalse(
+                publish.publish(
+                    str(remote), "main", "owner/repo", root / "work", previous, state
+                )
+            )
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            latest = json.loads((previous / "latest.json").read_text())
+            self.assertEqual(latest["data_commit"], commit)
+            self.assertEqual(latest["sync"]["status"], "failed")
+            self.assertIn("attribution", latest["sync"]["errors"][0]["reason"])
 
     def test_manifest_rejects_symlink(self):
         with tempfile.TemporaryDirectory() as tmp:

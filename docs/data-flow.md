@@ -39,7 +39,8 @@ The job groups builds by ROCm version, writes compact summaries and monthly
 history chunks. Trusted runs stage final JSON on a temporary working branch,
 squash those changes into `main`, and update the latest pointer in the same push.
 Each run restores build and model history from `main/data/`.
-Stable package associations use saved evidence and authenticated benchmark job logs.
+ROCm package associations use saved evidence, authenticated benchmark job logs,
+and release metadata for stable, nightly, and experimental results.
 PR runs validate and upload temporary artifacts. Raw copies and logs remain in
 those artifacts. Failed main runs update only the latest sync status.
 
@@ -56,12 +57,23 @@ flowchart LR
     Index --> Load["Load selected version"]
     Load --> Display["Populate views"]
     Display -->|Model history| Performance["Load model measurements"]
+    Display -->|Backend baseline| Comparisons["Load comparisons.json"]
     Display -->|Browse builds| History["Load history chunk"]
     History -->|Open build| Report["Load build report"]
 ```
 
-Selecting or comparing another ROCm version loads its overview. Build history
-and reports load when requested. The browser processes the downloaded JSON locally.
+The initial selection uses `index.default_version`, the newest indexed ROCm
+version. Selecting or comparing another version loads its overview. Overviews
+include the latest build and performance summaries; full model measurements,
+build history, and reports load when requested. A Vulkan baseline loads comparison
+records and filters to the Vulkan backend, matching model, workload, quantization,
+and hardware. HRX records remain a separate comparison backend.
+
+The browser does not fetch every generated JSON file. Current errors and sync
+status come from `latest.json.sync`. Raw source copies, standalone errors,
+intermediate provenance, and publication state remain in 30-day CI artifacts;
+they are not part of the published runtime dataset. The browser processes only
+the requested published JSON locally. See the [runtime file inventory](data-publication.md#published-files-and-ci-artifacts).
 
 The workflow publishes the versioned JSON. Browser views are the next stage.
 

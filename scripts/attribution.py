@@ -1,4 +1,4 @@
-"""Associate stable measurements with packages recorded by benchmark jobs."""
+"""Associate ROCm measurements with packages recorded by benchmark jobs."""
 
 from datetime import datetime
 import copy
@@ -34,13 +34,98 @@ def _time(value):
     return parsed
 
 
+def package_identity(url):
+    stable = PACKAGE.fullmatch(url) if isinstance(url, str) else None
+    if stable:
+        _require(
+            stable[5] == {"ubuntu": "tar.gz", "win": "zip"}[stable[3]],
+            "invalid package archive",
+        )
+        return dict(
+            repository=stable[1],
+            version=stable[2],
+            os={"ubuntu": "linux", "win": "windows"}[stable[3]],
+            rocm_version=stable[4],
+        )
+    match = re.fullmatch(
+        r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/releases/download/([A-Za-z0-9_.-]+)/llama-\2-(ubuntu|windows)-rocm-(gfx[0-9A-Za-z]+|multiarch)-x64\.(zip|tar\.gz)",
+        url or "",
+    )
+    _require(match is not None, "invalid ROCm package URL")
+    return dict(
+        repository=match[1],
+        version=match[2],
+        os={"ubuntu": "linux", "windows": "windows"}[match[3]],
+        rocm_version=None,
+    )
+
+
+def _runtime_identity(package, runtime):
+    _require(isinstance(runtime, dict), "missing release runtime evidence")
+    body = runtime.get("body")
+    _require(isinstance(body, str) and len(body) <= 100000, "invalid release body")
+    _require(
+        runtime.get("sha256") == hashlib.sha256(body.encode()).hexdigest(),
+        "release body checksum mismatch",
+    )
+    expected = f'https://api.github.com/repos/{package["repository"]}/releases/tags/{package["version"]}'
+    _require(runtime.get("url") == expected, "release identity mismatch")
+    versions = re.findall(
+        r"^\*\*ROCm Version\*\*:\s*([0-9]+(?:\.[0-9]+)*(?:a[0-9]+)?)\b",
+        body,
+        re.MULTILINE,
+    )
+    _require(len(versions) == 1, "release runtime is missing or ambiguous")
+    version = versions[0]
+    return version.split("a")[0], version
+
+
+def validate_measurement_package(row):
+    package = package_identity(row.get("package_url"))
+    if package["rocm_version"] is None:
+        attribution = row.get("attribution") or {}
+        version, runtime = _runtime_identity(
+            package, attribution.get("runtime_evidence")
+        )
+        _require(row.get("runtime_version") == runtime, "runtime version mismatch")
+        package["rocm_version"] = version
+    attribution = row.get("attribution") or {}
+    if "job_evidence" in attribution:
+        run = RUN.fullmatch(row.get("run_url", ""))
+        _require(run is not None, "invalid evidence run")
+        job = re.fullmatch(
+            re.escape(row["run_url"]) + r"/job/([0-9]+)",
+            attribution.get("evidence_url", ""),
+        )
+        _require(job is not None, "invalid representative job")
+        validate_evidence(
+            {
+                **attribution,
+                "repository": run[1],
+                "run_id": run[2],
+                "job_id": job[1],
+                "engine_repository": row["engine_repository"],
+                "engine_version": row["engine_version"],
+                "fork_id": row["fork_id"],
+                "scope": "all_available_attempts",
+                "started_at": row["measured_at"],
+                "completed_at": row["measured_at"],
+                "measurement_times": [row["measured_at"]],
+            }
+        )
+    return package
+
+
 def validate_evidence(row):
     _require(isinstance(row, dict), "invalid package evidence")
-    package = PACKAGE.fullmatch(row.get("package_url", ""))
-    _require(package is not None, "invalid stable package URL")
+    package = package_identity(row.get("package_url"))
+    if package["rocm_version"] is None:
+        package["rocm_version"], package["runtime_version"] = _runtime_identity(
+            package, row.get("runtime_evidence")
+        )
     _require(
-        package[1] == row.get("engine_repository")
-        and package[2] == row.get("engine_version"),
+        package["repository"] == row.get("engine_repository")
+        and package["version"] == row.get("engine_version"),
         "package identity mismatch",
     )
     _require(
@@ -95,6 +180,12 @@ def validate_evidence(row):
                 "invalid attempt job",
             )
             seen.add(job["job_id"])
+            if job.get("method") == "cached_binary_registry_match":
+                _require(
+                    _registry_package(job.get("registry_evidence", {}), row)
+                    == row["package_url"],
+                    "cached registry package mismatch",
+                )
             _require(
                 job.get("evidence_url")
                 == f'https://github.com/{row["repository"]}/actions/runs/{row["run_id"]}/job/{job["job_id"]}',
@@ -144,6 +235,37 @@ def _gh(args):
     return process.stdout
 
 
+def _registry_package(evidence, row):
+    body = evidence.get("body")
+    _require(
+        isinstance(body, str)
+        and evidence.get("sha256") == hashlib.sha256(body.encode()).hexdigest(),
+        "registry checksum mismatch",
+    )
+    _require(
+        re.fullmatch(
+            r"https://raw\.githubusercontent\.com/"
+            + re.escape(row["repository"])
+            + r"/[a-f0-9]{40}/src/cpp/resources/benchmark_forks\.json",
+            evidence.get("url", ""),
+        ),
+        "invalid registry identity",
+    )
+    forks = [
+        fork
+        for fork in json.loads(body)["forks"]
+        if fork.get("fork_id") == row["fork_id"]
+        and fork.get("repo") == row["engine_repository"]
+    ]
+    _require(len(forks) == 1, "cached fork registry is missing or ambiguous")
+    fork = forks[0]
+    return (
+        fork["binary_url_linux"]
+        .replace("{version}", row["engine_version"])
+        .replace("{arch}", fork.get("arch", ""))
+    )
+
+
 def resolve_package(row, run=_gh):
     benchmark = RUN.fullmatch(row.get("run_url", ""))
     _require(
@@ -179,19 +301,87 @@ def resolve_package(row, run=_gh):
             ["run", "view", run_id, "--repo", repo, "--job", str(job["id"]), "--log"]
         )
         urls = set(re.findall(r"\bDownloading\s+(https://github\.com/[^\s]+)", log))
-        candidates = [
-            url
-            for url in urls
-            if (match := PACKAGE.fullmatch(url))
-            and match[1] == row["engine_repository"]
-        ]
+        candidates = []
+        for url in urls:
+            try:
+                identity = package_identity(url)
+            except ValueError:
+                continue
+            if (
+                identity["repository"] == row["engine_repository"]
+                and identity["version"] == row["engine_version"]
+            ):
+                candidates.append(url)
+        registry_evidence = None
+        method = "download_log"
+        if not candidates:
+            cached = re.search(
+                r"\[cache\] "
+                + re.escape(row["engine_version"])
+                + r" already installed: /[^\n]*?/bench-binaries/"
+                + re.escape(row["fork_id"])
+                + r"/llama-server\s*(?:$|\n)",
+                log,
+            )
+            _require(
+                cached is not None,
+                "exact downloaded ROCm package is missing or ambiguous",
+            )
+            commits = re.findall(
+                r"git log -1 --format=%H\n[^\n]*?\b([a-f0-9]{40})\s*(?:$|\n)", log
+            )
+            _require(
+                len(set(commits)) == 1, "cached binary checkout is missing or ambiguous"
+            )
+            commit = commits[0]
+            endpoint = f"repos/{repo}/contents/src/cpp/resources/benchmark_forks.json?ref={commit}"
+            body = run(
+                ["api", endpoint, "-H", "Accept: application/vnd.github.raw+json"]
+            )
+            registry_evidence = {
+                "url": f"https://raw.githubusercontent.com/{repo}/{commit}/src/cpp/resources/benchmark_forks.json",
+                "body": body,
+                "sha256": hashlib.sha256(body.encode()).hexdigest(),
+            }
+            candidates = [
+                _registry_package(registry_evidence, {**row, "repository": repo})
+            ]
+            identity = package_identity(candidates[0])
+            _require(
+                identity["repository"] == row["engine_repository"]
+                and identity["version"] == row["engine_version"]
+                and identity["os"] == "linux",
+                "cached package identity mismatch",
+            )
+            release = json.loads(
+                run(
+                    [
+                        "api",
+                        f'repos/{identity["repository"]}/releases/tags/{identity["version"]}',
+                    ]
+                )
+            )
+            _require(
+                any(
+                    asset.get("browser_download_url") == candidates[0]
+                    for asset in release.get("assets", [])
+                ),
+                "cached package absent from release",
+            )
+            method = "cached_binary_registry_match"
         _require(
             len(candidates) == 1,
-            "exact downloaded stable package is missing or ambiguous",
+            "exact downloaded ROCm package is missing or ambiguous",
         )
         job_evidence.append(
             {
                 "job_id": str(job["id"]),
+                "method": method,
+                **(
+                    {"registry_evidence": registry_evidence}
+                    if registry_evidence
+                    else {}
+                ),
                 "package_url": candidates[0],
                 "evidence_url": f'https://github.com/{repo}/actions/runs/{run_id}/job/{job["id"]}',
                 "log_sha256": hashlib.sha256(log.encode()).hexdigest(),
@@ -219,6 +409,25 @@ def resolve_package(row, run=_gh):
         "job_evidence": job_evidence,
         "measurement_times": [row["measured_at"]],
     }
+    identity = package_identity(record["package_url"])
+    if identity["rocm_version"] is None:
+        endpoint = f'repos/{identity["repository"]}/releases/tags/{identity["version"]}'
+        release = json.loads(run(["api", endpoint]))
+        _require(release.get("tag_name") == identity["version"], "release tag mismatch")
+        _require(
+            any(
+                asset.get("browser_download_url") == record["package_url"]
+                for asset in release.get("assets", [])
+            ),
+            "downloaded package is absent from release",
+        )
+        body = release.get("body")
+        _require(isinstance(body, str), "missing release body")
+        record["runtime_evidence"] = {
+            "url": "https://api.github.com/" + endpoint,
+            "body": body,
+            "sha256": hashlib.sha256(body.encode()).hexdigest(),
+        }
     validate_evidence(record)
     _require(
         _matches(row, record), "download evidence does not identify this measurement"
@@ -251,7 +460,8 @@ def attribute_stable(
             return item
         previous = identities[key]
         _require(
-            previous["package_url"] == item["package_url"],
+            previous["package_url"] == item["package_url"]
+            and previous.get("runtime_evidence") == item.get("runtime_evidence"),
             "conflicting package evidence",
         )
         if not all_attempts:
@@ -309,11 +519,7 @@ def attribute_stable(
         key = tuple(previous.get(field) for field in identity_fields)
         prior.setdefault(key, []).append(previous)
     for row in output["measurements"]:
-        if not (
-            row["engine"] == "llamacpp"
-            and row["channel"] == "stable"
-            and row["backend"] == "rocm"
-        ):
+        if not (row["engine"] == "llamacpp" and row["backend"] == "rocm"):
             continue
         key = (row.get("run_url"), row.get("engine_version"), row.get("fork_id"))
         fresh = resolved.get(key)
@@ -351,6 +557,8 @@ def attribute_stable(
                 not consistent
                 or any(
                     item["package_url"] != previous["package_url"]
+                    or validate_evidence(item).get("runtime_version")
+                    != previous.get("runtime_version")
                     for item in candidates
                 )
             ):
@@ -381,6 +589,7 @@ def attribute_stable(
                     package_url=previous["package_url"],
                     package_os=previous["package_os"],
                     attribution={
+                        **copy.deepcopy(previous["attribution"]),
                         "status": "rocm_identified",
                         "evidence_url": previous["attribution"]["evidence_url"],
                         "log_sha256": previous["attribution"]["log_sha256"],
@@ -388,6 +597,11 @@ def attribute_stable(
                     },
                     qualification_build_id=None,
                 )
+                if previous.get("runtime_version"):
+                    row["runtime_version"] = previous["runtime_version"]
+                    row["attribution"]["runtime_evidence"] = previous["attribution"][
+                        "runtime_evidence"
+                    ]
                 continue
         if not candidates and resolve is not None:
             try:
@@ -421,10 +635,24 @@ def attribute_stable(
             )
         item = candidates[0]
         package = validate_evidence(item)
+        if (
+            len(previous_rows) == 1
+            and current_origin == previous_origin
+            and (
+                item["package_url"] != previous["package_url"]
+                or package.get("runtime_version") != previous.get("runtime_version")
+            )
+        ):
+            raise PipelineValidationError(
+                row["source_id"],
+                row["source_pointer"],
+                "package_evidence",
+                "conflicting previously verified package attribution",
+            )
         row.update(
-            rocm_version=package[4],
+            rocm_version=package["rocm_version"],
             package_url=item["package_url"],
-            package_os={"ubuntu": "linux", "win": "windows"}[package[3]],
+            package_os=package["os"],
             attribution={
                 "status": "rocm_identified",
                 "evidence_url": item["evidence_url"],
@@ -432,4 +660,11 @@ def attribute_stable(
                 "package_url": item["package_url"],
             },
         )
+        if item.get("job_evidence"):
+            row["attribution"]["job_evidence"] = copy.deepcopy(item["job_evidence"])
+        if package.get("runtime_version"):
+            row["runtime_version"] = package["runtime_version"]
+            row["attribution"]["runtime_evidence"] = copy.deepcopy(
+                item["runtime_evidence"]
+            )
     output["package_evidence"] = records

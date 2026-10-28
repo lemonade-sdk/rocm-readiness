@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -103,16 +104,18 @@ class DatasetTests(unittest.TestCase):
                 ],
             )
             self.assertEqual(result["sources"], normalized()["sources"])
+            self.assertNotIn("unassigned_performance", result)
+            self.assertFalse((destination / "performance/unassigned.json").exists())
             self.assertEqual(
-                result["unassigned_performance"],
-                {"count": 0, "path": "performance/unassigned.json"},
+                result["comparison_performance"],
+                {"count": 0, "path": "performance/comparisons.json"},
             )
             self.assertEqual(
                 result, json.loads((destination / "index.json").read_text())
             )
 
             self.assertEqual(
-                json.loads((destination / "performance/unassigned.json").read_text()),
+                json.loads((destination / "performance/comparisons.json").read_text()),
                 {"schema_version": 2, "measurements": [], "systems": []},
             )
 
@@ -133,6 +136,137 @@ class DatasetTests(unittest.TestCase):
                 history["builds"][0]["source_url"],
                 SOURCE_A,
             )
+
+    def test_alpha_runtime_evidence_is_preserved_without_fake_qualification(self):
+        package = "https://github.com/example/source/releases/download/exp123/llama-exp123-ubuntu-rocm-gfx1151-x64.tar.gz"
+        body = "**ROCm Version**: 10.3.0a20261027\n"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/0",
+            "source_url": SOURCE_A,
+            "engine": "llamacpp",
+            "channel": "experimental",
+            "backend": "rocm",
+            "fork_id": "experimental",
+            "engine_repository": "example/source",
+            "engine_version": "exp123",
+            "model": "m",
+            "scenario": "chat",
+            "measured_at": "2026-10-01T00:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "rocm_version": "10.3.0",
+            "runtime_version": "10.3.0a20261027",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "package_url": package,
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "runtime_evidence": {
+                    "url": "https://api.github.com/repos/example/source/releases/tags/exp123",
+                    "body": body,
+                    "sha256": hashlib.sha256(body.encode()).hexdigest(),
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            index = write_dataset(normalized(measurements=[row]), root / "old")
+            self.assertEqual(index["attribution_version"], 2)
+            path = "rocm/10.3.0/performance.json"
+            saved = json.loads((root / "old" / path).read_text())["measurements"][0]
+            self.assertEqual(saved["runtime_version"], "10.3.0a20261027")
+            self.assertIsNone(saved["qualification_build_id"])
+            write_dataset(normalized(), root / "new", root / "old")
+            self.assertEqual(
+                json.loads((root / "new" / path).read_text())["measurements"][0], saved
+            )
+            for changes in ({"runtime_version": "10.3.0"}, {"rocm_version": "10.3"}):
+                with self.subTest(changes=changes), self.assertRaisesRegex(
+                    ValueError, "mismatch"
+                ):
+                    write_dataset(
+                        normalized(measurements=[{**row, **changes}]), root / "bad"
+                    )
+
+    def test_comparison_backends_are_explicit_and_cannot_claim_rocm(self):
+        base = {
+            "source_id": "bench",
+            "source_pointer": "/0",
+            "fork_id": "comparison",
+            "engine_version": "b123",
+            "model": "model",
+            "scenario": "chat",
+            "measured_at": "2026-10-01T00:00:00Z",
+            "rocm_version": None,
+        }
+        for backend in ("vulkan", "hrx"):
+            with self.subTest(backend=backend), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                index = write_dataset(
+                    normalized(measurements=[{**base, "backend": backend}]), root
+                )
+                self.assertEqual(index["versions"], [])
+                self.assertEqual(index["comparison_performance"]["count"], 1)
+                for changes in (
+                    {"rocm_version": "7.14"},
+                    {"qualification_build_id": "fake"},
+                    {"runtime_version": "7.14"},
+                    {"package_url": "https://example.test/fake"},
+                ):
+                    with self.subTest(changes=changes), self.assertRaisesRegex(
+                        ValueError, "cannot claim ROCm"
+                    ):
+                        write_dataset(
+                            normalized(
+                                measurements=[{**base, "backend": backend, **changes}]
+                            ),
+                            root / "bad",
+                        )
+
+    def test_clean_rebuild_accepts_legacy_unassigned_manifest(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized([build()]), root / "old")
+            index_path = root / "old/index.json"
+            index = json.loads(index_path.read_text())
+            index["unassigned_performance"] = {
+                "count": 1,
+                "path": "performance/unassigned.json",
+            }
+            index.pop("comparison_performance")
+            index_path.write_text(json.dumps(index))
+            (root / "old/performance/unassigned.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "measurements": [{"backend": "rocm", "rocm_version": None}],
+                        "systems": [],
+                    }
+                )
+            )
+            result = write_dataset(normalized(), root / "new", root / "old")
+            self.assertEqual(result["versions"][0]["build_count"], 1)
+            self.assertNotIn("unassigned_performance", result)
+            self.assertFalse((root / "new/performance/unassigned.json").exists())
+
+    def test_rejects_unattributed_rocm_in_every_channel(self):
+        for channel in ("stable", "nightly", "experimental"):
+            with self.subTest(channel=channel), tempfile.TemporaryDirectory() as folder:
+                row = {
+                    "source_id": "bench",
+                    "source_pointer": "/measurements/0",
+                    "backend": "rocm",
+                    "channel": channel,
+                    "rocm_version": None,
+                }
+                with self.assertRaisesRegex(ValueError, "ROCm version"):
+                    write_dataset(normalized(measurements=[row]), Path(folder))
+                self.assertFalse(
+                    (Path(folder) / "performance/unassigned.json").exists()
+                )
 
     def test_rejects_invalid_current_build_contract(self):
         cases = {
@@ -196,7 +330,7 @@ class DatasetTests(unittest.TestCase):
             )
             self.assertEqual(llama["latest_builds"][0]["build_id"], "attempt-10")
 
-    def test_versions_latest_cards_projection_and_unassigned_performance(self):
+    def test_versions_latest_cards_projection_and_comparison_performance(self):
         rows = [
             build("7-9", rocm_version="7.9", generated_at="2026-08-01T10:00:00Z"),
             build(
@@ -243,8 +377,8 @@ class DatasetTests(unittest.TestCase):
             "kind": "latest",
             "engine": "llamacpp",
             "channel": "nightly",
-            "backend": "rocm",
-            "fork_id": "llamacpp-rocm-nightly",
+            "backend": "vulkan",
+            "fork_id": "llamacpp-vulkan",
             "engine_repository": "lemonade-sdk/llama.cpp",
             "engine_version": "b123",
             "model": "model",
@@ -322,15 +456,13 @@ class DatasetTests(unittest.TestCase):
             self.assertNotIn("arbitrary_blob", rerun)
             self.assertNotIn("results", rerun)
             self.assertNotIn("summary", rerun)
-            self.assertEqual(
-                overview["performance"], {"status": "awaiting_attribution"}
-            )
+            self.assertEqual(overview["performance"], {"status": "not_measured"})
             self.assertNotIn("measurements", overview)
 
             performance = json.loads(
-                (destination / "performance/unassigned.json").read_text()
+                (destination / "performance/comparisons.json").read_text()
             )
-            self.assertEqual(index["unassigned_performance"]["count"], 1)
+            self.assertEqual(index["comparison_performance"]["count"], 1)
             self.assertEqual(
                 performance["measurements"][0]["producer_accuracy"], {"accuracy": 1}
             )
@@ -378,9 +510,6 @@ class DatasetTests(unittest.TestCase):
                 "record_count": 1,
                 "url": SOURCE_C,
             }
-        )
-        prior["measurements"].append(
-            {"source_id": "previous-performance", "model": "old-model"}
         )
         current = normalized(
             [
@@ -435,7 +564,7 @@ class DatasetTests(unittest.TestCase):
                 old_version[0]["source_url"],
                 SOURCE_C,
             )
-            self.assertEqual(index["unassigned_performance"]["count"], 0)
+            self.assertEqual(index["comparison_performance"]["count"], 0)
 
     def test_rejects_incomplete_corrupt_or_escaping_previous_history(self):
         for case in ("status", "count", "traversal", "symlink"):
@@ -888,8 +1017,14 @@ class DatasetTests(unittest.TestCase):
                 },
             }
             new_system = {**old_system, "gpu": "new"}
+            with self.assertRaisesRegex(ValueError, "ROCm version"):
+                write_dataset(
+                    normalized([], [unresolved], [new_system]),
+                    root / "rejected",
+                    root / "old",
+                )
             write_dataset(
-                normalized([], [unresolved, new], [new_system]),
+                normalized([], [new], [new_system]),
                 root / "new",
                 root / "old",
             )
@@ -901,7 +1036,7 @@ class DatasetTests(unittest.TestCase):
             self.assertEqual(systems[rows["new-model"]["system_id"]]["gpu"], "new")
             self.assertEqual(rows["m"]["attribution"]["status"], "matched")
             self.assertEqual(
-                json.loads((root / "new/performance/unassigned.json").read_text())[
+                json.loads((root / "new/performance/comparisons.json").read_text())[
                     "measurements"
                 ],
                 [],

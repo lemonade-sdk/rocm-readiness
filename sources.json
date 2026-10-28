@@ -46,6 +46,15 @@
       "stale_after_hours": 72
     },
     {
+      "id": "llamacpp-nightly-qualification",
+      "engine": "llamacpp",
+      "adapter": "qualification-v1",
+      "repository": "lemonade-sdk/llamacpp-rocm",
+      "ref": "qualification-data",
+      "availability": "awaiting_data",
+      "channel": "nightly"
+    },
+    {
       "id": "vllm-qualification",
       "engine": "vllm",
       "adapter": "qualification-v1",

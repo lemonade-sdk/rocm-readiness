@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from scripts.attribution import attribute_stable
-from scripts.collect import normalize_performance, validate_config
+from scripts.collect import collect, normalize_performance, validate_config
 from scripts.dataset import write_dataset
 from tests.test_attribution import evidence, measurement
 from tests.test_collect import fixture
@@ -13,6 +13,36 @@ from tests.test_dataset import SOURCE_A, build, normalized
 
 
 class ScopeTests(unittest.TestCase):
+    def test_pending_nightly_source_records_confirmed_location_without_fetching(self):
+        source = {
+            "id": "llamacpp-nightly-qualification",
+            "engine": "llamacpp",
+            "adapter": "qualification-v1",
+            "availability": "awaiting_data",
+            "channel": "nightly",
+            "repository": "lemonade-sdk/llamacpp-rocm",
+            "ref": "qualification-data",
+        }
+        config = {
+            "schema_version": 1,
+            "engines": [{"id": "llamacpp"}],
+            "sources": [source],
+        }
+
+        def unavailable(url):
+            raise AssertionError("pending producer must not be fetched: " + url)
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = collect(
+                config, Path(directory), fetch=unavailable, now="2026-10-28T12:00:00Z"
+            )
+            pending = result["dataset"]["sources"][0]
+            self.assertEqual(pending["status"], "awaiting_data")
+            self.assertEqual(pending["repository"], "lemonade-sdk/llamacpp-rocm")
+            self.assertEqual(pending["ref"], "qualification-data")
+            self.assertEqual(result["builds"], [])
+            self.assertEqual(result["collection_status"], "complete")
+
     def test_performance_allowlist_filters_latest_and_history_before_attribution(self):
         source = fixture("performance-source.json")
         source["include_forks"] = ["stable"]
@@ -140,6 +170,13 @@ class ScopeTests(unittest.TestCase):
                     }
                 },
             },
+        }
+        scopes["removed-nightly"] = {
+            "engine": "llamacpp",
+            "repository": "example/source",
+            "adapter": "qualification-v1",
+            "channel": "nightly",
+            "availability": "awaiting_data",
         }
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

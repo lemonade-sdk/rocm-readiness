@@ -693,6 +693,13 @@ def collect(
             state["include_forks"] = source["include_forks"]
         output["sources"].append(state)
         if source.get("availability") == "awaiting_data":
+            state.update(
+                {
+                    key: source[key]
+                    for key in ("repository", "ref", "path")
+                    if key in source
+                }
+            )
             print(f"{sid}: awaiting_data (not fetched)", flush=True)
             continue
         fetch_url = None

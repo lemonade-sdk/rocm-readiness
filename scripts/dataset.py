@@ -613,7 +613,7 @@ def _record_in_scope(row, source_configs):
     if source_configs is None:
         return True
     source = source_configs.get(row["source_id"])
-    if source is None:
+    if source is None or source.get("availability") == "awaiting_data":
         return False
     repository = "/".join(urlparse(row.get("source_url") or "").path.split("/")[1:3])
     if repository != source.get("repository"):

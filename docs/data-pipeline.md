@@ -18,10 +18,15 @@ and their model-performance results from Lemonade's `benchmark-data` branch.
 `include_forks: ["llamacpp-rocm-stable"]` filters that mixed benchmark feed before
 association. Nightly, experimental, Vulkan, and HRX llama.cpp results are excluded.
 
-Shriram is working on future nightly support, tracked in [#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4).
-No separate ROCm nightly feed is enabled. vLLM scope is unchanged, including its
-available stable/nightly Linux history. Whisper and Stable Diffusion remain
-`availability: "awaiting_data"` until their producers supply data.
+Shriram confirmed the repository split: `lemonade-sdk/llama.cpp` supplies stable
+ROCm builds; `lemonade-sdk/llamacpp-rocm` will publish nightly builds on its
+`qualification-data` branch. The nightly source is configured as `awaiting_data`
+until that branch and its file/schema contract are published ([#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4)).
+Nightly SDK identifiers retain the full version, e.g. `10.3.0a20261026` means
+ROCm `10.3.0`, alpha, dated `20261026`.
+
+vLLM scope is unchanged, including its available stable/nightly Linux history.
+Whisper and Stable Diffusion remain `availability: "awaiting_data"`.
 
 ## What we retain
 
@@ -123,7 +128,11 @@ committed mappings and evidence embedded in published measurements survive them.
 
 ## Upcoming producer field
 
-Aishwarya plans to add the ROCm version directly to the benchmark data. The field
-is not yet available in the inspected stable records. [#10](https://github.com/lemonade-sdk/rocm-readiness/issues/10)
-tracks adopting the actual schema, validating it against the stable build/package,
-and reducing lookups. No field name or format is assumed.
+[lemonade-sdk/lemonade#3996](https://github.com/lemonade-sdk/lemonade/pull/3996)
+proposes `rocm_version` (string or null) in run files, leaderboard entries, and
+history points. Stable values use release metadata or the pinned TheRock version;
+nightly values retain the alpha/date identifier. Older records may have no value.
+
+[#10](https://github.com/lemonade-sdk/rocm-readiness/issues/10) tracks using this
+field after the PR merges and populated benchmark data is available. Validate it
+against engine tag/package identity and retain the historical fallback.

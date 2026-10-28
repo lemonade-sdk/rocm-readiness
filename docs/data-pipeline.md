@@ -11,8 +11,10 @@ branch, and prepares files for the dashboard. See the [data flow](data-flow.md).
 | vLLM qualification | `lemonade-sdk/vllm-rocm` / `qualification-data` | `qualification/index.json` |
 | Model performance | `lemonade-sdk/lemonade` / `benchmark-data` | `leaderboard.json` |
 
-The initial integration covers llama.cpp stable builds and their model performance.
-Nightly llama.cpp, vLLM integration, Whisper, and Stable Diffusion are tracked as
+The collector ingests stable llama.cpp and available vLLM qualification records,
+and stable, nightly, and experimental llama.cpp ROCm model performance.
+Vulkan and HRX performance is retained separately for backend comparisons.
+Remaining producer feeds are tracked as
 [P1 follow-ups](https://github.com/lemonade-sdk/rocm-readiness/issues?q=is%3Aissue+label%3Astatus%3Aawaiting-data).
 Nightly llama.cpp, Whisper, and Stable Diffusion qualification feeds are pending.
 Their entries use `availability: "awaiting_data"` and are not fetched. vLLM is
@@ -65,8 +67,10 @@ the benchmark feed uses `forks` to map backend variants. Both examples are in
 
 ## Generated files
 
-Local/CI output uses dataset schema version 2. The publication step retains the
-final files described in [data publication](data-publication.md):
+Local/CI output uses dataset schema version 2. The tree below is the collection
+artifact, which includes diagnostics and source copies. It is not the set of
+files the app downloads. The smaller published tree and lazy-loading sequence
+are documented in [data publication](data-publication.md#app-entry-point):
 
 ```text
 data/
@@ -86,6 +90,7 @@ data/
 - `sync.json` exposes the latest attempt, its result, the last successful sync, and
   affected-source errors. The same `sync` object appears in `index.json`.
 - `errors.json` records each failure's source, JSON location, field, and reason.
+  It stays in the CI artifact; the app reads current errors from `latest.json.sync`.
 - Each overview contains engine cards, latest builds for each channel/OS/GPU target,
   build counts, and links to monthly history chunks.
 - History chunks contain compact build records: build number, version, date,
@@ -93,7 +98,9 @@ data/
 - `report_url` opens the producer's full build report when details are requested.
 - Each version's `performance.json` contains assigned model measurements and hardware.
   Its overview includes the latest measurements and the path to their history.
-- `provenance/packages.json` preserves the package evidence used for attribution.
+- `provenance/packages.json` is an intermediate evidence cache retained in CI.
+  Essential evidence is also embedded in final measurements; the app never needs
+  this intermediate file.
 - `performance/comparisons.json` contains only non-ROCm measurements (`vulkan` and
   `hrx`) and their hardware. The root `comparison_performance` entry supplies its
   `path` and `count`. These measurements have no ROCm version or qualification
@@ -105,10 +112,14 @@ data/
   retain their source identity and JSON location; historical builds also carry
   the original source URL at the revision that supplied them.
 
-The browser loads the version index and selected overview first. Browsing builds
-loads a history chunk; opening a build loads its report. A comparison loads the
-other version's overview. Model, workload, quantization, and hardware establish
-which measurements can be compared.
+The intended browser flow is `latest.json` → pinned `index.json` → selected
+ROCm version's `overview.json`, using `index.default_version` initially. Overviews
+already contain the latest build and performance summaries. Build history chunks,
+full model measurements, and comparisons load only when the view needs them.
+A version comparison loads the other version's overview; a Vulkan baseline loads
+`performance/comparisons.json` and filters to `backend: "vulkan"` (HRX is separate).
+Model, workload, quantization, and hardware establish which measurements can be
+compared. Raw files and standalone diagnostics are CI-only, not on-demand app data.
 
 ## History across runs
 

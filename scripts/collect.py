@@ -15,8 +15,10 @@ from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 if __package__:
+    from .attribution import attribute_stable, resolve_package
     from .dataset import write_dataset
 else:
+    from attribution import attribute_stable, resolve_package
     from dataset import write_dataset
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
@@ -292,7 +294,15 @@ def write_json(path, data):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def collect(config, destination, fetch=fetch_json, now=None, previous_data=None):
+def collect(
+    config,
+    destination,
+    fetch=fetch_json,
+    now=None,
+    previous_data=None,
+    package_evidence=None,
+    resolve_packages=None,
+):
     validate_config(config)
     now = now or datetime.now(timezone.utc).isoformat()
     clock = timestamp(now)
@@ -373,6 +383,8 @@ def collect(config, destination, fetch=fetch_json, now=None, previous_data=None)
             )
             output[target].extend(rows)
             if target == "measurements":
+                for row in rows:
+                    row["source_url"] = url
                 output["systems"].extend(systems)
             print(
                 f'{sid}: validated {len(rows)} records -> {state["destination"]} ({state["status"]})',
@@ -382,9 +394,41 @@ def collect(config, destination, fetch=fetch_json, now=None, previous_data=None)
             state.update(status="error", error=f"{type(error).__name__}: {error}")
             output["collection_status"] = "degraded"
             print(f'{sid}: ERROR {state["error"]}', file=sys.stderr, flush=True)
+    evidence = list(package_evidence or [])
+    if previous_data is not None:
+        previous_root = Path(previous_data).resolve()
+        prior_evidence = previous_root / "provenance/packages.json"
+        if prior_evidence.exists():
+            prior_evidence.resolve().relative_to(previous_root)
+            saved = json.loads(prior_evidence.read_text(encoding="utf-8"))
+            require(saved.get("schema_version") == 1, "invalid package evidence schema")
+            require(isinstance(saved.get("packages"), list), "invalid package evidence")
+            evidence.extend(saved["packages"])
+    attribute_stable(output, evidence, resolve_packages)
+    for source in output["sources"]:
+        if source["adapter"] == "lemonade-leaderboard-v1" and source["status"] not in (
+            "error",
+            "awaiting_data",
+        ):
+            source["destination"] = (
+                "rocm/*/performance.json + performance/unassigned.json"
+            )
+    write_json(
+        destination / "provenance/packages.json",
+        {
+            "schema_version": 1,
+            "packages": output["package_evidence"],
+        },
+    )
     output["dataset"] = write_dataset(output, destination, previous_data=previous_data)
     print(
         f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
+        flush=True,
+    )
+    stable = output["dataset"]["stable_performance"]
+    print(
+        f'Stable model observations: {stable["assigned_count"]} assigned, '
+        f'{stable["awaiting_evidence_count"]} awaiting evidence',
         flush=True,
     )
     return output
@@ -395,16 +439,27 @@ def main():
     parser.add_argument("--sources", type=Path, default=Path("sources.json"))
     parser.add_argument("--output-dir", type=Path, default=Path("data"))
     parser.add_argument(
+        "--package-evidence",
+        type=Path,
+        default=Path(__file__).resolve().parents[1]
+        / "provenance/llamacpp-stable-packages.json",
+        help="Verified package evidence used for stable performance backfill",
+    )
+    parser.add_argument(
         "--previous-data",
         type=Path,
         help="Previous complete dataset to carry build history forward",
     )
     args = parser.parse_args()
     try:
+        evidence = json.loads(args.package_evidence.read_text(encoding="utf-8"))
+        require(evidence.get("schema_version") == 1, "invalid package evidence schema")
         output = collect(
             json.loads(args.sources.read_text(encoding="utf-8")),
             args.output_dir,
             previous_data=args.previous_data,
+            package_evidence=evidence["packages"],
+            resolve_packages=resolve_package,
         )
     except (ValueError, KeyError, TypeError, OSError) as error:
         print(f"Collection error: {error}", file=sys.stderr)

@@ -17,9 +17,12 @@ uv run --no-project --python 3.12 python scripts/check.py --output-dir data/next
 
 Use `uv` to run the commands above with Python 3.12. The collector has no
 third-party runtime dependencies and supports Python 3.9+. The collector
-writes `data/index.json`, per-version overviews, monthly build history, and source
+writes `data/index.json`, per-version build and model-performance overviews,
+monthly build history, and source
 copies under `data/raw/`. Use `--previous-data <directory>` to carry forward an
-earlier complete dataset.
+earlier complete dataset, including assigned model measurements and package evidence.
+The authenticated GitHub CLI (`gh`) retrieves evidence for newly observed stable
+benchmark runs; verified backfill mappings are included in the repository.
 Generated datasets and logs are not committed. See [the data contract](docs/data-pipeline.md)
 for extraction rules, source inventory, limitations, and onboarding.
 

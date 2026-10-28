@@ -20,8 +20,8 @@ flowchart LR
     end
     Fetch -->|Request| Sources
     Sources -->|JSON response| Fetch
-    Fetch --> Map["Validate and map fields"]
-    Map --> Output["Version index<br/>Overviews + history"]
+    Fetch --> Map["Map fields<br/>Associate stable packages"]
+    Map --> Output["Version index<br/>Builds + model performance"]
     Fetch --> Copies["Save source copies"]
     Output --> Artifact["Dataset artifact"]
     Copies --> Artifact
@@ -31,7 +31,8 @@ Fetch JSON requests each source file and receives its JSON response.
 Each entry in the source list specifies a repository, branch, file, and mapping.
 The job groups builds by ROCm version, writes compact summaries and monthly
 history chunks, and uploads them with the source copies. Each run carries forward
-build history from the previous successful main-branch dataset.
+build and assigned performance history from the previous successful main-branch dataset.
+Stable package associations use saved evidence and authenticated benchmark job logs.
 Manual and pull request runs follow the same steps.
 
 ## 2. Page load
@@ -44,6 +45,7 @@ flowchart LR
     Open["Open dashboard"] --> Index["Load version index"]
     Index --> Load["Load selected version"]
     Load --> Display["Populate views"]
+    Display -->|Model history| Performance["Load model measurements"]
     Display -->|Browse builds| History["Load history chunk"]
     History -->|Open build| Report["Load build report"]
 ```

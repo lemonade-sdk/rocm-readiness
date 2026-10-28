@@ -11,6 +11,9 @@ branch, and prepares files for the dashboard. See the [data flow](data-flow.md).
 | vLLM qualification | `lemonade-sdk/vllm-rocm` / `qualification-data` | `qualification/index.json` |
 | Model performance | `lemonade-sdk/lemonade` / `benchmark-data` | `leaderboard.json` |
 
+The initial integration covers llama.cpp stable builds and their model performance.
+Nightly llama.cpp, vLLM integration, Whisper, and Stable Diffusion are tracked as
+[P1 follow-ups](https://github.com/lemonade-sdk/rocm-readiness/issues?q=is%3Aissue+label%3Astatus%3Aawaiting-data).
 Nightly llama.cpp, Whisper, and Stable Diffusion qualification feeds are pending.
 Their entries use `availability: "awaiting_data"` and are not fetched. vLLM is
 Linux-only; its existing records include historical stable and nightly builds.
@@ -69,8 +72,10 @@ data/
 ├── index.json
 ├── rocm/<version>/
 │   ├── overview.json
-│   └── history/<month>.json
+│   ├── history/<month>.json
+│   └── performance.json
 ├── performance/unassigned.json
+├── provenance/packages.json
 └── raw/<source>.json
 ```
 
@@ -80,8 +85,11 @@ data/
 - History chunks contain compact build records: build number, version, date,
   platform, qualification verdict, counts, coverage, and evidence links.
 - `report_url` opens the producer's full build report when details are requested.
-- Performance records awaiting reliable ROCm attribution live in `unassigned.json`.
-  Each version's overview identifies its performance coverage.
+- Each version's `performance.json` contains assigned model measurements and hardware.
+  Its overview includes the latest measurements and the path to their history.
+- `provenance/packages.json` preserves the package evidence used for attribution.
+- `unassigned.json` holds measurements awaiting attribution, including deferred feeds.
+  The root index reports assigned and awaiting-evidence counts for stable llama.cpp.
 - `raw/` contains source copies for inspection in the Actions artifact. Records
   retain their source identity and JSON location; historical builds also carry
   the original source URL at the revision that supplied them.
@@ -101,8 +109,23 @@ the UI. Each monthly file groups many builds.
 Actions restores the latest successful main-branch dataset before ingestion.
 Each successful run carries that history into its new artifact. Artifacts are
 retained for 30 days; after an interruption longer than retention, restore a
-saved dataset before resuming the history chain. Performance history follows
-the observations currently supplied by the benchmark feed.
+saved dataset before resuming the history chain. Assigned model measurements,
+their hardware descriptions, and package evidence also carry forward across runs.
+
+## Stable model associations
+
+The collector matches each stable benchmark run to the exact package downloaded
+by its jobs, then derives the ROCm version and platform from that package. It joins
+the qualification record using the package, repository, engine tag, platform, and
+ROCm version. Measurements retain their ROCm context when an older qualification
+record is unavailable.
+
+Verified historical mappings are stored in `provenance/llamacpp-stable-packages.json`.
+New mappings use the authenticated GitHub CLI (`gh`); Actions supplies its job token.
+Each mapping retains job links, log hashes, and the observation timestamps it covers.
+Repeated job attempts must agree on the package. Unavailable or ambiguous evidence
+leaves that observation awaiting evidence. Available producer accuracy values stay
+with the model measurement, separately from build qualification.
 
 ## Status and evidence
 

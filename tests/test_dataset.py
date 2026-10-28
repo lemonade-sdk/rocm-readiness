@@ -331,7 +331,9 @@ class DatasetTests(unittest.TestCase):
                 (destination / "performance/unassigned.json").read_text()
             )
             self.assertEqual(index["unassigned_performance"]["count"], 1)
-            self.assertNotIn("producer_accuracy", performance["measurements"][0])
+            self.assertEqual(
+                performance["measurements"][0]["producer_accuracy"], {"accuracy": 1}
+            )
             self.assertNotIn("arbitrary_blob", performance["measurements"][0])
             self.assertEqual(
                 performance["systems"][0],
@@ -346,6 +348,7 @@ class DatasetTests(unittest.TestCase):
                     "ram_gb": 32,
                     "vram_gb": 96,
                     "source_pointer": "/systems/0",
+                    "gfx_target": None,
                 },
             )
 
@@ -465,6 +468,454 @@ class DatasetTests(unittest.TestCase):
                     write_dataset(
                         normalized([build("current")]), root / "current", previous_data
                     )
+
+    def test_assigned_measurements_match_exact_artifact_and_preserve_history(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        measurement = {
+            "source_id": "performance",
+            "source_pointer": "/latest/0",
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "model",
+            "scenario": "chat",
+            "quant": "Q4",
+            "system_id": "host",
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "source_url": SOURCE_A,
+            "rocm_version": "7.14",
+            "package_url": package,
+            "package_os": "linux",
+            "producer_accuracy": {"accuracy": 1},
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        systems = [
+            {"id": "host", "source_id": "performance", "gfx_target": "gfx1151"},
+            {"id": "unused", "source_id": "performance"},
+        ]
+        rows = [
+            build("right", artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"),
+            build("wrong", artifact="other.tar.gz"),
+        ]
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            previous = root / "previous"
+            write_dataset(normalized(rows, [measurement], systems), previous)
+            result = json.loads((previous / "rocm/7.14/performance.json").read_text())
+            self.assertEqual(
+                result["measurements"][0]["qualification_build_id"], "right"
+            )
+            self.assertEqual(
+                result["measurements"][0]["attribution"]["status"], "matched"
+            )
+            self.assertEqual([x["id"] for x in result["systems"]], ["host"])
+            overview = json.loads((previous / "rocm/7.14/overview.json").read_text())
+            self.assertEqual(overview["performance"]["measurement_count"], 1)
+            self.assertEqual(
+                overview["performance"]["latest_measurements"][0][
+                    "qualification_build_id"
+                ],
+                "right",
+            )
+            write_dataset(normalized(), root / "current", previous)
+            self.assertEqual(
+                json.loads((root / "current/rocm/7.14/performance.json").read_text()),
+                result,
+            )
+
+    def test_ambiguous_package_and_measurement_only_version(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/a",
+            "source_url": SOURCE_A,
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "system_id": None,
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(
+                normalized(
+                    [
+                        build(
+                            "a", artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+                        ),
+                        build(
+                            "b", artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+                        ),
+                    ],
+                    [row],
+                ),
+                root / "ambiguous",
+            )
+            result = json.loads(
+                (root / "ambiguous/rocm/7.14/performance.json").read_text()
+            )["measurements"][0]
+            self.assertIsNone(result["qualification_build_id"])
+            self.assertIn("reason", result["attribution"])
+            write_dataset(normalized([], [row]), root / "alone")
+            self.assertTrue((root / "alone/rocm/7.14/performance.json").exists())
+
+    def test_duplicate_history_prefers_latest_and_fills_missing_context(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/history/0",
+            "source_url": SOURCE_A,
+            "kind": "history",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "system_id": "host",
+            "context_size": 4096,
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        latest = {
+            **row,
+            "kind": "latest",
+            "source_pointer": "/latest/0",
+            "system_id": None,
+            "context_size": None,
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(
+                normalized(
+                    [build(artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz")],
+                    [row, latest],
+                    [{"source_id": "performance", "id": "host"}],
+                ),
+                root,
+            )
+            result = json.loads((root / "rocm/7.14/performance.json").read_text())[
+                "measurements"
+            ]
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0]["kind"], "latest")
+            self.assertEqual(result[0]["system_id"], "host")
+            self.assertEqual(result[0]["context_size"], 4096)
+
+    def test_sparse_history_preserves_exact_prior_observation_and_build_artifact(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/latest/0",
+            "source_url": SOURCE_A,
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "system_id": "host",
+            "context_size": 4096,
+            "input_tokens": 128,
+            "producer_accuracy": {"accuracy": 0.9, "accuracy_pass": True},
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(
+                normalized(
+                    [build(artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz")],
+                    [row],
+                    [{"source_id": "performance", "id": "host", "gpu": "old"}],
+                ),
+                root / "prior",
+            )
+            sparse = {
+                **row,
+                "kind": "history",
+                "source_pointer": "/history/0",
+                "system_id": None,
+                "context_size": None,
+                "input_tokens": None,
+                "producer_accuracy": {"accuracy": None, "accuracy_pass": True},
+            }
+            write_dataset(normalized([build()], [sparse]), root / "new", root / "prior")
+            result = json.loads((root / "new/rocm/7.14/performance.json").read_text())
+            item = result["measurements"][0]
+            self.assertEqual(
+                (item["system_id"], item["context_size"], item["input_tokens"]),
+                ("host", 4096, 128),
+            )
+            self.assertEqual(
+                item["producer_accuracy"], {"accuracy": 0.9, "accuracy_pass": True}
+            )
+            self.assertEqual(item["qualification_build_id"], "llama-1")
+            self.assertEqual(item["attribution"]["status"], "matched")
+            self.assertEqual(result["systems"][0]["gpu"], "old")
+
+    def test_previous_assigned_performance_rejects_corruption(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/a",
+            "source_url": SOURCE_A,
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "system_id": "host",
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        for case in ("count", "path", "evidence", "system", "version"):
+            with self.subTest(case=case), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                previous = root / "previous"
+                write_dataset(
+                    normalized(
+                        [build(artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz")],
+                        [row],
+                        [{"source_id": "performance", "id": "host"}],
+                    ),
+                    previous,
+                )
+                overview_path = previous / "rocm/7.14/overview.json"
+                overview = json.loads(overview_path.read_text())
+                performance_path = previous / "rocm/7.14/performance.json"
+                performance = json.loads(performance_path.read_text())
+                if case == "count":
+                    overview["performance"]["measurement_count"] = 2
+                if case == "path":
+                    overview["performance"]["path"] = "../escape.json"
+                if case == "evidence":
+                    performance["measurements"][0]["attribution"][
+                        "log_sha256"
+                    ] = "invalid"
+                if case == "system":
+                    performance["systems"] = []
+                if case == "version":
+                    performance["measurements"][0]["rocm_version"] = "7.15"
+                overview_path.write_text(json.dumps(overview))
+                performance_path.write_text(json.dumps(performance))
+                with self.assertRaises(ValueError):
+                    write_dataset(normalized(), root / "next", previous)
+
+    def test_rejects_package_or_job_mismatch(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/a",
+            "source_url": SOURCE_A,
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "system_id": None,
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        for changes in (
+            {"rocm_version": "999"},
+            {"package_os": "windows"},
+            {"run_id": "888"},
+            {"run_url": "https://github.com/example/source/actions/runs/888"},
+        ):
+            with self.subTest(changes=changes), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(ValueError):
+                    write_dataset(normalized([], [{**row, **changes}]), Path(folder))
+        wrong_job = {
+            **row,
+            "attribution": {
+                **row["attribution"],
+                "evidence_url": "https://github.com/example/source/actions/runs/888/job/2",
+            },
+        }
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
+            write_dataset(normalized([], [wrong_job]), Path(folder))
+        wrong_suffix = package.replace("tar.gz", "zip")
+        wrong_package = {
+            **row,
+            "package_url": wrong_suffix,
+            "attribution": {**row["attribution"], "package_url": wrong_suffix},
+        }
+        with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
+            write_dataset(normalized([], [wrong_package]), Path(folder))
+
+    def test_preserves_verified_prior_when_current_unresolved_and_system_changes(self):
+        package = "https://github.com/example/source/releases/download/b123/llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz"
+        row = {
+            "source_id": "performance",
+            "source_pointer": "/a",
+            "source_url": SOURCE_A,
+            "kind": "latest",
+            "engine": "llamacpp",
+            "channel": "stable",
+            "fork_id": "stable",
+            "engine_repository": "example/source",
+            "engine_version": "b123",
+            "model": "m",
+            "scenario": "s",
+            "quant": "q",
+            "system_id": "host",
+            "measured_at": "2026-10-01T10:00:00Z",
+            "run_id": "1",
+            "run_url": "https://github.com/example/source/actions/runs/1",
+            "rocm_version": "7.14",
+            "package_os": "linux",
+            "package_url": package,
+            "attribution": {
+                "status": "rocm_identified",
+                "evidence_url": "https://github.com/example/source/actions/runs/1/job/2",
+                "log_sha256": "a" * 64,
+                "package_url": package,
+            },
+        }
+        old_system = {
+            "id": "host",
+            "source_id": "performance",
+            "gpu": "old",
+            "source_pointer": "/systems/0",
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(
+                normalized(
+                    [build(artifact="llama-b123-bin-ubuntu-rocm-7.14-x64.tar.gz")],
+                    [row],
+                    [old_system],
+                ),
+                root / "old",
+            )
+            unresolved = {
+                **row,
+                "rocm_version": None,
+                "package_url": None,
+                "package_os": None,
+                "attribution": {"status": "unresolved"},
+            }
+            new = {
+                **row,
+                "model": "new-model",
+                "measured_at": "2026-10-02T10:00:00Z",
+                "run_id": "2",
+                "run_url": "https://github.com/example/source/actions/runs/2",
+                "attribution": {
+                    **row["attribution"],
+                    "evidence_url": "https://github.com/example/source/actions/runs/2/job/3",
+                },
+            }
+            new_system = {**old_system, "gpu": "new"}
+            write_dataset(
+                normalized([], [unresolved, new], [new_system]),
+                root / "new",
+                root / "old",
+            )
+            result = json.loads((root / "new/rocm/7.14/performance.json").read_text())
+            rows = {r["model"]: r for r in result["measurements"]}
+            systems = {s["id"]: s for s in result["systems"]}
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(systems[rows["m"]["system_id"]]["gpu"], "old")
+            self.assertEqual(systems[rows["new-model"]["system_id"]]["gpu"], "new")
+            self.assertEqual(rows["m"]["attribution"]["status"], "matched")
+            self.assertEqual(
+                json.loads((root / "new/performance/unassigned.json").read_text())[
+                    "measurements"
+                ],
+                [],
+            )
+            reordered_system = {**new_system, "source_pointer": "/systems/99"}
+            write_dataset(
+                normalized([], [new], [reordered_system]), root / "again", root / "new"
+            )
+            again = json.loads((root / "again/rocm/7.14/performance.json").read_text())
+            again_rows = {r["model"]: r for r in again["measurements"]}
+            self.assertEqual(
+                again_rows["new-model"]["system_id"], rows["new-model"]["system_id"]
+            )
+            self.assertEqual(len(again["systems"]), 2)
 
     def test_degraded_output_keeps_only_current_diagnostic_builds(self):
         prior = normalized([build("old", rocm_version="7.13")])

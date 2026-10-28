@@ -348,3 +348,74 @@ class CollectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StableIntegrationTests(unittest.TestCase):
+    def test_seed_evidence_publishes_version_performance_and_provenance(self):
+        from tests.test_attribution import evidence, measurement
+
+        config = CollectionTests().config()
+        source = fixture("performance-source.json")
+        source.update(
+            id="performance",
+            repository="lemonade-sdk/lemonade",
+            ref="benchmark-data",
+            path="leaderboard.json",
+            stale_after_hours=72,
+            channel="from-fork",
+        )
+        source["forks"]["llamacpp-rocm-stable"] = {
+            "engine": "llamacpp",
+            "channel": "stable",
+            "backend": "rocm",
+            "repository": "lemonade-sdk/llama.cpp",
+        }
+        config["sources"] = [source]
+        data = {
+            "systems": [],
+            "by_model_scenario": {
+                "model|scenario": [
+                    {
+                        "model": "model",
+                        "scenario": "scenario",
+                        "fork_id": "llamacpp-rocm-stable",
+                        "fork_version": "b123",
+                        "timestamp": "2026-10-27T10:05:00Z",
+                        "run_id": "42",
+                        "run_url": measurement()["run_url"],
+                        "tps_mean": 12,
+                        "accuracy": 0.8,
+                        "accuracy_pass": False,
+                    }
+                ]
+            },
+            "history": {},
+        }
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else data
+
+        with tempfile.TemporaryDirectory() as folder:
+            output = collect(
+                config,
+                Path(folder),
+                fetch,
+                now="2026-10-27T12:00:00Z",
+                package_evidence=[evidence()],
+            )
+            self.assertEqual(output["dataset"]["default_version"], "10.1")
+            self.assertEqual(
+                output["dataset"]["stable_performance"],
+                {
+                    "assigned_count": 1,
+                    "awaiting_evidence_count": 0,
+                },
+            )
+            perf = json.loads((Path(folder) / "rocm/10.1/performance.json").read_text())
+            self.assertEqual(perf["measurements"][0]["rocm_version"], "10.1")
+            self.assertEqual(
+                perf["measurements"][0]["producer_accuracy"]["accuracy"], 0.8
+            )
+            self.assertIn("/" + "a" * 40 + "/", perf["measurements"][0]["source_url"])
+            saved = json.loads((Path(folder) / "provenance/packages.json").read_text())
+            self.assertEqual(saved["packages"], [evidence()])

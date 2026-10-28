@@ -25,17 +25,11 @@ available stable/nightly Linux history. Whisper and Stable Diffusion remain
 
 ## What we retain
 
-| Source | Data kept in the published dataset |
-| --- | --- |
-| llama.cpp qualification index | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts and test counts, GPU coverage, hardware-validation flag, dates, and evidence links |
-| vLLM qualification index | The same available build-summary fields, including each Linux build's stable/nightly channel |
-| Lemonade leaderboard | Stable llama.cpp model/workload/quantization, throughput/latency/VRAM metrics, hardware, producer accuracy when supplied, benchmark date/run link, and verified engine tag/package/ROCm association |
-| Whisper / Stable Diffusion | None yet; awaiting producer feeds |
-
-Qualification `results` (individual test statuses) are currently omitted from the
-published summaries. Full reports and `latest/` files are not fetched; report
-links are retained. [#11](https://github.com/lemonade-sdk/rocm-readiness/issues/11)
-tracks deciding which additional fields the dashboard needs.
+| Source | File ingested | Data retained |
+| --- | --- | --- |
+| `lemonade-sdk/llama.cpp` · `qualification-data` | `qualification/index.json` | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts, test counts, GPU coverage, hardware-validation flags, dates, and evidence links |
+| `lemonade-sdk/vllm-rocm` · `qualification-data` | `qualification/index.json` | Linux stable/nightly build IDs/tags, packages, ROCm versions, qualification summaries, dates, and evidence links |
+| `lemonade-sdk/lemonade` · `benchmark-data` | `leaderboard.json` | Stable llama.cpp models, workloads, quantization, throughput/latency/VRAM metrics, hardware, available accuracy results, benchmark dates/run links, and engine tag/package/ROCm associations |
 
 ## Adding or changing a source
 

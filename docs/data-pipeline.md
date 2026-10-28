@@ -13,9 +13,15 @@ for the files the app will use.
 | vLLM qualification | `lemonade-sdk/vllm-rocm` / `qualification-data` | `qualification/index.json` |
 | Model performance | `lemonade-sdk/lemonade` / `benchmark-data` | `leaderboard.json` |
 
-Nightly llama.cpp, Whisper, and Stable Diffusion qualification feeds are marked
-`availability: "awaiting_data"` until their producers supply data. ROCm model
-performance already includes stable, nightly, and experimental forks.
+llama.cpp currently includes only stable ROCm builds from `lemonade-sdk/llama.cpp`
+and their model-performance results from Lemonade's `benchmark-data` branch.
+`include_forks: ["llamacpp-rocm-stable"]` filters that mixed benchmark feed before
+association. Nightly, experimental, Vulkan, and HRX llama.cpp results are excluded.
+
+Shriram is working on future nightly support, tracked in [#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4).
+No separate ROCm nightly feed is enabled. vLLM scope is unchanged, including its
+available stable/nightly Linux history. Whisper and Stable Diffusion remain
+`availability: "awaiting_data"` until their producers supply data.
 
 ## Adding or changing a source
 
@@ -75,10 +81,10 @@ configuring a source. The collector does not infer the channel from a build numb
 | `from-fork` | Look up each benchmark's `fork_id` in the source's `forks` mapping |
 
 Performance fork mappings name the engine, repository, backend, and channel.
-Current channels are `stable`, `nightly`, `experimental` (alternative forks),
-and `reference` (the upstream Vulkan baseline). Match the producer's fork registry,
-[src/cpp/resources/benchmark_forks.json](https://github.com/lemonade-sdk/lemonade/blob/main/src/cpp/resources/benchmark_forks.json),
-and benchmark records when adding a mapping. An unknown fork fails validation.
+The current llama.cpp mapping is `stable` / `rocm` / `lemonade-sdk/llama.cpp`.
+`include_forks` lists which producer fork IDs to read; other forks are skipped.
+Selected records must match their configured repository and backend. Future
+nightly activation requires the producer contract in #4, not just a new label.
 
 ### Validate the change
 
@@ -90,11 +96,13 @@ and benchmark records when adding a mapping. An unknown fork fails validation.
 
 ## Why package mappings are saved
 
-Build tags alone do not identify the ROCm package used by a benchmark.
-[scripts/attribution.py](../scripts/attribution.py) checks job downloads or cached
-binary records and package release metadata. It saves the package URL, SDK version,
-and supporting links in each measurement. Missing or conflicting evidence fails
-collection. A qualification link additionally requires an exact matching artifact.
+Lemonade's benchmark run ID identifies the measurement job, not the engine build.
+[scripts/attribution.py](../scripts/attribution.py) identifies the stable package
+used by that job. Its filename supplies the engine tag and ROCm version. Matching
+repository, tag, package filename, OS, and ROCm version associates a measurement
+with its qualification build. Older measurements keep their verified tag/package
+when the producer index no longer lists that build; no qualification link is invented.
+Missing or conflicting package evidence fails collection.
 
 The committed [provenance/llamacpp-stable-packages.json](../provenance/llamacpp-stable-packages.json)
 is read by the collector for historical stable mappings when rebuilding from
@@ -104,3 +112,10 @@ mappings in the previous published dataset.
 CI saves source copies and a generated `provenance/packages.json` diagnostic copy
 in its artifact. Neither is published. Artifacts expire after 30 days; the
 committed mappings and evidence embedded in published measurements survive them.
+
+## Upcoming producer field
+
+Aishwarya plans to add the ROCm version directly to the benchmark data. The field
+is not yet available in the inspected stable records. [#10](https://github.com/lemonade-sdk/rocm-readiness/issues/10)
+tracks adopting the actual schema, validating it against the stable build/package,
+and reducing lookups. No field name or format is assumed.

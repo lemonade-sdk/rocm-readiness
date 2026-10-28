@@ -2,7 +2,9 @@
 
 A data pipeline for ROCm engine qualification and model performance. GitHub Actions
 collects producer feeds and publishes JSON under `main/data/`. The dashboard UI is
-the next stage.
+the next stage. llama.cpp currently includes only stable ROCm builds from
+`lemonade-sdk/llama.cpp` and their benchmark results. Nightly support is tracked in
+[#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4); other engine scope is unchanged.
 
 ## Run locally
 

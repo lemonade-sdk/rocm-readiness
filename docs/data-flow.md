@@ -20,6 +20,9 @@ PRs validate and upload an artifact. Main runs publish successful datasets;
 failed runs report the error in `latest.json.sync` and retain the last good pointer.
 CI artifacts contain source copies and diagnostics and are retained for 30 days.
 
+llama.cpp reads stable builds from `lemonade-sdk/llama.cpp` and selects only their
+stable ROCm model results from Lemonade's benchmark feed. Nightly support is
+future work in [#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4).
 See [data pipeline](data-pipeline.md) for sources, adapters, channels, and how to
 add a feed.
 
@@ -34,10 +37,8 @@ flowchart LR
     Overview -->|Build history| History["Monthly history"]
     History -->|Build details| Report["Producer report"]
     Overview -->|Model history| Performance["Version performance.json"]
-    Index -->|Backend comparison| Baseline["comparisons.json"]
 ```
 
 The initial selection uses `index.default_version`. Overviews contain latest build
 and performance summaries. Other files load when the user opens their view.
-See [data publication](data-publication.md) for file contents, comparison records,
-and version-directory names.
+See [data publication](data-publication.md) for file contents and version directories.

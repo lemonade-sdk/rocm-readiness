@@ -20,37 +20,26 @@ again. `latest.json.sync` reports the latest ingestion status and any errors.
 | `rocm/<version>/overview.json` | Latest builds and performance summaries for the selected version |
 | `rocm/<version>/history/<month>.json` | Build records for a month; browsing build history |
 | `rocm/<version>/performance.json` | Model measurements and hardware; opening full performance history |
-| `performance/comparisons.json` | Vulkan and HRX measurements and hardware; opening backend comparisons |
+| `performance/comparisons.json` | Empty in the current stable-only scope |
 | `sync.json` | Dataset sync metadata, also present in its index; available to tools |
 
 Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.
 Source copies, standalone errors, and intermediate caches stay in CI artifacts.
 
-## Why comparisons.json exists
+## Comparisons and version directories
 
-This file holds benchmark results for backends outside the ROCm version groups.
-Use its Vulkan records as a baseline for comparing ROCm performance on the same
-model, workload, quantization, and hardware. Filter by `backend: "vulkan"`;
-HRX is a separate comparison backend. The index's `comparison_performance`
-entry gives the file path and record count.
+`performance/comparisons.json` is an empty schema-compatible file in the current
+stable-only dataset; the index reports its count as zero. No Vulkan or HRX
+llama.cpp results are ingested. Comparing ROCm versions uses their per-version
+performance files.
 
-Comparing two ROCm versions instead uses each version's own performance data.
-
-## Why both 10.1 and 10.1.0 exist
-
-Directory names currently follow two producer naming formats:
-
-| Directory | Package / SDK labels in the current data |
-| --- | --- |
-| `rocm/10.1/` | Stable llama.cpp packages explicitly labeled `rocm-10.1` |
-| `rocm/10.1.0/` | Nightly/experimental SDKs `10.1.0a20260822` and `10.1.0a20260910`, grouped by their numeric prefix |
-
-`10.1.0/` does **not** establish that these SDKs are a final ROCm 10.1.0 release.
-The grouping removes the alpha/date suffix; each measurement's `runtime_version`
-retains the full SDK identifier. The collector does not treat these SDKs as
-identical to the stable `10.1` packages. This is the current naming convention,
-not evidence of two distinct final releases.
+Version directories come from in-scope builds and measurements. Stable llama.cpp
+packages label versions such as `10.0` and `10.1`; vLLM contributes its own version
+labels. Previously ingested nightly/experimental llama.cpp measurements and the
+version directories supported only by those measurements are removed during
+regeneration. History is retained only when it still matches the configured
+sources and selected performance forks.
 
 ## Publishing and recovery
 

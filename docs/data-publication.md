@@ -1,113 +1,63 @@
 # Data publication
 
-`main` contains the app, source configuration, and finalized JSON under `data/`.
-A temporary working branch stages data updates; its changes are squashed into
-`main`. Git history retains previous datasets;
-CI artifacts retain raw copies and diagnostics for 30 days.
+The [workflow](../.github/workflows/collect-data.yml) publishes generated JSON to
+`main/data/`. Source configuration is described in [data pipeline](data-pipeline.md);
+[data flow](data-flow.md) shows ingestion and dashboard loading.
 
 ## App entry point
 
-After merge and the first trusted publication run, load:
+Read [latest.json](https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json),
+then load its `index_url`. This URL pins the dataset to one Git commit. Resolve
+all other dataset paths relative to that index URL. Refresh by reading the pointer
+again. `latest.json.sync` reports the latest ingestion status and any errors.
 
-```text
-https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json
-```
+## Published files
 
-`latest.json` contains `data_commit`, `index_url`, and the current `sync` status.
-The app loads `index_url`, then the overview named by `index.default_version`
-(or the user's selected ROCm version). The default is the newest indexed ROCm
-version; individual engine builds are selected within that version.
-
-The app loads only the files needed for the current view:
-
-| File | When the app loads it |
+| Path under `data/` | Contents / when to load |
 | --- | --- |
-| `latest.json` | Startup and refresh; supplies the immutable index URL and current sync status |
-| `index.json` | After reading the pointer; lists versions, their overview paths, and the default version |
-| `rocm/<version>/overview.json` | Selecting a version; supplies engine cards, latest builds, and latest performance summaries |
-| `rocm/<version>/history/<month>.json` | Browsing build history for that month |
-| `rocm/<version>/performance.json` | Requesting full model measurements or performance history |
-| `performance/comparisons.json` | Requesting a backend baseline/comparison; includes Vulkan and HRX records |
-| Producer build report (`report_url`) | Opening a build's detailed evidence |
+| `latest.json` | Dataset pointer and current sync status; startup and refresh |
+| `index.json` | Available ROCm versions, overview paths, and `default_version` |
+| `rocm/<version>/overview.json` | Latest builds and performance summaries for the selected version |
+| `rocm/<version>/history/<month>.json` | Build records for a month; browsing build history |
+| `rocm/<version>/performance.json` | Model measurements and hardware; opening full performance history |
+| `performance/comparisons.json` | Vulkan and HRX measurements and hardware; opening backend comparisons |
+| `sync.json` | Dataset sync metadata, also present in its index; available to tools |
 
-Version-to-version comparison loads the other version's overview. For a Vulkan
-baseline, select `backend: "vulkan"` from the comparison data and match model,
-workload, quantization, and hardware. HRX results are a separate backend, not the
-Vulkan baseline. Neither comparison backend is assigned an artificial ROCm version.
+Build records link to detailed reports in the producer repository through
+`report_url`. Full performance files exist only for versions with measurements.
+Source copies, standalone errors, and intermediate caches stay in CI artifacts.
 
-Resolve dataset paths relative to the pinned index URL, so all files for a view
-come from the same immutable commit. Refresh by reading `latest.json` again;
-do not mix files from different dataset commits.
+## Why comparisons.json exists
 
-## Published files and CI artifacts
+This file holds benchmark results for backends outside the ROCm version groups.
+Use its Vulkan records as a baseline for comparing ROCm performance on the same
+model, workload, quantization, and hardware. Filter by `backend: "vulkan"`;
+HRX is a separate comparison backend. The index's `comparison_performance`
+entry gives the file path and record count.
 
-The published runtime dataset contains only:
+Comparing two ROCm versions instead uses each version's own performance data.
 
-```text
-data/
-├── latest.json
-├── index.json
-├── sync.json
-├── rocm/<version>/
-│   ├── overview.json
-│   ├── history/<month>.json
-│   └── performance.json
-└── performance/comparisons.json
-```
+## Why both 10.1 and 10.1.0 exist
 
-Performance files exist for versions with measurements. `sync.json` is published
-for tooling, but the app already gets current status and errors from
-`latest.json.sync`; it does not need a separate status request. The sync metadata
-in the pinned dataset describes that dataset's successful collection.
+Directory names currently follow two producer naming formats:
 
-Raw source copies (`raw/`), standalone `errors.json`, intermediate
-`provenance/packages.json`, and publication state stay in the Actions artifact,
-retained for 30 days. They are not published or fetched by the app, including on
-demand. Essential package, release, and cached-registry evidence remains inside
-the published measurement records so later ingestions can reuse verified history.
+| Directory | Package / SDK labels in the current data |
+| --- | --- |
+| `rocm/10.1/` | Stable llama.cpp packages explicitly labeled `rocm-10.1` |
+| `rocm/10.1.0/` | Nightly/experimental SDKs `10.1.0a20260822` and `10.1.0a20260910`, grouped by their numeric prefix |
 
-## Each run
+`10.1.0/` does **not** establish that these SDKs are a final ROCm 10.1.0 release.
+The grouping removes the alpha/date suffix; each measurement's `runtime_version`
+retains the full SDK identifier. The collector does not treat these SDKs as
+identical to the stable `10.1` packages. This is the current naming convention,
+not evidence of two distinct final releases.
 
-1. Restore the dataset identified by `main/data/latest.json`. An existing `main`
-   without published data starts the first collection; access errors fail the run.
-2. Collect and validate sources. Previously verified observations retain their
-   attribution from the final dataset; new observations require fresh evidence.
-3. Stage the final JSON on a temporary local `dashboard-data` branch. Squash its
-   changes into `main`, then add the pointer commit and push both together. The
-   pointer pins the squashed data revision. Source files are preserved. Concurrent
-   changes reject the push; the temporary branch is discarded.
-4. On failure, retain the good data pointer, update only the latest sync status,
-   and exit nonzero. Before the first success, the pointer has no dataset.
+## Publishing and recovery
 
-Only main-branch runs publish. PRs run the tests and ingestion with read access.
-Data-only commits skip collection triggers. Final data commits exclude raw files,
-standalone error reports, intermediate
-provenance caches, and publication state. Required per-record evidence remains
-inside the final model/build records. ROCm measurements live only in their verified
-version's `performance.json`; non-ROCm Vulkan and HRX results live in
-`performance/comparisons.json`, referenced by `comparison_performance` with a
-`path` and `count`. Publication validates that comparison records make no ROCm or
-qualification claims. Missing ROCm evidence prevents successful collection and
-keeps the last good dataset pointer.
+Main runs stage final JSON on a temporary branch, squash it into `main`, and update
+`latest.json` in the same push. The pointer names the data commit. A concurrent
+change rejects the push; a failed collection keeps the previous pointer and updates
+sync status. PR runs only validate and upload artifacts.
 
-Restoration accepts previous schema-2 datasets with the legacy
-`unassigned_performance` manifest and `performance/unassigned.json`. This is a
-migration compatibility path: new collections never write that manifest or file,
-and old measurements are rebuilt from current sources with verified evidence.
-`check.py` ignores previous data until the published index has
-`attribution_version: 2`; subsequent runs resume historical carry-forward.
-The migration PR removes the tracked generated dataset; the first successful
-main-branch run replaces it completely. Git history retains the old dataset.
-
-## Bootstrap and recovery
-
-Merging the workflow enables the first main run to add `data/` using its job token.
-No cloud account or Pages setup is required for the JSON endpoint. A repository
-policy blocking direct updates to `main` must be resolved before publication.
-The workflow never bypasses branch protections.
-
-Retry the workflow after fixing a failed source or access problem; the good
-pointer remains available. For recovery, identify a verified data commit from the
-`main` history, stop competing publication runs, and review a pointer update to
-that commit with its matching `data/index.json` URL. Preserve history and the same
-expected-head guard. Resume ingestion from that verified dataset.
+After fixing a failed source, rerun the workflow. To roll back, restore a verified
+pointer and its matching index URL from Git history while publication is stopped.

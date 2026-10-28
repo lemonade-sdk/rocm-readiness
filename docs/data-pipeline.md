@@ -3,7 +3,7 @@
 [sources.json](../sources.json) lists the feeds. [scripts/collect.py](../scripts/collect.py)
 fetches them, validates their fields, and maps them into the dashboard dataset.
 See [data flow](data-flow.md) for the overview and [data publication](data-publication.md)
-for the files the app will use.
+for the published files.
 
 ## Current sources
 
@@ -13,20 +13,9 @@ for the files the app will use.
 | vLLM qualification | `lemonade-sdk/vllm-rocm` / `qualification-data` | `qualification/index.json` |
 | Model performance | `lemonade-sdk/lemonade` / `benchmark-data` | `leaderboard.json` |
 
-llama.cpp currently includes only stable ROCm builds from `lemonade-sdk/llama.cpp`
-and their model-performance results from Lemonade's `benchmark-data` branch.
-`include_forks: ["llamacpp-rocm-stable"]` filters that mixed benchmark feed before
-association. Nightly, experimental, Vulkan, and HRX llama.cpp results are excluded.
-
-Shriram confirmed the repository split: `lemonade-sdk/llama.cpp` supplies stable
-ROCm builds; `lemonade-sdk/llamacpp-rocm` will publish nightly builds on its
-`qualification-data` branch. The nightly source is configured as `awaiting_data`
-until that branch and its file/schema contract are published ([#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4)).
-Nightly SDK identifiers retain the full version, e.g. `10.3.0a20261026` means
-ROCm `10.3.0`, alpha, dated `20261026`.
-
-vLLM scope is unchanged, including its available stable/nightly Linux history.
-Whisper and Stable Diffusion remain `availability: "awaiting_data"`.
+llama.cpp ingests stable ROCm builds from `lemonade-sdk/llama.cpp` and their model
+results from Lemonade's `benchmark-data` branch. `include_forks: ["llamacpp-rocm-stable"]`
+selects those results before association. vLLM includes stable/nightly Linux history.
 
 ## What we retain
 
@@ -62,7 +51,7 @@ to a commit before fetching, so links refer to the version it actually read.
 
 An adapter is Python code in [scripts/collect.py](../scripts/collect.py), selected
 by the `adapter` name. It checks the producer's schema and converts its fields
-into build or model-measurement records. There is no separate adapter file.
+into build or model-measurement records.
 
 | Adapter | Function | Expected contents |
 | --- | --- | --- |
@@ -77,15 +66,14 @@ fixture tests under [tests/](../tests/).
 
 The qualification index contains build summaries. Each build's `report_url`
 points to a deeper JSON report under `qualification/reports/`. The collector
-reads the index and keeps a link to that report; it does not ingest the full
-report. A build-detail view can follow the link. The leaderboard entry file
-already contains both latest measurements and history.
+retains each report link alongside its build summary. The leaderboard entry file
+contains both latest measurements and history.
 
 ### Channel: which build track a result belongs to
 
 Channel labels distinguish release tracks; they are separate from ROCm versions.
 Check the producer's release workflow or its record's `channel` field when
-configuring a source. The collector does not infer the channel from a build number.
+configuring a source.
 
 | Source setting | How the result gets its channel |
 | --- | --- |
@@ -96,8 +84,7 @@ configuring a source. The collector does not infer the channel from a build numb
 Performance fork mappings name the engine, repository, backend, and channel.
 The current llama.cpp mapping is `stable` / `rocm` / `lemonade-sdk/llama.cpp`.
 `include_forks` lists which producer fork IDs to read; other forks are skipped.
-Selected records must match their configured repository and backend. Future
-nightly activation requires the producer contract in #4, not just a new label.
+Selected records must match their configured repository and backend.
 
 ### Validate the change
 
@@ -109,30 +96,19 @@ nightly activation requires the producer contract in #4, not just a new label.
 
 ## Why package mappings are saved
 
-Lemonade's benchmark run ID identifies the measurement job, not the engine build.
+Lemonade's benchmark run ID identifies the measurement job.
 [scripts/attribution.py](../scripts/attribution.py) identifies the stable package
 used by that job. Its filename supplies the engine tag and ROCm version. Matching
 repository, tag, package filename, OS, and ROCm version associates a measurement
 with its qualification build. Older measurements keep their verified tag/package
-when the producer index no longer lists that build; no qualification link is invented.
+when the producer index no longer lists that build.
 Missing or conflicting package evidence fails collection.
 
 The committed [provenance/llamacpp-stable-packages.json](../provenance/llamacpp-stable-packages.json)
 is read by the collector for historical stable mappings when rebuilding from
-scratch. It is an input, not the generated CI cache. Normal runs can also reuse
+scratch. Normal runs can also reuse
 mappings in the previous published dataset.
 
 CI saves source copies and a generated `provenance/packages.json` diagnostic copy
-in its artifact. Neither is published. Artifacts expire after 30 days; the
+in its artifact. Artifacts expire after 30 days; the
 committed mappings and evidence embedded in published measurements survive them.
-
-## Upcoming producer field
-
-[lemonade-sdk/lemonade#3996](https://github.com/lemonade-sdk/lemonade/pull/3996)
-proposes `rocm_version` (string or null) in run files, leaderboard entries, and
-history points. Stable values use release metadata or the pinned TheRock version;
-nightly values retain the alpha/date identifier. Older records may have no value.
-
-[#10](https://github.com/lemonade-sdk/rocm-readiness/issues/10) tracks using this
-field after the PR merges and populated benchmark data is available. Validate it
-against engine tag/package identity and retain the historical fallback.

@@ -20,26 +20,22 @@ PRs validate and upload an artifact. Main runs publish successful datasets;
 failed runs report the error in `latest.json.sync` and retain the last good pointer.
 CI artifacts contain source copies and diagnostics and are retained for 30 days.
 
-llama.cpp reads stable builds from `lemonade-sdk/llama.cpp` and selects only their
-stable ROCm model results from Lemonade's benchmark feed. Nightly qualification
-will come from `lemonade-sdk/llamacpp-rocm` on `qualification-data`, once the
-producer publishes the feed ([#4](https://github.com/lemonade-sdk/rocm-readiness/issues/4)).
+llama.cpp reads stable builds from `lemonade-sdk/llama.cpp` and their stable
+ROCm model results from Lemonade's benchmark feed.
 See [data pipeline](data-pipeline.md) for sources, adapters, channels, and how to
 add a feed.
 
-## Dashboard loading
-
-The dashboard UI is the next implementation stage. Its loading contract is:
+## Published data
 
 ```mermaid
 flowchart LR
-    Latest["latest.json"] --> Index["Pinned index.json"]
-    Index --> Overview["Selected ROCm overview"]
-    Overview -->|Build history| History["Monthly history"]
-    History -->|Build details| Report["Producer report"]
-    Overview -->|Model history| Performance["Version performance.json"]
+    Latest["latest.json"] -->|index_url| Index["Pinned index.json"]
+    Index -->|overview path| Overview["ROCm overview"]
+    Overview -->|history paths| History["Monthly build history"]
+    History -->|report_url| Report["Producer report"]
+    Overview -->|performance path| Performance["Model measurements"]
 ```
 
-The initial selection uses `index.default_version`. Overviews contain latest build
-and performance summaries. Other files load when the user opens their view.
+`index.default_version` identifies the default ROCm version. Overviews contain
+latest build and performance summaries and links to their history.
 See [data publication](data-publication.md) for file contents and version directories.

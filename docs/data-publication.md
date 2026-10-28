@@ -35,7 +35,21 @@ Only main-branch runs publish. PRs run the tests and ingestion with read access.
 Data-only commits skip collection triggers. Final data commits exclude raw files,
 standalone error reports, intermediate
 provenance caches, and publication state. Required per-record evidence remains
-inside the final model/build records.
+inside the final model/build records. ROCm measurements live only in their verified
+version's `performance.json`; non-ROCm Vulkan and HRX results live in
+`performance/comparisons.json`, referenced by `comparison_performance` with a
+`path` and `count`. Publication validates that comparison records make no ROCm or
+qualification claims. Missing ROCm evidence prevents successful collection and
+keeps the last good dataset pointer.
+
+Restoration accepts previous schema-2 datasets with the legacy
+`unassigned_performance` manifest and `performance/unassigned.json`. This is a
+migration compatibility path: new collections never write that manifest or file,
+and old measurements are rebuilt from current sources with verified evidence.
+`check.py` ignores previous data until the published index has
+`attribution_version: 2`; subsequent runs resume historical carry-forward.
+The migration PR removes the tracked generated dataset; the first successful
+main-branch run replaces it completely. Git history retains the old dataset.
 
 ## Bootstrap and recovery
 

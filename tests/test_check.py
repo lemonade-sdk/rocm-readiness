@@ -36,3 +36,29 @@ class CheckTests(unittest.TestCase):
             self.assertEqual(
                 json.loads((root / "sync.json").read_text())["sync"], index["sync"]
             )
+
+    def test_first_attribution_upgrade_rebuilds_without_previous_dataset(self):
+        for marker, reuse in ((None, False), (2, True)):
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                previous = root / "previous"
+                previous.mkdir()
+                (previous / "index.json").write_text(
+                    json.dumps({"attribution_version": marker})
+                )
+                with patch(
+                    "sys.argv",
+                    [
+                        "check.py",
+                        "--output-dir",
+                        str(root / "new"),
+                        "--previous-data",
+                        str(previous),
+                    ],
+                ), patch(
+                    "scripts.check.subprocess.run",
+                    return_value=SimpleNamespace(returncode=0),
+                ) as run:
+                    self.assertEqual(main(), 0)
+                command = run.call_args_list[-1].args[0]
+                self.assertEqual("--previous-data" in command, reuse)

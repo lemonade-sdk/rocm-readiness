@@ -77,7 +77,7 @@ data/
 │   ├── overview.json
 │   ├── history/<month>.json
 │   └── performance.json
-├── performance/unassigned.json
+├── performance/comparisons.json
 ├── provenance/packages.json
 └── raw/<source>.json
 ```
@@ -94,8 +94,13 @@ data/
 - Each version's `performance.json` contains assigned model measurements and hardware.
   Its overview includes the latest measurements and the path to their history.
 - `provenance/packages.json` preserves the package evidence used for attribution.
-- `unassigned.json` holds measurements awaiting attribution, including deferred feeds.
-  The root index reports assigned and awaiting-evidence counts for stable llama.cpp.
+- `performance/comparisons.json` contains only non-ROCm measurements (`vulkan` and
+  `hrx`) and their hardware. The root `comparison_performance` entry supplies its
+  `path` and `count`. These measurements have no ROCm version or qualification
+  association. An empty comparisons file is valid.
+- Every ROCm measurement must have a verified package identity and ROCm version.
+  Missing or ambiguous evidence fails collection for stable, nightly, and
+  experimental channels; there is no unassigned output or guessed version.
 - `raw/` contains source copies for inspection in the Actions artifact. Records
   retain their source identity and JSON location; historical builds also carry
   the original source URL at the revision that supplied them.
@@ -119,18 +124,23 @@ immutable dataset commit in `main`. See [data publication](data-publication.md).
 Raw source copies, logs, errors files, and intermediate evidence stay in CI
 artifacts for 30 days. They provide diagnostics for that run.
 
-## Stable model associations
+## Model associations
 
-The collector matches each stable benchmark run to the exact package downloaded
+The collector matches each ROCm benchmark run to the exact package downloaded
 by its jobs, then derives the ROCm version and platform from that package. It joins
 the qualification record using the package, repository, engine tag, platform, and
 ROCm version. Measurements retain their ROCm context when an older qualification
-record is unavailable.
+record is unavailable. Qualification links require the complete exact identity;
+identifying a ROCm version alone never creates a qualification link. Nightly and
+experimental packages retain their full runtime version (including alpha/date
+suffixes) separately from the numeric ROCm dataset version (for example, `10.3.0a20261027`
+is retained as `runtime_version` and grouped under `10.3.0`). Their attribution
+must include verified runtime evidence for the downloaded package.
 
 Verified historical mappings are stored in `provenance/llamacpp-stable-packages.json`.
 New mappings use the authenticated GitHub CLI (`gh`); Actions supplies its job token.
 Each mapping retains job links, log hashes, and the observation timestamps it covers.
-Repeated job attempts must agree on the package. Unavailable or ambiguous stable evidence
+Repeated job attempts must agree on the package. Unavailable or ambiguous ROCm evidence
 fails collection with the source, record, field, and reason. Available producer accuracy values stay
 with the model measurement, separately from build qualification.
 
@@ -165,3 +175,13 @@ same status before ingestion.
 In published data, the app reads the current `sync` object from `latest.json`.
 A failed run updates that status while preserving the pointer to the last good
 dataset. The dataset's embedded sync metadata describes its own successful run.
+
+### Cached binaries
+
+Some historical benchmark jobs reused a cached binary. Their package association
+is labeled `cached_binary_registry_match` in per-record job evidence, rather than
+an observed download. The collector requires the same job's exact fork/tag cache
+record, its checked-out registry at a pinned commit, and the matching release
+asset. This establishes producer-declared package identity; it does not verify
+the cached executable's bytes. Release-body evidence records the declared bundled
+SDK, not a measurement of the runner's system ROCm installation.

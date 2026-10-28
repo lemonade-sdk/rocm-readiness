@@ -723,7 +723,7 @@ def collect(
                 destination=(
                     "rocm/*/history/*.json"
                     if target == "builds"
-                    else "performance/unassigned.json"
+                    else "performance/comparisons.json"
                 ),
                 stale_after_hours=source["stale_after_hours"],
             )
@@ -786,7 +786,7 @@ def collect(
             "awaiting_data",
         ):
             source["destination"] = (
-                "rocm/*/performance.json + performance/unassigned.json"
+                "rocm/*/performance.json + performance/comparisons.json"
             )
     write_json(
         destination / "provenance/packages.json",

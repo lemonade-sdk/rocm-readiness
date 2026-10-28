@@ -3,7 +3,11 @@ import hashlib
 import json
 import unittest
 
-from scripts.attribution import attribute_stable, resolve_package
+from scripts.attribution import (
+    attribute_stable,
+    resolve_package,
+    validate_measurement_package,
+)
 from scripts.validation import PipelineValidationError
 
 PACKAGE = "https://github.com/lemonade-sdk/llama.cpp/releases/download/b123/llama-b123-bin-ubuntu-rocm-10.1-x64.tar.gz"
@@ -48,6 +52,152 @@ def evidence(**changes):
 
 
 class AttributionTests(unittest.TestCase):
+    def test_nightly_package_uses_verified_release_runtime(self):
+        row = measurement(
+            channel="nightly",
+            fork_id="llamacpp-rocm-nightly",
+            engine_repository="lemonade-sdk/llamacpp-rocm",
+            engine_version="b1356",
+        )
+        body = "**ROCm Version**: 10.3.0a20261027\n"
+        item = evidence(
+            fork_id=row["fork_id"],
+            engine_repository=row["engine_repository"],
+            engine_version="b1356",
+            package_url="https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1356/llama-b1356-ubuntu-rocm-gfx1151-x64.zip",
+            runtime_evidence={
+                "url": "https://api.github.com/repos/lemonade-sdk/llamacpp-rocm/releases/tags/b1356",
+                "body": body,
+                "sha256": hashlib.sha256(body.encode()).hexdigest(),
+            },
+        )
+        attribute_stable({"measurements": [row]}, [item])
+        self.assertEqual(row["rocm_version"], "10.3.0")
+        self.assertEqual(row["runtime_version"], "10.3.0a20261027")
+        self.assertEqual(
+            row["attribution"]["runtime_evidence"], item["runtime_evidence"]
+        )
+        original = copy.deepcopy(row)
+        changed_body = "**ROCm Version**: 10.4.0a20261028\n"
+        changed = dict(
+            item,
+            runtime_evidence=dict(
+                item["runtime_evidence"],
+                body=changed_body,
+                sha256=hashlib.sha256(changed_body.encode()).hexdigest(),
+            ),
+        )
+        with self.assertRaisesRegex(PipelineValidationError, "conflicting previously"):
+            attribute_stable(
+                {"measurements": [dict(row, attribution=None)]},
+                [changed],
+                previous_measurements=[original],
+            )
+        with self.assertRaisesRegex(PipelineValidationError, "conflicting previously"):
+            attribute_stable(
+                {
+                    "measurements": [
+                        dict(
+                            row,
+                            attribution=None,
+                            rocm_version=None,
+                            runtime_version=None,
+                            context_size=2048,
+                        )
+                    ]
+                },
+                [],
+                resolve=lambda _: changed,
+                previous_measurements=[original],
+            )
+        for change in (
+            {"runtime_evidence": None},
+            {"runtime_evidence": dict(item["runtime_evidence"], sha256="0" * 64)},
+        ):
+            with self.assertRaises(ValueError):
+                attribute_stable({"measurements": [dict(row)]}, [dict(item, **change)])
+
+    def test_cached_nightly_selects_unique_exact_release_asset(self):
+        row = measurement(
+            channel="nightly",
+            fork_id="llamacpp-rocm-nightly",
+            engine_repository="lemonade-sdk/llamacpp-rocm",
+            engine_version="b1356",
+        )
+        url = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1356/llama-b1356-ubuntu-rocm-gfx1151-x64.zip"
+        jobs = json.dumps(
+            [
+                {
+                    "jobs": [
+                        {
+                            "id": 99,
+                            "name": "Bench llamacpp-rocm-nightly",
+                            "started_at": "2026-10-27T10:00:00Z",
+                            "completed_at": "2026-10-27T11:00:00Z",
+                        }
+                    ]
+                }
+            ]
+        )
+        release = {
+            "tag_name": "b1356",
+            "body": "**ROCm Version**: 10.3.0a20261027",
+            "assets": [{"browser_download_url": url}],
+        }
+
+        def run(args):
+            if "--slurp" in args:
+                return jobs
+            if "contents/src/cpp/resources/benchmark_forks.json" in args[1]:
+                return json.dumps(
+                    {
+                        "forks": [
+                            {
+                                "fork_id": row["fork_id"],
+                                "repo": row["engine_repository"],
+                                "arch": "gfx1151",
+                                "binary_url_linux": url.replace("b1356", "{version}"),
+                            }
+                        ]
+                    }
+                )
+            if args[0] == "api":
+                return json.dumps(release)
+            return (
+                "git log -1 --format=%H\n"
+                + "a" * 40
+                + "\n[cache] b1356 already installed: /home/runner/bench-binaries/llamacpp-rocm-nightly/llama-server\n"
+            )
+
+        result = resolve_package(row, run)
+        self.assertEqual(result["package_url"], url)
+        self.assertEqual(
+            result["job_evidence"][0]["method"], "cached_binary_registry_match"
+        )
+        attribute_stable({"measurements": [row]}, [result])
+        self.assertEqual(row["attribution"]["job_evidence"], result["job_evidence"])
+        broken = copy.deepcopy(row)
+        broken["attribution"]["job_evidence"][0]["registry_evidence"]["sha256"] = (
+            "0" * 64
+        )
+        with self.assertRaisesRegex(ValueError, "registry checksum"):
+            validate_measurement_package(broken)
+        previous = copy.deepcopy(row)
+        fresh = measurement(
+            channel="nightly",
+            fork_id="llamacpp-rocm-nightly",
+            engine_repository="lemonade-sdk/llamacpp-rocm",
+            engine_version="b1356",
+        )
+        attribute_stable(
+            {"measurements": [fresh]}, [], previous_measurements=[previous]
+        )
+        self.assertEqual(fresh["attribution"]["job_evidence"], result["job_evidence"])
+
+        release["assets"] = []
+        with self.assertRaisesRegex(ValueError, "absent"):
+            resolve_package(row, run)
+
     def test_reuses_only_the_same_previously_assigned_observation(self):
         original = measurement(
             model="m",

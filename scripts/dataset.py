@@ -11,10 +11,10 @@ from typing import Dict, Optional
 from urllib.parse import urlparse
 
 if __package__:
-    from .attribution import PACKAGE, RUN
+    from .attribution import RUN, validate_measurement_package
     from .validation import PipelineValidationError
 else:
-    from attribution import PACKAGE, RUN
+    from attribution import RUN, validate_measurement_package
     from validation import PipelineValidationError
 
 BUILD_FIELDS = """
@@ -26,7 +26,7 @@ MEASUREMENT_FIELDS = """
 source_id source_pointer kind engine channel backend fork_id engine_repository engine_version
 model scenario quant system_id context_size input_tokens measured_at run_id run_url
 lemonade_version metrics rocm_version qualification_build_id accuracy_verdict producer_accuracy
-source_url package_url package_os attribution
+source_url package_url package_os runtime_version attribution
 """.split()
 SYSTEM_FIELDS = """
 id source_id cpu gpu gpu_full os memory ram_gb vram_gb source_pointer gfx_target
@@ -391,14 +391,12 @@ def _validate_assigned(row, version):
     )
     _require(_json_pointer(row.get("source_pointer")), "invalid measurement pointer")
     package = row.get("package_url")
-    parsed = PACKAGE.fullmatch(package) if isinstance(package, str) else None
-    _require(parsed is not None, "invalid package URL")
+    identity = validate_measurement_package(row)
     _require(
-        parsed[1] == row.get("engine_repository")
-        and parsed[2] == row.get("engine_version")
-        and parsed[4] == row.get("rocm_version")
-        and row.get("package_os") == {"ubuntu": "linux", "win": "windows"}[parsed[3]]
-        and parsed[5] == {"ubuntu": "tar.gz", "win": "zip"}[parsed[3]],
+        identity["repository"] == row.get("engine_repository")
+        and identity["version"] == row.get("engine_version")
+        and identity["rocm_version"] == row.get("rocm_version")
+        and identity["os"] == row.get("package_os"),
         "package identity mismatch",
     )
     run = (
@@ -436,6 +434,26 @@ def _validate_assigned(row, version):
             and bool(row["qualification_build_id"])
         ),
         "invalid attribution match",
+    )
+
+
+def _validate_comparison(row):
+    _measurement_key(row)
+    _require(
+        row.get("backend") in ("vulkan", "hrx")
+        and row.get("rocm_version") is None
+        and row.get("runtime_version") is None
+        and row.get("qualification_build_id") is None
+        and row.get("package_url") is None
+        and row.get("package_os") is None,
+        "comparison measurement cannot claim ROCm attribution",
+    )
+    attribution = row.get("attribution")
+    _require(
+        attribution is None
+        or isinstance(attribution, dict)
+        and attribution.get("status") not in ("matched", "rocm_identified"),
+        "comparison measurement cannot claim ROCm attribution",
     )
 
 
@@ -518,7 +536,6 @@ def _write_version(
     generated_at,
     measurements,
     systems,
-    has_unassigned,
 ):
     by_engine = {engine["id"]: [] for engine in engines}
     by_month = {}
@@ -563,9 +580,7 @@ def _write_version(
                 ],
             }
         )
-    performance = {
-        "status": "awaiting_attribution" if has_unassigned else "not_measured"
-    }
+    performance = {"status": "not_measured"}
     if measurements:
         path = f"rocm/{version}/performance.json"
         _write_json(
@@ -652,20 +667,24 @@ def write_dataset(
         )
         systems[(system["source_id"], system["id"])] = system
     current = {}
-    unassigned = []
+    comparisons = []
     for raw in output["measurements"]:
         row = {field: raw.get(field) for field in MEASUREMENT_FIELDS}
         row["source_url"] = row["source_url"] or source_urls.get(row["source_id"])
-        if row["rocm_version"] is not None:
-            _version_key(row["rocm_version"])
-            _validate_assigned(row, row["rocm_version"])
-        try:
-            key = _measurement_key(row)
-        except ValueError:
-            if row["rocm_version"] is not None:
-                raise
-            unassigned.append(row)
+        if row.get("backend") in ("vulkan", "hrx"):
+            _validate_comparison(row)
+            comparisons.append(row)
             continue
+        if row["rocm_version"] is None:
+            raise PipelineValidationError(
+                row.get("source_id"),
+                row.get("source_pointer"),
+                "rocm_version",
+                "missing verified ROCm version",
+            )
+        _version_key(row["rocm_version"])
+        _validate_assigned(row, row["rocm_version"])
+        key = _measurement_key(row)
         existing = current.get(key)
         if (
             existing is None
@@ -685,10 +704,6 @@ def write_dataset(
     for (version, source, system_id), system in prior_systems.items():
         version_systems_map.setdefault(version, {})[(source, system_id)] = system
     for key, row in current.items():
-        if row["rocm_version"] is None:
-            if key not in prior_measurements:
-                unassigned.append(row)
-            continue
         prior_row = prior_measurements.get(key)
         inherited_system = False
         if prior_row:
@@ -764,7 +779,6 @@ def write_dataset(
             output["generated_at"],
             assigned.get(version, []),
             version_systems,
-            bool(unassigned),
         )
         versions.append(
             {
@@ -775,12 +789,13 @@ def write_dataset(
         )
     performance = {
         "schema_version": 2,
-        "measurements": unassigned,
-        "systems": _systems_for(unassigned, systems),
+        "measurements": comparisons,
+        "systems": _systems_for(comparisons, systems),
     }
-    _write_json(destination / "performance/unassigned.json", performance)
+    _write_json(destination / "performance/comparisons.json", performance)
     index = {
         "schema_version": 2,
+        "attribution_version": 2,
         "generated_at": output["generated_at"],
         "collection_status": output.get("collection_status"),
         "engines": engines,
@@ -788,9 +803,9 @@ def write_dataset(
         "reference_model": output.get("reference_model"),
         "default_version": versions[0]["rocm_version"] if versions else None,
         "versions": versions,
-        "unassigned_performance": {
+        "comparison_performance": {
             "count": len(performance["measurements"]),
-            "path": "performance/unassigned.json",
+            "path": "performance/comparisons.json",
         },
         "stable_performance": {
             "assigned_count": sum(
@@ -798,10 +813,7 @@ def write_dataset(
                 for rows in assigned.values()
                 for row in rows
             ),
-            "awaiting_evidence_count": sum(
-                row.get("engine") == "llamacpp" and row.get("channel") == "stable"
-                for row in unassigned
-            ),
+            "awaiting_evidence_count": 0,
         },
     }
     if publish_index:

@@ -367,21 +367,27 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             {view === "overview" && (
               <>
                 <div className="scope-controls">
-                  <label htmlFor="overview-platform">Platform</label>
-                  <select
-                    id="overview-platform"
-                    value={platform}
-                    onChange={(event) => changePlatform(event.target.value)}
+                  <span>Platform</span>
+                  <div
+                    className="platform-options"
+                    role="group"
+                    aria-label="Platform"
                   >
-                    <option value="all">All platforms</option>
                     {[
-                      ...new Set(engines.flatMap((engine) => engine.platforms)),
-                    ].map((os) => (
-                      <option key={os} value={os}>
-                        {os}
-                      </option>
+                      { value: "all", label: "All platforms" },
+                      { value: "linux", label: "Linux" },
+                      { value: "windows", label: "Windows" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={platform === option.value}
+                        onClick={() => changePlatform(option.value)}
+                      >
+                        {option.label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
                 <div className="stats">
                   <BuildQualification

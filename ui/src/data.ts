@@ -72,6 +72,14 @@ const buildSchema = z.object({
   rocm_version: z.string(),
   os: z.string(),
   tag: z.string().nullable().optional(),
+  artifact: z.string().nullable().optional(),
+  source_id: z.string().nullable().optional(),
+  upstream_sha: z.string().nullable().optional(),
+  event: z.string().nullable().optional(),
+  run_id: z.string().nullable().optional(),
+  run_attempt: z.number().int().nonnegative().nullable().optional(),
+  source_url: z.string().nullable().optional(),
+  results: z.record(z.string(), z.string()).nullable().optional(),
   generated_at: time,
   qualified: z.boolean().nullable().optional(),
   version_qualified: z.boolean().nullable().optional(),
@@ -162,7 +170,7 @@ export async function loadHistory(
   const builds = chunks.flat();
   const identities = new Set(
     builds.map((build) =>
-      JSON.stringify([build.engine, build.os, build.build_id]),
+      JSON.stringify([build.source_id, build.engine, build.os, build.build_id]),
     ),
   );
   if (identities.size !== builds.length)

@@ -28,6 +28,27 @@ Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.
 Source copies, standalone errors, and intermediate caches stay in CI artifacts.
 
+## Qualification evidence
+
+The qualification adapter reads the producer's `qualification/index.json` at one
+pinned commit. It retains the following fields in build records:
+
+| Fields | Producer input and use |
+| --- | --- |
+| `build_id`, `tag`, `artifact`, `rocm_version`, `os`, `generated_at` | Index row identity, package and date; `ubuntu`/`win` normalize to `linux`/`windows`. |
+| `qualified`, `version_qualified`, `overall`, `tests` | Producer qualification decisions and test counters; warnings and skipped checks remain distinct. |
+| `results` | Index per-test status map for summary evidence. |
+| `upstream_sha`, `event`, `run_id`, `run_attempt` | Producer source revision and workflow provenance, distinct from benchmark run identifiers. |
+| `gfx`, `gfx_target`, `hardware_validated` | Compiled-target summary and recorded hardware validation. |
+| `report_url`, `source_url`, `source_pointer` | Absolute pinned report URL, producer index URL and original row pointer. |
+
+Older retained records can lack optional provenance or per-test fields. Missing
+fields remain unknown. The UI reads full reports on demand from the pinned
+`report_url` for test names, tiers, gating, durations, failure/warning details and
+runtime/compatibility evidence. It preserves the feed build identity when reading
+reports, whose internal build ID uses a different format. The producer's
+`latest/` convenience copies are not a separate ingestion source.
+
 ## History grouping and retention
 
 Builds are grouped into one file per ROCm version per calendar month. All October

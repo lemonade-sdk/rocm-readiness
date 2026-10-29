@@ -24,6 +24,26 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("visible platform choices preserve counts and shared URL scope", async ({
+  page,
+}) => {
+  await page.goto("./?version=10.1&view=overview");
+  await page.getByRole("button", { name: "Linux", exact: true }).click();
+  await expect(page).toHaveURL(/platform=linux/);
+  await expect(
+    page.getByRole("button", { name: "Linux", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Build qualification")).toContainText("13 / 13");
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Linux", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", { name: "All platforms", exact: true })
+    .click();
+  await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
+});
+
 test("pins data, switches versions and restores scope through browser history", async ({
   page,
 }) => {
@@ -45,10 +65,12 @@ test("pins data, switches versions and restores scope through browser history", 
     page.getByRole("heading", { name: "ROCm 10.0 readiness" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await expect(page.getByRole('heading',{name:'llama.cpp builds',exact:true})).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "llama.cpp builds", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Platform", { exact: true }).selectOption("linux");
   await expect(page).toHaveURL(/platform=linux/);
-  await page.getByLabel('Find build').fill('linux-build');
+  await page.getByLabel("Find build").fill("linux-build");
   await expect(page).toHaveURL(/build_filter=linux-build/);
   await page
     .getByRole("link", { name: /^Open build linux-build / })

@@ -786,3 +786,23 @@ footer p {
     flex-basis: 58px;
   }
 }
+
+.platform-options {
+  display: flex;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  background: #1b1d19;
+}
+.platform-options button {
+  border: 0;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.platform-options button[aria-pressed="true"] {
+  background: var(--yellow);
+  color: #202419;
+}

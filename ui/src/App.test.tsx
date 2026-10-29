@@ -24,7 +24,9 @@ it("applies platform scope to retained qualification counts", async () => {
       "13 / 13",
     ),
   );
-  expect(screen.getByLabelText("Platform")).toHaveValue("linux");
+  expect(
+    screen.getByRole("button", { name: "Linux", pressed: true }),
+  ).toBeInTheDocument();
 });
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");

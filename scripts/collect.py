@@ -842,7 +842,7 @@ def collect(
     )
     write_json(destination / "index.json", output["dataset"])
     if output["collection_status"] == "complete":
-        validate_dataset(destination, config)
+        validate_dataset(destination, config, check_live_pointer=False)
     print(
         f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
         flush=True,

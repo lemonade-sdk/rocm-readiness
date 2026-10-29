@@ -108,13 +108,15 @@ def _same_records(left, right):
     return [canonical(row) for row in left] == [canonical(row) for row in right]
 
 
-def validate_dataset(root, config=None):
+def validate_dataset(root, config=None, *, check_live_pointer=True):
     """Return referenced paths after validating a complete schema-v2 dataset.
 
     ``root`` is the directory containing index.json. ``config`` is sources.json,
     when available; it adds configured source/fork/channel ownership checks.
     Optional latest.json/sync.json are checked without treating live failed
     attempts as changes to the immutable successful dataset.
+    Collection disables the pointer check because only the publisher updates
+    latest.json, after committing the new dataset.
     """
     root = Path(root).resolve()
     paths = set()
@@ -1415,7 +1417,7 @@ def validate_dataset(root, config=None):
             "/sync/last_successful_at",
             "live status must retain the successful dataset timestamp",
         )
-    if (root / "latest.json").exists():
+    if check_live_pointer and (root / "latest.json").exists():
         latest = read("latest.json")
         schema(latest, "latest.json", 1)
         commit = latest.get("data_commit")

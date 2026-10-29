@@ -42,6 +42,11 @@ source records and package evidence, then runs
 dataset before returning success. Publication checks the linked manifest,
 retained records, and sync consistency before changing the live pointer.
 
+The collection gate checks generated dataset files and sync metadata. It leaves
+an existing `latest.json` to the publisher, which updates the pointer after the
+dataset commit exists. Standalone validation also checks the live pointer when
+present.
+
 To check an existing local snapshot without fetching producer data:
 
 ```sh

@@ -320,6 +320,26 @@ class PerformanceTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.TestCase):
+    def test_recollection_leaves_existing_publication_pointer_to_publisher(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = collect(self.config(), root, fetch, now="2026-10-29T18:00:00Z")
+            pointer = {
+                "schema_version": 1,
+                "data_commit": "a" * 40,
+                "index_url": "https://raw.githubusercontent.com/a/b/"
+                + "a" * 40
+                + "/data/index.json",
+                "sync": first["dataset"]["sync"],
+            }
+            (root / "latest.json").write_text(json.dumps(pointer))
+            second = collect(self.config(), root, fetch, now="2026-10-29T19:00:00Z")
+            self.assertEqual(second["collection_status"], "complete")
+            self.assertEqual(json.loads((root / "latest.json").read_text()), pointer)
+
     def test_success_gate_rejects_corrupted_derived_count_with_field_evidence(self):
         from scripts.dataset import write_dataset
 

@@ -30,8 +30,7 @@ Source copies, standalone errors, and intermediate caches stay in CI artifacts.
 
 Builds are grouped into one file per ROCm version per calendar month. All October
 builds go into `history/2026-10.json`; November builds go into `history/2026-11.json`.
-Both stable and nightly records use this grouping. Daily runs add or update
-records within the monthly file.
+Daily runs add or update records within the monthly file.
 
 A history directory has several files when its builds span several months.
 Published history carries forward across successful runs. The 30-day expiry
@@ -42,9 +41,9 @@ applies to downloadable CI artifacts containing source copies and diagnostics.
 Comparing ROCm versions uses their per-version performance files.
 
 Version directories group the configured builds and measurements by ROCm version.
-Stable llama.cpp packages label versions such as `10.0` and `10.1`; vLLM contributes
-its own version labels. Each build record identifies its engine and stable/nightly
-channel; the directory groups records by ROCm version. History is retained when it
+Stable llama.cpp packages label versions such as `7.14`, `10.0`, and `10.1`.
+Each build record identifies its engine and channel; the directory groups records
+by ROCm version. History is retained when it
 matches the configured sources and selected performance forks.
 
 ## Publishing and recovery

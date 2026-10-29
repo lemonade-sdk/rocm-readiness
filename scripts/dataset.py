@@ -562,6 +562,10 @@ def _write_version(
 
     cards = []
     for engine in engines:
+        if not by_engine[engine["id"]] and not any(
+            row["engine"] == engine["id"] for row in measurements
+        ):
+            continue
         latest = {}
         for row in by_engine[engine["id"]]:
             key = (row.get("channel"), row.get("os"), row.get("gfx_target"))

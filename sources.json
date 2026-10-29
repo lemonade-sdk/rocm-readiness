@@ -9,29 +9,6 @@
         "linux",
         "windows"
       ]
-    },
-    {
-      "id": "vllm",
-      "label": "vLLM",
-      "platforms": [
-        "linux"
-      ]
-    },
-    {
-      "id": "whisper",
-      "label": "Whisper",
-      "platforms": [
-        "linux",
-        "windows"
-      ]
-    },
-    {
-      "id": "stable-diffusion",
-      "label": "Stable Diffusion",
-      "platforms": [
-        "linux",
-        "windows"
-      ]
     }
   ],
   "sources": [
@@ -53,31 +30,6 @@
       "ref": "qualification-data",
       "availability": "awaiting_data",
       "channel": "nightly"
-    },
-    {
-      "id": "vllm-qualification",
-      "engine": "vllm",
-      "adapter": "qualification-v1",
-      "repository": "lemonade-sdk/vllm-rocm",
-      "ref": "qualification-data",
-      "path": "qualification/index.json",
-      "channel": "from-record",
-      "os": "linux",
-      "stale_after_hours": 72
-    },
-    {
-      "id": "whisper-qualification",
-      "engine": "whisper",
-      "adapter": "qualification-v1",
-      "availability": "awaiting_data",
-      "channel": "stable"
-    },
-    {
-      "id": "stable-diffusion-qualification",
-      "engine": "stable-diffusion",
-      "adapter": "qualification-v1",
-      "availability": "awaiting_data",
-      "channel": "stable"
     },
     {
       "id": "lemonade-performance",

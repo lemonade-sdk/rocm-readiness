@@ -119,7 +119,7 @@ class DatasetTests(unittest.TestCase):
             self.assertEqual(overview["rocm_version"], "7.14")
             self.assertEqual(
                 [(card["id"], card["build_count"]) for card in overview["engines"]],
-                [("llamacpp", 1), ("vllm", 0)],
+                [("llamacpp", 1)],
             )
             self.assertEqual(overview["history"][0]["month"], "2026-10")
             history = json.loads(
@@ -130,6 +130,14 @@ class DatasetTests(unittest.TestCase):
                 history["builds"][0]["source_url"],
                 SOURCE_A,
             )
+
+    def test_overview_only_lists_engines_with_records_for_that_version(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized([build(engine="vllm", channel="nightly")]), root)
+            overview = json.loads((root / "rocm/7.14/overview.json").read_text())
+            self.assertEqual([e["id"] for e in overview["engines"]], ["vllm"])
+            self.assertEqual(overview["engines"][0]["build_count"], 1)
 
     def test_alpha_runtime_evidence_is_preserved_without_fake_qualification(self):
         package = "https://github.com/example/source/releases/download/exp123/llama-exp123-ubuntu-rocm-gfx1151-x64.tar.gz"

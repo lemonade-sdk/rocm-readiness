@@ -2,8 +2,7 @@
 
 A data pipeline for ROCm engine qualification and model performance. GitHub Actions
 collects producer feeds and publishes JSON under `main/data/`. It includes stable
-ROCm llama.cpp builds and their benchmark results, plus stable/nightly vLLM Linux
-qualification history.
+ROCm llama.cpp builds and their benchmark results.
 
 ## Run locally
 

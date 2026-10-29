@@ -15,19 +15,17 @@ previously verified package associations.
 | Data | Repository / branch | Entry file |
 | --- | --- | --- |
 | llama.cpp stable qualification | `lemonade-sdk/llama.cpp` / `qualification-data` | `qualification/index.json` |
-| vLLM qualification | `lemonade-sdk/vllm-rocm` / `qualification-data` | `qualification/index.json` |
 | Model performance | `lemonade-sdk/lemonade` / `benchmark-data` | `leaderboard.json` |
 
 llama.cpp ingests stable ROCm builds from `lemonade-sdk/llama.cpp` and their model
 results from Lemonade's `benchmark-data` branch. `include_forks: ["llamacpp-rocm-stable"]`
-selects those results before association. vLLM includes stable/nightly Linux history.
+selects those results before association.
 
 ## What we retain
 
 | Source | File ingested | Data retained |
 | --- | --- | --- |
 | `lemonade-sdk/llama.cpp` · `qualification-data` | `qualification/index.json` | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts, test counts, GPU coverage, hardware-validation flags, dates, and evidence links |
-| `lemonade-sdk/vllm-rocm` · `qualification-data` | `qualification/index.json` | Linux stable/nightly build IDs/tags, packages, ROCm versions, qualification summaries, dates, and evidence links |
 | `lemonade-sdk/lemonade` · `benchmark-data` | `leaderboard.json` | Stable llama.cpp models, workloads, quantization, throughput/latency/VRAM metrics, hardware, available accuracy results, benchmark dates/run links, and engine tag/package/ROCm associations |
 
 ## Adding or changing a source
@@ -64,8 +62,7 @@ into build or model-measurement records.
 | `lemonade-leaderboard-v1` | `normalize_performance()` | `systems`, `by_model_scenario`, and `history`, containing hardware and model benchmark results |
 
 Choose the adapter by inspecting the producer JSON. Qualification format details:
-[llama.cpp schema](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/SCHEMA.md)
-and [vLLM schema](https://github.com/lemonade-sdk/vllm-rocm/blob/qualification-data/qualification/SCHEMA.md).
+[llama.cpp schema](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/SCHEMA.md).
 A different format requires a new normalizer, registration in `ADAPTERS`, and
 fixture tests under [tests/](../tests/).
 
@@ -83,7 +80,7 @@ configuring a source.
 | Source setting | How the result gets its channel |
 | --- | --- |
 | `stable` or `nightly` | Apply that label to every qualification record in the feed |
-| `from-record` | Read each qualification record's `channel` (`stable` or `nightly`); used by vLLM's mixed history |
+| `from-record` | Read each qualification record's `channel` (`stable` or `nightly`) |
 | `from-fork` | Look up each benchmark's `fork_id` in the source's `forks` mapping |
 
 Performance fork mappings name the engine, repository, backend, and channel.
@@ -93,8 +90,8 @@ Selected records must match their configured repository and backend.
 
 ### Validate the change
 
-1. Edit `sources.json`. Add an `engines` entry if introducing an engine. vLLM
-   currently needs `os: "linux"`; performance feeds need the `forks` mapping.
+1. Edit `sources.json`. Add an `engines` entry if introducing an engine.
+   Performance feeds need the `forks` mapping.
 2. Run the test-and-ingestion command in the [README](../README.md).
 3. Open a PR and inspect its Actions artifact. After merge, the main workflow
    publishes the dataset; daily runs continue using the updated source list.

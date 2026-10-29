@@ -13,10 +13,21 @@ Open the Local URL printed by Vite. The browser reads the public
 `main/data/latest.json` pointer and follows its pinned dataset revision. No data
 server, credentials or local collection is required.
 
-The shell provides version selection, overview, latest-build evidence links and
-access to pinned monthly history and model-measurement JSON. URLs retain the
-selected version, view, platform and detail context. Other query parameters are
-preserved during navigation.
+The dashboard provides version selection, readiness summaries, retained build
+history, inline qualification evidence and model-performance details. URLs retain
+the selected version, view, platform, model, hardware, workload and detail context.
+Internal navigation keeps the active dataset revision; reloading reads the latest
+published pointer.
+
+Build history supports platform and package/build searches. Opening a build loads
+its pinned producer report on demand and displays individual checks, tiers,
+durations, warning/failure reasons and audit details. Report failures retain the
+build metadata and offer retry.
+
+Performance views show measured package tags, dates, hardware, workloads and
+metric units. Cross-version comparisons require complete compatible hardware,
+model, quantization and workload settings. Missing metadata remains unmatched.
+Package qualification requires exactly one matching retained build record.
 
 The overview reads all referenced monthly history files at the selected dataset
 revision to show qualified builds out of retained builds, with a separate outcome

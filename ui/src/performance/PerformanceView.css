@@ -1,0 +1,161 @@
+.performance-view {
+  display: grid;
+  gap: 1rem;
+}
+
+.performance-heading,
+.performance-observation-heading {
+  align-items: start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.performance-heading h2,
+.performance-observation h3,
+.performance-comparison h2,
+.performance-comparison h3 {
+  margin: 0.2rem 0 0;
+}
+
+.performance-intro,
+.performance-platform-note {
+  margin: 0;
+  max-width: 76ch;
+}
+
+.performance-platform-note {
+  color: var(--muted, #667085);
+  font-size: 0.9rem;
+}
+
+.performance-filters {
+  align-items: end;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.performance-filters label {
+  display: grid;
+  font-size: 0.85rem;
+  font-weight: 650;
+  gap: 0.35rem;
+}
+
+.performance-filters select {
+  min-width: 0;
+}
+
+.performance-table-wrap,
+.performance-observation,
+.performance-comparison {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #d9dce3);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.performance-table-wrap {
+  overflow-x: auto;
+}
+
+.performance-table-wrap table {
+  border-collapse: collapse;
+  min-width: 44rem;
+  width: 100%;
+}
+
+.performance-table-wrap th,
+.performance-table-wrap td {
+  border-bottom: 1px solid var(--border, #d9dce3);
+  padding: 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.performance-table-wrap tr:last-child td {
+  border-bottom: 0;
+}
+
+.performance-observations,
+.performance-comparison-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.performance-observation time {
+  color: var(--muted, #667085);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.performance-metadata,
+.performance-metrics,
+.performance-deltas {
+  display: grid;
+  gap: 0.65rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  margin: 1rem 0;
+}
+
+.performance-metadata div,
+.performance-metrics div,
+.performance-deltas div {
+  min-width: 0;
+}
+
+.performance-metadata dt,
+.performance-metrics dt,
+.performance-deltas dt {
+  color: var(--muted, #667085);
+  font-size: 0.8rem;
+}
+
+.performance-metadata dd,
+.performance-metrics dd,
+.performance-deltas dd {
+  margin: 0.15rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.performance-metrics dd {
+  font-weight: 650;
+}
+
+.performance-provenance,
+.performance-empty-metrics,
+.performance-empty-comparison {
+  margin: 0.75rem 0 0;
+}
+
+.performance-empty-comparison {
+  font-weight: 700;
+}
+
+.performance-comparison-row {
+  border-top: 1px solid var(--border, #d9dce3);
+  padding-top: 0.9rem;
+}
+
+.performance-comparison-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.performance-unmatched {
+  margin: 0.9rem 0 0;
+  padding-left: 1.2rem;
+}
+
+@media (max-width: 42rem) {
+  .performance-heading,
+  .performance-observation-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .performance-table-wrap table {
+    min-width: 36rem;
+  }
+}

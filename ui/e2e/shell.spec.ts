@@ -32,11 +32,14 @@ test("pins data, switches versions and restores scope through browser history", 
     if (request.url().includes("raw.githubusercontent.com"))
       reads.push(request.url());
   });
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeVisible();
   await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
+  const pointerReads = reads.filter((url) =>
+    url.endsWith("/main/data/latest.json"),
+  ).length;
   await page.getByLabel("ROCm version").selectOption("10.0");
   await expect(
     page.getByRole("heading", { name: "ROCm 10.0 readiness" }),
@@ -44,10 +47,18 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByLabel("Platform", { exact: true }).selectOption("linux");
   await expect(page).toHaveURL(/platform=linux/);
-  await page.getByRole("link", { name: "View evidence" }).click();
+  await page.getByLabel('Find build').fill('linux-build');
+  await expect(page).toHaveURL(/build_filter=linux-build/);
+  await page
+    .getByRole("link", { name: /^Open build linux-build / })
+    .first()
+    .click();
   await expect(
     page.getByRole("heading", { name: "Build evidence", exact: true }),
   ).toBeVisible();
+  expect(
+    reads.filter((url) => url.endsWith("/main/data/latest.json")),
+  ).toHaveLength(pointerReads);
   const shared = page.url();
   await page.reload();
   await expect(
@@ -59,12 +70,17 @@ test("pins data, switches versions and restores scope through browser history", 
     "linux",
   );
   await page.goForward();
+  await expect(page).toHaveURL(/build_filter=linux-build/);
   await expect(
     page.getByRole("heading", { name: "Build evidence", exact: true }),
   ).toBeVisible();
   expect(
     reads
-      .filter((url) => !url.endsWith("/main/data/latest.json"))
+      .filter(
+        (url) =>
+          url.includes("/rocm-readiness/") &&
+          !url.endsWith("/main/data/latest.json"),
+      )
       .every((url) => url.includes(`/${pointer.data_commit}/data/`)),
   ).toBe(true);
 });
@@ -94,7 +110,7 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
   await page.route("**/history/*.json", (route) =>
     route.fulfill({ status: 503, body: "{}" }),
   );
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Latest ingestion failed", { exact: true }),
   ).toBeVisible();
@@ -120,7 +136,7 @@ test("recovers from an initial malformed pointer and represents empty data", asy
   await page.route("**/main/data/latest.json", (route) =>
     route.fulfill({ json: {} }),
   );
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByRole("alert")).toContainText("schema_version");
   await page.route("**/main/data/latest.json", (route) =>
     route.fulfill({ json: pointer }),
@@ -137,8 +153,8 @@ test("recovers from an initial malformed pointer and represents empty data", asy
 test("has a keyboard skip link and fits the viewport", async ({
   page,
   browserName,
-}) => {
-  await page.goto("/");
+}, testInfo) => {
+  await page.goto("./");
   await expect(
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeVisible();
@@ -153,4 +169,8 @@ test("has a keyboard skip link and fits the viewport", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath("overview-fixture.png"),
+    fullPage: true,
+  });
 });

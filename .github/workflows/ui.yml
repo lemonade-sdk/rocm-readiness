@@ -30,7 +30,7 @@ jobs:
       - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:browser
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: failure()
+        if: always()
         with:
           name: ui-browser-results
           path: ui/test-results/

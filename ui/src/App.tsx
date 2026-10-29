@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   loadSession,
@@ -13,6 +14,7 @@ import {
 } from "./ReadinessVisuals";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
+import { BuildBrowser } from "./builds/BuildBrowser";
 
 function date(value: string | null) {
   return value
@@ -38,13 +40,6 @@ function Qualification({ build }: { build: Build }) {
     </span>
   );
 }
-function reportLink(build: Build) {
-  if (!build.report_url) return null;
-  const expected =
-    /^https:\/\/raw\.githubusercontent\.com\/lemonade-sdk\/llama\.cpp\/[a-f0-9]{40}\/qualification\/reports\/[a-zA-Z0-9_.-]+\.json$/;
-  return expected.test(build.report_url) ? build.report_url : null;
-}
-
 export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
   const version = params.get("version") || undefined;
@@ -171,6 +166,25 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     setParams(next);
   };
   const refreshData = () => setRefresh((value) => value + 1);
+  const handleLocalNavigation = (event: MouseEvent<HTMLDivElement>) => {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const anchor =
+      event.target instanceof Element ? event.target.closest("a[href]") : null;
+    const target = anchor?.getAttribute("target");
+    const query = anchor?.getAttribute("href");
+    if (query?.startsWith("?") && (!target || target === "_self")) {
+      event.preventDefault();
+      setParams(new URLSearchParams(query.slice(1)));
+    }
+  };
   const changePlatform = (value: string) => {
     const next = new URLSearchParams(params);
     next.set("version", selected);
@@ -507,87 +521,42 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 )}
               </>
             )}
-            {["engine", "build"].includes(view) && (
-              <>
-                <div className="section-title">
-                  <h2>Latest retained platform builds</h2>
-                  <label>
-                    Platform{" "}
-                    <select
-                      aria-label="Platform"
-                      value={platform}
-                      onChange={(event) => {
-                        const next = new URLSearchParams(params);
-                        next.set("version", selected);
-                        next.set("platform", event.target.value);
-                        next.delete("build");
-                        next.set("view", "engine");
-                        setParams(next);
-                      }}
-                    >
-                      <option value="all">All platforms</option>
-                      {[
-                        ...new Set(
-                          engines.flatMap((engine) => engine.platforms),
-                        ),
-                      ].map((os) => (
-                        <option key={os} value={os}>
-                          {os}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+            {["engine", "build"].includes(view) &&
+              (history?.session === session && history.error ? (
+                <div className="notice error" role="alert">
+                  <p>{history.error}</p>
+                  <button onClick={refreshData}>Retry history</button>
                 </div>
-                {view === "build" ? (
-                  <BuildEvidence
-                    build={builds.find(
-                      (build) => build.build_id === params.get("build"),
-                    )}
+              ) : (
+                <div onClick={handleLocalNavigation}>
+                  <BuildBrowser
+                    session={session}
+                    history={
+                      history?.session === session ? history.builds : null
+                    }
+                    platform={platform}
+                    selectedBuildId={
+                      view === "build" ? params.get("build") || "" : null
+                    }
+                    selectedSourceId={params.get("source") || null}
+                    query={params.get("build_filter") ?? ""}
+                    onQueryChange={(query) => {
+                      const next = new URLSearchParams(params);
+                      if (query) next.set("build_filter", query);
+                      else next.delete("build_filter");
+                      setParams(next, { replace: true });
+                    }}
+                    onPlatformChange={changePlatform}
+                    buildHref={(build) =>
+                      href("build", {
+                        build: build.build_id,
+                        platform: build.os,
+                        ...(build.source_id ? { source: build.source_id } : {}),
+                      })
+                    }
                   />
-                ) : (
-                  <div className="card build-list">
-                    {builds.map((build) => (
-                      <div className="build-row" key={build.build_id}>
-                        <div>
-                          <span className="eyebrow">{build.os}</span>
-                          <Link
-                            className="build-tag"
-                            to={href("build", { build: build.build_id })}
-                          >
-                            {build.tag ?? build.build_id}
-                          </Link>
-                          <p>{date(build.generated_at)}</p>
-                        </div>
-                        <Qualification build={build} />
-                        <Link to={href("build", { build: build.build_id })}>
-                          View evidence →
-                        </Link>
-                      </div>
-                    ))}
-                    {!builds.length && (
-                      <p>No latest builds match this platform.</p>
-                    )}
-                  </div>
-                )}
-                <div className="card data-access">
-                  <h2>Published build history</h2>
-                  <p>
-                    Full retained records are available in the pinned monthly
-                    JSON files.
-                  </p>
-                  {overview.history.map((chunk) => (
-                    <a
-                      key={chunk.path}
-                      href={resolveDatasetPath(session.indexUrl, chunk.path)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {chunk.month} · {chunk.build_count} builds ↗
-                    </a>
-                  ))}
                 </div>
-              </>
-            )}
+              ))}
             {["performance", "model"].includes(view) && (
               <div className="card data-access">
                 <div className="eyebrow">HISTORICAL MODEL MEASUREMENTS</div>
@@ -655,58 +624,5 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </footer>
       </main>
     </>
-  );
-}
-
-function BuildEvidence({ build }: { build?: Build }) {
-  if (!build)
-    return (
-      <div className="empty">
-        <h2>Build not in the loaded latest-build summary</h2>
-        <p>
-          Use the pinned monthly history below to inspect retained older
-          records.
-        </p>
-      </div>
-    );
-  const url = reportLink(build);
-  return (
-    <article className="card data-access">
-      <div className="card-heading">
-        <h2>
-          {build.tag ?? build.build_id} · {build.os}
-        </h2>
-        <Qualification build={build} />
-      </div>
-      <dl>
-        <dt>Build ID</dt>
-        <dd>{build.build_id}</dd>
-        <dt>Measured build date</dt>
-        <dd>{date(build.generated_at)}</dd>
-        <dt>Test outcome</dt>
-        <dd>{build.overall ?? "Unavailable"}</dd>
-        <dt>Compiled GPU targets</dt>
-        <dd>
-          {build.gfx
-            ? `${build.gfx.present} / ${build.gfx.requested} requested targets present`
-            : "No compiled-target evidence"}
-        </dd>
-        <dt>Hardware validation</dt>
-        <dd>
-          {build.hardware_validated === true
-            ? `Recorded${build.gfx_target ? ` on ${build.gfx_target}` : ""}`
-            : build.hardware_validated === false
-              ? "Not hardware validated"
-              : "Unknown"}
-        </dd>
-      </dl>
-      {url ? (
-        <a href={url} target="_blank" rel="noreferrer">
-          Open pinned producer report ↗
-        </a>
-      ) : (
-        <p>No supported pinned producer report link is available.</p>
-      )}
-    </article>
   );
 }

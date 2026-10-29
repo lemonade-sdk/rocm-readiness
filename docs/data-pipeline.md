@@ -5,6 +5,11 @@ fetches them, validates their fields, and maps them into the dashboard dataset.
 See [data flow](data-flow.md) for the overview and [data publication](data-publication.md)
 for the published files.
 
+`sources.json` is maintained here by repository contributors. Its entries locate
+the upstream JSON files listed below. Each run combines their current results
+with the last successfully published dataset, retaining in-scope history and
+previously verified package associations.
+
 ## Current sources
 
 | Data | Repository / branch | Entry file |

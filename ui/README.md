@@ -66,3 +66,15 @@ npm run preview
 The build emits static assets into `dist/`. Serve the application at its static
 root; navigation uses query strings and requires no path rewrite rules. The UI
 checks workflow builds and tests these assets independently of data ingestion.
+
+The published dashboard uses GitHub Pages at `/rocm-readiness/`. See
+[dashboard hosting](../docs/ui-hosting.md) for the release workflow, verification,
+retry and rollback instructions. To preview that production path locally:
+
+```sh
+VITE_BASE_PATH=/rocm-readiness/ npm run build
+VITE_BASE_PATH=/rocm-readiness/ npm run preview
+```
+
+Open `/rocm-readiness/` on the preview server. The default local development path
+remains `/`.

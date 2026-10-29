@@ -72,10 +72,6 @@ test("pins data, switches versions and restores scope through browser history", 
 test("keeps usable data when ingestion fails or a refresh request fails", async ({
   page,
 }) => {
-  await page.goto("/");
-  await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
-  ).toBeVisible();
   await page.route("**/main/data/latest.json", (route) =>
     route.fulfill({
       json: {
@@ -95,7 +91,10 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
       },
     }),
   );
-  await page.getByRole("button", { name: "Refresh data" }).click();
+  await page.route("**/history/*.json", (route) =>
+    route.fulfill({ status: 503, body: "{}" }),
+  );
+  await page.goto("/");
   await expect(
     page.getByText("Latest ingestion failed", { exact: true }),
   ).toBeVisible();
@@ -103,12 +102,12 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Refresh data" }),
-  ).toBeEnabled();
+    page.getByRole("button", { name: "Retry history" }),
+  ).toBeVisible();
   await page.route("**/main/data/latest.json", (route) =>
     route.fulfill({ status: 503, body: "{}" }),
   );
-  await page.getByRole("button", { name: "Refresh data" }).click();
+  await page.getByRole("button", { name: "Retry history" }).click();
   await expect(page.getByRole("alert")).toContainText("HTTP 503");
   await expect(
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),

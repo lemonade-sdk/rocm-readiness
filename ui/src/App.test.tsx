@@ -48,11 +48,16 @@ it("loads the default version and shows real dataset scope", async () => {
   );
 });
 it("keeps the last good dataset visible after a refresh fails", async () => {
-  const fetcher = vi.fn(fixtureFetch());
+  const original = fixtureFetch();
+  const fetcher = vi.fn((input: string | URL | Request) =>
+    String(input).includes("/history/")
+      ? Promise.reject(new Error("History unavailable"))
+      : original(input),
+  );
   mount(fetcher);
   await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
   fetcher.mockRejectedValue(new Error("Network offline"));
-  fireEvent.click(screen.getByRole("button", { name: "Refresh data" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Retry history" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Network offline");
   expect(
     screen.getByRole("heading", { name: "ROCm 10.1 readiness" }),
@@ -60,6 +65,14 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
   expect(
     screen.getByText(/Keeping the last usable dataset/),
   ).toBeInTheDocument();
+});
+it("omits the normal status strip and refresh button", async () => {
+  mount();
+  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  expect(screen.queryByLabelText("Data status")).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Refresh data" }),
+  ).not.toBeInTheDocument();
 });
 it("supports retry after initial fetch failure", async () => {
   const fetcher = vi

@@ -215,37 +215,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </nav>
           <span className="preview-label">LOCAL PREVIEW · UI SHELL</span>
         </div>
-        <section className="sync-strip" aria-label="Data status">
-          <div>
-            <span
-              className={`status-dot ${liveSync?.status === "failed" ? "warning" : liveSync ? "good" : ""}`}
-              aria-hidden="true"
-            />
-            <strong>
-              {liveSync?.status === "failed"
-                ? "Latest ingestion failed"
-                : liveSync
-                  ? "Published data available"
-                  : "Connecting to published data"}
-            </strong>
-            {liveSync && (
-              <span className="sync-time">
-                Last attempt {date(liveSync.attempted_at)}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={refreshData}
-            disabled={busy}
-            aria-label="Refresh data"
-          >
-            <span aria-hidden="true">↻</span>{" "}
-            {busy ? "Loading…" : "Refresh data"}
-          </button>
-        </section>
         {liveSync?.status === "failed" && (
           <div className="notice warning">
-            <strong>The last successful dataset remains available.</strong>
+            <strong>Latest ingestion failed</strong>
+            <p>
+              Last attempt: {date(liveSync.attempted_at)}. The last successful
+              dataset remains available.
+            </p>
             <p>
               Last successful ingestion: {date(liveSync.last_successful_at)}
             </p>
@@ -371,6 +347,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                       0,
                     )}
                     error={history?.session === session ? history.error : null}
+                    onRetry={refreshData}
                   />
                   <LatestChecks
                     builds={engines.flatMap((engine) => engine.latest_builds)}

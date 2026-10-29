@@ -153,48 +153,6 @@ main {
   letter-spacing: 1.5px;
   color: var(--muted);
 }
-.sync-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #1b1d19;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 12px;
-  gap: 16px;
-}
-.sync-strip > div {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.sync-strip strong {
-  font-weight: 500;
-}
-.sync-time {
-  color: var(--muted);
-  margin-left: 10px;
-}
-.sync-strip button {
-  font-size: 12px;
-  padding: 6px 12px;
-  white-space: nowrap;
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  background: var(--muted);
-  border-radius: 100%;
-  flex-shrink: 0;
-}
-.status-dot.good {
-  background: #8bd4ab;
-}
-.status-dot.warning {
-  background: #f3c47d;
-}
 .hero {
   display: flex;
   justify-content: space-between;
@@ -550,19 +508,6 @@ footer p {
   }
   .preview-label {
     display: none;
-  }
-  .sync-time {
-    margin-left: 0;
-    display: block;
-    font-size: 10px;
-    width: 100%;
-  }
-  .sync-strip {
-    padding: 12px;
-    align-items: flex-start;
-  }
-  .sync-strip > div {
-    gap: 7px;
   }
   .hero {
     margin-top: 28px;

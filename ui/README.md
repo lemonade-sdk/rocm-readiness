@@ -25,8 +25,9 @@ checks remain in the total. Partial check breakdowns retain their known counts
 without inventing absent categories. Platform cards also show compiled GPU-target
 coverage and the package's ROCm version.
 
-Refresh reads the live pointer again and swaps datasets after the requested
-version loads successfully. A failed refresh retains the last usable session.
+Reloading the page reads the live pointer again. Error-specific retry controls
+replace the active dataset only after its requested version loads successfully;
+a failed retry retains the last usable session.
 Ingestion status and browser-read errors are displayed separately. Timestamps
 are shown in UTC. External JSON evidence opens in a separate tab.
 

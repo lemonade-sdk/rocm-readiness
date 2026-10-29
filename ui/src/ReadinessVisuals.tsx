@@ -41,10 +41,12 @@ export function BuildQualification({
   builds,
   total,
   error,
+  onRetry,
 }: {
   builds: Build[] | null;
   total: number;
   error: string | null;
+  onRetry?: () => void;
 }) {
   const qualified =
     builds?.filter((build) => build.qualified === true).length ?? 0;
@@ -98,10 +100,11 @@ export function BuildQualification({
         />
       )}
       {unknown > 0 && <small>{unknown} qualification unknown</small>}
+      {error && onRetry && <button onClick={onRetry}>Retry history</button>}
       {!builds && (
         <small className={error ? "warning-text" : ""}>
           {error
-            ? "Build history unavailable. Use Refresh data to retry."
+            ? "Build history unavailable."
             : "Loading qualification history…"}
         </small>
       )}

@@ -320,6 +320,27 @@ class PerformanceTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.TestCase):
+    def test_success_gate_rejects_corrupted_derived_count_with_field_evidence(self):
+        from scripts.dataset import write_dataset
+
+        def corrupt_count(*args, **kwargs):
+            index = write_dataset(*args, **kwargs)
+            index["versions"][0]["build_count"] += 1
+            return index
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder, patch(
+            "scripts.collect.write_dataset", side_effect=corrupt_count
+        ):
+            with self.assertRaises(PipelineValidationError) as raised:
+                collect(self.config(), Path(folder), fetch, now="2026-10-29T18:00:00Z")
+            diagnostic = raised.exception.diagnostic
+            self.assertEqual(diagnostic["record"], "index.json")
+            self.assertIn("build_count", diagnostic["field"])
+            self.assertIn("history", diagnostic["reason"])
+
     def config(self):
         return {
             "schema_version": 1,

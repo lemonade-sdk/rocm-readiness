@@ -1,0 +1,55 @@
+{
+  "description": "Exact JSON subtrees extracted from pinned producer documents. SHA256 fragment hashes use UTF-8 JSON with sorted keys, no spaces, ensure_ascii=false. Offline tests validate fragment integrity; source pointers permit independent retrieval and comparison. Envelope reconstruction rebases qualification array positions only for adapter testing.",
+  "sources": {
+    "qualification": {
+      "repository": "lemonade-sdk/llama.cpp",
+      "ref": "qualification-data",
+      "commit": "55cc3a880c1635ab08c7bd115538886fe60ae6be",
+      "url": "https://raw.githubusercontent.com/lemonade-sdk/llama.cpp/55cc3a880c1635ab08c7bd115538886fe60ae6be/qualification/index.json",
+      "document_sha256": "5d5fa323d076be182633cf2c63274cb756d5b9ac4982e703fc72fa27b84a8144",
+      "fragments": [
+        {
+          "pointer": "/builds/1",
+          "sha256": "a2adc54aa689cd8f5c36c57e997583b85631e271a2c1913a39be5944f9ed13fb"
+        },
+        {
+          "pointer": "/builds/4",
+          "sha256": "b5b0f7578f6b1c588f6fe2cc5743396f730c5a25b3fd0dbde86d110354e8a155"
+        },
+        {
+          "pointer": "/builds/7",
+          "sha256": "ec985e29cd0e3371bc37d479e0b275fda9de2b794a889596ac266be0869a4f33"
+        },
+        {
+          "pointer": "/builds/10",
+          "sha256": "b80f5b21473965c6d673cf5504b8d4cedaf02068464de20b72a879d9da468b8a"
+        },
+        {
+          "pointer": "/builds/25",
+          "sha256": "83cc1ea68eba140f359d6678af81cff6b116abb63f1c419d9c614babaa41e2bf"
+        }
+      ]
+    },
+    "performance": {
+      "repository": "lemonade-sdk/lemonade",
+      "ref": "benchmark-data",
+      "commit": "49ae7ee05232d62b9cd3ace11f37649119226755",
+      "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/49ae7ee05232d62b9cd3ace11f37649119226755/leaderboard.json",
+      "document_sha256": "053479384bdd3c1bf2322712ddba1a8cb1a867b939ef1d7267493bb7d8102ec1",
+      "fragments": [
+        {
+          "pointer": "/by_model_scenario/Gemma-4-26B-A4B-it-GGUF|context-32k",
+          "sha256": "de6ec499bc276dd2a02afaf71c42a8b4c2a7fc53ad304eb48333325879c59a48"
+        },
+        {
+          "pointer": "/history/Gemma-4-26B-A4B-it-GGUF/context-32k/llamacpp-rocm-stable",
+          "sha256": "69126c0cdf2cdc7b354ef0d253a12fdce0ea9c5e88e9eb114918b4151b885bb5"
+        },
+        {
+          "pointer": "/systems",
+          "sha256": "bb559e6cee497b6932b55221c23f4aeda9006371496acfbe54d6544f84b7c9aa"
+        }
+      ]
+    }
+  }
+}

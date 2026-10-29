@@ -20,6 +20,9 @@ flowchart LR
 | [Upstream result files](data-pipeline.md#current-sources) | llama.cpp's [qualification index](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) and Lemonade's [benchmark leaderboard](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json). [Retained fields](data-pipeline.md#what-we-retain). |
 | [Last published dataset](data-publication.md#dataset-entry-point) | Our saved JSON from the last successful publication, restored using the [latest.json pointer](data-publication.md#dataset-entry-point). It preserves build/model history and verified package associations across runs. |
 
+The [JSON reference](reference/README.md) documents file contracts, field lineage,
+and pinned mapping examples.
+
 The output is the [published data directory](data-publication.md#published-files),
 including its [latest.json pointer](data-publication.md#dataset-entry-point).
 

@@ -4,6 +4,9 @@ The [workflow](../.github/workflows/collect-data.yml) publishes generated JSON t
 `main/data/`. Source configuration is described in [data pipeline](data-pipeline.md);
 [data flow](data-flow.md) shows ingestion and published file relationships.
 
+See the [JSON reference](reference/README.md) for file schemas, field mappings,
+valid examples and validation rules.
+
 ## Dataset entry point
 
 Read [latest.json](https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json),

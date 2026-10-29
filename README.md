@@ -24,4 +24,5 @@ data; failed runs preserve the last good pointer and report errors in sync statu
 - [Data flow](docs/data-flow.md): ingestion and published-file diagrams.
 - [Data pipeline](docs/data-pipeline.md): source setup, adapters, channels, and package mappings.
 - [Data publication](docs/data-publication.md): runtime files and ROCm directory names.
+- [JSON reference](docs/reference/README.md): field contracts, source mappings, and validation.
 - [Dashboard UI](ui/README.md): local browser preview, static build and UI checks.

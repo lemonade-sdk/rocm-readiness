@@ -17,6 +17,15 @@ function mount(fetcher = fixtureFetch(), entry = "/") {
     </MemoryRouter>,
   );
 }
+it("applies platform scope to retained qualification counts", async () => {
+  mount(fixtureFetch(), "/?version=10.1&platform=linux");
+  await waitFor(() =>
+    expect(screen.getByLabelText("Build qualification")).toHaveTextContent(
+      "13 / 13",
+    ),
+  );
+  expect(screen.getByLabelText("Platform")).toHaveValue("linux");
+});
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");
   expect(

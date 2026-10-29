@@ -42,6 +42,9 @@ test("visible platform choices preserve counts and shared URL scope", async ({
     .getByRole("button", { name: "All platforms", exact: true })
     .click();
   await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
+  await expect(page.getByRole("link", { name: /^UI [a-f0-9]{8}$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Data aaaaaaaa" })).toBeVisible();
+  await expect(page.getByText("Evidence you can trace.", { exact: true })).toHaveCount(0);
   const basePath = new URL(testInfo.project.use.baseURL!).pathname.replace(/\/$/, "");
   await expect(
     page.getByRole("link", { name: "Engine builds", exact: true }),

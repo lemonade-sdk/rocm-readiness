@@ -16,6 +16,7 @@ import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
+import { uiCommit } from "./version";
 
 function date(value: string | null) {
   return value
@@ -592,16 +593,36 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         )}
         <footer>
           <div>
-            <strong>Evidence you can trace.</strong>
             <p>
+              {uiCommit ? (
+                <a
+                  href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${uiCommit}`}
+                  title={`UI commit ${uiCommit}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  UI {uiCommit.slice(0, 8)}
+                </a>
+              ) : (
+                <span>UI version unavailable</span>
+              )}
               {session ? (
                 <>
-                  Dataset {session.pointer.data_commit?.slice(0, 8)} ·{" "}
-                  {date(session.index.generated_at)}
+                  {" · "}
+                  <a
+                    href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
+                    title={`Data commit ${session.pointer.data_commit}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Data {session.pointer.data_commit?.slice(0, 8)}
+                  </a>
+                  {" · "}
+                  <time dateTime={session.index.generated_at}>
+                    Data updated {date(session.index.generated_at)}
+                  </time>
                 </>
-              ) : (
-                "Stable llama.cpp · ROCm readiness"
-              )}
+              ) : null}
             </p>
           </div>
           <div className="footer-links">

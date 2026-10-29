@@ -45,6 +45,27 @@ targets and observed results. Controlled fixture checks establish failure and
 partial-data behavior; they do not establish live producer availability. A green
 build alone does not establish that the deployed origin loads the app and JSON.
 
+## UI and data versions
+
+The footer shows two independent commit hashes. **UI** is stamped into the
+JavaScript bundle from the deployment's `GITHUB_SHA`, the same full revision
+stored in the generated `release.json`. It identifies the code running in the
+browser even when a newer deployment exists. **Data** comes from the active
+session's `data/latest.json` pointer and identifies the immutable dataset being
+displayed. Both labels show eight characters and link to the full repository
+commit; the timestamp describes when that dataset was generated.
+
+UI changes merged to `main` build and deploy a new UI version. Scheduled ingestion
+publishes a new data revision and updates `data/latest.json` independently;
+data-only commits do not rebuild the UI. Reload to read the latest data pointer.
+Internal navigation and failed refreshes retain the active data revision.
+No manually maintained version file is needed.
+
+Local builds use the checkout commit when Git is available, otherwise the footer
+says the UI version is unavailable. Restart the development server or rebuild
+after committing to refresh that build stamp. Uncommitted local changes are not
+represented by a commit hash.
+
 ## Retry and rollback
 
 For a failed build, inspect the failing step and its `pages-browser-results`

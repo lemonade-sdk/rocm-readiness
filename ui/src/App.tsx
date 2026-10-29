@@ -138,9 +138,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const builds = engines
     .flatMap((engine) => engine.latest_builds)
     .filter((build) => platform === "all" || build.os === platform);
-  const platformValid =
-    platform === "all" ||
-    engines.some((engine) => engine.platforms.includes(platform));
+  const scopedHistory =
+    history?.session === session && history.builds
+      ? history.builds.filter(
+          (build) => platform === "all" || build.os === platform,
+        )
+      : null;
+  const platformValid = ["all", "linux", "windows"].includes(platform);
   const viewValid = [
     "overview",
     "engine",
@@ -159,12 +163,23 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     const next = new URLSearchParams(params);
     next.set("version", value);
     next.delete("build");
+    next.delete("source");
     next.delete("model");
+    if (next.get("compare") === value) next.delete("compare");
     if (view === "build") next.set("view", "engine");
     if (view === "model") next.set("view", "performance");
     setParams(next);
   };
   const refreshData = () => setRefresh((value) => value + 1);
+  const changePlatform = (value: string) => {
+    const next = new URLSearchParams(params);
+    next.set("version", selected);
+    next.set("platform", value);
+    next.delete("build");
+    next.delete("source");
+    if (view === "build") next.set("view", "engine");
+    setParams(next);
+  };
 
   return (
     <>
@@ -213,7 +228,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             )}
             {selected && <span className="muted">/ {selected}</span>}
           </nav>
-          <span className="preview-label">LOCAL PREVIEW · UI SHELL</span>
         </div>
         {liveSync?.status === "failed" && (
           <div className="notice warning">
@@ -337,35 +351,54 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </nav>
             {view === "overview" && (
               <>
+                <div className="scope-controls">
+                  <label htmlFor="overview-platform">Platform</label>
+                  <select
+                    id="overview-platform"
+                    value={platform}
+                    onChange={(event) => changePlatform(event.target.value)}
+                  >
+                    <option value="all">All platforms</option>
+                    {[
+                      ...new Set(engines.flatMap((engine) => engine.platforms)),
+                    ].map((os) => (
+                      <option key={os} value={os}>
+                        {os}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="stats">
                   <BuildQualification
-                    builds={
-                      history?.session === session ? history.builds : null
+                    builds={scopedHistory}
+                    total={
+                      scopedHistory?.length ??
+                      (platform === "all"
+                        ? engines.reduce(
+                            (sum, engine) => sum + engine.build_count,
+                            0,
+                          )
+                        : 0)
                     }
-                    total={engines.reduce(
-                      (sum, engine) => sum + engine.build_count,
-                      0,
-                    )}
                     error={history?.session === session ? history.error : null}
                     onRetry={refreshData}
                   />
-                  <LatestChecks
-                    builds={engines.flatMap((engine) => engine.latest_builds)}
-                  />
+                  <LatestChecks builds={builds} />
                   <div>
                     <span>Model measurements</span>
-                    <strong
-                      className={
-                        overview.performance.status === "not_measured"
-                          ? "unmeasured"
-                          : undefined
-                      }
-                    >
-                      {overview.performance.measurement_count ?? "Not measured"}
-                    </strong>
-                    <small>
-                      Historical observations, not current-build tests
-                    </small>
+                    <Link className="metric-link" to={href("performance")}>
+                      <strong
+                        className={
+                          overview.performance.status === "not_measured"
+                            ? "unmeasured"
+                            : undefined
+                        }
+                      >
+                        {overview.performance.measurement_count ??
+                          "Not measured"}
+                      </strong>
+                    </Link>
+                    <small>All platforms · historical observations</small>
                   </div>
                 </div>
                 <div className="section-title">
@@ -382,8 +415,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                           <div>
                             <h2>{engine.label}</h2>
                             <p>
-                              {engine.build_count} retained builds ·{" "}
-                              {engine.platforms.join(" + ")}
+                              {platform === "all"
+                                ? engine.build_count
+                                : (scopedHistory?.filter(
+                                    (build) => build.engine === engine.id,
+                                  ).length ?? "…")}{" "}
+                              retained builds ·{" "}
+                              {platform === "all"
+                                ? engine.platforms.join(" + ")
+                                : platform}
                             </p>
                           </div>
                         </div>
@@ -392,57 +432,65 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         </Link>
                       </div>
                       <div className="platform-grid">
-                        {engine.latest_builds.map((build) => (
-                          <div className="platform-card" key={build.build_id}>
-                            <div className="card-heading">
-                              <h3>
-                                {build.os === "linux"
-                                  ? "Linux"
-                                  : build.os === "windows"
-                                    ? "Windows"
-                                    : build.os}
-                              </h3>
-                              <Qualification build={build} />
-                            </div>
-                            <Link
-                              className="build-tag"
-                              to={href("build", {
-                                build: build.build_id,
-                                platform: build.os,
-                              })}
-                            >
-                              {build.tag ?? build.build_id}{" "}
-                              <span aria-hidden="true">↗</span>
-                            </Link>
-                            <span className="package-rocm">
-                              ROCm {build.rocm_version}
-                            </span>
-                            <p>
-                              Latest retained build · {date(build.generated_at)}
-                            </p>
-                            <PlatformChecks build={build} />
-                            <div className="evidence-line">
-                              <span>Test outcome</span>
-                              <strong
-                                className={
-                                  build.overall === "warn" ? "warning-text" : ""
-                                }
+                        {engine.latest_builds
+                          .filter(
+                            (build) =>
+                              platform === "all" || build.os === platform,
+                          )
+                          .map((build) => (
+                            <div className="platform-card" key={build.build_id}>
+                              <div className="card-heading">
+                                <h3>
+                                  {build.os === "linux"
+                                    ? "Linux"
+                                    : build.os === "windows"
+                                      ? "Windows"
+                                      : build.os}
+                                </h3>
+                                <Qualification build={build} />
+                              </div>
+                              <Link
+                                className="build-tag"
+                                to={href("build", {
+                                  build: build.build_id,
+                                  platform: build.os,
+                                })}
                               >
-                                {build.overall ?? "Unavailable"}
-                              </strong>
+                                {build.tag ?? build.build_id}{" "}
+                                <span aria-hidden="true">↗</span>
+                              </Link>
+                              <span className="package-rocm">
+                                ROCm {build.rocm_version}
+                              </span>
+                              <p>
+                                Latest retained build ·{" "}
+                                {date(build.generated_at)}
+                              </p>
+                              <PlatformChecks build={build} />
+                              <div className="evidence-line">
+                                <span>Test outcome</span>
+                                <strong
+                                  className={
+                                    build.overall === "warn"
+                                      ? "warning-text"
+                                      : ""
+                                  }
+                                >
+                                  {build.overall ?? "Unavailable"}
+                                </strong>
+                              </div>
+                              <div className="evidence-line">
+                                <span>Hardware validation</span>
+                                <strong>
+                                  {build.hardware_validated === true
+                                    ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
+                                    : build.hardware_validated === false
+                                      ? "Not validated"
+                                      : "Unknown"}
+                                </strong>
+                              </div>
                             </div>
-                            <div className="evidence-line">
-                              <span>Hardware validation</span>
-                              <strong>
-                                {build.hardware_validated === true
-                                  ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
-                                  : build.hardware_validated === false
-                                    ? "Not validated"
-                                    : "Unknown"}
-                              </strong>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                       {!engine.latest_builds.length && (
                         <p>No latest-build evidence is available.</p>

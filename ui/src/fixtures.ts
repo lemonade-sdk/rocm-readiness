@@ -43,6 +43,8 @@ export function overview(version = "10.1") {
         latest_builds: [
           {
             build_id: "linux-build",
+            source_id: "llamacpp-stable-qualification",
+            source_url: `https://raw.githubusercontent.com/lemonade-sdk/llama.cpp/${commit}/qualification/index.json`,
             engine: "llamacpp",
             channel: "stable",
             os: "linux",
@@ -100,7 +102,8 @@ export function historyFixture(version = "10.1") {
     month: "2026-10",
     builds: Array.from({ length: version === "10.1" ? 26 : 12 }, (_, i) => ({
       ...overview(version).engines[0].latest_builds[0],
-      build_id: `history-${i}`,
+      build_id: i === 0 ? "linux-build" : `history-${i}`,
+      report_url: `https://raw.githubusercontent.com/lemonade-sdk/llama.cpp/${commit}/qualification/reports/${i === 0 ? "linux-build" : `history-${i}`}.json`,
       overall: i % 2 ? "warn" : "pass",
       os: i % 2 ? "windows" : "linux",
     })),

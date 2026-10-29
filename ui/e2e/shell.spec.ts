@@ -45,6 +45,7 @@ test("pins data, switches versions and restores scope through browser history", 
     page.getByRole("heading", { name: "ROCm 10.0 readiness" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
+  await expect(page.getByRole('heading',{name:'llama.cpp builds',exact:true})).toBeVisible();
   await page.getByLabel("Platform", { exact: true }).selectOption("linux");
   await expect(page).toHaveURL(/platform=linux/);
   await page.getByLabel('Find build').fill('linux-build');

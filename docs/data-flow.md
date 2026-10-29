@@ -22,8 +22,9 @@ flowchart LR
 
 The output is the `data/` directory, including its `latest.json` pointer.
 
-PRs validate and upload an artifact. Main runs publish successful datasets;
-failed runs report the error in `latest.json.sync` and retain the last good pointer.
+PRs validate a fresh collection from producer feeds and upload an artifact.
+Main runs publish successful datasets. Failed runs update live `latest.json` and
+`sync.json` with the error while retaining the last good dataset pointer.
 CI artifacts contain source copies and diagnostics and are retained for 30 days.
 Published build history is preserved across runs and grouped by calendar month.
 

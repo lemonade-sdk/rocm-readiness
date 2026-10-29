@@ -9,7 +9,9 @@ The [workflow](../.github/workflows/collect-data.yml) publishes generated JSON t
 Read [latest.json](https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json),
 then load its `index_url`. This URL pins the dataset to one Git commit. Resolve
 all other dataset paths relative to that index URL. Refresh by reading the pointer
-again. `latest.json.sync` reports the latest ingestion status and any errors.
+again. `latest.json.sync` and the live `main/data/sync.json` report the latest
+ingestion attempt and any errors. Files read through the pinned index URL describe
+that successful dataset, including its original sync status.
 
 ## Published files
 
@@ -20,7 +22,7 @@ again. `latest.json.sync` reports the latest ingestion status and any errors.
 | `rocm/<version>/overview.json` | Summary for one ROCm version: engine cards, latest builds, latest model measurements, and paths to full history. |
 | `rocm/<version>/history/YYYY-MM.json` | All retained build records for that version and calendar month, including engine, channel, date, qualification results, and evidence links. |
 | `rocm/<version>/performance.json` | Model measurement history and hardware for one ROCm version, with workload, metrics, and verified package associations. |
-| `sync.json` | Standalone ingestion status for this dataset: attempt time, success/failure, last successful time, and errors. The index embeds the same status. |
+| `sync.json` | Live ingestion status: attempt time, success/failure, last successful time, and errors. Updated alongside `latest.json` on success and failure. |
 
 Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.
@@ -50,8 +52,10 @@ matches the configured sources and selected performance forks.
 
 Main runs stage final JSON on a temporary branch, squash it into `main`, and update
 `latest.json` in the same push. The pointer names the data commit. A concurrent
-change rejects the push; a failed collection keeps the previous pointer and updates
-sync status. PR runs only validate and upload artifacts.
+change rejects the push. A failed collection updates live `latest.json` and
+`sync.json` while retaining the previous data pointer and dataset files.
+PR runs rebuild from producer feeds into a fresh output directory and upload the
+result as a CI artifact.
 
 After fixing a failed source, rerun the workflow. To roll back, restore a verified
 pointer and its matching index URL from Git history while publication is stopped.

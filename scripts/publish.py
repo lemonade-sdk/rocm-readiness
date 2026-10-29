@@ -486,8 +486,11 @@ def publish(
             "index_url": prior["index_url"],
             "sync": sync,
         }
+        if (root / "data/sync.json").is_symlink():
+            raise ValueError("unsafe sync status file")
         write(root / "data/latest.json", latest)
-        git(root, "add", "-f", "--", "data/latest.json")
+        write(root / "data/sync.json", {"schema_version": 1, "sync": sync})
+        git(root, "add", "-f", "--", "data/latest.json", "data/sync.json")
         git(
             root,
             "commit",

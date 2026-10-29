@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  base: "./",
+  base: process.env.VITE_BASE_PATH || "/",
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],

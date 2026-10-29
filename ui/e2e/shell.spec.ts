@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
 
 test("visible platform choices preserve counts and shared URL scope", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("./?version=10.1&view=overview");
   await page.getByRole("button", { name: "Linux", exact: true }).click();
   await expect(page).toHaveURL(/platform=linux/);
@@ -42,6 +42,10 @@ test("visible platform choices preserve counts and shared URL scope", async ({
     .getByRole("button", { name: "All platforms", exact: true })
     .click();
   await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
+  const basePath = new URL(testInfo.project.use.baseURL!).pathname.replace(/\/$/, "");
+  await expect(
+    page.getByRole("link", { name: "Engine builds", exact: true }),
+  ).toHaveAttribute("href", new RegExp(`^${basePath}/\\?`));
 });
 
 test("pins data, switches versions and restores scope through browser history", async ({

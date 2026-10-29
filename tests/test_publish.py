@@ -204,7 +204,23 @@ class PublicationTest(unittest.TestCase):
                 capture_output=True,
                 text=True,
             ).stdout.splitlines()
-            self.assertEqual(changed, ["data/latest.json"])
+            self.assertEqual(changed, ["data/latest.json", "data/sync.json"])
+            live_sync = json.loads(
+                publish.git(
+                    None,
+                    "--git-dir",
+                    str(remote),
+                    "show",
+                    f"{after_failure}:data/sync.json",
+                ).stdout
+            )["sync"]
+            self.assertEqual(live_sync, pointer["sync"])
+            pinned_sync = json.loads(
+                publish.git(
+                    None, "--git-dir", str(remote), "show", f"{second}:data/sync.json"
+                ).stdout
+            )["sync"]
+            self.assertEqual(pinned_sync["status"], "success")
             self.assertEqual(pointer["data_commit"], second)
             self.assertEqual(pointer["sync"]["status"], "failed")
             self.assertEqual(
@@ -352,6 +368,13 @@ class PublicationTest(unittest.TestCase):
             self.assertIsNone(latest["index_url"])
             self.assertIsNone(latest["sync"]["last_successful_at"])
             self.assertEqual(latest["sync"]["status"], "failed")
+            head = publish.remote_head(str(remote), "main")
+            live_sync = json.loads(
+                publish.git(
+                    None, "--git-dir", str(remote), "show", f"{head}:data/sync.json"
+                ).stdout
+            )["sync"]
+            self.assertEqual(live_sync, latest["sync"])
 
     def test_remote_deletion_between_check_and_push_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

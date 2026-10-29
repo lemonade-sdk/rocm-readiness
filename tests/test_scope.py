@@ -13,6 +13,58 @@ from tests.test_dataset import SOURCE_A, build, normalized
 
 
 class ScopeTests(unittest.TestCase):
+    def test_production_scope_skips_vllm_fetch_and_prunes_its_saved_records(self):
+        config = json.loads(Path("sources.json").read_text())
+        old = normalized(
+            [
+                build(
+                    "old-vllm",
+                    source_id="vllm-qualification",
+                    engine="vllm",
+                    rocm_version="7.13.0",
+                )
+            ]
+        )
+        old["sources"].append(
+            {"id": "vllm-qualification", "url": SOURCE_A, "engine": "vllm"}
+        )
+
+        def fetch(url):
+            if "llamacpp-rocm" in url or "vllm-rocm" in url:
+                raise AssertionError("held producer was fetched")
+            if "/commits/" in url:
+                return {"sha": "a" * 40}
+            if url.endswith("qualification/index.json"):
+                return fixture("llama.json")
+            if url.endswith("leaderboard.json"):
+                return fixture("performance.json")
+            raise AssertionError(url)
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(old, root / "previous")
+            result = collect(
+                config,
+                root / "new",
+                fetch=fetch,
+                now="2026-10-29T12:00:00Z",
+                previous_data=root / "previous",
+            )
+            self.assertEqual(result["collection_status"], "complete")
+            self.assertEqual(
+                [e["id"] for e in result["dataset"]["engines"]], ["llamacpp"]
+            )
+            self.assertEqual(
+                [v["rocm_version"] for v in result["dataset"]["versions"]], ["10.0"]
+            )
+            self.assertTrue(
+                all(
+                    r["engine"] == "llamacpp" and r["channel"] == "stable"
+                    for r in result["builds"]
+                )
+            )
+            self.assertFalse((root / "new/rocm/7.13.0").exists())
+
     def test_pending_nightly_source_records_confirmed_location_without_fetching(self):
         source = {
             "id": "llamacpp-nightly-qualification",

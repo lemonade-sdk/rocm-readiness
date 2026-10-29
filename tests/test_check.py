@@ -62,3 +62,27 @@ class CheckTests(unittest.TestCase):
                     self.assertEqual(main(), 0)
                 command = run.call_args_list[-1].args[0]
                 self.assertEqual("--previous-data" in command, reuse)
+
+    def test_fresh_collection_does_not_carry_previous_records(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            previous = root / "previous"
+            previous.mkdir()
+            (previous / "index.json").write_text(json.dumps({"attribution_version": 2}))
+            with patch(
+                "sys.argv",
+                [
+                    "check.py",
+                    "--fresh",
+                    "--output-dir",
+                    str(root / "new"),
+                    "--previous-data",
+                    str(previous),
+                ],
+            ), patch(
+                "scripts.check.subprocess.run",
+                return_value=SimpleNamespace(returncode=0),
+            ) as run:
+                self.assertEqual(main(), 0)
+            command = run.call_args_list[-1].args[0]
+            self.assertNotIn("--previous-data", command)

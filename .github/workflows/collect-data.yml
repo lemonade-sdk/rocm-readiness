@@ -53,6 +53,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           args=(--sources sources.json --output-dir "$DATA_OUTPUT")
+          if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
+            args+=(--fresh)
+          fi
           if [ -f previous-data/index.json ]; then
             args+=(--previous-data previous-data)
           fi

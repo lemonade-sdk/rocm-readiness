@@ -2,8 +2,7 @@
 
 A data pipeline for ROCm engine qualification and model performance. GitHub Actions
 collects producer feeds and publishes JSON under `main/data/`. It includes stable
-ROCm llama.cpp builds and their benchmark results, plus stable/nightly vLLM Linux
-qualification history.
+ROCm llama.cpp builds and their benchmark results.
 
 ## Run locally
 
@@ -15,7 +14,8 @@ uv run --no-project --python 3.12 python scripts/check.py --output-dir data/loca
 
 This runs the tests and collection used by CI. To reuse an earlier dataset, add
 `--previous-data data/local-preview` and choose a different output directory.
-The preview includes source copies and diagnostics for inspection.
+Use `--fresh` to rebuild from producer feeds without reusing previous records.
+PR checks use this mode. The preview includes source copies and diagnostics for inspection.
 
 Actions runs on PRs, main pushes, manual dispatch, and a daily schedule. Its
 `readiness-data-*` artifacts are retained for 30 days. Main runs publish successful

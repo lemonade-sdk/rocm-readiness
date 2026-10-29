@@ -23,6 +23,11 @@ def main():
     parser.add_argument("--sources", type=Path, default=root / "sources.json")
     parser.add_argument("--output-dir", type=Path, default=root / "data")
     parser.add_argument("--previous-data", type=Path)
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Rebuild from producer feeds without carrying previous records",
+    )
     args = parser.parse_args()
     attempted_at = datetime.now(timezone.utc).isoformat()
 
@@ -68,7 +73,12 @@ def main():
         "--output-dir",
         str(args.output_dir.resolve()),
     ]
-    if args.previous_data:
+    if args.fresh:
+        print(
+            "Fresh collection from producer feeds; previous records are not reused",
+            flush=True,
+        )
+    elif args.previous_data:
         previous_index = json.loads(
             (args.previous_data / "index.json").read_text(encoding="utf-8")
         )

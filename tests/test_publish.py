@@ -603,12 +603,27 @@ class PublicationTest(unittest.TestCase):
                 )
             self.assertFalse((root / "state.json").exists())
 
+    def test_manifest_accepts_only_versioned_performance(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized(), root)
+            index = json.loads((root / "index.json").read_text())
+            index.pop("comparison_performance", None)
+            (root / "index.json").write_text(json.dumps(index))
+            comparison = root / "performance/comparisons.json"
+            comparison.unlink(missing_ok=True)
+            self.assertEqual(publish.manifest(root), {"index.json"})
+
     def test_manifest_rejects_rocm_rows_in_comparisons(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             write_dataset(normalized(), root)
             index = json.loads((root / "index.json").read_text())
-            index["comparison_performance"]["count"] = 1
+            index["comparison_performance"] = {
+                "count": 1,
+                "path": "performance/comparisons.json",
+            }
+            (root / "performance").mkdir()
             (root / "index.json").write_text(json.dumps(index))
             row = {
                 "source_id": "bench",
@@ -631,10 +646,13 @@ class PublicationTest(unittest.TestCase):
             root = Path(folder)
             write_dataset(normalized(), root)
             index = json.loads((root / "index.json").read_text())
-            index["unassigned_performance"] = index.pop("comparison_performance")
-            index["unassigned_performance"]["path"] = "performance/unassigned.json"
-            (root / "performance/comparisons.json").rename(
-                root / "performance/unassigned.json"
+            index["unassigned_performance"] = {
+                "count": 0,
+                "path": "performance/unassigned.json",
+            }
+            (root / "performance").mkdir()
+            (root / "performance/unassigned.json").write_text(
+                json.dumps({"schema_version": 2, "measurements": [], "systems": []})
             )
             (root / "index.json").write_text(json.dumps(index))
             self.assertIn(
@@ -756,10 +774,7 @@ class PublicationTest(unittest.TestCase):
             (root / "index.json").write_text(json.dumps(index))
             with self.assertRaisesRegex(ValueError, "attribution"):
                 publish.manifest(root)
-            self.assertIn(
-                "performance/comparisons.json",
-                publish.manifest(root, allow_legacy=True),
-            )
+            self.assertEqual(publish.manifest(root, allow_legacy=True), {"index.json"})
 
     def test_legacy_dataset_restores_but_cannot_publish_as_success(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -774,9 +789,9 @@ class PublicationTest(unittest.TestCase):
                 "count": 0,
                 "path": "performance/unassigned.json",
             }
-            index.pop("comparison_performance")
-            (data / "performance/comparisons.json").rename(
-                data / "performance/unassigned.json"
+            (data / "performance").mkdir()
+            (data / "performance/unassigned.json").write_text(
+                json.dumps({"schema_version": 2, "measurements": [], "systems": []})
             )
             sync = {
                 "attempted_at": "2026-01-01T00:00:00Z",

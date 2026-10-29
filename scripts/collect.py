@@ -105,6 +105,18 @@ def validate_config(config):
         )
         if source["adapter"] == "lemonade-leaderboard-v1":
             require(source.get("forks"), "missing fork mapping")
+            if "include_forks" in source:
+                selection = source["include_forks"]
+                require(
+                    isinstance(selection, list)
+                    and bool(selection)
+                    and all(
+                        isinstance(fork, str) and fork in source["forks"]
+                        for fork in selection
+                    )
+                    and len(set(selection)) == len(selection),
+                    "invalid fork selection",
+                )
             for fork in source["forks"].values():
                 require(fork["engine"] in engine_ids, "unknown fork engine")
                 require(
@@ -404,6 +416,11 @@ def normalize_performance(source, data):
     def append(row, fork_id, model, scenario, kind, location):
         _check(source, location, "record", isinstance(row, dict), "expected object")
         if kind == "latest":
+            fork_id = row.get("fork_id")
+        _check(source, location, "fork_id", isinstance(fork_id, str) and bool(fork_id))
+        if "include_forks" in source and fork_id not in source["include_forks"]:
+            return
+        if kind == "latest":
             for field in ("fork_id", "model", "scenario"):
                 _check(
                     source,
@@ -580,6 +597,8 @@ def normalize_performance(source, data):
                 "expected object",
             )
             for fork_id, entries in forks.items():
+                if "include_forks" in source and fork_id not in source["include_forks"]:
+                    continue
                 location_fork = f"{location_scenario}/{pointer(fork_id)}"
                 _check(
                     source,
@@ -670,8 +689,17 @@ def collect(
             "status": "awaiting_data",
             "record_count": 0,
         }
+        if "include_forks" in source:
+            state["include_forks"] = source["include_forks"]
         output["sources"].append(state)
         if source.get("availability") == "awaiting_data":
+            state.update(
+                {
+                    key: source[key]
+                    for key in ("repository", "ref", "path")
+                    if key in source
+                }
+            )
             print(f"{sid}: awaiting_data (not fetched)", flush=True)
             continue
         fetch_url = None
@@ -723,7 +751,7 @@ def collect(
                 destination=(
                     "rocm/*/history/*.json"
                     if target == "builds"
-                    else "performance/comparisons.json"
+                    else "selected model measurements"
                 ),
                 stale_after_hours=source["stale_after_hours"],
             )
@@ -785,9 +813,7 @@ def collect(
             "error",
             "awaiting_data",
         ):
-            source["destination"] = (
-                "rocm/*/performance.json + performance/comparisons.json"
-            )
+            source["destination"] = "rocm/*/performance.json"
     write_json(
         destination / "provenance/packages.json",
         {
@@ -796,7 +822,11 @@ def collect(
         },
     )
     output["dataset"] = write_dataset(
-        output, destination, previous_data=previous_data, publish_index=False
+        output,
+        destination,
+        previous_data=previous_data,
+        publish_index=False,
+        source_configs={source["id"]: source for source in config["sources"]},
     )
     write_json(destination / "errors.json", {"errors": output["errors"]})
     if output["errors"]:

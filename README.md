@@ -1,46 +1,26 @@
 # ROCm Readiness
 
-A static dashboard data pipeline for ROCm engine qualification and model performance.
-CI collects producer feeds and publishes finalized JSON under `data/` in `main`.
-The app reads `latest.json`, then the dataset pinned to its immutable commit.
+A data pipeline for ROCm engine qualification and model performance. GitHub Actions
+collects producer feeds and publishes JSON under `main/data/`. It includes stable
+ROCm llama.cpp builds and their benchmark results, plus stable/nightly vLLM Linux
+qualification history.
+
+## Run locally
+
+Requires `uv` and an authenticated GitHub CLI (`gh`) for benchmark package evidence.
 
 ```sh
 uv run --no-project --python 3.12 python scripts/check.py --output-dir data/local-preview
 ```
 
-This is the same test-and-ingestion command Actions runs. Inspect the generated
-`index.json` and `rocm/` files in the output directory. To carry a previous
-collection forward:
+This runs the tests and collection used by CI. To reuse an earlier dataset, add
+`--previous-data data/local-preview` and choose a different output directory.
+The preview includes source copies and diagnostics for inspection.
 
-```sh
-uv run --no-project --python 3.12 python scripts/check.py --output-dir data/next-preview --previous-data data/local-preview
-```
+Actions runs on PRs, main pushes, manual dispatch, and a daily schedule. Its
+`readiness-data-*` artifacts are retained for 30 days. Main runs publish successful
+data; failed runs preserve the last good pointer and report errors in sync status.
 
-Use `uv` to run the commands above with Python 3.12. The collector has no
-third-party runtime dependencies and supports Python 3.9+. The collector
-writes `data/index.json`, per-version build and model-performance overviews,
-monthly build history, and source
-copies under `data/raw/`. Use `--previous-data <directory>` to carry forward an
-earlier complete dataset, including assigned model measurements and package evidence.
-The authenticated GitHub CLI (`gh`) retrieves evidence for newly observed ROCm
-benchmark runs; verified backfill mappings are included in the repository.
-Final JSON is staged on a temporary working branch and squashed into `main`;
-raw files and logs stay in CI artifacts.
-See [the data contract](docs/data-pipeline.md)
-for extraction rules, source inventory, limitations, and onboarding.
-
-GitHub Actions runs tests and live collection on PRs, pushes to `main`, daily at
-11:17 UTC, and manual dispatch. Download the `readiness-data-*` artifact from the
-run; fetch/validation details appear in its logs and summary. A source failure
-makes the job fail while preserving a partial diagnostic artifact. Check
-`collection_status` before consuming a dataset. The published `latest.json`
-reports the current sync result; local artifacts expose it in `sync.json`. Required
-ROCm association failures stop collection and CI. Trusted main-branch runs
-restore history from `main/data/` and publish updates;
-PR runs validate without writing it. Raw files remain in 30-day CI artifacts.
-See [data publication](docs/data-publication.md) for bootstrap and recovery.
-The intended app loading sequence is `latest.json` → pinned `index.json` → the
-selected ROCm version's `overview.json`. History, full performance data, and
-Vulkan/HRX comparisons load on demand. Raw sources and standalone diagnostics
-stay in CI artifacts. See the [runtime file inventory](docs/data-publication.md#published-files-and-ci-artifacts).
-The web app follows separately.
+- [Data flow](docs/data-flow.md): ingestion and published-file diagrams.
+- [Data pipeline](docs/data-pipeline.md): source setup, adapters, channels, and package mappings.
+- [Data publication](docs/data-publication.md): runtime files and ROCm directory names.

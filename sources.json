@@ -2,10 +2,37 @@
   "schema_version": 1,
   "reference_model": null,
   "engines": [
-    {"id": "llamacpp", "label": "llama.cpp", "platforms": ["linux", "windows"]},
-    {"id": "vllm", "label": "vLLM", "platforms": ["linux"]},
-    {"id": "whisper", "label": "Whisper", "platforms": ["linux", "windows"]},
-    {"id": "stable-diffusion", "label": "Stable Diffusion", "platforms": ["linux", "windows"]}
+    {
+      "id": "llamacpp",
+      "label": "llama.cpp",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "id": "vllm",
+      "label": "vLLM",
+      "platforms": [
+        "linux"
+      ]
+    },
+    {
+      "id": "whisper",
+      "label": "Whisper",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    },
+    {
+      "id": "stable-diffusion",
+      "label": "Stable Diffusion",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
+    }
   ],
   "sources": [
     {
@@ -22,9 +49,10 @@
       "id": "llamacpp-nightly-qualification",
       "engine": "llamacpp",
       "adapter": "qualification-v1",
+      "repository": "lemonade-sdk/llamacpp-rocm",
+      "ref": "qualification-data",
       "availability": "awaiting_data",
-      "channel": "nightly",
-      "producer_repository": "lemonade-sdk/llamacpp-rocm"
+      "channel": "nightly"
     },
     {
       "id": "vllm-qualification",
@@ -61,13 +89,16 @@
       "channel": "from-fork",
       "stale_after_hours": 72,
       "forks": {
-        "llamacpp-rocm-stable": {"engine": "llamacpp", "channel": "stable", "backend": "rocm", "repository": "lemonade-sdk/llama.cpp"},
-        "llamacpp-rocm-nightly": {"engine": "llamacpp", "channel": "nightly", "backend": "rocm", "repository": "lemonade-sdk/llamacpp-rocm"},
-        "llamacpp-upstream-vulkan": {"engine": "llamacpp", "channel": "reference", "backend": "vulkan", "repository": "ggml-org/llama.cpp"},
-        "llamacpp-amd-ecosystem-gfx11": {"engine": "llamacpp", "channel": "nightly", "backend": "rocm", "repository": "AMD-Ecosystem/llama.cpp"},
-        "halo-box-strix": {"engine": "llamacpp", "channel": "experimental", "backend": "rocm", "repository": "halo-box/strix-llama.cpp"},
-        "llamacpp-hrx": {"engine": "llamacpp", "channel": "experimental", "backend": "hrx", "repository": "ROCm/ggml-staging-automation"}
-      }
+        "llamacpp-rocm-stable": {
+          "engine": "llamacpp",
+          "channel": "stable",
+          "backend": "rocm",
+          "repository": "lemonade-sdk/llama.cpp"
+        }
+      },
+      "include_forks": [
+        "llamacpp-rocm-stable"
+      ]
     }
   ]
 }

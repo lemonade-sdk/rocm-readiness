@@ -151,8 +151,13 @@ def manifest(root, allow_legacy=False):
         ("unassigned_performance", "performance/unassigned.json"),
     ]
     present = [(key, path) for key, path in entries if key in index]
-    if len(present) != 1:
+    if len(present) > 1:
         raise ValueError("invalid performance partition manifest")
+    if not present:
+        for path in paths:
+            checked(root, path)
+        _load_previous(root)
+        return paths
     key, expected_path = present[0]
     if key == "unassigned_performance" and not allow_legacy:
         raise ValueError(

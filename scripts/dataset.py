@@ -609,11 +609,40 @@ def _write_version(
     return len(rows)
 
 
+def _record_in_scope(row, source_configs):
+    if source_configs is None:
+        return True
+    source = source_configs.get(row["source_id"])
+    if source is None or source.get("availability") == "awaiting_data":
+        return False
+    repository = "/".join(urlparse(row.get("source_url") or "").path.split("/")[1:3])
+    if repository != source.get("repository"):
+        return False
+    if source["adapter"] == "qualification-v1":
+        return row["engine"] == source["engine"] and (
+            source["channel"] == "from-record" or row["channel"] == source["channel"]
+        )
+    fork_id = row.get("fork_id")
+    if "include_forks" in source and fork_id not in source["include_forks"]:
+        return False
+    fork = source["forks"].get(fork_id)
+    return fork is not None and all(
+        row.get(field) == fork.get(config_field)
+        for field, config_field in (
+            ("engine", "engine"),
+            ("channel", "channel"),
+            ("backend", "backend"),
+            ("engine_repository", "repository"),
+        )
+    )
+
+
 def write_dataset(
     output: Dict,
     destination: Path,
     previous_data: Optional[Path] = None,
     publish_index: bool = True,
+    source_configs: Optional[Dict] = None,
 ) -> Dict:
     """Write schema-v2 UI files for a normalized schema-v1 collector output."""
     _require(
@@ -643,6 +672,16 @@ def write_dataset(
     prior_measurements, prior_systems = {}, {}
     if previous_data is not None and output.get("collection_status") == "complete":
         previous, prior_measurements, prior_systems = _load_previous(previous_data)
+        previous = {
+            key: row
+            for key, row in previous.items()
+            if _record_in_scope(row, source_configs)
+        }
+        prior_measurements = {
+            key: row
+            for key, row in prior_measurements.items()
+            if _record_in_scope(row, source_configs)
+        }
         for key, row in compact.items():
             old = previous.get(key)
             if (
@@ -792,7 +831,8 @@ def write_dataset(
         "measurements": comparisons,
         "systems": _systems_for(comparisons, systems),
     }
-    _write_json(destination / "performance/comparisons.json", performance)
+    if comparisons:
+        _write_json(destination / "performance/comparisons.json", performance)
     index = {
         "schema_version": 2,
         "attribution_version": 2,
@@ -803,10 +843,6 @@ def write_dataset(
         "reference_model": output.get("reference_model"),
         "default_version": versions[0]["rocm_version"] if versions else None,
         "versions": versions,
-        "comparison_performance": {
-            "count": len(performance["measurements"]),
-            "path": "performance/comparisons.json",
-        },
         "stable_performance": {
             "assigned_count": sum(
                 row.get("engine") == "llamacpp" and row.get("channel") == "stable"
@@ -816,6 +852,11 @@ def write_dataset(
             "awaiting_evidence_count": 0,
         },
     }
+    if comparisons:
+        index["comparison_performance"] = {
+            "count": len(comparisons),
+            "path": "performance/comparisons.json",
+        }
     if publish_index:
         _write_json(destination / "index.json", index)
     return index

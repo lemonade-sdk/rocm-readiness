@@ -3,7 +3,8 @@
 [sources.json](../sources.json) lists the feeds. [scripts/collect.py](../scripts/collect.py)
 fetches them, validates their fields, and maps them into the dashboard dataset.
 See [data flow](data-flow.md) for the overview and [data publication](data-publication.md)
-for the published files.
+for the published files. [JSON reference](reference/README.md) provides
+field types, nullability and [producer mappings](reference/mappings.md).
 
 `sources.json` is maintained here by repository contributors. Its entries locate
 the upstream JSON files listed below. Each run combines their current results

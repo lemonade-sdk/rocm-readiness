@@ -320,6 +320,47 @@ class PerformanceTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.TestCase):
+    def test_recollection_leaves_existing_publication_pointer_to_publisher(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            first = collect(self.config(), root, fetch, now="2026-10-29T18:00:00Z")
+            pointer = {
+                "schema_version": 1,
+                "data_commit": "a" * 40,
+                "index_url": "https://raw.githubusercontent.com/a/b/"
+                + "a" * 40
+                + "/data/index.json",
+                "sync": first["dataset"]["sync"],
+            }
+            (root / "latest.json").write_text(json.dumps(pointer))
+            second = collect(self.config(), root, fetch, now="2026-10-29T19:00:00Z")
+            self.assertEqual(second["collection_status"], "complete")
+            self.assertEqual(json.loads((root / "latest.json").read_text()), pointer)
+
+    def test_success_gate_rejects_corrupted_derived_count_with_field_evidence(self):
+        from scripts.dataset import write_dataset
+
+        def corrupt_count(*args, **kwargs):
+            index = write_dataset(*args, **kwargs)
+            index["versions"][0]["build_count"] += 1
+            return index
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder, patch(
+            "scripts.collect.write_dataset", side_effect=corrupt_count
+        ):
+            with self.assertRaises(PipelineValidationError) as raised:
+                collect(self.config(), Path(folder), fetch, now="2026-10-29T18:00:00Z")
+            diagnostic = raised.exception.diagnostic
+            self.assertEqual(diagnostic["record"], "index.json")
+            self.assertIn("build_count", diagnostic["field"])
+            self.assertIn("history", diagnostic["reason"])
+
     def config(self):
         return {
             "schema_version": 1,

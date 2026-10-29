@@ -1,0 +1,20 @@
+{
+  "retrieved_at": "2026-10-29",
+  "job_url": "https://api.github.com/repos/lemonade-sdk/lemonade/actions/jobs/122306719689",
+  "log_url": "https://api.github.com/repos/lemonade-sdk/lemonade/actions/jobs/122306719689/logs",
+  "log_excerpt": "2026-10-27T19:09:10.3353502Z   Downloading https://github.com/lemonade-sdk/llama.cpp/releases/download/b11932/llama-b11932-bin-ubuntu-rocm-10.1-x64.tar.gz",
+  "excerpt_sha256": "c065fb6ad0db47d9d584cf1678bf933017d93cf386fd72d3c4c7c7fb2a178d42",
+  "evidence": {
+    "repository": "lemonade-sdk/lemonade",
+    "run_id": "40537509555",
+    "job_id": "122306719689",
+    "fork_id": "llamacpp-rocm-stable",
+    "engine_repository": "lemonade-sdk/llama.cpp",
+    "engine_version": "b11932",
+    "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11932/llama-b11932-bin-ubuntu-rocm-10.1-x64.tar.gz",
+    "started_at": "2026-10-27T19:08:42Z",
+    "completed_at": "2026-10-27T22:29:50Z",
+    "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40537509555/job/122306719689",
+    "log_sha256": "105457ca402fe64b8f4ec8cf4d84fc830c81c9ffa06786ea07a1a091e78bd9b4"
+  }
+}

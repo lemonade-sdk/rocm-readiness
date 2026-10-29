@@ -16,11 +16,13 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .attribution import attribute_stable, resolve_package
+    from .conformance import validate_dataset
     from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
 else:
     from attribution import attribute_stable, resolve_package
+    from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
@@ -839,6 +841,8 @@ def collect(
         output["errors"],
     )
     write_json(destination / "index.json", output["dataset"])
+    if output["collection_status"] == "complete":
+        validate_dataset(destination, config, check_live_pointer=False)
     print(
         f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
         flush=True,

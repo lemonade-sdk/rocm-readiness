@@ -20,8 +20,9 @@ else:
 BUILD_FIELDS = """
 source_id build_id engine tag artifact rocm_version channel os gfx_target hardware_validated gfx
 qualified version_qualified overall generated_at run_attempt tests blocked_by blocking_tests
-report_url run_url source_pointer
+report_url run_url source_pointer results upstream_sha event run_id
 """.split()
+OPTIONAL_BUILD_FIELDS = {"artifact", "results", "upstream_sha", "event", "run_id"}
 MEASUREMENT_FIELDS = """
 source_id source_pointer kind engine channel backend fork_id engine_repository engine_version
 model scenario quant system_id context_size input_tokens measured_at run_id run_url
@@ -81,6 +82,33 @@ def _string_list(value):
 
 
 def _validate_build(row):
+    _require(
+        row["results"] is None
+        or (
+            isinstance(row["results"], dict)
+            and all(
+                isinstance(key, str)
+                and value in ("pass", "warn", "fail", "skip", "missing")
+                for key, value in row["results"].items()
+            )
+        ),
+        "invalid per-test status map",
+    )
+    _require(
+        row["upstream_sha"] is None
+        or (
+            isinstance(row["upstream_sha"], str)
+            and re.fullmatch(r"[a-f0-9]{40}", row["upstream_sha"]) is not None
+        ),
+        "invalid upstream revision",
+    )
+    _require(
+        all(
+            row[field] is None or isinstance(row[field], str)
+            for field in ("event", "run_id")
+        ),
+        "invalid producer event or run id",
+    )
     _require(type(row["qualified"]) is bool, "invalid qualified")
     _require(
         row["version_qualified"] is None or type(row["version_qualified"]) is bool,
@@ -149,7 +177,7 @@ def _compact_build(row, source_urls=None, strict=False, version=None, month=None
             all(
                 field in row
                 for field in BUILD_FIELDS + ["source_url"]
-                if field != "artifact"
+                if field not in OPTIONAL_BUILD_FIELDS
             ),
             "truncated previous build",
         )

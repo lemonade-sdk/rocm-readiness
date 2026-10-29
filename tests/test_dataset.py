@@ -82,6 +82,29 @@ def normalized(builds=None, measurements=None, systems=None, status="complete"):
 
 
 class DatasetTests(unittest.TestCase):
+    def test_retains_report_index_evidence_and_accepts_older_history(self):
+        evidence = {
+            "results": {"T0.1": "warn", "T1.1": "pass"},
+            "upstream_sha": "c" * 40,
+            "event": "schedule",
+            "run_id": "123456789",
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(normalized([build(**evidence)]), root / "old")
+            path = root / "old/rocm/7.14/history/2026-10.json"
+            history = json.loads(path.read_text())
+            for key, value in evidence.items():
+                self.assertEqual(history["builds"][0].get(key), value)
+            for key in evidence:
+                history["builds"][0].pop(key)
+            path.write_text(json.dumps(history))
+            write_dataset(normalized(), root / "new", root / "old")
+            restored = json.loads(
+                (root / "new/rocm/7.14/history/2026-10.json").read_text()
+            )
+            self.assertEqual(restored["builds"][0]["build_id"], "llama-1")
+
     def test_writes_index_overview_and_history_for_a_version(self):
         with tempfile.TemporaryDirectory() as folder:
             destination = Path(folder)
@@ -457,7 +480,7 @@ class DatasetTests(unittest.TestCase):
             self.assertFalse(rerun["qualified"])
             self.assertEqual(rerun["blocking_tests"], ["T0.1"])
             self.assertNotIn("arbitrary_blob", rerun)
-            self.assertNotIn("results", rerun)
+            self.assertEqual(rerun["results"], {"T0.1": "fail"})
             self.assertNotIn("summary", rerun)
             self.assertEqual(overview["performance"], {"status": "not_measured"})
             self.assertNotIn("measurements", overview)

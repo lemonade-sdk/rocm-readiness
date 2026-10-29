@@ -9,6 +9,28 @@ const time = z
     "Expected an ISO timestamp",
   );
 const count = z.number().int().nonnegative();
+const testsSchema = z
+  .object({
+    passed: count,
+    failed: count,
+    warned: count.optional(),
+    skipped: count.optional(),
+    missing: count.optional(),
+    total: count,
+  })
+  .refine((value) => {
+    const sum =
+      value.passed +
+      value.failed +
+      (value.warned ?? 0) +
+      (value.skipped ?? 0) +
+      (value.missing ?? 0);
+    const complete =
+      value.warned !== undefined &&
+      value.skipped !== undefined &&
+      value.missing !== undefined;
+    return complete ? sum === value.total : sum <= value.total;
+  }, "Check counts do not match the total");
 export const syncSchema = z.object({
   attempted_at: time,
   status: z.enum(["success", "failed"]),
@@ -57,10 +79,17 @@ const buildSchema = z.object({
   hardware_validated: z.boolean().nullable().optional(),
   report_url: z.string().nullable().optional(),
   gfx_target: z.string().nullable().optional(),
+  tests: testsSchema.nullable().optional(),
   gfx: z
     .object({ requested: count, present: count, missing: z.array(z.string()) })
     .nullable()
     .optional(),
+});
+const historySchema = z.object({
+  schema_version: z.literal(2),
+  rocm_version: z.string(),
+  month: z.string(),
+  builds: z.array(buildSchema),
 });
 const overviewSchema = z.object({
   schema_version: z.literal(2),
@@ -104,6 +133,42 @@ export type Session = {
   overview: Overview | null;
 };
 export type Fetcher = typeof fetch;
+
+export async function loadHistory(
+  session: Session,
+  fetcher: Fetcher = fetch,
+  signal?: AbortSignal,
+): Promise<Build[]> {
+  if (!session.overview) return [];
+  const chunks = await Promise.all(
+    session.overview.history.map(async (chunk) => {
+      const url = resolveDatasetPath(session.indexUrl, chunk.path);
+      const data = await read(url, historySchema, fetcher, signal);
+      if (
+        data.rocm_version !== session.version ||
+        data.month !== chunk.month ||
+        data.builds.length !== chunk.build_count
+      )
+        throw new Error(
+          `${url}: history does not match its version, month or build count`,
+        );
+      if (data.builds.some((build) => build.rocm_version !== session.version))
+        throw new Error(
+          `${url}: history build version does not match the selected version`,
+        );
+      return data.builds;
+    }),
+  );
+  const builds = chunks.flat();
+  const identities = new Set(
+    builds.map((build) =>
+      JSON.stringify([build.engine, build.os, build.build_id]),
+    ),
+  );
+  if (identities.size !== builds.length)
+    throw new Error("Duplicate build identities in retained history");
+  return builds;
+}
 
 async function read<T>(
   url: string,

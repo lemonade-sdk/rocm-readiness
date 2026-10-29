@@ -1,10 +1,104 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { loadSession, loadVersion, resolveDatasetPath } from "./data";
+import {
+  loadSession,
+  loadVersion,
+  loadHistory,
+  resolveDatasetPath,
+} from "./data";
 import { fixtureFetch, index, indexUrl, overview, pointer } from "./fixtures";
 
 describe("immutable dataset session", () => {
+  it("accepts producer records with only required check counters", async () => {
+    const data = overview();
+    const base = data.engines[0].latest_builds[0];
+    const session = await loadSession(
+      undefined,
+      fixtureFetch({
+        [new URL("rocm/10.1/overview.json", indexUrl).href]: {
+          ...data,
+          engines: [
+            {
+              ...data.engines[0],
+              latest_builds: [
+                { ...base, tests: { passed: 16, failed: 0, total: 17 } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+    expect(session.overview?.engines[0].latest_builds[0].tests?.passed).toBe(
+      16,
+    );
+    expect(
+      session.overview?.engines[0].latest_builds[0].tests?.warned,
+    ).toBeUndefined();
+  });
+  it("loads every record across history months from the selected revision", async () => {
+    const data = overview();
+    const build = data.engines[0].latest_builds[0];
+    const chunks = ["2026-09", "2026-10"].map((month) => ({
+      month,
+      path: `rocm/10.1/history/${month}.json`,
+      build_count: 2,
+    }));
+    const fetcher = vi.fn(
+      fixtureFetch(
+        Object.fromEntries([
+          [
+            new URL("rocm/10.1/overview.json", indexUrl).href,
+            { ...data, history: chunks },
+          ],
+          ...chunks.map((chunk) => [
+            new URL(chunk.path, indexUrl).href,
+            {
+              schema_version: 2,
+              rocm_version: "10.1",
+              month: chunk.month,
+              builds: [
+                { ...build, build_id: chunk.month + "-a" },
+                { ...build, build_id: chunk.month + "-b", qualified: false },
+              ],
+            },
+          ]),
+        ]),
+      ),
+    );
+    const session = await loadSession(undefined, fetcher);
+    const history = await loadHistory(session, fetcher);
+    expect(history).toHaveLength(4);
+    expect(history.filter((build) => build.qualified === true)).toHaveLength(2);
+    expect(
+      fetcher.mock.calls
+        .slice(-2)
+        .every(([url]) => String(url).startsWith(new URL(".", indexUrl).href)),
+    ).toBe(true);
+  });
+  it("rejects history records for another version rather than counting them", async () => {
+    const session = await loadSession(undefined, fixtureFetch());
+    session.overview!.history = [
+      {
+        month: "2026-10",
+        path: "rocm/10.1/history/2026-10.json",
+        build_count: 1,
+      },
+    ];
+    await expect(
+      loadHistory(
+        session,
+        fixtureFetch({
+          [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
+            schema_version: 2,
+            rocm_version: "10.1",
+            month: "2026-10",
+            builds: [overview("10.0").engines[0].latest_builds[0]],
+          },
+        }),
+      ),
+    ).rejects.toThrow("version");
+  });
   it("treats an empty version parameter as default selection", async () => {
     const session = await loadSession("", fixtureFetch());
     expect(session.version).toBe("10.1");

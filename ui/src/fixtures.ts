@@ -57,7 +57,13 @@ export function overview(version = "10.1") {
         ],
       },
     ],
-    history: [],
+    history: [
+      {
+        month: "2026-10",
+        path: `rocm/${version}/history/2026-10.json`,
+        build_count: version === "10.1" ? 26 : 12,
+      },
+    ],
     performance: {
       status: "available",
       measurement_count: 0,
@@ -73,6 +79,10 @@ export function fixtureFetch(overrides: Record<string, unknown> = {}) {
     [indexUrl]: index,
     [new URL("rocm/10.1/overview.json", indexUrl).href]: overview(),
     [new URL("rocm/10.0/overview.json", indexUrl).href]: overview("10.0"),
+    [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]:
+      historyFixture(),
+    [new URL("rocm/10.0/history/2026-10.json", indexUrl).href]:
+      historyFixture("10.0"),
     ...overrides,
   };
   return async (input: string | URL | Request): Promise<Response> => {
@@ -80,5 +90,19 @@ export function fixtureFetch(overrides: Record<string, unknown> = {}) {
     return new Response(JSON.stringify(data[url] ?? { error: "not found" }), {
       status: url in data ? 200 : 404,
     });
+  };
+}
+
+export function historyFixture(version = "10.1") {
+  return {
+    schema_version: 2,
+    rocm_version: version,
+    month: "2026-10",
+    builds: Array.from({ length: version === "10.1" ? 26 : 12 }, (_, i) => ({
+      ...overview(version).engines[0].latest_builds[0],
+      build_id: `history-${i}`,
+      overall: i % 2 ? "warn" : "pass",
+      os: i % 2 ? "windows" : "linux",
+    })),
   };
 }

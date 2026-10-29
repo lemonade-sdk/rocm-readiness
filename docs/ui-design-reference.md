@@ -13,12 +13,12 @@ Latest ingestion status                      refresh
 Selected ROCm heading                        release label
 Overview | Engine builds | Model performance
 
-Retained builds       Available platforms       Historical measurements
+Qualified / retained builds   Latest checks passed / total   Historical measurements
 
 Engine readiness
   llama.cpp                                   explore builds
   Linux latest package                        Windows latest package
-  qualification / outcome / hardware evidence  qualification / outcome / hardware evidence
+  checks / GPU targets / hardware evidence     checks / GPU targets / hardware evidence
 
 Dataset revision and timestamp                pinned index / source repository
 ```

@@ -41,7 +41,7 @@ it("loads the default version and shows real dataset scope", async () => {
     await screen.findByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeInTheDocument();
   expect(screen.getByLabelText("ROCm version")).toHaveValue("10.1");
-  expect(screen.getByText("26")).toBeInTheDocument();
+  expect(screen.getByLabelText("Build qualification")).toHaveTextContent("26");
   expect(screen.getByRole("link", { name: "Pinned dataset" })).toHaveAttribute(
     "href",
     indexUrl,

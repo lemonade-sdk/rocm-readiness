@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { index, indexUrl, overview, pointer } from "../src/fixtures";
+import {
+  index,
+  indexUrl,
+  overview,
+  pointer,
+  historyFixture,
+} from "../src/fixtures";
 
 test.beforeEach(async ({ page }) => {
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
@@ -11,6 +17,8 @@ test.beforeEach(async ({ page }) => {
       data = overview();
     else if (url === new URL("rocm/10.0/overview.json", indexUrl).href)
       data = overview("10.0");
+    else if (url.endsWith("/history/2026-10.json"))
+      data = historyFixture(url.match(/\/rocm\/([^/]+)\//)?.[1]);
     else return route.fulfill({ status: 404, body: "{}" });
     await route.fulfill({ json: data });
   });
@@ -28,6 +36,7 @@ test("pins data, switches versions and restores scope through browser history", 
   await expect(
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
   await page.getByLabel("ROCm version").selectOption("10.0");
   await expect(
     page.getByRole("heading", { name: "ROCm 10.0 readiness" }),

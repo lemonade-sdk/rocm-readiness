@@ -18,6 +18,13 @@ access to pinned monthly history and model-measurement JSON. URLs retain the
 selected version, view, platform and detail context. Other query parameters are
 preserved during navigation.
 
+The overview reads all referenced monthly history files at the selected dataset
+revision to show qualified builds out of retained builds, with a separate outcome
+breakdown. Latest-package check bars use published counters; skipped and missing
+checks remain in the total. Partial check breakdowns retain their known counts
+without inventing absent categories. Platform cards also show compiled GPU-target
+coverage and the package's ROCm version.
+
 Refresh reads the live pointer again and swaps datasets after the requested
 version loads successfully. A failed refresh retains the last usable session.
 Ingestion status and browser-read errors are displayed separately. Timestamps

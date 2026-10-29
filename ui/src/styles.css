@@ -401,27 +401,6 @@ main {
 .warning-text {
   color: #f3c47d;
 }
-.card-footer {
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-  margin-top: 22px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.coverage-note {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 2px;
-}
-.coverage-note > span {
-  font-size: 24px;
-  color: var(--yellow);
-}
-.coverage-note p {
-  margin: 0;
-  font-size: 11px;
-}
 .notice {
   margin-top: 16px;
   border: 1px solid #70633e;
@@ -652,5 +631,201 @@ footer p {
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
+  }
+}
+
+.stats {
+  grid-template-columns: 1.25fr 1.15fr 0.85fr;
+}
+.qualification-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 6px 0 12px;
+}
+.qualification-head > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qualification-ring {
+  width: 65px;
+  height: 65px;
+  flex: 0 0 65px;
+  border-radius: 50%;
+  background: conic-gradient(#8bd4ab var(--qualified), #3b4036 0);
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.qualification-ring::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--panel);
+}
+.qualification-ring b {
+  position: relative;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b6e7c8;
+}
+.outcome-bar {
+  display: flex;
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  background: #393d34;
+  border-radius: 4px;
+  gap: 2px;
+}
+.outcome-bar > span {
+  height: 100%;
+  min-width: 0;
+}
+.segment-pass {
+  background: #8bd4ab;
+}
+.segment-warn {
+  background: #eac17e;
+}
+.segment-fail {
+  background: #e79a96;
+}
+.segment-skip {
+  background: #788171;
+}
+.segment-unknown {
+  background: #4c5148;
+}
+.outcome-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 12px;
+  margin-top: 10px;
+}
+.outcome-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.outcome-legend i {
+  width: 6px;
+  height: 6px;
+  display: inline-block;
+  border-radius: 2px;
+}
+.checks-visual {
+  margin: 17px 0 20px;
+}
+.checks-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.checks-heading > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.checks-heading > strong {
+  font:
+    500 23px ui-monospace,
+    SFMono-Regular,
+    monospace;
+  letter-spacing: -0.8px;
+}
+.stats .checks-heading strong {
+  font:
+    500 28px ui-monospace,
+    SFMono-Regular,
+    monospace;
+  letter-spacing: -1px;
+}
+.stats .checks-visual {
+  margin: 10px 0 8px;
+}
+.stats .checks-heading {
+  flex-direction: column;
+  gap: 5px;
+}
+.stats .checks-heading > span {
+  display: none;
+}
+.stats .outcome-legend > span {
+  font-size: 10px;
+  min-height: 0;
+}
+.stats .outcome-bar > span {
+  min-height: 0;
+}
+.stats small {
+  line-height: 1.6;
+}
+.package-rocm {
+  display: inline-block;
+  margin-top: 9px;
+  color: var(--yellow);
+  border: 1px solid #59543c;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font:
+    10px ui-monospace,
+    SFMono-Regular,
+    monospace;
+}
+.gpu-coverage {
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+}
+.target-blocks {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0;
+}
+.target-blocks i {
+  flex: 1;
+  min-width: 0;
+  height: 9px;
+  border-radius: 2px;
+  background: #3d4137;
+}
+.target-blocks i.present {
+  background: #91ae89;
+}
+@media (max-width: 760px) {
+  .stats {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stats .qualification-stat {
+    grid-column: 1/-1;
+    border-bottom: 1px solid var(--line);
+  }
+  .stats .qualification-stat + .latest-checks-stat {
+    border-left: 0;
+  }
+  .stats > div {
+    min-width: 0;
+  }
+  .stats .stat-caption {
+    min-height: 0;
+  }
+  .stats .qualification-head strong {
+    font-size: 32px;
+  }
+  .stats .checks-heading strong {
+    font-size: 25px;
+  }
+  .qualification-ring {
+    width: 58px;
+    height: 58px;
+    flex-basis: 58px;
   }
 }

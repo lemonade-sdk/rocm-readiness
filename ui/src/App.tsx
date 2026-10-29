@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { loadSession, loadVersion, resolveDatasetPath } from "./data";
+import {
+  loadSession,
+  loadVersion,
+  loadHistory,
+  resolveDatasetPath,
+} from "./data";
+import {
+  BuildQualification,
+  LatestChecks,
+  PlatformChecks,
+} from "./ReadinessVisuals";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 
@@ -45,6 +55,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [history, setHistory] = useState<{
+    session: Session;
+    builds: Build[] | null;
+    error: string | null;
+  } | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const completedRefresh = useRef(-1);
 
@@ -85,6 +100,35 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       });
     return () => controller.abort();
   }, [version, refresh, fetcher]);
+
+  useEffect(() => {
+    if (!session?.overview) return;
+    const controller = new AbortController();
+    setHistory({ session, builds: null, error: null });
+    loadHistory(session, fetcher, controller.signal)
+      .then((rows) => {
+        if (controller.signal.aborted) return;
+        const builds = rows.filter((build) => build.engine === "llamacpp");
+        const expected = session
+          .overview!.engines.filter((engine) => engine.id === "llamacpp")
+          .reduce((sum, engine) => sum + engine.build_count, 0);
+        if (builds.length !== expected)
+          throw new Error("Retained history count does not match the overview");
+        setHistory({ session, builds, error: null });
+      })
+      .catch((reason: unknown) => {
+        if (!controller.signal.aborted)
+          setHistory({
+            session,
+            builds: null,
+            error:
+              reason instanceof Error
+                ? reason.message
+                : "Unable to load build history",
+          });
+      });
+    return () => controller.abort();
+  }, [session, fetcher]);
 
   const selected = version ?? session?.version ?? "";
   const scopeMatches = session && (!version || session.version === version);
@@ -318,32 +362,19 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             {view === "overview" && (
               <>
                 <div className="stats">
-                  <div>
-                    <span>Retained stable builds</span>
-                    <strong>
-                      {engines.reduce(
-                        (total, engine) => total + engine.build_count,
-                        0,
-                      )}
-                    </strong>
-                    <small>Across this ROCm version</small>
-                  </div>
-                  <div>
-                    <span>Available platforms</span>
-                    <strong>
-                      {
-                        new Set(engines.flatMap((engine) => engine.platforms))
-                          .size
-                      }
-                    </strong>
-                    <small>
-                      {[
-                        ...new Set(
-                          engines.flatMap((engine) => engine.platforms),
-                        ),
-                      ].join(" · ") || "No platform records"}
-                    </small>
-                  </div>
+                  <BuildQualification
+                    builds={
+                      history?.session === session ? history.builds : null
+                    }
+                    total={engines.reduce(
+                      (sum, engine) => sum + engine.build_count,
+                      0,
+                    )}
+                    error={history?.session === session ? history.error : null}
+                  />
+                  <LatestChecks
+                    builds={engines.flatMap((engine) => engine.latest_builds)}
+                  />
                   <div>
                     <span>Model measurements</span>
                     <strong
@@ -362,7 +393,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </div>
                 <div className="section-title">
                   <h2>Engine readiness</h2>
-                  <span>Stable packages · selected ROCm version</span>
                 </div>
                 {engines.length ? (
                   engines.map((engine) => (
@@ -407,9 +437,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                               {build.tag ?? build.build_id}{" "}
                               <span aria-hidden="true">↗</span>
                             </Link>
+                            <span className="package-rocm">
+                              ROCm {build.rocm_version}
+                            </span>
                             <p>
                               Latest retained build · {date(build.generated_at)}
                             </p>
+                            <PlatformChecks build={build} />
                             <div className="evidence-line">
                               <span>Test outcome</span>
                               <strong
@@ -424,7 +458,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                               <span>Hardware validation</span>
                               <strong>
                                 {build.hardware_validated === true
-                                  ? "Recorded"
+                                  ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
                                   : build.hardware_validated === false
                                     ? "Not validated"
                                     : "Unknown"}
@@ -436,10 +470,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                       {!engine.latest_builds.length && (
                         <p>No latest-build evidence is available.</p>
                       )}
-                      <div className="card-footer">
-                        Qualification, compiled GPU support and hardware
-                        validation are separate claims.
-                      </div>
                     </article>
                   ))
                 ) : (
@@ -450,14 +480,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                     </p>
                   </div>
                 )}
-                <div className="coverage-note">
-                  <span aria-hidden="true">↳</span>
-                  <p>
-                    Performance measurements keep their original build and date.
-                    A qualified package does not establish model answer
-                    accuracy.
-                  </p>
-                </div>
               </>
             )}
             {["engine", "build"].includes(view) && (

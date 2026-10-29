@@ -15,6 +15,7 @@ import {
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildBrowser } from "./builds/BuildBrowser";
+import { PerformanceView } from "./performance/PerformanceView";
 
 function date(value: string | null) {
   return value
@@ -558,37 +559,27 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </div>
               ))}
             {["performance", "model"].includes(view) && (
-              <div className="card data-access">
-                <div className="eyebrow">HISTORICAL MODEL MEASUREMENTS</div>
-                <h2>
-                  {overview.performance.status === "available"
-                    ? `${overview.performance.measurement_count} recorded observations`
-                    : "No recorded model measurements"}
-                </h2>
-                <p>
-                  Measurements retain their own hardware, workload, package and
-                  date. These observations do not establish the performance of
-                  the latest build.
-                </p>
-                {params.get("model") && (
-                  <p>Selected model: {params.get("model")}</p>
-                )}
-                {overview.performance.path ? (
-                  <a
-                    href={resolveDatasetPath(
-                      session.indexUrl,
-                      overview.performance.path,
-                    )}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open published measurements ↗
-                  </a>
-                ) : (
-                  <p>
-                    No model measurements are available for this ROCm version.
-                  </p>
-                )}
+              <div onClick={handleLocalNavigation}>
+                <PerformanceView
+                  session={session}
+                  params={params}
+                  onNavigate={(next) => setParams(next)}
+                  buildHref={(id, os) => {
+                    const candidates =
+                      history?.session === session
+                        ? history.builds?.filter(
+                            (build) => build.build_id === id && build.os === os,
+                          )
+                        : [];
+                    return href("build", {
+                      build: id,
+                      platform: os,
+                      ...(candidates?.length === 1 && candidates[0].source_id
+                        ? { source: candidates[0].source_id }
+                        : {}),
+                    });
+                  }}
+                />
               </div>
             )}
           </>

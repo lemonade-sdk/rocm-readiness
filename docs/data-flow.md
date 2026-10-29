@@ -2,8 +2,6 @@
 
 ## Ingestion
 
-The workflow runs daily at 11:17 UTC, on PRs and main pushes, or by manual dispatch.
-
 ```mermaid
 flowchart LR
     Sources["sources.json"] --> Collect["Fetch and map feeds"]

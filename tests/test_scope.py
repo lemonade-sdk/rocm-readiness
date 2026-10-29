@@ -201,6 +201,7 @@ class ScopeTests(unittest.TestCase):
             self.assertEqual(
                 [(r["engine"], r["channel"]) for r in retained], [("vllm", "nightly")]
             )
-            self.assertEqual(index["comparison_performance"]["count"], 0)
+            self.assertNotIn("comparison_performance", index)
+            self.assertFalse((root / "current/performance").exists())
             self.assertFalse((root / "current/rocm/10.3").exists())
             self.assertFalse((root / "current/performance/unassigned.json").exists())

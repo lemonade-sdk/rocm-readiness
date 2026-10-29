@@ -106,18 +106,12 @@ class DatasetTests(unittest.TestCase):
             self.assertEqual(result["sources"], normalized()["sources"])
             self.assertNotIn("unassigned_performance", result)
             self.assertFalse((destination / "performance/unassigned.json").exists())
-            self.assertEqual(
-                result["comparison_performance"],
-                {"count": 0, "path": "performance/comparisons.json"},
-            )
+            self.assertNotIn("comparison_performance", result)
             self.assertEqual(
                 result, json.loads((destination / "index.json").read_text())
             )
 
-            self.assertEqual(
-                json.loads((destination / "performance/comparisons.json").read_text()),
-                {"schema_version": 2, "measurements": [], "systems": []},
-            )
+            self.assertFalse((destination / "performance").exists())
 
             overview = json.loads((destination / "rocm/7.14/overview.json").read_text())
             self.assertEqual(overview["schema_version"], 2)
@@ -236,8 +230,9 @@ class DatasetTests(unittest.TestCase):
                 "count": 1,
                 "path": "performance/unassigned.json",
             }
-            index.pop("comparison_performance")
+            index.pop("comparison_performance", None)
             index_path.write_text(json.dumps(index))
+            (root / "old/performance").mkdir()
             (root / "old/performance/unassigned.json").write_text(
                 json.dumps(
                     {
@@ -564,7 +559,7 @@ class DatasetTests(unittest.TestCase):
                 old_version[0]["source_url"],
                 SOURCE_C,
             )
-            self.assertEqual(index["comparison_performance"]["count"], 0)
+            self.assertNotIn("comparison_performance", index)
 
     def test_rejects_incomplete_corrupt_or_escaping_previous_history(self):
         for case in ("status", "count", "traversal", "symlink"):
@@ -1035,12 +1030,7 @@ class DatasetTests(unittest.TestCase):
             self.assertEqual(systems[rows["m"]["system_id"]]["gpu"], "old")
             self.assertEqual(systems[rows["new-model"]["system_id"]]["gpu"], "new")
             self.assertEqual(rows["m"]["attribution"]["status"], "matched")
-            self.assertEqual(
-                json.loads((root / "new/performance/comparisons.json").read_text())[
-                    "measurements"
-                ],
-                [],
-            )
+            self.assertFalse((root / "new/performance").exists())
             reordered_system = {**new_system, "source_pointer": "/systems/99"}
             write_dataset(
                 normalized([], [new], [reordered_system]), root / "again", root / "new"

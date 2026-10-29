@@ -20,18 +20,15 @@ again. `latest.json.sync` reports the latest ingestion status and any errors.
 | `rocm/<version>/overview.json` | Latest builds and performance summaries for a ROCm version |
 | `rocm/<version>/history/<month>.json` | Build records for a month |
 | `rocm/<version>/performance.json` | Model measurements and hardware |
-| `performance/comparisons.json` | Empty in the current stable-only scope |
 | `sync.json` | Dataset sync metadata, also present in its index; available to tools |
 
 Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.
 Source copies, standalone errors, and intermediate caches stay in CI artifacts.
 
-## Comparisons and version directories
+## Version directories
 
-The index's `comparison_performance` entry gives the comparison file path and
-record count, currently zero. Comparing ROCm versions uses their per-version
-performance files.
+Comparing ROCm versions uses their per-version performance files.
 
 Version directories group the configured builds and measurements by ROCm version.
 Stable llama.cpp packages label versions such as `10.0` and `10.1`; vLLM contributes

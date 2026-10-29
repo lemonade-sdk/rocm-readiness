@@ -831,7 +831,8 @@ def write_dataset(
         "measurements": comparisons,
         "systems": _systems_for(comparisons, systems),
     }
-    _write_json(destination / "performance/comparisons.json", performance)
+    if comparisons:
+        _write_json(destination / "performance/comparisons.json", performance)
     index = {
         "schema_version": 2,
         "attribution_version": 2,
@@ -842,10 +843,6 @@ def write_dataset(
         "reference_model": output.get("reference_model"),
         "default_version": versions[0]["rocm_version"] if versions else None,
         "versions": versions,
-        "comparison_performance": {
-            "count": len(performance["measurements"]),
-            "path": "performance/comparisons.json",
-        },
         "stable_performance": {
             "assigned_count": sum(
                 row.get("engine") == "llamacpp" and row.get("channel") == "stable"
@@ -855,6 +852,11 @@ def write_dataset(
             "awaiting_evidence_count": 0,
         },
     }
+    if comparisons:
+        index["comparison_performance"] = {
+            "count": len(comparisons),
+            "path": "performance/comparisons.json",
+        }
     if publish_index:
         _write_json(destination / "index.json", index)
     return index

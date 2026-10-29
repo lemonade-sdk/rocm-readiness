@@ -813,9 +813,7 @@ def collect(
             "error",
             "awaiting_data",
         ):
-            source["destination"] = (
-                "rocm/*/performance.json + performance/comparisons.json"
-            )
+            source["destination"] = "rocm/*/performance.json"
     write_json(
         destination / "provenance/packages.json",
         {

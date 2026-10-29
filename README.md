@@ -17,10 +17,10 @@ This runs the tests and collection used by CI. To reuse an earlier dataset, add
 `--previous-data data/local-preview` and choose a different output directory.
 The preview includes source copies and diagnostics for inspection.
 
-Actions runs on PRs, main pushes, manual dispatch, and daily at 11:17 UTC. Its
+Actions runs on PRs, main pushes, manual dispatch, and a daily schedule. Its
 `readiness-data-*` artifacts are retained for 30 days. Main runs publish successful
 data; failed runs preserve the last good pointer and report errors in sync status.
 
 - [Data flow](docs/data-flow.md): ingestion and published-file diagrams.
 - [Data pipeline](docs/data-pipeline.md): source setup, adapters, channels, and package mappings.
-- [Data publication](docs/data-publication.md): runtime files, comparisons, and ROCm directory names.
+- [Data publication](docs/data-publication.md): runtime files and ROCm directory names.

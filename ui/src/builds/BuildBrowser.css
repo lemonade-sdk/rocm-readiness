@@ -1,0 +1,259 @@
+.build-browser {
+  display: grid;
+  gap: 16px;
+}
+
+.build-browser-toolbar,
+.build-browser-detail-heading,
+.build-browser-row-heading,
+.build-browser-tier-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.build-browser-toolbar label {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  gap: 6px;
+}
+
+.build-browser-toolbar select {
+  min-width: 160px;
+}
+
+.build-browser-kicker {
+  color: var(--muted);
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.build-browser-list,
+.build-browser-detail,
+.build-browser-empty {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.build-browser-list {
+  display: grid;
+  gap: 0;
+  padding-bottom: 0;
+  padding-top: 0;
+}
+
+.build-browser-row {
+  display: grid;
+  gap: 14px;
+  padding: 20px 0;
+}
+
+.build-browser-row + .build-browser-row {
+  border-top: 1px solid var(--line);
+}
+
+.build-browser-row h3,
+.build-browser-detail h2,
+.build-browser-tier h3 {
+  font-size: 18px;
+}
+
+.build-browser-status {
+  background: #292d26;
+  border-radius: 999px;
+  font-size: 11px;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.build-browser-status.status-pass {
+  color: #9ed592;
+}
+
+.build-browser-status.status-warn {
+  color: var(--yellow);
+}
+
+.build-browser-status.status-fail {
+  color: #ec9791;
+}
+
+.build-browser-status.status-skip,
+.build-browser-status.status-missing,
+.build-browser-status.status-unavailable {
+  color: var(--muted);
+}
+
+.build-browser-facts,
+.build-browser-report-summary {
+  display: grid;
+  gap: 12px 18px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin: 0;
+}
+
+.build-browser-facts div,
+.build-browser-report-summary div {
+  min-width: 0;
+}
+
+.build-browser-facts dt,
+.build-browser-report-summary dt {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.build-browser-facts dd,
+.build-browser-report-summary dd {
+  font-size: 12px;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.build-browser-open {
+  font-size: 12px;
+  justify-self: start;
+}
+
+.build-browser-detail {
+  display: grid;
+  gap: 20px;
+}
+
+.build-browser-detail-heading p,
+.build-browser-muted,
+.build-browser-loading,
+.build-browser-report-error p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 5px 0 0;
+}
+
+.build-browser-detail-facts {
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+}
+
+.build-browser-report-error {
+  background: #302420;
+  border: 1px solid #81524d;
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+}
+
+.build-browser-report-error button {
+  justify-self: start;
+}
+
+.build-browser-report {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  padding-top: 20px;
+}
+
+.build-browser-tiers {
+  display: grid;
+  gap: 16px;
+}
+
+.build-browser-tier {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.build-browser-table-wrap {
+  overflow-x: auto;
+}
+
+.build-browser-table-wrap table {
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 14px;
+  min-width: 720px;
+  text-align: left;
+  width: 100%;
+}
+
+.build-browser-table-wrap th,
+.build-browser-table-wrap td {
+  border-top: 1px solid var(--line);
+  padding: 10px 9px;
+  vertical-align: top;
+}
+
+.build-browser-table-wrap thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.build-browser-evidence {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+
+.build-browser-evidence strong {
+  color: #d5d7ca;
+}
+
+.build-browser-table-wrap details {
+  margin-top: 8px;
+}
+
+.build-browser-table-wrap summary {
+  color: var(--yellow);
+  cursor: pointer;
+}
+
+.build-browser-table-wrap pre {
+  color: var(--muted);
+  font-size: 10px;
+  max-width: 460px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 620px) {
+  .build-browser-list,
+  .build-browser-detail,
+  .build-browser-empty {
+    padding: 16px;
+  }
+
+  .build-browser-toolbar,
+  .build-browser-detail-heading,
+  .build-browser-row-heading,
+  .build-browser-tier-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.build-browser-toolbar input {
+  font: inherit;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 12px;
+  max-width: 100%;
+}

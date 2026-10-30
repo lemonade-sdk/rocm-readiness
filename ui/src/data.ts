@@ -56,6 +56,14 @@ const pointerSchema = z.object({
 const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
+  sources: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        stale_after_hours: z.number().nonnegative().nullable().optional(),
+      }),
+    )
+    .optional(),
   default_version: z.string().nullable(),
   versions: z.array(
     z.object({

@@ -97,3 +97,58 @@ it("keeps unknown qualification visible and omits unsupported engine placeholder
     screen.queryByRole("heading", { name: "vLLM" }),
   ).not.toBeInTheDocument();
 });
+it("flags stale Windows evidence without marking current Linux evidence stale", async () => {
+  const { vi } = await import("vitest");
+  const clock = vi
+    .spyOn(Date, "now")
+    .mockReturnValue(Date.parse("2026-10-30T12:00:00Z"));
+  try {
+    const { index } = await import("./fixtures");
+    const history = historyFixture();
+    const fetcher = fixtureFetch({
+      [indexUrl]: {
+        ...index,
+        sources: [
+          { id: "llamacpp-stable-qualification", stale_after_hours: 72 },
+        ],
+      },
+      [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
+        ...history,
+        builds: history.builds.map((build) => ({
+          ...build,
+          generated_at:
+            build.os === "windows"
+              ? "2026-10-25T12:00:00Z"
+              : "2026-10-29T12:00:00Z",
+        })),
+      },
+    });
+    const session = await loadSession(undefined, fetcher);
+    render(
+      <MemoryRouter>
+        <EngineOverview
+          session={session}
+          fetcher={fetcher}
+          onRetry={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    const scope = await screen.findByRole("region", {
+      name: "llama.cpp ROCm 10.1 stable",
+    });
+    expect(
+      within(scope).getByRole("rowheader", { name: /Windows Stale/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(
+        within(scope).getByRole("rowheader", { name: /Linux/ }),
+      ).queryByText("Stale"),
+    ).not.toBeInTheDocument();
+    expect(within(scope).getByText("Stale")).toHaveAttribute(
+      "title",
+      expect.stringContaining("threshold 72 hours"),
+    );
+  } finally {
+    clock.mockRestore();
+  }
+});

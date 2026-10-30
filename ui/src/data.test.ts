@@ -291,3 +291,48 @@ describe("immutable dataset session", () => {
     expect(() => resolveDatasetPath(indexUrl, path)).toThrow("dataset path");
   });
 });
+it("retains source freshness thresholds from the pinned index", async () => {
+  const session = await loadSession(
+    undefined,
+    fixtureFetch({
+      [indexUrl]: {
+        ...index,
+        sources: [
+          { id: "llamacpp-stable-qualification", stale_after_hours: 72 },
+        ],
+      },
+    }),
+  );
+  expect(session.index.sources).toEqual([
+    { id: "llamacpp-stable-qualification", stale_after_hours: 72 },
+  ]);
+});
+it("rejects invalid source freshness thresholds", async () => {
+  await expect(
+    loadSession(
+      undefined,
+      fixtureFetch({
+        [indexUrl]: {
+          ...index,
+          sources: [{ id: "stable", stale_after_hours: -1 }],
+        },
+      }),
+    ),
+  ).rejects.toThrow(/stale_after_hours/);
+});
+it("accepts nullable and zero freshness metadata in existing schema-2 indexes", async () => {
+  for (const stale_after_hours of [null, 0]) {
+    const session = await loadSession(
+      undefined,
+      fixtureFetch({
+        [indexUrl]: {
+          ...index,
+          sources: [{ id: "stable", stale_after_hours }],
+        },
+      }),
+    );
+    expect(session.index.sources?.[0].stale_after_hours).toBe(
+      stale_after_hours,
+    );
+  }
+});

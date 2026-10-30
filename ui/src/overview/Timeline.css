@@ -94,3 +94,8 @@ a.health-symbol:hover {
 .health-table th.health-latest-date {
   color: var(--yellow);
 }
+.report-stale {
+  color: var(--warning);
+  font-size: 0.72rem;
+  margin-left: 0.5rem;
+}

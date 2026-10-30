@@ -10,6 +10,7 @@ import {
   statusSymbols,
 } from "./overview/timeline";
 import type { DailyStatus } from "./overview/timeline";
+import { reportFreshness } from "./overview/freshness";
 import "./overview/Timeline.css";
 
 type VersionState = {
@@ -32,6 +33,11 @@ export function EngineOverview({
     rows: VersionState[];
   } | null>(null);
   const days = 14;
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     const versions = [...session.index.versions].sort((a, b) =>
@@ -245,6 +251,11 @@ export function EngineOverview({
                                             ? a
                                             : b,
                                       );
+                                      const freshness = reportFreshness(
+                                        platformBuilds,
+                                        session.index.sources ?? [],
+                                        now,
+                                      );
                                       return (
                                         <tr key={os}>
                                           <th scope="row">
@@ -252,7 +263,20 @@ export function EngineOverview({
                                               ? "Linux"
                                               : os === "windows"
                                                 ? "Windows"
-                                                : os}
+                                                : os}{" "}
+                                            {freshness.status === "stale" && (
+                                              <span
+                                                className="report-stale"
+                                                title={freshness.staleSources
+                                                  .map(
+                                                    (source) =>
+                                                      `${source.sourceId}: latest report ${source.ageHours.toFixed(1)} hours old; threshold ${source.thresholdHours} hours`,
+                                                  )
+                                                  .join("; ")}
+                                              >
+                                                Stale
+                                              </span>
+                                            )}
                                             <small>
                                               <time
                                                 dateTime={latest.generated_at}

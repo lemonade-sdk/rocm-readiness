@@ -31,7 +31,9 @@ def project(**overrides):
         "label": "Demo",
         "repository": "example/demo",
         "default_branch": "master",
-        "forks": [{"repository": "fork/demo", "role": "nightly builds", "channel": "nightly"}],
+        "forks": [
+            {"repository": "fork/demo", "role": "nightly builds", "channel": "nightly"}
+        ],
         "ships": {"linux": "archive"},
         "jobs": [
             {
@@ -86,12 +88,25 @@ def run(run_id, created, event="push", ref="master", sha=None, status="completed
     }
 
 
-def job(job_id, name, conclusion="success", steps=True, failed_step=None, status="completed",
-        created="2026-10-28T10:00:00Z", started="2026-10-28T10:05:00Z"):
+def job(
+    job_id,
+    name,
+    conclusion="success",
+    steps=True,
+    failed_step=None,
+    status="completed",
+    created="2026-10-28T10:00:00Z",
+    started="2026-10-28T10:05:00Z",
+):
     rows = []
     if steps:
-        rows = [{"name": "Set up job", "conclusion": "success"},
-                {"name": failed_step or "Test", "conclusion": "failure" if failed_step else "success"}]
+        rows = [
+            {"name": "Set up job", "conclusion": "success"},
+            {
+                "name": failed_step or "Test",
+                "conclusion": "failure" if failed_step else "success",
+            },
+        ]
     return {
         "id": job_id,
         "name": name,
@@ -123,14 +138,19 @@ class FakeGitHub:
         if "workflows" in parts:
             workflow = parts[parts.index("workflows") + 1]
             since = query["created"][0][2:]
-            rows = [r for r in self.runs.get(workflow, []) if r["created_at"][:10] >= since]
+            rows = [
+                r for r in self.runs.get(workflow, []) if r["created_at"][:10] >= since
+            ]
             if "branch" in query:
                 rows = [r for r in rows if r["head_branch"] == query["branch"][0]]
             if "event" in query:
                 rows = [r for r in rows if r["event"] == query["event"][0]]
             rows.sort(key=lambda r: r["created_at"], reverse=True)
             page = int(query.get("page", ["1"])[0])
-            return {"total_count": len(rows), "workflow_runs": rows[(page - 1) * 100: page * 100]}
+            return {
+                "total_count": len(rows),
+                "workflow_runs": rows[(page - 1) * 100 : page * 100],
+            }
         if parts[-1] == "jobs":
             return {"jobs": self.jobs.get(int(parts[-2]), [])}
         if parts[-1] == "pulls":
@@ -141,25 +161,38 @@ class FakeGitHub:
 
 
 def merged(number, head):
-    return [{
-        "number": number,
-        "html_url": f"https://github.com/example/demo/pull/{number}",
-        "head": {"sha": head},
-        "user": {"login": "dev"},
-        "merged_at": "2026-10-28T09:00:00Z",
-        "base": {"ref": "master"},
-    }]
+    return [
+        {
+            "number": number,
+            "html_url": f"https://github.com/example/demo/pull/{number}",
+            "head": {"sha": head},
+            "user": {"login": "dev"},
+            "merged_at": "2026-10-28T09:00:00Z",
+            "base": {"ref": "master"},
+        }
+    ]
 
 
 def check(name, conclusion):
-    return {"name": name, "conclusion": conclusion, "started_at": "2026-10-28T08:00:00Z",
-            "html_url": f"https://github.com/example/demo/runs/{name}"}
+    return {
+        "name": name,
+        "conclusion": conclusion,
+        "started_at": "2026-10-28T08:00:00Z",
+        "html_url": f"https://github.com/example/demo/runs/{name}",
+    }
 
 
 def collect(github, destination, cfg=None, previous=None, budget=10_000):
-    return collect_upstream(cfg or config(), Path(destination), fetch=github, now=NOW,
-                            write_json=write_json, previous_data=previous, budget_calls=budget,
-                            workers=2)
+    return collect_upstream(
+        cfg or config(),
+        Path(destination),
+        fetch=github,
+        now=NOW,
+        write_json=write_json,
+        previous_data=previous,
+        budget_calls=budget,
+        workers=2,
+    )
 
 
 def overview(root):
@@ -172,25 +205,47 @@ class ConfigTests(unittest.TestCase):
 
     def test_rejects_unknown_category_duplicate_ids_and_bad_matchers(self):
         for change, field in (
-            (lambda c: c["projects"][0]["jobs"][0].update(category="smoke"), "/category"),
+            (
+                lambda c: c["projects"][0]["jobs"][0].update(category="smoke"),
+                "/category",
+            ),
             (lambda c: c["projects"].append(copy.deepcopy(c["projects"][0])), "/id"),
-            (lambda c: c["projects"][0]["jobs"][0].update(match={"regex": "("}), "/match"),
-            (lambda c: c["projects"][0]["jobs"][0].update(match={"name": "a", "prefix": "b"}), "/match"),
-            (lambda c: c["projects"][0]["jobs"][0].update(workflow="../x.yml"), "/workflow"),
+            (
+                lambda c: c["projects"][0]["jobs"][0].update(match={"regex": "("}),
+                "/match",
+            ),
+            (
+                lambda c: c["projects"][0]["jobs"][0].update(
+                    match={"name": "a", "prefix": "b"}
+                ),
+                "/match",
+            ),
+            (
+                lambda c: c["projects"][0]["jobs"][0].update(workflow="../x.yml"),
+                "/workflow",
+            ),
             (lambda c: c["projects"][0]["forks"][0].update(channel="beta"), "/channel"),
             (lambda c: c.update(window_days=0), "/window_days"),
         ):
             cfg = config()
             change(cfg)
-            with self.subTest(field=field), self.assertRaises(PipelineValidationError) as raised:
+            with self.subTest(field=field), self.assertRaises(
+                PipelineValidationError
+            ) as raised:
                 validate_projects(cfg)
             self.assertIn(field, raised.exception.diagnostic["field"])
 
     def test_matchers(self):
         self.assertTrue(matcher({"name": "rocm"})("rocm"))
         self.assertFalse(matcher({"name": "rocm"})("rocm-x"))
-        self.assertTrue(matcher({"prefix": "ubuntu-24-rocm"})("ubuntu-24-rocm (10.0.0, gfx908)"))
-        self.assertTrue(matcher({"regex": r"^linux-\w+-rx7900 / test "})("linux-jammy-rx7900 / test (default, 1)"))
+        self.assertTrue(
+            matcher({"prefix": "ubuntu-24-rocm"})("ubuntu-24-rocm (10.0.0, gfx908)")
+        )
+        self.assertTrue(
+            matcher({"regex": r"^linux-\w+-rx7900 / test "})(
+                "linux-jammy-rx7900 / test (default, 1)"
+            )
+        )
 
 
 class StateTests(unittest.TestCase):
@@ -201,7 +256,9 @@ class StateTests(unittest.TestCase):
         # No steps means no machine ever took it.
         self.assertEqual(_state(job(1, "x", "skipped", steps=False)), "skipped")
         self.assertEqual(_state(job(1, "x", "cancelled", steps=False)), "stalled")
-        self.assertEqual(_state(job(1, "x", None, steps=False, status="queued")), "stalled")
+        self.assertEqual(
+            _state(job(1, "x", None, steps=False, status="queued")), "stalled"
+        )
         self.assertEqual(_state(job(1, "x", None, status="in_progress")), "running")
 
 
@@ -239,15 +296,21 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual(entry["status"], "fresh")
         data = json.loads((self.out / "upstream/demo/ci/2026-10.json").read_text())
         self.assertEqual(sorted(r["run_id"] for r in data["runs"]), ["1", "2", "6"])
-        self.assertFalse(any("runs/3/" in url or "runs/4/" in url for url in self.gh.calls))
+        self.assertFalse(
+            any("runs/3/" in url or "runs/4/" in url for url in self.gh.calls)
+        )
 
     def test_merge_verdict_comes_from_the_merged_commit(self):
         collect(self.gh, self.out)
-        gpu = next(j for j in overview(self.out)["projects"][0]["jobs"] if j["id"] == "gpu")
+        gpu = next(
+            j for j in overview(self.out)["projects"][0]["jobs"] if j["id"] == "gpu"
+        )
         self.assertEqual(gpu["gate"]["merged"], 2)
         self.assertEqual(gpu["gate"]["failed"], 1)
         self.assertEqual([g["number"] for g in gpu["gate"]["red"]], [100])
-        build_job = next(j for j in overview(self.out)["projects"][0]["jobs"] if j["id"] == "build")
+        build_job = next(
+            j for j in overview(self.out)["projects"][0]["jobs"] if j["id"] == "build"
+        )
         # No hip check on the PR commit: the job never ran on the pull request.
         self.assertEqual(build_job["gate"]["not_triggered"], 1)
 
@@ -272,7 +335,10 @@ class CollectionTests(unittest.TestCase):
         cfg["projects"][0]["note"] = "No client GPU is tested upstream."
         collect(self.gh, self.out, cfg)
         card = overview(self.out)["projects"][0]
-        self.assertEqual(card["badge"], {"state": "down", "reason": "No client GPU is tested upstream."})
+        self.assertEqual(
+            card["badge"],
+            {"state": "down", "reason": "No client GPU is tested upstream."},
+        )
 
     def test_previous_records_are_reused_without_new_calls(self):
         collect(self.gh, self.out)
@@ -284,8 +350,13 @@ class CollectionTests(unittest.TestCase):
         self.gh.calls.clear()
         with tempfile.TemporaryDirectory() as second:
             collect(self.gh, second, previous=self.out)
-            self.assertFalse([u for u in self.gh.calls if u.endswith("/jobs?per_page=100")])
-            self.assertEqual(overview(second)["projects"][0]["kpis"], overview(self.out)["projects"][0]["kpis"])
+            self.assertFalse(
+                [u for u in self.gh.calls if u.endswith("/jobs?per_page=100")]
+            )
+            self.assertEqual(
+                overview(second)["projects"][0]["kpis"],
+                overview(self.out)["projects"][0]["kpis"],
+            )
 
     def test_budget_keeps_newest_runs_and_reports_partial(self):
         entry = collect(self.gh, self.out, budget=3)
@@ -301,7 +372,9 @@ class CollectionTests(unittest.TestCase):
                 raise OSError("502 Bad Gateway")
             return broken(url)
 
-        collect_upstream(config(), self.out, fetch=flaky, now=NOW, write_json=write_json, workers=2)
+        collect_upstream(
+            config(), self.out, fetch=flaky, now=NOW, write_json=write_json, workers=2
+        )
         card = overview(self.out)["projects"][0]
         self.assertFalse(card["coverage"]["complete"])
         self.assertEqual(card["kpis"]["decided"], 2)  # runs 1 and 6 survive
@@ -322,7 +395,10 @@ class DatasetTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        index = write_dataset(normalized([build("latest", generated_at="2026-10-01T00:00:00Z")]), self.root)
+        index = write_dataset(
+            normalized([build("latest", generated_at="2026-10-01T00:00:00Z")]),
+            self.root,
+        )
         index["upstream"] = collect(fake_github(), self.root)
         (self.root / "index.json").write_text(json.dumps(index))
 
@@ -341,17 +417,37 @@ class DatasetTests(unittest.TestCase):
     def test_tampered_upstream_files_are_rejected(self):
         for relative, change, field in (
             ("upstream/demo/ci/2026-10.json", lambda d: d["runs"].pop(), "/runs"),
-            ("upstream/demo/ci/2026-10.json", lambda d: d["runs"][0].update(state="green"), "/state"),
-            ("upstream/overview.json", lambda d: d["projects"][0]["kpis"].update(passed=99), "/kpis"),
-            ("upstream/overview.json",
-             lambda d: d["projects"][0]["files"][0].update(path="upstream/../index.json"), "/files"),
-            ("index.json", lambda d: d["upstream"].update(overview="other.json"), "/upstream/overview"),
+            (
+                "upstream/demo/ci/2026-10.json",
+                lambda d: d["runs"][0].update(state="green"),
+                "/state",
+            ),
+            (
+                "upstream/overview.json",
+                lambda d: d["projects"][0]["kpis"].update(passed=99),
+                "/kpis",
+            ),
+            (
+                "upstream/overview.json",
+                lambda d: d["projects"][0]["files"][0].update(
+                    path="upstream/../index.json"
+                ),
+                "/files",
+            ),
+            (
+                "index.json",
+                lambda d: d["upstream"].update(overview="other.json"),
+                "/upstream/overview",
+            ),
         ):
             with self.subTest(field=field):
                 backup = {p: p.read_text() for p in self.root.rglob("*.json")}
                 self.mutate(relative, change)
                 with self.assertRaises(PipelineValidationError) as raised:
-                    validate_upstream_dataset(self.root, json.loads((self.root / "index.json").read_text())["upstream"])
+                    validate_upstream_dataset(
+                        self.root,
+                        json.loads((self.root / "index.json").read_text())["upstream"],
+                    )
                 self.assertIn(field, raised.exception.diagnostic["field"])
                 for path, text in backup.items():
                     path.write_text(text)

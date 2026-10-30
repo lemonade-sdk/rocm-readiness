@@ -16,8 +16,17 @@ import type { Cell, Job, Project, Run, UpstreamOverview } from "./data";
 import "./upstream.css";
 
 const GH = "https://github.com/";
-const BADGE_LABEL = { up: "upstream", partial: "partially upstream", down: "not upstreamed" };
-const VERDICT_LABEL = { passed: "ok", failed: "red", not_triggered: "no run", no_result: "no result" };
+const BADGE_LABEL = {
+  up: "upstream",
+  partial: "partially upstream",
+  down: "not upstreamed",
+};
+const VERDICT_LABEL = {
+  passed: "ok",
+  failed: "red",
+  not_triggered: "no run",
+  no_result: "no result",
+};
 const VERDICT_TEXT = {
   passed: "passed on the merged commit",
   failed: "was red on the merged commit",
@@ -32,7 +41,10 @@ type Props = {
   onNavigate: (next: URLSearchParams) => void;
 };
 
-function query(params: URLSearchParams, changes: Record<string, string | null>) {
+function query(
+  params: URLSearchParams,
+  changes: Record<string, string | null>,
+) {
   const next = new URLSearchParams(params);
   for (const [key, value] of Object.entries(changes)) {
     if (value === null) next.delete(key);
@@ -53,14 +65,18 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
     setState(null);
     loadUpstream(session, fetcher, controller.signal)
       .then((data) => {
-        if (!controller.signal.aborted) setState({ session, data, error: null });
+        if (!controller.signal.aborted)
+          setState({ session, data, error: null });
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted)
           setState({
             session,
             data: null,
-            error: reason instanceof Error ? reason.message : "Unable to load upstream health",
+            error:
+              reason instanceof Error
+                ? reason.message
+                : "Unable to load upstream health",
           });
       });
     return () => controller.abort();
@@ -92,7 +108,9 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
     return (
       <div className="notice" role="alert">
         <h1>Unknown project</h1>
-        <a href={`?${query(params, { project: null, lens: null })}`}>Back to all projects</a>
+        <a href={`?${query(params, { project: null, lens: null })}`}>
+          Back to all projects
+        </a>
       </div>
     );
   return selected ? (
@@ -113,7 +131,10 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 
 function Badge({ project }: { project: Project }) {
   return (
-    <span className={`up-badge up-badge-${project.badge.state}`} title={project.badge.reason}>
+    <span
+      className={`up-badge up-badge-${project.badge.state}`}
+      title={project.badge.reason}
+    >
       {BADGE_LABEL[project.badge.state]}
     </span>
   );
@@ -171,7 +192,13 @@ export function Ticks({
             onClick={() => onPick(day)}
           />
         ) : (
-          <span key={day} role="img" className={`up-tick up-${state}`} title={text} aria-label={text} />
+          <span
+            key={day}
+            role="img"
+            className={`up-tick up-${state}`}
+            title={text}
+            aria-label={text}
+          />
         );
       })}
     </div>
@@ -206,7 +233,10 @@ function DayBars({
 }) {
   const up = 30;
   const down = 14;
-  const peak = Math.max(1, ...days.map((d) => cellOf(d).passed + cellOf(d).other + cellOf(d).running));
+  const peak = Math.max(
+    1,
+    ...days.map((d) => cellOf(d).passed + cellOf(d).other + cellOf(d).running),
+  );
   const failPeak = Math.max(1, ...days.map((d) => cellOf(d).failed));
   return (
     <div className="up-bars" role="group" aria-label={label}>
@@ -226,7 +256,10 @@ function DayBars({
           >
             <span className="up-bar-up" style={{ height: up }}>
               {ran ? (
-                <i className="up-pass" style={{ height: Math.max(2, Math.round((up * ok) / peak)) }} />
+                <i
+                  className="up-pass"
+                  style={{ height: Math.max(2, Math.round((up * ok) / peak)) }}
+                />
               ) : cell.stalled ? (
                 <i className="up-stall" />
               ) : cell.skipped ? (
@@ -236,7 +269,15 @@ function DayBars({
             <span className="up-bar-base" />
             <span className="up-bar-down" style={{ height: down }}>
               {cell.failed > 0 && (
-                <i className="up-fail" style={{ height: Math.max(3, Math.round((down * cell.failed) / failPeak)) }} />
+                <i
+                  className="up-fail"
+                  style={{
+                    height: Math.max(
+                      3,
+                      Math.round((down * cell.failed) / failPeak),
+                    ),
+                  }}
+                />
               )}
             </span>
             <span className="up-bar-day">{day.slice(8)}</span>
@@ -268,13 +309,17 @@ function ProjectGrid({
       <div className="up-totals">
         <Stat value={overview.projects.length} label="projects" />
         <Stat value={all.length} label="client AMD jobs" />
-        <Stat value={totals.pct === null ? "–" : `${totals.pct}%`} label="passed on main" />
+        <Stat
+          value={totals.pct === null ? "–" : `${totals.pct}%`}
+          label="passed on main"
+        />
         <Stat value={red} label="PRs merged red" bad={red > 0} />
         <Stat value={quiet} label="tests not running" bad={quiet > 0} />
       </div>
       <p className="up-rule muted">
-        Upstream means a test on the default branch ran on {overview.client_rule.targets.join(" or ")};
-        partial means other client hardware only. Window {overview.window.start} to {overview.window.end}.
+        Upstream means a test on the default branch ran on{" "}
+        {overview.client_rule.targets.join(" or ")}; partial means other client
+        hardware only. Window {overview.window.start} to {overview.window.end}.
       </p>
       <div className="up-cards">
         {overview.projects.map((project) => {
@@ -283,7 +328,9 @@ function ProjectGrid({
             <article
               key={project.id}
               className="card up-card"
-              onClick={() => onNavigate(query(params, { project: project.id, lens: null }))}
+              onClick={() =>
+                onNavigate(query(params, { project: project.id, lens: null }))
+              }
             >
               <div className="up-card-head">
                 <h2>
@@ -292,7 +339,9 @@ function ProjectGrid({
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
-                      onNavigate(query(params, { project: project.id, lens: null }));
+                      onNavigate(
+                        query(params, { project: project.id, lens: null }),
+                      );
                     }}
                   >
                     {project.label}
@@ -305,19 +354,36 @@ function ProjectGrid({
               {project.jobs.length ? (
                 <>
                   <div className="up-kpis">
-                    <Stat value={r.pct === null ? "–" : `${r.pct}%`} label={`of ${r.decided} results on main passed`} />
-                    <Stat value={project.kpis.not_running} label="tests not running" bad={project.kpis.not_running > 0} />
+                    <Stat
+                      value={r.pct === null ? "–" : `${r.pct}%`}
+                      label={`of ${r.decided} results on main passed`}
+                    />
+                    <Stat
+                      value={project.kpis.not_running}
+                      label="tests not running"
+                      bad={project.kpis.not_running > 0}
+                    />
                     {project.jobs.some((j) => j.gate) && (
-                      <Stat value={project.kpis.merged_red} label="PRs merged red" bad={project.kpis.merged_red > 0} />
+                      <Stat
+                        value={project.kpis.merged_red}
+                        label="PRs merged red"
+                        bad={project.kpis.merged_red > 0}
+                      />
                     )}
                   </div>
                   {CATEGORIES.map((category) => {
-                    const jobs = project.jobs.filter((j) => j.category === category);
+                    const jobs = project.jobs.filter(
+                      (j) => j.category === category,
+                    );
                     if (!jobs.length) return null;
                     return (
                       <div className="up-strip" key={category}>
                         <span className="up-strip-label">{category}</span>
-                        <Ticks days={last14} cellOf={(d) => sumCells(jobs, d)} label={`${project.label} ${category}, last 14 days`} />
+                        <Ticks
+                          days={last14}
+                          cellOf={(d) => sumCells(jobs, d)}
+                          label={`${project.label} ${category}, last 14 days`}
+                        />
                       </div>
                     );
                   })}
@@ -333,7 +399,15 @@ function ProjectGrid({
   );
 }
 
-function Stat({ value, label, bad = false }: { value: number | string; label: string; bad?: boolean }) {
+function Stat({
+  value,
+  label,
+  bad = false,
+}: {
+  value: number | string;
+  label: string;
+  bad?: boolean;
+}) {
   return (
     <div className={`up-stat${bad ? " bad" : ""}`}>
       <strong>{value}</strong>
@@ -362,11 +436,22 @@ function ProjectPage({
   const lens = params.get("lens") ?? "all";
   const jobs = project.jobs.filter(keepJob(lens));
   const stacks = [...new Set(project.jobs.map((j) => j.stack))].sort();
-  const targets = [...new Set(project.jobs.map((j) => j.target).filter((t) => t.startsWith("gfx")))].sort();
+  const targets = [
+    ...new Set(
+      project.jobs.map((j) => j.target).filter((t) => t.startsWith("gfx")),
+    ),
+  ].sort();
   const days14 = windowDays(overview, 14);
   const allDays = windowDays(overview);
-  const [runs, setRuns] = useState<{ rows: Run[] | null; error: string | null }>({ rows: null, error: null });
-  const [open, setOpen] = useState<{ key: string; day: string; jobs: string[] } | null>(null);
+  const [runs, setRuns] = useState<{
+    rows: Run[] | null;
+    error: string | null;
+  }>({ rows: null, error: null });
+  const [open, setOpen] = useState<{
+    key: string;
+    day: string;
+    jobs: string[];
+  } | null>(null);
   const r = rate(jobs);
   const red = mergedRed(jobs);
   const quiet = jobs.filter(notRunning).length;
@@ -375,10 +460,16 @@ function ProjectPage({
     const controller = new AbortController();
     setRuns({ rows: null, error: null });
     loadRuns(session, project, fetcher, controller.signal)
-      .then((rows) => !controller.signal.aborted && setRuns({ rows, error: null }))
+      .then(
+        (rows) => !controller.signal.aborted && setRuns({ rows, error: null }),
+      )
       .catch((reason: unknown) => {
         if (!controller.signal.aborted)
-          setRuns({ rows: null, error: reason instanceof Error ? reason.message : "Unable to load runs" });
+          setRuns({
+            rows: null,
+            error:
+              reason instanceof Error ? reason.message : "Unable to load runs",
+          });
       });
     return () => controller.abort();
   }, [session, project, fetcher]);
@@ -396,33 +487,62 @@ function ProjectPage({
       .slice(0, 6);
   }, [jobs]);
 
-  const setLens = (value: string) => onNavigate(query(params, { lens: value === "all" ? null : value }));
+  const setLens = (value: string) =>
+    onNavigate(query(params, { lens: value === "all" ? null : value }));
   const pick = (key: string, day: string, ids: string[]) =>
-    setOpen(open && open.key === key && open.day === day ? null : { key, day, jobs: ids });
+    setOpen(
+      open && open.key === key && open.day === day
+        ? null
+        : { key, day, jobs: ids },
+    );
 
   return (
-    <section aria-label={`${project.label} upstream health`} className="up-page">
+    <section
+      aria-label={`${project.label} upstream health`}
+      className="up-page"
+    >
       <div className="up-page-head">
-        <a href={`?${query(params, { project: null, lens: null })}`} onClick={(e) => { e.preventDefault(); onNavigate(query(params, { project: null, lens: null })); }}>
+        <a
+          href={`?${query(params, { project: null, lens: null })}`}
+          onClick={(e) => {
+            e.preventDefault();
+            onNavigate(query(params, { project: null, lens: null }));
+          }}
+        >
           ‹ All projects
         </a>
         <h1>{project.label}</h1>
         <Badge project={project} />
         <Forks project={project} />
-        <a className="muted up-repo" href={GH + project.repository} target="_blank" rel="noreferrer">
+        <a
+          className="muted up-repo"
+          href={GH + project.repository}
+          target="_blank"
+          rel="noreferrer"
+        >
           {project.repository}
         </a>
       </div>
       <div className="up-kpis up-kpis-page">
-        <Stat value={r.pct === null ? "–" : `${r.pct}%`} label={`of ${r.decided} results on main passed`} />
+        <Stat
+          value={r.pct === null ? "–" : `${r.pct}%`}
+          label={`of ${r.decided} results on main passed`}
+        />
         <Stat value={quiet} label="tests not running" bad={quiet > 0} />
-        {project.jobs.some((j) => j.gate) && <Stat value={red} label="PRs merged red" bad={red > 0} />}
+        {project.jobs.some((j) => j.gate) && (
+          <Stat value={red} label="PRs merged red" bad={red > 0} />
+        )}
       </div>
       {(stacks.length > 1 || targets.length > 1) && (
         <div className="up-filter" role="group" aria-label="Filter">
           <span className="muted">Filter</span>
           {["all", ...stacks, ...targets].map((value) => (
-            <button key={value} type="button" aria-pressed={lens === value} onClick={() => setLens(value)}>
+            <button
+              key={value}
+              type="button"
+              aria-pressed={lens === value}
+              onClick={() => setLens(value)}
+            >
               {value === "all" ? "Everything AMD" : value}
             </button>
           ))}
@@ -435,7 +555,8 @@ function ProjectPage({
       {project.findings.length > 0 && (
         <details className="up-findings">
           <summary>
-            {project.findings.length} {project.findings.length > 1 ? "findings" : "finding"}
+            {project.findings.length}{" "}
+            {project.findings.length > 1 ? "findings" : "finding"}
           </summary>
           {project.findings.map((f) => (
             <p key={f.head}>
@@ -445,13 +566,19 @@ function ProjectPage({
         </details>
       )}
       {!project.coverage.complete && (
-        <p className="notice">Collection for this project is still filling its window; the oldest days may be incomplete.</p>
+        <p className="notice">
+          Collection for this project is still filling its window; the oldest
+          days may be incomplete.
+        </p>
       )}
       <div className="up-cols">
         <div>
           <section className="card up-panel" aria-label="Per day">
             <h2>
-              Per day <span className="muted">main only, last 14 days · passed up, failed down</span>
+              Per day{" "}
+              <span className="muted">
+                main only, last 14 days · passed up, failed down
+              </span>
             </h2>
             {CATEGORIES.map((category) => {
               const group = jobs.filter((j) => j.category === category);
@@ -459,15 +586,25 @@ function ProjectPage({
               const key = `cat:${category}`;
               return (
                 <div key={category} className="up-daychart">
-                  <h3 title={group.map((j) => j.label).join(", ")}>{category}</h3>
+                  <h3 title={group.map((j) => j.label).join(", ")}>
+                    {category}
+                  </h3>
                   {days14.every((d) => !group.some((j) => j.daily[d])) && (
-                    <p className="muted up-empty-chart">No runs on the default branch in the last 14 days.</p>
+                    <p className="muted up-empty-chart">
+                      No runs on the default branch in the last 14 days.
+                    </p>
                   )}
                   <DayBars
                     days={days14}
                     cellOf={(d) => sumCells(group, d)}
                     selected={open?.key === key ? open.day : null}
-                    onPick={(day) => pick(key, day, group.map((j) => j.id))}
+                    onPick={(day) =>
+                      pick(
+                        key,
+                        day,
+                        group.map((j) => j.id),
+                      )
+                    }
                     label={`${category} per day`}
                   />
                   {open?.key === key && (
@@ -489,14 +626,21 @@ function ProjectPage({
         <div>
           <Platforms project={project} />
           <MergeGate jobs={jobs} />
-          <section className="card up-panel" aria-label="What is failing on main">
+          <section
+            className="card up-panel"
+            aria-label="What is failing on main"
+          >
             <h2>What is failing on main</h2>
             {steps.length ? (
               <ol className="up-steps">
                 {steps.map(([step, info]) => (
                   <li key={step} title={[...info.jobs].join(", ")}>
                     <span>{step}</span>
-                    <i style={{ width: `${Math.round((100 * info.n) / steps[0][1].n)}%` }} />
+                    <i
+                      style={{
+                        width: `${Math.round((100 * info.n) / steps[0][1].n)}%`,
+                      }}
+                    />
                     <span className="muted">{info.n}</span>
                   </li>
                 ))}
@@ -510,7 +654,11 @@ function ProjectPage({
       <details className="card up-panel up-jobs">
         <summary>
           <h2>
-            By job <span className="muted">{jobs.length} jobs, {overview.window.days} days, click a day for its runs</span>
+            By job{" "}
+            <span className="muted">
+              {jobs.length} jobs, {overview.window.days} days, click a day for
+              its runs
+            </span>
           </h2>
         </summary>
         {jobs.map((job) => {
@@ -525,12 +673,25 @@ function ProjectPage({
                   onPick={(day) => pick(key, day, [job.id])}
                   label={`${job.label}, ${overview.window.days} days`}
                 />
-                <span className="muted" title={`${job.workflow} · ${job.cadence} · ${job.stack}`}>
+                <span
+                  className="muted"
+                  title={`${job.workflow} · ${job.cadence} · ${job.stack}`}
+                >
                   {job.target} · {job.where}
-                  {notRunning(job) && <span className="bad"> · {job.last_ran ? `quiet since ${job.last_ran}` : "never ran"}</span>}
+                  {notRunning(job) && (
+                    <span className="bad">
+                      {" "}
+                      ·{" "}
+                      {job.last_ran
+                        ? `quiet since ${job.last_ran}`
+                        : "never ran"}
+                    </span>
+                  )}
                 </span>
                 <span className="up-job-rate">
-                  {job.decided ? `${Math.round((100 * job.passed) / job.decided)}%` : "–"}
+                  {job.decided
+                    ? `${Math.round((100 * job.passed) / job.decided)}%`
+                    : "–"}
                 </span>
               </div>
               {open?.key === key && (
@@ -575,14 +736,28 @@ function DayPanel({
   const cell = sumCells(jobs, day);
   const rows = (runs.rows ?? [])
     .filter((r) => r.day === day && ids.has(r.job))
-    .sort((a, b) => Number(b.state === "failed") - Number(a.state === "failed") || a.created_at.localeCompare(b.created_at));
+    .sort(
+      (a, b) =>
+        Number(b.state === "failed") - Number(a.state === "failed") ||
+        a.created_at.localeCompare(b.created_at),
+    );
   return (
     <div className="up-daypanel" role="region" aria-label={`Runs on ${day}`}>
       <div className="up-daypanel-head">
-        <button type="button" disabled={i <= 0} onClick={() => onDay(days[i - 1])} aria-label="Previous day">
+        <button
+          type="button"
+          disabled={i <= 0}
+          onClick={() => onDay(days[i - 1])}
+          aria-label="Previous day"
+        >
           ‹
         </button>
-        <button type="button" disabled={i >= days.length - 1} onClick={() => onDay(days[i + 1])} aria-label="Next day">
+        <button
+          type="button"
+          disabled={i >= days.length - 1}
+          onClick={() => onDay(days[i + 1])}
+          aria-label="Next day"
+        >
           ›
         </button>
         <strong>{day}</strong>
@@ -602,18 +777,36 @@ function DayPanel({
       ) : rows.length ? (
         <ul className="up-runs">
           {rows.map((run) => (
-            <li key={`${run.job}:${run.job_id}`} className={`up-run up-run-${run.state}`}>
+            <li
+              key={`${run.job}:${run.job_id}`}
+              className={`up-run up-run-${run.state}`}
+            >
               <span className="up-dot" aria-hidden="true" />
-              <a href={run.url} target="_blank" rel="noreferrer" title="Open the job log">
+              <a
+                href={run.url}
+                target="_blank"
+                rel="noreferrer"
+                title="Open the job log"
+              >
                 {run.created_at.slice(11, 16)}
               </a>
-              {jobs.length > 1 && <span className="up-run-job">{label[run.job]}</span>}
+              {jobs.length > 1 && (
+                <span className="up-run-job">{label[run.job]}</span>
+              )}
               {run.sha && (
-                <a className="up-sha" href={`${GH}${project.repository}/commit/${run.sha}`} target="_blank" rel="noreferrer" title="Open the commit">
+                <a
+                  className="up-sha"
+                  href={`${GH}${project.repository}/commit/${run.sha}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open the commit"
+                >
                   {run.sha.slice(0, 8)}
                 </a>
               )}
-              {run.ref && run.ref !== project.default_branch && <span className="muted">{run.ref}</span>}
+              {run.ref && run.ref !== project.default_branch && (
+                <span className="muted">{run.ref}</span>
+              )}
               {run.pr && (
                 <a
                   className={`up-chip up-chip-${run.pr.verdict}`}
@@ -626,7 +819,12 @@ function DayPanel({
                 </a>
               )}
               {run.state !== "passed" && (
-                <a href={run.url} target="_blank" rel="noreferrer" className="up-run-step">
+                <a
+                  href={run.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="up-run-step"
+                >
                   {run.failed_step ?? run.state}
                 </a>
               )}
@@ -672,9 +870,19 @@ function Platforms({ project }: { project: Project }) {
             return (
               <tr key={os}>
                 <th scope="row">{os === "linux" ? "Linux" : "Windows"}</th>
-                {cell(p.built, p.built_rate !== null ? `${p.built_rate}%` : null)}
-                {cell(p.tested, p.tested_rate !== null ? `${p.tested_rate}%` : null, !p.tested && !!p.shipped)}
-                <td className={p.shipped ? "good" : "muted"} title={p.shipped ?? undefined}>
+                {cell(
+                  p.built,
+                  p.built_rate !== null ? `${p.built_rate}%` : null,
+                )}
+                {cell(
+                  p.tested,
+                  p.tested_rate !== null ? `${p.tested_rate}%` : null,
+                  !p.tested && !!p.shipped,
+                )}
+                <td
+                  className={p.shipped ? "good" : "muted"}
+                  title={p.shipped ?? undefined}
+                >
                   {p.shipped ? "✓" : "–"}
                 </td>
               </tr>
@@ -688,13 +896,17 @@ function Platforms({ project }: { project: Project }) {
 
 function MergeGate({ jobs }: { jobs: Job[] }) {
   const gated = jobs.filter((j) => j.gate);
-  const [list, setList] = useState<{ job: string; kind: "red" | "escaped" } | null>(null);
+  const [list, setList] = useState<{
+    job: string;
+    kind: "red" | "escaped";
+  } | null>(null);
   if (!gated.length) return null;
   const shown = list && gated.find((j) => j.id === list.job);
   return (
     <section className="card up-panel" aria-label="Merge gate">
       <h2>
-        Merge gate <span className="muted">the job on the commit that merged</span>
+        Merge gate{" "}
+        <span className="muted">the job on the commit that merged</span>
       </h2>
       <table className="up-table">
         <thead>
@@ -704,7 +916,9 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
             <th title="green on the merged commit">Passed</th>
             <th title="red on the merged commit, merged anyway">Red</th>
             <th title="never ran on the pull request">No run</th>
-            <th title="never ran on the pull request, then failed on main">Broke main</th>
+            <th title="never ran on the pull request, then failed on main">
+              Broke main
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -717,7 +931,11 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
                 <td>{g.passed}</td>
                 <td>
                   {g.failed ? (
-                    <button type="button" className="up-link bad" onClick={() => setList({ job: job.id, kind: "red" })}>
+                    <button
+                      type="button"
+                      className="up-link bad"
+                      onClick={() => setList({ job: job.id, kind: "red" })}
+                    >
                       {g.failed}
                     </button>
                   ) : (
@@ -727,7 +945,11 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
                 <td>{g.not_triggered + g.no_result}</td>
                 <td>
                   {g.escaped.length ? (
-                    <button type="button" className="up-link" onClick={() => setList({ job: job.id, kind: "escaped" })}>
+                    <button
+                      type="button"
+                      className="up-link"
+                      onClick={() => setList({ job: job.id, kind: "escaped" })}
+                    >
                       {g.escaped.length}
                     </button>
                   ) : (
@@ -740,13 +962,23 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
         </tbody>
       </table>
       {shown && list && (
-        <div className="up-daypanel" role="region" aria-label={`${shown.label} pull requests`}>
+        <div
+          className="up-daypanel"
+          role="region"
+          aria-label={`${shown.label} pull requests`}
+        >
           <div className="up-daypanel-head">
             <strong>{shown.label}</strong>
             <span className="muted">
-              {list.kind === "red" ? "merged while failing" : "never ran on the PR, then failed on main"}
+              {list.kind === "red"
+                ? "merged while failing"
+                : "never ran on the PR, then failed on main"}
             </span>
-            <button type="button" onClick={() => setList(null)} aria-label="Close">
+            <button
+              type="button"
+              onClick={() => setList(null)}
+              aria-label="Close"
+            >
               ×
             </button>
           </div>
@@ -759,12 +991,22 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
                 </a>
                 <span className="muted">{g.author}</span>
                 {list.kind === "red" && g.check_url && (
-                  <a className="up-chip up-chip-failed" href={g.check_url} target="_blank" rel="noreferrer">
+                  <a
+                    className="up-chip up-chip-failed"
+                    href={g.check_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     failing check
                   </a>
                 )}
                 {g.main_url && (
-                  <a className={`up-chip${g.main === "failed" ? " up-chip-failed" : ""}`} href={g.main_url} target="_blank" rel="noreferrer">
+                  <a
+                    className={`up-chip${g.main === "failed" ? " up-chip-failed" : ""}`}
+                    href={g.main_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     main {g.main}
                   </a>
                 )}

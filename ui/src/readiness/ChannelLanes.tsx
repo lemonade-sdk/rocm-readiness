@@ -28,7 +28,10 @@ export function ChannelLanes({
   version: string;
   upstream: UpstreamOverview | null;
 }) {
-  const ids = new Set([...engines.map((e) => e.id), ...sources.map((s) => s.engine)]);
+  const ids = new Set([
+    ...engines.map((e) => e.id),
+    ...sources.map((s) => s.engine),
+  ]);
   const lanes = [...ids].map((engine) => {
     const label = engines.find((e) => e.id === engine)?.label ?? engine;
     const feeds = sources.filter(
@@ -42,13 +45,14 @@ export function ChannelLanes({
         ?.forks.filter((f) => !read.has(f.repository)) ?? [];
     return { engine, label, feeds, builds, forks };
   });
-  if (!lanes.some((lane) => lane.feeds.length || lane.forks.length)) return null;
+  if (!lanes.some((lane) => lane.feeds.length || lane.forks.length))
+    return null;
   return (
     <section className="card channel-lanes" aria-label="Channels and forks">
       <h2>Channels and forks</h2>
       <p className="muted">
-        Stable and nightly qualification feeds for ROCm {version}, then forks that carry AMD work but
-        are not read yet.
+        Stable and nightly qualification feeds for ROCm {version}, then forks
+        that carry AMD work but are not read yet.
       </p>
       {lanes.map((lane) => (
         <table key={lane.engine} className="lanes-table">
@@ -63,25 +67,41 @@ export function ChannelLanes({
           </thead>
           <tbody>
             {lane.feeds.map((feed) => {
-              const rows = lane.builds.filter((b) => b.channel === feed.channel);
+              const rows = lane.builds.filter(
+                (b) => b.channel === feed.channel,
+              );
               return (
                 <tr key={feed.id}>
                   <th scope="row">{feed.channel}</th>
                   <td>
                     {feed.repository ? (
-                      <a href={`https://github.com/${feed.repository}`} target="_blank" rel="noreferrer">
+                      <a
+                        href={`https://github.com/${feed.repository}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         {feed.repository}
                       </a>
                     ) : (
                       "–"
                     )}
                   </td>
-                  <td className={feed.status === "fresh" ? "good" : feed.status === "error" ? "bad" : "warning-text"}>
+                  <td
+                    className={
+                      feed.status === "fresh"
+                        ? "good"
+                        : feed.status === "error"
+                          ? "bad"
+                          : "warning-text"
+                    }
+                  >
                     {STATUS[feed.status] ?? feed.status}
                   </td>
                   <td>
                     {rows.length
-                      ? rows.map((b) => `${b.tag ?? b.build_id} (${b.os})`).join(", ")
+                      ? rows
+                          .map((b) => `${b.tag ?? b.build_id} (${b.os})`)
+                          .join(", ")
                       : feed.status === "awaiting_data"
                         ? "not published yet"
                         : "none for this ROCm version"}
@@ -93,7 +113,11 @@ export function ChannelLanes({
               <tr key={fork.repository} className="muted">
                 <th scope="row">{fork.channel ?? "fork"}</th>
                 <td>
-                  <a href={`https://github.com/${fork.repository}`} target="_blank" rel="noreferrer">
+                  <a
+                    href={`https://github.com/${fork.repository}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     {fork.repository}
                   </a>
                 </td>

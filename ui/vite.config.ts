@@ -21,7 +21,11 @@ function localData(dir: string): Plugin {
       server.middlewares.use("/local-data", (req, res, next) => {
         const path = decodeURIComponent((req.url ?? "/").split("?")[0]);
         const file = resolve(root, `.${path}`);
-        if (!(file === root || file.startsWith(root + sep)) || !file.endsWith(".json")) return next();
+        if (
+          !(file === root || file.startsWith(root + sep)) ||
+          !file.endsWith(".json")
+        )
+          return next();
         if (!existsSync(file) || !statSync(file).isFile()) {
           res.statusCode = 404;
           return res.end();
@@ -55,20 +59,24 @@ function uiRevision(): string | null {
 export default defineConfig(({ mode }) => {
   const local = mode === "local-data";
   return {
-  plugins: [
-    tailwindcss(),
-    react(),
-    ...(local ? [localData(process.env.LOCAL_DATA_DIR || "../data/local-preview")] : []),
-  ],
-  base: process.env.VITE_BASE_PATH || "/",
-  define: {
-    __UI_COMMIT__: JSON.stringify(uiRevision()),
-    ...(local ? { "import.meta.env.VITE_LOCAL_DATA": JSON.stringify("/local-data/") } : {}),
-  },
-  test: {
-    environment: "jsdom",
-    setupFiles: ["./src/test-setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
-  },
-};
+    plugins: [
+      tailwindcss(),
+      react(),
+      ...(local
+        ? [localData(process.env.LOCAL_DATA_DIR || "../data/local-preview")]
+        : []),
+    ],
+    base: process.env.VITE_BASE_PATH || "/",
+    define: {
+      __UI_COMMIT__: JSON.stringify(uiRevision()),
+      ...(local
+        ? { "import.meta.env.VITE_LOCAL_DATA": JSON.stringify("/local-data/") }
+        : {}),
+    },
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./src/test-setup.ts"],
+      include: ["src/**/*.test.{ts,tsx}"],
+    },
+  };
 });

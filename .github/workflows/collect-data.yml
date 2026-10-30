@@ -51,6 +51,9 @@ jobs:
       - name: Run pipeline tests and ingestion
         env:
           GH_TOKEN: ${{ github.token }}
+          # Upstream health reads projects' GitHub Actions; keep one run inside
+          # the hourly GITHUB_TOKEN limit. Daily runs fill the window gradually.
+          UPSTREAM_API_BUDGET: '800'
         run: |
           args=(--sources sources.json --output-dir "$DATA_OUTPUT")
           if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then

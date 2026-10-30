@@ -5,9 +5,19 @@ import type { Fetcher, Session } from "../data";
 const count = z.number().int().nonnegative();
 const time = z
   .string()
-  .refine((value) => Number.isFinite(Date.parse(value)), "Expected an ISO timestamp");
+  .refine(
+    (value) => Number.isFinite(Date.parse(value)),
+    "Expected an ISO timestamp",
+  );
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const states = ["passed", "failed", "other", "stalled", "skipped", "running"] as const;
+const states = [
+  "passed",
+  "failed",
+  "other",
+  "stalled",
+  "skipped",
+  "running",
+] as const;
 
 const cellSchema = z.object({
   passed: count,
@@ -79,7 +89,10 @@ const projectSchema = z.object({
       channel: z.enum(["stable", "nightly", "preview"]).optional(),
     }),
   ),
-  badge: z.object({ state: z.enum(["up", "partial", "down"]), reason: z.string() }),
+  badge: z.object({
+    state: z.enum(["up", "partial", "down"]),
+    reason: z.string(),
+  }),
   kpis: z.object({
     decided: count,
     passed: count,
@@ -90,10 +103,17 @@ const projectSchema = z.object({
   jobs: z.array(jobSchema),
   platforms: z.object({ linux: platformSchema, windows: platformSchema }),
   findings: z.array(
-    z.object({ kind: z.string(), job: z.string().nullable(), head: z.string(), body: z.string() }),
+    z.object({
+      kind: z.string(),
+      job: z.string().nullable(),
+      head: z.string(),
+      body: z.string(),
+    }),
   ),
   coverage: z.object({ complete: z.boolean() }).passthrough(),
-  files: z.array(z.object({ month: z.string(), path: z.string(), run_count: count })),
+  files: z.array(
+    z.object({ month: z.string(), path: z.string(), run_count: count }),
+  ),
 });
 export const upstreamOverviewSchema = z.object({
   schema_version: z.literal(1),
@@ -116,10 +136,13 @@ const runSchema = z.object({
   queue_seconds: count.nullable(),
   runner: z.string().nullable(),
   url: z.string().url(),
-  pr: gateEntry.pick({ number: true, url: true, verdict: true }).extend({
-    author: z.string().nullable().optional(),
-    check_url: z.string().nullable().optional(),
-  }).optional(),
+  pr: gateEntry
+    .pick({ number: true, url: true, verdict: true })
+    .extend({
+      author: z.string().nullable().optional(),
+      check_url: z.string().nullable().optional(),
+    })
+    .optional(),
 });
 const runFileSchema = z.object({
   schema_version: z.literal(1),
@@ -149,9 +172,11 @@ export async function loadUpstream(
   const url = resolveDatasetPath(session.indexUrl, path);
   const data = await readJson(url, upstreamOverviewSchema, fetcher, signal);
   const ids = new Set(data.projects.map((p) => p.id));
-  if (ids.size !== data.projects.length) throw new Error(`${url}: duplicate project ids`);
+  if (ids.size !== data.projects.length)
+    throw new Error(`${url}: duplicate project ids`);
   for (const project of data.projects)
-    for (const chunk of project.files) resolveDatasetPath(session.indexUrl, chunk.path);
+    for (const chunk of project.files)
+      resolveDatasetPath(session.indexUrl, chunk.path);
   return data;
 }
 
@@ -166,8 +191,14 @@ export async function loadRuns(
     project.files.map(async (chunk) => {
       const url = resolveDatasetPath(session.indexUrl, chunk.path);
       const data = await readJson(url, runFileSchema, fetcher, signal);
-      if (data.project !== project.id || data.month !== chunk.month || data.runs.length !== chunk.run_count)
-        throw new Error(`${url}: run file does not match its project, month or count`);
+      if (
+        data.project !== project.id ||
+        data.month !== chunk.month ||
+        data.runs.length !== chunk.run_count
+      )
+        throw new Error(
+          `${url}: run file does not match its project, month or count`,
+        );
       return data.runs;
     }),
   );
@@ -175,7 +206,10 @@ export async function loadRuns(
 }
 
 /** Days of the window, oldest first. */
-export function windowDays(overview: UpstreamOverview, last?: number): string[] {
+export function windowDays(
+  overview: UpstreamOverview,
+  last?: number,
+): string[] {
   const out: string[] = [];
   const end = new Date(`${overview.window.end}T00:00:00Z`);
   for (let i = overview.window.days - 1; i >= 0; i--) {
@@ -187,7 +221,15 @@ export function windowDays(overview: UpstreamOverview, last?: number): string[] 
 }
 
 export function emptyCell(): Cell {
-  return { passed: 0, failed: 0, other: 0, stalled: 0, skipped: 0, running: 0, slow: 0 };
+  return {
+    passed: 0,
+    failed: 0,
+    other: 0,
+    stalled: 0,
+    skipped: 0,
+    running: 0,
+    slow: 0,
+  };
 }
 
 export function sumCells(jobs: Job[], dayKey: string): Cell {
@@ -195,13 +237,16 @@ export function sumCells(jobs: Job[], dayKey: string): Cell {
   for (const job of jobs) {
     const cell = job.daily[dayKey];
     if (!cell) continue;
-    for (const key of Object.keys(total) as (keyof Cell)[]) total[key] += cell[key];
+    for (const key of Object.keys(total) as (keyof Cell)[])
+      total[key] += cell[key];
   }
   return total;
 }
 
 /** Day colour from that day's pass rate, the board's 95% / 80% thresholds. */
-export function cellState(cell: Cell | undefined): "good" | "warn" | "bad" | "stall" | "skip" | "idle" | "none" {
+export function cellState(
+  cell: Cell | undefined,
+): "good" | "warn" | "bad" | "stall" | "skip" | "idle" | "none" {
   if (!cell) return "idle";
   const decided = cell.passed + cell.failed;
   const ran = decided + cell.other + cell.running;
@@ -213,19 +258,28 @@ export function cellState(cell: Cell | undefined): "good" | "warn" | "bad" | "st
 
 /** The filter: everything, one software stack, or one GPU target. */
 export function keepJob(lens: string) {
-  return (job: Job) => lens === "all" || job.stack === lens || job.target === lens;
+  return (job: Job) =>
+    lens === "all" || job.stack === lens || job.target === lens;
 }
 
 export function rate(jobs: Job[]) {
   const decided = jobs.reduce((n, j) => n + j.decided, 0);
   const passed = jobs.reduce((n, j) => n + j.passed, 0);
-  return { decided, passed, pct: decided ? Math.round((100 * passed) / decided) : null };
+  return {
+    decided,
+    passed,
+    pct: decided ? Math.round((100 * passed) / decided) : null,
+  };
 }
 
 export function notRunning(job: Job) {
-  return job.category === "tests" && (job.started === 0 || job.quiet_days.length > 0);
+  return (
+    job.category === "tests" && (job.started === 0 || job.quiet_days.length > 0)
+  );
 }
 
 export function mergedRed(jobs: Job[]) {
-  return new Set(jobs.flatMap((j) => (j.gate ? j.gate.red.map((g) => g.number) : []))).size;
+  return new Set(
+    jobs.flatMap((j) => (j.gate ? j.gate.red.map((g) => g.number) : [])),
+  ).size;
 }

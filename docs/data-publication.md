@@ -26,6 +26,8 @@ that successful dataset, including its original sync status.
 | `rocm/<version>/history/YYYY-MM.json` | All retained build records for that version and calendar month, including engine, channel, date, qualification results, and evidence links. |
 | `rocm/<version>/performance.json` | Model measurement history and hardware for one ROCm version, with workload, metrics, and verified package associations. |
 | `sync.json` | Live ingestion status: attempt time, success/failure, last successful time, and errors. Updated alongside `latest.json` on success and failure. |
+| `upstream/overview.json` | Upstream health: one card per configured project with its computed badge, per-job daily aggregates, merge gate and platforms. Referenced from `index.json` `upstream`. See [Upstream health](upstream-health.md). |
+| `upstream/<project>/ci/YYYY-MM.json` | Every retained default-branch job execution for that project and month, with result, failing step, queue wait, links and merge verdict. |
 
 Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.

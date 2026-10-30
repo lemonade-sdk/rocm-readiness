@@ -175,7 +175,11 @@ button.up-tick {
   outline-offset: -1px;
 }
 .up-skip {
-  background: repeating-linear-gradient(135deg, var(--chart-skip) 0 3px, transparent 3px 6px);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--chart-skip) 0 3px,
+    transparent 3px 6px
+  );
 }
 .up-idle {
   background: var(--chart-track);

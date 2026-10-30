@@ -128,7 +128,9 @@ def validate_projects(config):
             where + "/id",
             "invalid project id",
         )
-        _require(pid not in seen, "projects.json", where + "/id", "duplicate project id")
+        _require(
+            pid not in seen, "projects.json", where + "/id", "duplicate project id"
+        )
         seen.add(pid)
         _require(
             isinstance(project.get("label"), str) and project["label"],
@@ -144,13 +146,19 @@ def validate_projects(config):
             "invalid repository",
         )
         _require(
-            isinstance(project.get("default_branch"), str) and project["default_branch"],
+            isinstance(project.get("default_branch"), str)
+            and project["default_branch"],
             "projects.json",
             where + "/default_branch",
             "missing default branch",
         )
         if "note" in project:
-            _require(isinstance(project["note"], str), "projects.json", where + "/note", "note must be text")
+            _require(
+                isinstance(project["note"], str),
+                "projects.json",
+                where + "/note",
+                "note must be text",
+            )
         if "tag_pattern" in project:
             try:
                 re.compile(project["tag_pattern"])
@@ -220,7 +228,9 @@ def validate_projects(config):
                 jwhere + "/stack",
                 "invalid stack",
             )
-            _require(job.get("os") in OSES, "projects.json", jwhere + "/os", "invalid os")
+            _require(
+                job.get("os") in OSES, "projects.json", jwhere + "/os", "invalid os"
+            )
             _require(
                 isinstance(job.get("target"), str) and job["target"],
                 "projects.json",
@@ -238,7 +248,7 @@ def matcher(spec):
     """Build a job-name predicate from {"name"}, {"prefix"} or {"regex"}."""
     if not isinstance(spec, dict) or len(spec) != 1:
         raise ValueError("match needs exactly one of name, prefix or regex")
-    (kind, value), = spec.items()
+    ((kind, value),) = spec.items()
     if not isinstance(value, str) or not value:
         raise ValueError("match value must be a nonempty string")
     if kind == "name":
@@ -288,6 +298,7 @@ def _runs(fetch, budget, repo, workflow, since, query):
     ``query`` narrows the list server side (``branch=<default>`` or
     ``event=push``). Without it, pull request runs crowd the ten-page cap and the
     oldest default-branch runs of a busy repository silently fall off."""
+
     def url(page):
         return (
             f"{API}/repos/{repo}/actions/workflows/{quote(workflow)}/runs"
@@ -311,12 +322,23 @@ def _runs(fetch, budget, repo, workflow, since, query):
 
 
 def _listed_runs(fetch, budget, project, workflow, since):
-    runs = _runs(fetch, budget, project["repository"], workflow, since,
-                 "branch=" + quote(project["default_branch"], safe=""))
+    runs = _runs(
+        fetch,
+        budget,
+        project["repository"],
+        workflow,
+        since,
+        "branch=" + quote(project["default_branch"], safe=""),
+    )
     if project.get("tag_pattern"):
         seen = {r["id"] for r in runs}
-        runs += [r for r in _runs(fetch, budget, project["repository"], workflow, since, "event=push")
-                 if r["id"] not in seen]
+        runs += [
+            r
+            for r in _runs(
+                fetch, budget, project["repository"], workflow, since, "event=push"
+            )
+            if r["id"] not in seen
+        ]
     return [r for r in runs if _keep_run(r, project)]
 
 
@@ -493,7 +515,9 @@ def load_previous(previous_data):
             except (OSError, ValueError):
                 continue
             for row in data.get("runs", []):
-                runs.setdefault(pid, {})[(row["job"], row["run_id"], row["job_id"])] = row
+                runs.setdefault(pid, {})[
+                    (row["job"], row["run_id"], row["job_id"])
+                ] = row
             scanned.setdefault(pid, set()).update(data.get("scanned_runs", []))
     return runs, scanned, coverage
 
@@ -522,12 +546,24 @@ def _parallel(items, work, workers):
     with ThreadPoolExecutor(max_workers=max(1, min(workers, len(items)))) as pool:
         results = list(pool.map(guarded, items))
     if failures:
-        print(f"  {len(failures)} reads failed, will retry next run: {failures[0]}", flush=True)
+        print(
+            f"  {len(failures)} reads failed, will retry next run: {failures[0]}",
+            flush=True,
+        )
     return results
 
 
-def collect_project(project, fetch, budget, now, window_days, previous, scanned, workers=6,
-                    prior_coverage=None):
+def collect_project(
+    project,
+    fetch,
+    budget,
+    now,
+    window_days,
+    previous,
+    scanned,
+    workers=6,
+    prior_coverage=None,
+):
     """Return (records, scanned run ids, coverage) for one project."""
     since = (now - timedelta(days=window_days - 1)).replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -540,7 +576,12 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
     prior = prior_coverage or {}
     last = _time(prior.get("collected_at"))
     if prior.get("complete") and last and (_time(prior.get("since")) or now) <= since:
-        list_since = max(since, (last - timedelta(days=2)).replace(hour=0, minute=0, second=0, microsecond=0))
+        list_since = max(
+            since,
+            (last - timedelta(days=2)).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ),
+        )
     repo, branch = project["repository"], project["default_branch"]
     specs = [(job, matcher(job["match"])) for job in project.get("jobs", [])]
     by_workflow = {}
@@ -573,11 +614,22 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
     listed_ids = {str(run["id"]) for run, _ in pending} | listed
     workflow_of = {job["id"]: job["workflow"] for job, _ in specs}
     for row in previous.values():
-        if (row.get("status") != "completed" and row["run_id"] not in listed_ids
-                and row["run_id"] not in done and row["job"] in workflow_of):
-            run = {"id": row["run_id"], "created_at": row["created_at"], "event": row["event"],
-                   "head_branch": row["ref"], "head_sha": row["sha"], "run_attempt": row.get("attempt"),
-                   "status": "unknown", "html_url": row["url"]}
+        if (
+            row.get("status") != "completed"
+            and row["run_id"] not in listed_ids
+            and row["run_id"] not in done
+            and row["job"] in workflow_of
+        ):
+            run = {
+                "id": row["run_id"],
+                "created_at": row["created_at"],
+                "event": row["event"],
+                "head_branch": row["ref"],
+                "head_sha": row["sha"],
+                "run_attempt": row.get("attempt"),
+                "status": "unknown",
+                "html_url": row["url"],
+            }
             pending.append((run, by_workflow[workflow_of[row["job"]]]))
             listed_ids.add(row["run_id"])
 
@@ -612,11 +664,19 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
     #    its own checks said on the commit that merged. Only jobs that also run
     #    on pull requests have one; release and nightly jobs never do.
     def gated(run, spec):
-        return (run.get("event") == "push" and run.get("head_branch") == branch
-                and spec["category"] in ("tests", "builds"))
+        return (
+            run.get("event") == "push"
+            and run.get("head_branch") == branch
+            and spec["category"] in ("tests", "builds")
+        )
 
-    shas = sorted({run["head_sha"] for run, rows in new_rows
-                   if any(gated(run, spec) for _, spec, _ in rows)})
+    shas = sorted(
+        {
+            run["head_sha"]
+            for run, rows in new_rows
+            if any(gated(run, spec) for _, spec, _ in rows)
+        }
+    )
     pr_cache, check_cache = {}, {}
     gate_ok = True
     shas_affordable = []
@@ -645,7 +705,9 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
     def read_checks(head):
         return _check_runs(fetch, Budget(3), repo, head, {})
 
-    for head, checks in zip(heads_affordable, _parallel(heads_affordable, read_checks, workers)):
+    for head, checks in zip(
+        heads_affordable, _parallel(heads_affordable, read_checks, workers)
+    ):
         if checks is not None:
             check_cache[head] = checks
 
@@ -658,7 +720,9 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
                 else:
                     pr = pr_cache[run["head_sha"]]
                     if pr and pr["head_sha"] in check_cache:
-                        verdict, check_url = _verdict(check_cache[pr["head_sha"]], match)
+                        verdict, check_url = _verdict(
+                            check_cache[pr["head_sha"]], match
+                        )
                         row["pr"] = {
                             "number": pr["number"],
                             "url": pr["url"],
@@ -672,7 +736,10 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
         # A run is only "done" once its jobs and merge verdicts are settled, so
         # a budget cut never freezes a half-read run.
         settled = run.get("status") == "completed" or (
-            run.get("status") == "unknown" and rows and all(r["status"] == "completed" for r, _, _ in rows))
+            run.get("status") == "unknown"
+            and rows
+            and all(r["status"] == "completed" for r, _, _ in rows)
+        )
         if settled and run_complete:
             done.add(str(run["id"]))
     if complete and gate_ok and list_since == since:
@@ -693,7 +760,9 @@ def collect_project(project, fetch, budget, now, window_days, previous, scanned,
 
 def _days(now, window_days):
     end = now.date()
-    return [(end - timedelta(days=i)).isoformat() for i in range(window_days - 1, -1, -1)]
+    return [
+        (end - timedelta(days=i)).isoformat() for i in range(window_days - 1, -1, -1)
+    ]
 
 
 def _job_summary(job, rows, days):
@@ -702,7 +771,16 @@ def _job_summary(job, rows, days):
         if row["day"] not in days:
             continue
         cell = daily.setdefault(
-            row["day"], {"passed": 0, "failed": 0, "other": 0, "stalled": 0, "skipped": 0, "running": 0, "slow": 0}
+            row["day"],
+            {
+                "passed": 0,
+                "failed": 0,
+                "other": 0,
+                "stalled": 0,
+                "skipped": 0,
+                "running": 0,
+                "slow": 0,
+            },
         )
         cell[row["state"]] += 1
         if (row.get("queue_seconds") or 0) > SLOW_QUEUE_SECONDS:
@@ -710,12 +788,20 @@ def _job_summary(job, rows, days):
     in_window = [r for r in rows if r["day"] in days]
     passed = sum(r["state"] == "passed" for r in in_window)
     failed = sum(r["state"] == "failed" for r in in_window)
-    started = [r for r in in_window if r["state"] in ("passed", "failed", "other", "running")]
-    waits = sorted(r["queue_seconds"] for r in started if r.get("queue_seconds") is not None)
+    started = [
+        r for r in in_window if r["state"] in ("passed", "failed", "other", "running")
+    ]
+    waits = sorted(
+        r["queue_seconds"] for r in started if r.get("queue_seconds") is not None
+    )
     ran_days = sorted({r["day"] for r in started})
     last_ran = ran_days[-1] if ran_days else None
     quiet = sorted(
-        {r["day"] for r in in_window if r["state"] == "stalled" and (last_ran is None or r["day"] > last_ran)}
+        {
+            r["day"]
+            for r in in_window
+            if r["state"] == "stalled" and (last_ran is None or r["day"] > last_ran)
+        }
     )
     steps = {}
     for r in in_window:
@@ -726,14 +812,36 @@ def _job_summary(job, rows, days):
         pr = r.get("pr")
         if not pr:
             continue
-        entry = gate.setdefault(pr["number"], {"number": pr["number"], "url": pr["url"], "author": pr.get("author"),
-                                               "verdict": pr["verdict"], "check_url": pr.get("check_url"),
-                                               "main": None, "main_url": None})
+        entry = gate.setdefault(
+            pr["number"],
+            {
+                "number": pr["number"],
+                "url": pr["url"],
+                "author": pr.get("author"),
+                "verdict": pr["verdict"],
+                "check_url": pr.get("check_url"),
+                "main": None,
+                "main_url": None,
+            },
+        )
         if r["state"] in ("passed", "failed"):
             entry["main"], entry["main_url"] = r["state"], r["url"]
     gate_rows = list(gate.values())
     return {
-        **{k: job[k] for k in ("id", "label", "category", "workflow", "target", "stack", "os", "where", "cadence")},
+        **{
+            k: job[k]
+            for k in (
+                "id",
+                "label",
+                "category",
+                "workflow",
+                "target",
+                "stack",
+                "os",
+                "where",
+                "cadence",
+            )
+        },
         "daily": daily,
         "decided": passed + failed,
         "passed": passed,
@@ -744,26 +852,32 @@ def _job_summary(job, rows, days):
         "quiet_days": quiet,
         "median_queue_seconds": int(median(waits)) if waits else None,
         "failed_steps": dict(sorted(steps.items(), key=lambda kv: -kv[1])[:8]),
-        "gate": None
-        if not gate_rows
-        else {
-            "merged": len(gate_rows),
-            "passed": sum(g["verdict"] == "passed" for g in gate_rows),
-            "failed": sum(g["verdict"] == "failed" for g in gate_rows),
-            "not_triggered": sum(g["verdict"] == "not_triggered" for g in gate_rows),
-            "no_result": sum(g["verdict"] == "no_result" for g in gate_rows),
-            "red": sorted(
-                (g for g in gate_rows if g["verdict"] == "failed"), key=lambda g: -g["number"]
-            ),
-            "escaped": sorted(
-                (
-                    g
-                    for g in gate_rows
-                    if g["verdict"] in ("not_triggered", "no_result") and g["main"] == "failed"
+        "gate": (
+            None
+            if not gate_rows
+            else {
+                "merged": len(gate_rows),
+                "passed": sum(g["verdict"] == "passed" for g in gate_rows),
+                "failed": sum(g["verdict"] == "failed" for g in gate_rows),
+                "not_triggered": sum(
+                    g["verdict"] == "not_triggered" for g in gate_rows
                 ),
-                key=lambda g: -g["number"],
-            ),
-        },
+                "no_result": sum(g["verdict"] == "no_result" for g in gate_rows),
+                "red": sorted(
+                    (g for g in gate_rows if g["verdict"] == "failed"),
+                    key=lambda g: -g["number"],
+                ),
+                "escaped": sorted(
+                    (
+                        g
+                        for g in gate_rows
+                        if g["verdict"] in ("not_triggered", "no_result")
+                        and g["main"] == "failed"
+                    ),
+                    key=lambda g: -g["number"],
+                ),
+            }
+        ),
     }
 
 
@@ -787,7 +901,8 @@ def _badge(jobs, targets):
             "state": "partial",
             "reason": "client hardware is tested on main ("
             + ", ".join(f"{j['label']} on {j['target']}" for j in tested)
-            + ") but no test runs on " + " or ".join(targets),
+            + ") but no test runs on "
+            + " or ".join(targets),
         }
     return {"state": "down", "reason": "no test on main runs on client hardware"}
 
@@ -817,44 +932,59 @@ def _findings(jobs, merged_red):
     out = []
     for j in jobs:
         if j["category"] == "tests" and j["quiet_days"] and j["last_ran"]:
-            out.append({
-                "kind": "not_running",
-                "job": j["id"],
-                "head": f"{j['label']} has not run on a machine since {j['last_ran']}.",
-                "body": f"Work was requested on {len(j['quiet_days'])} days since, and no machine took it. "
-                        "A cancelled job is not a failed one, so nothing in GitHub turns red.",
-            })
+            out.append(
+                {
+                    "kind": "not_running",
+                    "job": j["id"],
+                    "head": f"{j['label']} has not run on a machine since {j['last_ran']}.",
+                    "body": f"Work was requested on {len(j['quiet_days'])} days since, and no machine took it. "
+                    "A cancelled job is not a failed one, so nothing in GitHub turns red.",
+                }
+            )
         elif j["category"] == "tests" and not j["started"] and j["skipped"]:
-            out.append({
-                "kind": "never_ran",
-                "job": j["id"],
-                "head": f"{j['label']} has not run once in the window.",
-                "body": f"It was skipped {j['skipped']} times by its own condition.",
-            })
+            out.append(
+                {
+                    "kind": "never_ran",
+                    "job": j["id"],
+                    "head": f"{j['label']} has not run once in the window.",
+                    "body": f"It was skipped {j['skipped']} times by its own condition.",
+                }
+            )
         steps = j["failed_steps"]
         total = sum(steps.values())
-        if j["category"] == "tests" and total >= 10 and steps.get("Set up job", 0) >= 0.3 * total:
-            out.append({
-                "kind": "runner_health",
-                "job": j["id"],
-                "head": f"{steps['Set up job']} of the {total} failures in {j['label']} happened before any test ran.",
-                "body": "They failed in `Set up job`, so the machine was unhealthy; nothing was tested.",
-            })
+        if (
+            j["category"] == "tests"
+            and total >= 10
+            and steps.get("Set up job", 0) >= 0.3 * total
+        ):
+            out.append(
+                {
+                    "kind": "runner_health",
+                    "job": j["id"],
+                    "head": f"{steps['Set up job']} of the {total} failures in {j['label']} happened before any test ran.",
+                    "body": "They failed in `Set up job`, so the machine was unhealthy; nothing was tested.",
+                }
+            )
         gate = j["gate"]
         if gate and gate["merged"] and gate["not_triggered"] >= 0.5 * gate["merged"]:
-            out.append({
-                "kind": "not_on_pr",
-                "job": j["id"],
-                "head": f"{j['label']} never ran on {gate['not_triggered']} of {gate['merged']} merged pull requests.",
-                "body": f"Those changes met AMD hardware here only after merge; {len(gate['escaped'])} of them then failed on main.",
-            })
+            out.append(
+                {
+                    "kind": "not_on_pr",
+                    "job": j["id"],
+                    "head": f"{j['label']} never ran on {gate['not_triggered']} of {gate['merged']} merged pull requests.",
+                    "body": f"Those changes met AMD hardware here only after merge; {len(gate['escaped'])} of them then failed on main.",
+                }
+            )
     if merged_red:
-        out.insert(0, {
-            "kind": "merged_red",
-            "job": None,
-            "head": f"{merged_red} pull requests were merged with an AMD job failing on the merged commit.",
-            "body": "Each was red on the exact commit that landed.",
-        })
+        out.insert(
+            0,
+            {
+                "kind": "merged_red",
+                "job": None,
+                "head": f"{merged_red} pull requests were merged with an AMD job failing on the merged commit.",
+                "body": "Each was red on the exact commit that landed.",
+            },
+        )
     return out
 
 
@@ -862,7 +992,10 @@ def derive_project(project, rows, days, targets, coverage, files):
     by_job = {}
     for row in rows:
         by_job.setdefault(row["job"], []).append(row)
-    jobs = [_job_summary(job, by_job.get(job["id"], []), set(days)) for job in project.get("jobs", [])]
+    jobs = [
+        _job_summary(job, by_job.get(job["id"], []), set(days))
+        for job in project.get("jobs", [])
+    ]
     decided = sum(j["decided"] for j in jobs)
     passed = sum(j["passed"] for j in jobs)
     red = {g["number"] for j in jobs if j["gate"] for g in j["gate"]["red"]}
@@ -899,7 +1032,9 @@ def write_upstream(destination, config, collected, now, write_json):
     targets = config["client_rule"]["targets"]
     projects = []
     for project in config["projects"]:
-        rows, scanned, coverage = collected.get(project["id"], ([], set(), {"complete": True}))
+        rows, scanned, coverage = collected.get(
+            project["id"], ([], set(), {"complete": True})
+        )
         rows = [r for r in rows if r["day"] >= days[0]]
         months = {}
         for row in rows:
@@ -911,7 +1046,9 @@ def write_upstream(destination, config, collected, now, write_json):
         months.setdefault(newest, [])
         files = []
         for month in sorted(months, reverse=True):
-            chunk = sorted(months[month], key=lambda r: (r["created_at"], r["job"], r["job_id"]))
+            chunk = sorted(
+                months[month], key=lambda r: (r["created_at"], r["job"], r["job_id"])
+            )
             if not chunk and month != newest:
                 continue
             relative = f"upstream/{project['id']}/ci/{month}.json"
@@ -944,8 +1081,16 @@ def write_upstream(destination, config, collected, now, write_json):
     }
 
 
-def collect_upstream(config, destination, fetch, now, write_json, previous_data=None, budget_calls=800,
-                     workers=6):
+def collect_upstream(
+    config,
+    destination,
+    fetch,
+    now,
+    write_json,
+    previous_data=None,
+    budget_calls=800,
+    workers=6,
+):
     """Collect and write the upstream view. Never raises for API trouble: a
     project that cannot be read keeps its previous records and is marked
     incomplete, because readiness publication must not depend on it."""
@@ -971,13 +1116,21 @@ def collect_upstream(config, destination, fetch, now, write_json, previous_data=
         budget = Budget(max(0, budget_calls - used) // left)
         try:
             collected[pid] = collect_project(
-                project, counted, budget, now, config["window_days"],
-                previous.get(pid, {}), scanned.get(pid, set()), workers=workers,
+                project,
+                counted,
+                budget,
+                now,
+                config["window_days"],
+                previous.get(pid, {}),
+                scanned.get(pid, set()),
+                workers=workers,
                 prior_coverage=prior_coverage.get(pid),
             )
         except (OSError, ValueError, KeyError, TypeError) as error:
             errors.append(
-                PipelineValidationError("upstream", pid, "collect", f"{type(error).__name__}: {error}").diagnostic
+                PipelineValidationError(
+                    "upstream", pid, "collect", f"{type(error).__name__}: {error}"
+                ).diagnostic
             )
             collected[pid] = (
                 list(previous.get(pid, {}).values()),
@@ -986,9 +1139,12 @@ def collect_upstream(config, destination, fetch, now, write_json, previous_data=
             )
         used += budget.used
         rows, _, coverage = collected[pid]
-        print(f"upstream {pid}: {len(rows)} job records, "
-              f"{'complete' if coverage.get('complete') else 'partial'}, "
-              f"{calls[0]} API calls so far", flush=True)
+        print(
+            f"upstream {pid}: {len(rows)} job records, "
+            f"{'complete' if coverage.get('complete') else 'partial'}, "
+            f"{calls[0]} API calls so far",
+            flush=True,
+        )
     entry = write_upstream(destination, config, collected, now, write_json)
     entry["api_calls"] = calls[0]
     if errors:
@@ -1018,11 +1174,21 @@ def _count(value):
 
 
 def _read(root, relative):
-    _ok(_safe_relative(relative), relative, "/", "upstream paths must stay inside the dataset")
+    _ok(
+        _safe_relative(relative),
+        relative,
+        "/",
+        "upstream paths must stay inside the dataset",
+    )
     target = root
     for part in PurePosixPath(relative).parts:
         target = target / part
-        _ok(not target.is_symlink(), relative, "/", "upstream paths cannot contain symlinks")
+        _ok(
+            not target.is_symlink(),
+            relative,
+            "/",
+            "upstream paths cannot contain symlinks",
+        )
     try:
         value = json.loads(
             target.read_text(encoding="utf-8"),
@@ -1038,85 +1204,197 @@ def validate_upstream_dataset(root, entry):
     """Validate the upstream view referenced by ``index.json`` and return its paths."""
     root = Path(root).resolve()
     _ok(isinstance(entry, dict), "index.json", "/upstream", "expected object")
-    _ok(entry.get("schema_version") == SCHEMA_VERSION, "index.json", "/upstream/schema_version",
-        "expected upstream schema version 1")
-    _ok(entry.get("overview") == "upstream/overview.json", "index.json", "/upstream/overview",
-        "upstream overview lives at upstream/overview.json")
-    _ok(entry.get("status") in ("fresh", "partial"), "index.json", "/upstream/status",
-        "expected fresh or partial")
-    _ok(_count(entry.get("project_count")), "index.json", "/upstream/project_count",
-        "expected nonnegative project count")
+    _ok(
+        entry.get("schema_version") == SCHEMA_VERSION,
+        "index.json",
+        "/upstream/schema_version",
+        "expected upstream schema version 1",
+    )
+    _ok(
+        entry.get("overview") == "upstream/overview.json",
+        "index.json",
+        "/upstream/overview",
+        "upstream overview lives at upstream/overview.json",
+    )
+    _ok(
+        entry.get("status") in ("fresh", "partial"),
+        "index.json",
+        "/upstream/status",
+        "expected fresh or partial",
+    )
+    _ok(
+        _count(entry.get("project_count")),
+        "index.json",
+        "/upstream/project_count",
+        "expected nonnegative project count",
+    )
     paths = {entry["overview"]}
     overview = _read(root, entry["overview"])
     where = entry["overview"]
-    _ok(overview.get("schema_version") == SCHEMA_VERSION, where, "/schema_version", "expected 1")
-    _ok(_time(overview.get("generated_at")) is not None, where, "/generated_at", "expected timestamp")
+    _ok(
+        overview.get("schema_version") == SCHEMA_VERSION,
+        where,
+        "/schema_version",
+        "expected 1",
+    )
+    _ok(
+        _time(overview.get("generated_at")) is not None,
+        where,
+        "/generated_at",
+        "expected timestamp",
+    )
     window = overview.get("window") or {}
     _ok(
-        isinstance(window.get("start"), str) and isinstance(window.get("end"), str)
-        and type(window.get("days")) is int and window["start"] <= window["end"],
-        where, "/window", "expected start, end and days",
+        isinstance(window.get("start"), str)
+        and isinstance(window.get("end"), str)
+        and type(window.get("days")) is int
+        and window["start"] <= window["end"],
+        where,
+        "/window",
+        "expected start, end and days",
     )
     projects = overview.get("projects")
-    _ok(isinstance(projects, list) and len(projects) == entry["project_count"], where, "/projects",
-        "project list must match the catalog count")
+    _ok(
+        isinstance(projects, list) and len(projects) == entry["project_count"],
+        where,
+        "/projects",
+        "project list must match the catalog count",
+    )
     seen = set()
     for pos, project in enumerate(projects):
         at = f"/projects/{pos}"
         pid = project.get("id")
-        _ok(isinstance(pid, str) and PROJECT_ID.fullmatch(pid) and pid not in seen, where, at + "/id",
-            "project ids must be unique slugs")
+        _ok(
+            isinstance(pid, str) and PROJECT_ID.fullmatch(pid) and pid not in seen,
+            where,
+            at + "/id",
+            "project ids must be unique slugs",
+        )
         seen.add(pid)
-        _ok((project.get("badge") or {}).get("state") in BADGES, where, at + "/badge", "invalid badge")
+        _ok(
+            (project.get("badge") or {}).get("state") in BADGES,
+            where,
+            at + "/badge",
+            "invalid badge",
+        )
         jobs = project.get("jobs")
         _ok(isinstance(jobs, list), where, at + "/jobs", "expected jobs")
         job_ids = set()
         for jpos, job in enumerate(jobs):
             jat = f"{at}/jobs/{jpos}"
-            _ok(job.get("category") in CATEGORIES and job.get("stack") in STACKS and job.get("os") in OSES,
-                where, jat, "invalid job classification")
+            _ok(
+                job.get("category") in CATEGORIES
+                and job.get("stack") in STACKS
+                and job.get("os") in OSES,
+                where,
+                jat,
+                "invalid job classification",
+            )
             job_ids.add(job.get("id"))
             daily = job.get("daily")
-            _ok(isinstance(daily, dict), where, jat + "/daily", "expected daily aggregates")
+            _ok(
+                isinstance(daily, dict),
+                where,
+                jat + "/daily",
+                "expected daily aggregates",
+            )
             passed = failed = 0
             for day, cell in daily.items():
-                _ok(window["start"] <= day <= window["end"], where, f"{jat}/daily/{day}", "day outside window")
-                _ok(all(_count(cell.get(k)) for k in STATES + ("slow",)), where, f"{jat}/daily/{day}",
-                    "expected nonnegative state counts")
+                _ok(
+                    window["start"] <= day <= window["end"],
+                    where,
+                    f"{jat}/daily/{day}",
+                    "day outside window",
+                )
+                _ok(
+                    all(_count(cell.get(k)) for k in STATES + ("slow",)),
+                    where,
+                    f"{jat}/daily/{day}",
+                    "expected nonnegative state counts",
+                )
                 passed += cell["passed"]
                 failed += cell["failed"]
-            _ok(job.get("passed") == passed and job.get("decided") == passed + failed, where, jat,
-                "job totals must equal its daily aggregates")
+            _ok(
+                job.get("passed") == passed and job.get("decided") == passed + failed,
+                where,
+                jat,
+                "job totals must equal its daily aggregates",
+            )
         kpis = project.get("kpis") or {}
-        _ok(kpis.get("decided") == sum(j["decided"] for j in jobs)
-            and kpis.get("passed") == sum(j["passed"] for j in jobs), where, at + "/kpis",
-            "project totals must equal its jobs")
+        _ok(
+            kpis.get("decided") == sum(j["decided"] for j in jobs)
+            and kpis.get("passed") == sum(j["passed"] for j in jobs),
+            where,
+            at + "/kpis",
+            "project totals must equal its jobs",
+        )
         for fpos, chunk in enumerate(project.get("files") or []):
             relative = chunk.get("path")
             match = FILE_PATH.fullmatch(relative or "")
-            _ok(match is not None and match.group(1) == pid and match.group(2) == chunk.get("month"),
-                where, f"{at}/files/{fpos}", "file path must be upstream/<project>/ci/<month>.json")
+            _ok(
+                match is not None
+                and match.group(1) == pid
+                and match.group(2) == chunk.get("month"),
+                where,
+                f"{at}/files/{fpos}",
+                "file path must be upstream/<project>/ci/<month>.json",
+            )
             data = _read(root, relative)
             paths.add(relative)
-            _ok(data.get("schema_version") == SCHEMA_VERSION and data.get("project") == pid
-                and data.get("month") == chunk["month"], relative, "/", "file identity does not match")
+            _ok(
+                data.get("schema_version") == SCHEMA_VERSION
+                and data.get("project") == pid
+                and data.get("month") == chunk["month"],
+                relative,
+                "/",
+                "file identity does not match",
+            )
             runs = data.get("runs")
-            _ok(isinstance(runs, list) and len(runs) == chunk.get("run_count"), relative, "/runs",
-                "run count does not match the overview")
+            _ok(
+                isinstance(runs, list) and len(runs) == chunk.get("run_count"),
+                relative,
+                "/runs",
+                "run count does not match the overview",
+            )
             keys = set()
             for rpos, run in enumerate(runs):
                 rat = f"/runs/{rpos}"
                 key = (run.get("job"), run.get("run_id"), run.get("job_id"))
                 _ok(key not in keys, relative, rat, "duplicate run record")
                 keys.add(key)
-                _ok(run.get("job") in job_ids, relative, rat + "/job", "run names an unknown job")
-                _ok(run.get("state") in STATES, relative, rat + "/state", "invalid state")
-                _ok(isinstance(run.get("day"), str) and run["day"][:7] == chunk["month"], relative,
-                    rat + "/day", "run is filed under the wrong month")
-                _ok(isinstance(run.get("url"), str) and run["url"].startswith("https://github.com/"),
-                    relative, rat + "/url", "expected a GitHub link")
+                _ok(
+                    run.get("job") in job_ids,
+                    relative,
+                    rat + "/job",
+                    "run names an unknown job",
+                )
+                _ok(
+                    run.get("state") in STATES,
+                    relative,
+                    rat + "/state",
+                    "invalid state",
+                )
+                _ok(
+                    isinstance(run.get("day"), str)
+                    and run["day"][:7] == chunk["month"],
+                    relative,
+                    rat + "/day",
+                    "run is filed under the wrong month",
+                )
+                _ok(
+                    isinstance(run.get("url"), str)
+                    and run["url"].startswith("https://github.com/"),
+                    relative,
+                    rat + "/url",
+                    "expected a GitHub link",
+                )
                 if run.get("pr") is not None:
-                    _ok(run["pr"].get("verdict") in VERDICTS, relative, rat + "/pr/verdict", "invalid verdict")
+                    _ok(
+                        run["pr"].get("verdict") in VERDICTS,
+                        relative,
+                        rat + "/pr/verdict",
+                        "invalid verdict",
+                    )
     return paths
 
 
@@ -1148,17 +1426,26 @@ def main(argv=None):
         from collect import fetch_json, write_json
 
     root = Path(__file__).resolve().parents[1]
-    parser = argparse.ArgumentParser(description=main.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=main.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--projects", type=Path, default=root / "projects.json")
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--seed-from", type=Path, help="published dataset to copy readiness files from")
-    parser.add_argument("--budget", type=int, default=int(os.environ.get("UPSTREAM_API_BUDGET", "800")))
+    parser.add_argument(
+        "--seed-from", type=Path, help="published dataset to copy readiness files from"
+    )
+    parser.add_argument(
+        "--budget", type=int, default=int(os.environ.get("UPSTREAM_API_BUDGET", "800"))
+    )
     parser.add_argument("--workers", type=int, default=6)
     args = parser.parse_args(argv)
     out = args.output_dir
     if not (out / "index.json").exists():
         if not args.seed_from:
-            print(f"{out}/index.json is missing; pass --seed-from <published data dir>", file=sys.stderr)
+            print(
+                f"{out}/index.json is missing; pass --seed-from <published data dir>",
+                file=sys.stderr,
+            )
             return 1
         out.mkdir(parents=True, exist_ok=True)
         for name in ("index.json", "latest.json", "sync.json"):
@@ -1170,13 +1457,21 @@ def main(argv=None):
     index = json.loads((out / "index.json").read_text(encoding="utf-8"))
     config = json.loads(args.projects.read_text(encoding="utf-8"))
     entry = collect_upstream(
-        config, out, fetch=fetch_json, now=datetime.now(timezone.utc), write_json=write_json,
-        previous_data=out, budget_calls=args.budget, workers=args.workers,
+        config,
+        out,
+        fetch=fetch_json,
+        now=datetime.now(timezone.utc),
+        write_json=write_json,
+        previous_data=out,
+        budget_calls=args.budget,
+        workers=args.workers,
     )
     index["upstream"] = entry
     write_json(out / "index.json", index)
     validate_upstream_dataset(out, entry)
-    print(f"upstream: {entry['project_count']} projects, {entry['status']}, {entry['api_calls']} API calls")
+    print(
+        f"upstream: {entry['project_count']} projects, {entry['status']}, {entry['api_calls']} API calls"
+    )
     for error in entry.get("errors", []):
         print(f"  error: {error}", file=sys.stderr)
     return 0

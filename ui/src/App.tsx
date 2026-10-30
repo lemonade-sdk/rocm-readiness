@@ -126,8 +126,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     if (!session) return;
     const controller = new AbortController();
     loadUpstream(session, fetcher, controller.signal)
-      .then((data) => !controller.signal.aborted && setUpstream({ session, data }))
-      .catch(() => !controller.signal.aborted && setUpstream({ session, data: null }));
+      .then(
+        (data) => !controller.signal.aborted && setUpstream({ session, data }),
+      )
+      .catch(
+        () =>
+          !controller.signal.aborted && setUpstream({ session, data: null }),
+      );
     return () => controller.abort();
   }, [session, fetcher]);
 
@@ -332,184 +337,196 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </p>
           </div>
         )}
-        {track === "readiness" && overview && (!viewValid || !platformValid) && (
-          <div className="notice" role="alert">
-            <h1>Unavailable view or platform</h1>
-            <p>
-              This URL requests a view or platform outside the selected dataset.
-            </p>
-            <Link to={`?version=${encodeURIComponent(selected)}&view=overview`}>
-              Return to this version’s overview
-            </Link>
-          </div>
-        )}
+        {track === "readiness" &&
+          overview &&
+          (!viewValid || !platformValid) && (
+            <div className="notice" role="alert">
+              <h1>Unavailable view or platform</h1>
+              <p>
+                This URL requests a view or platform outside the selected
+                dataset.
+              </p>
+              <Link
+                to={`?version=${encodeURIComponent(selected)}&view=overview`}
+              >
+                Return to this version’s overview
+              </Link>
+            </div>
+          )}
         {track === "readiness" &&
           session &&
           overview &&
           viewValid &&
           platformValid && (
-          <>
-            <div
-              className={view === "overview" ? "hero overview-hero" : "hero"}
-            >
-              <div>
-                {view !== "overview" && (
-                  <div className="eyebrow">ROCm / STABLE RELEASES</div>
-                )}
-                <h1>
-                  {view === "overview"
-                    ? `ROCm ${overview.rocm_version} readiness`
-                    : view === "engine"
-                      ? "llama.cpp builds"
-                      : view === "build"
-                        ? "Build evidence"
-                        : "Model performance"}
-                </h1>
-                <p>
-                  {view === "overview"
-                    ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
-                    : "Build qualification and model performance, grounded in published evidence."}
-                </p>
-              </div>
-              {view !== "overview" && (
-                <span className="release-pill">
-                  ROCm {overview.rocm_version}
-                </span>
-              )}
-            </div>
-            <nav className="view-tabs" aria-label="Dashboard views">
-              <Link
-                aria-current={view === "overview" ? "page" : undefined}
-                to={href("overview")}
+            <>
+              <div
+                className={view === "overview" ? "hero overview-hero" : "hero"}
               >
-                Overview
-              </Link>
-              <Link
-                aria-current={
-                  ["engine", "build"].includes(view) ? "page" : undefined
-                }
-                to={href("engine")}
-              >
-                Engine builds
-              </Link>
-              <Link
-                aria-current={
-                  ["performance", "model"].includes(view) ? "page" : undefined
-                }
-                to={href("performance")}
-              >
-                Model performance
-              </Link>
-            </nav>
-            {view === "overview" && (
-              <>
-                <EngineOverview
-                  engines={engines}
-                  version={selected}
-                  history={history?.session === session ? history.builds : null}
-                />
-                <ChannelLanes
-                  sources={session.index.sources ?? []}
-                  engines={overview.engines}
-                  version={selected}
-                  upstream={upstream?.session === session ? upstream.data : null}
-                />
-                {!busy &&
-                  !error &&
-                  history?.session === session &&
-                  history.error && (
-                    <div className="notice error" role="alert">
-                      <p>{history.error}</p>
-                      <button onClick={refreshData}>Retry history</button>
-                    </div>
+                <div>
+                  {view !== "overview" && (
+                    <div className="eyebrow">ROCm / STABLE RELEASES</div>
                   )}
-              </>
-            )}
-            {["engine", "build"].includes(view) &&
-              (history?.session === session && history.error ? (
-                <div className="notice error" role="alert">
-                  <p>{history.error}</p>
-                  <button onClick={refreshData}>Retry history</button>
+                  <h1>
+                    {view === "overview"
+                      ? `ROCm ${overview.rocm_version} readiness`
+                      : view === "engine"
+                        ? "llama.cpp builds"
+                        : view === "build"
+                          ? "Build evidence"
+                          : "Model performance"}
+                  </h1>
+                  <p>
+                    {view === "overview"
+                      ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                      : "Build qualification and model performance, grounded in published evidence."}
+                  </p>
                 </div>
-              ) : (
-                <div onClick={handleLocalNavigation}>
-                  {view === "engine" && params.get("build") && (
-                    <div className="notice">
-                      <p>Selected stable build: {params.get("build")}</p>
-                      <Link
-                        to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
-                      >
-                        Show all engine builds
-                      </Link>
-                    </div>
-                  )}
-                  <BuildBrowser
-                    session={session}
+                {view !== "overview" && (
+                  <span className="release-pill">
+                    ROCm {overview.rocm_version}
+                  </span>
+                )}
+              </div>
+              <nav className="view-tabs" aria-label="Dashboard views">
+                <Link
+                  aria-current={view === "overview" ? "page" : undefined}
+                  to={href("overview")}
+                >
+                  Overview
+                </Link>
+                <Link
+                  aria-current={
+                    ["engine", "build"].includes(view) ? "page" : undefined
+                  }
+                  to={href("engine")}
+                >
+                  Engine builds
+                </Link>
+                <Link
+                  aria-current={
+                    ["performance", "model"].includes(view) ? "page" : undefined
+                  }
+                  to={href("performance")}
+                >
+                  Model performance
+                </Link>
+              </nav>
+              {view === "overview" && (
+                <>
+                  <EngineOverview
+                    engines={engines}
+                    version={selected}
                     history={
-                      history?.session === session
-                        ? (history.builds?.filter(
-                            (build) =>
-                              view !== "engine" ||
-                              !params.get("build") ||
-                              (build.build_id === params.get("build") &&
-                                (!params.get("source") ||
-                                  build.source_id === params.get("source")) &&
-                                (!params.get("engine") ||
-                                  build.engine === params.get("engine")) &&
-                                (!params.get("channel") ||
-                                  build.channel === params.get("channel"))),
-                          ) ?? null)
-                        : null
-                    }
-                    platform={platform}
-                    selectedBuildId={
-                      view === "build" ? params.get("build") || "" : null
-                    }
-                    selectedSourceId={params.get("source") || null}
-                    query={params.get("build_filter") ?? ""}
-                    onQueryChange={(query) => {
-                      const next = new URLSearchParams(params);
-                      if (query) next.set("build_filter", query);
-                      else next.delete("build_filter");
-                      setParams(next, { replace: true });
-                    }}
-                    onPlatformChange={changePlatform}
-                    buildHref={(build) =>
-                      href("build", {
-                        build: build.build_id,
-                        platform: build.os,
-                        ...(build.source_id ? { source: build.source_id } : {}),
-                      })
+                      history?.session === session ? history.builds : null
                     }
                   />
+                  <ChannelLanes
+                    sources={session.index.sources ?? []}
+                    engines={overview.engines}
+                    version={selected}
+                    upstream={
+                      upstream?.session === session ? upstream.data : null
+                    }
+                  />
+                  {!busy &&
+                    !error &&
+                    history?.session === session &&
+                    history.error && (
+                      <div className="notice error" role="alert">
+                        <p>{history.error}</p>
+                        <button onClick={refreshData}>Retry history</button>
+                      </div>
+                    )}
+                </>
+              )}
+              {["engine", "build"].includes(view) &&
+                (history?.session === session && history.error ? (
+                  <div className="notice error" role="alert">
+                    <p>{history.error}</p>
+                    <button onClick={refreshData}>Retry history</button>
+                  </div>
+                ) : (
+                  <div onClick={handleLocalNavigation}>
+                    {view === "engine" && params.get("build") && (
+                      <div className="notice">
+                        <p>Selected stable build: {params.get("build")}</p>
+                        <Link
+                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
+                        >
+                          Show all engine builds
+                        </Link>
+                      </div>
+                    )}
+                    <BuildBrowser
+                      session={session}
+                      history={
+                        history?.session === session
+                          ? (history.builds?.filter(
+                              (build) =>
+                                view !== "engine" ||
+                                !params.get("build") ||
+                                (build.build_id === params.get("build") &&
+                                  (!params.get("source") ||
+                                    build.source_id === params.get("source")) &&
+                                  (!params.get("engine") ||
+                                    build.engine === params.get("engine")) &&
+                                  (!params.get("channel") ||
+                                    build.channel === params.get("channel"))),
+                            ) ?? null)
+                          : null
+                      }
+                      platform={platform}
+                      selectedBuildId={
+                        view === "build" ? params.get("build") || "" : null
+                      }
+                      selectedSourceId={params.get("source") || null}
+                      query={params.get("build_filter") ?? ""}
+                      onQueryChange={(query) => {
+                        const next = new URLSearchParams(params);
+                        if (query) next.set("build_filter", query);
+                        else next.delete("build_filter");
+                        setParams(next, { replace: true });
+                      }}
+                      onPlatformChange={changePlatform}
+                      buildHref={(build) =>
+                        href("build", {
+                          build: build.build_id,
+                          platform: build.os,
+                          ...(build.source_id
+                            ? { source: build.source_id }
+                            : {}),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              {["performance", "model"].includes(view) && (
+                <div onClick={handleLocalNavigation}>
+                  <PerformanceView
+                    session={session}
+                    params={params}
+                    onNavigate={(next) => setParams(next)}
+                    buildHref={(id, os) => {
+                      const candidates =
+                        history?.session === session
+                          ? history.builds?.filter(
+                              (build) =>
+                                build.build_id === id && build.os === os,
+                            )
+                          : [];
+                      return href("build", {
+                        build: id,
+                        platform: os,
+                        ...(candidates?.length === 1 && candidates[0].source_id
+                          ? { source: candidates[0].source_id }
+                          : {}),
+                      });
+                    }}
+                  />
                 </div>
-              ))}
-            {["performance", "model"].includes(view) && (
-              <div onClick={handleLocalNavigation}>
-                <PerformanceView
-                  session={session}
-                  params={params}
-                  onNavigate={(next) => setParams(next)}
-                  buildHref={(id, os) => {
-                    const candidates =
-                      history?.session === session
-                        ? history.builds?.filter(
-                            (build) => build.build_id === id && build.os === os,
-                          )
-                        : [];
-                    return href("build", {
-                      build: id,
-                      platform: os,
-                      ...(candidates?.length === 1 && candidates[0].source_id
-                        ? { source: candidates[0].source_id }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
         <footer>
           <div>
             <p>

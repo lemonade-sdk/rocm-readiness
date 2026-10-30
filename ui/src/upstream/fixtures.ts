@@ -1,6 +1,10 @@
 import { fixtureFetch, index, indexUrl } from "../fixtures";
 
-const cell = (passed: number, failed = 0, extra: Record<string, number> = {}) => ({
+const cell = (
+  passed: number,
+  failed = 0,
+  extra: Record<string, number> = {},
+) => ({
   passed,
   failed,
   other: 0,
@@ -37,9 +41,24 @@ export const upstreamOverview = {
       label: "llama.cpp",
       repository: "ggml-org/llama.cpp",
       default_branch: "master",
-      forks: [{ repository: "lemonade-sdk/llama.cpp", role: "ROCm stable builds", channel: "stable" }],
-      badge: { state: "up", reason: "tested on main on gfx1201 (models-check rocm)" },
-      kpis: { decided: 12, passed: 9, pass_rate: 75, not_running: 1, merged_red: 1 },
+      forks: [
+        {
+          repository: "lemonade-sdk/llama.cpp",
+          role: "ROCm stable builds",
+          channel: "stable",
+        },
+      ],
+      badge: {
+        state: "up",
+        reason: "tested on main on gfx1201 (models-check rocm)",
+      },
+      kpis: {
+        decided: 12,
+        passed: 9,
+        pass_rate: 75,
+        not_running: 1,
+        merged_red: 1,
+      },
       jobs: [
         job({
           id: "gpu-rocm",
@@ -48,7 +67,10 @@ export const upstreamOverview = {
           target: "gfx1151",
           stack: "rocm",
           os: "linux",
-          daily: { "2026-10-27": cell(3, 1), "2026-10-29": cell(0, 0, { stalled: 2 }) },
+          daily: {
+            "2026-10-27": cell(3, 1),
+            "2026-10-29": cell(0, 0, { stalled: 2 }),
+          },
           decided: 4,
           passed: 3,
           started: 4,
@@ -70,7 +92,8 @@ export const upstreamOverview = {
                 verdict: "failed",
                 check_url: "https://github.com/ggml-org/llama.cpp/runs/9",
                 main: "failed",
-                main_url: "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
+                main_url:
+                  "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
               },
             ],
             escaped: [],
@@ -91,14 +114,37 @@ export const upstreamOverview = {
         }),
       ],
       platforms: {
-        linux: { built: true, built_rate: null, tested: true, tested_rate: 75, shipped: "ubuntu-rocm archive" },
-        windows: { built: false, built_rate: null, tested: false, tested_rate: null, shipped: "win-rocm archive" },
+        linux: {
+          built: true,
+          built_rate: null,
+          tested: true,
+          tested_rate: 75,
+          shipped: "ubuntu-rocm archive",
+        },
+        windows: {
+          built: false,
+          built_rate: null,
+          tested: false,
+          tested_rate: null,
+          shipped: "win-rocm archive",
+        },
       },
       findings: [
-        { kind: "not_running", job: "gpu-rocm", head: "gpu-rocm has not run on a machine since 2026-10-27.", body: "Nothing turns red." },
+        {
+          kind: "not_running",
+          job: "gpu-rocm",
+          head: "gpu-rocm has not run on a machine since 2026-10-27.",
+          body: "Nothing turns red.",
+        },
       ],
       coverage: { complete: true },
-      files: [{ month: "2026-10", path: "upstream/llamacpp/ci/2026-10.json", run_count: 2 }],
+      files: [
+        {
+          month: "2026-10",
+          path: "upstream/llamacpp/ci/2026-10.json",
+          run_count: 2,
+        },
+      ],
     },
     {
       id: "vllm",
@@ -107,12 +153,33 @@ export const upstreamOverview = {
       default_branch: "main",
       note: "No Radeon or Ryzen AI GPU is tested upstream.",
       forks: [],
-      badge: { state: "down", reason: "No Radeon or Ryzen AI GPU is tested upstream." },
-      kpis: { decided: 0, passed: 0, pass_rate: null, not_running: 0, merged_red: 0 },
+      badge: {
+        state: "down",
+        reason: "No Radeon or Ryzen AI GPU is tested upstream.",
+      },
+      kpis: {
+        decided: 0,
+        passed: 0,
+        pass_rate: null,
+        not_running: 0,
+        merged_red: 0,
+      },
       jobs: [],
       platforms: {
-        linux: { built: false, built_rate: null, tested: false, tested_rate: null, shipped: null },
-        windows: { built: false, built_rate: null, tested: false, tested_rate: null, shipped: null },
+        linux: {
+          built: false,
+          built_rate: null,
+          tested: false,
+          tested_rate: null,
+          shipped: null,
+        },
+        windows: {
+          built: false,
+          built_rate: null,
+          tested: false,
+          tested_rate: null,
+          shipped: null,
+        },
       },
       findings: [],
       coverage: { complete: true },
@@ -140,7 +207,12 @@ export const upstreamRuns = {
       queue_seconds: 30,
       runner: "box",
       url: "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
-      pr: { number: 501, url: "https://github.com/ggml-org/llama.cpp/pull/501", verdict: "failed", author: "dev" },
+      pr: {
+        number: 501,
+        url: "https://github.com/ggml-org/llama.cpp/pull/501",
+        verdict: "failed",
+        author: "dev",
+      },
     },
     {
       job: "gpu-rocm",
@@ -164,7 +236,12 @@ export function upstreamFetch(extra: Record<string, unknown> = {}) {
   return fixtureFetch({
     [indexUrl]: {
       ...index,
-      upstream: { schema_version: 1, overview: "upstream/overview.json", project_count: 2, status: "fresh" },
+      upstream: {
+        schema_version: 1,
+        overview: "upstream/overview.json",
+        project_count: 2,
+        status: "fresh",
+      },
     },
     [new URL("upstream/overview.json", indexUrl).href]: upstreamOverview,
     [new URL("upstream/llamacpp/ci/2026-10.json", indexUrl).href]: upstreamRuns,

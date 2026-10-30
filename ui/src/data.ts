@@ -8,7 +8,8 @@ export const POINTER_URL =
  * of the published pointer, so a locally collected dataset can be inspected
  * before it is published. Production builds never set it.
  */
-export const LOCAL_DATA: string | undefined = import.meta.env?.VITE_LOCAL_DATA || undefined;
+export const LOCAL_DATA: string | undefined =
+  import.meta.env?.VITE_LOCAL_DATA || undefined;
 const time = z
   .string()
   .refine(
@@ -300,7 +301,8 @@ export async function loadSession(
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
 ): Promise<Session> {
-  if (LOCAL_DATA) return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer);
+  if (LOCAL_DATA)
+    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer);
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -355,7 +357,10 @@ async function loadLocalSession(
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
 ): Promise<Session> {
-  const base = new URL(root.endsWith("/") ? root : `${root}/`, window.location.href);
+  const base = new URL(
+    root.endsWith("/") ? root : `${root}/`,
+    window.location.href,
+  );
   const indexUrl = new URL("index.json", base).href;
   const index = await read(indexUrl, indexSchema, fetcher, signal);
   const raw = index as { sync?: Sync };
@@ -371,7 +376,13 @@ async function loadLocalSession(
     },
   };
   onPointer?.(pointer);
-  const session: Session = { pointer, index, indexUrl, version: null, overview: null };
+  const session: Session = {
+    pointer,
+    index,
+    indexUrl,
+    version: null,
+    overview: null,
+  };
   const selected = version || index.default_version;
   return selected ? loadVersion(session, selected, fetcher, signal) : session;
 }

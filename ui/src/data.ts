@@ -8,8 +8,10 @@ export const POINTER_URL =
  * of the published pointer, so a locally collected dataset can be inspected
  * before it is published. Production builds never set it.
  */
-export const LOCAL_DATA: string | undefined =
-  import.meta.env?.VITE_LOCAL_DATA || undefined;
+declare const __LOCAL_DATA__: string | null;
+export const LOCAL_DATA: string | null = import.meta.env.DEV
+  ? __LOCAL_DATA__
+  : null;
 const time = z
   .string()
   .refine(

@@ -69,9 +69,9 @@ export default defineConfig(({ mode }) => {
     base: process.env.VITE_BASE_PATH || "/",
     define: {
       __UI_COMMIT__: JSON.stringify(uiRevision()),
-      ...(local
-        ? { "import.meta.env.VITE_LOCAL_DATA": JSON.stringify("/local-data/") }
-        : {}),
+      // Dev-only switch; not a VITE_ variable, so no build environment
+      // can turn it on.
+      __LOCAL_DATA__: JSON.stringify(local ? "/local-data/" : null),
     },
     test: {
       environment: "jsdom",

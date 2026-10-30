@@ -45,8 +45,9 @@ export function ChannelLanes({
         ?.forks.filter((f) => !read.has(f.repository)) ?? [];
     return { engine, label, feeds, builds, forks };
   });
-  if (!lanes.some((lane) => lane.feeds.length || lane.forks.length))
-    return null;
+  // An engine with no feeds and no forks has nothing to show here.
+  const shown = lanes.filter((lane) => lane.feeds.length || lane.forks.length);
+  if (!shown.length) return null;
   return (
     <section className="card channel-lanes" aria-label="Channels and forks">
       <h2>Channels and forks</h2>
@@ -54,7 +55,7 @@ export function ChannelLanes({
         Stable and nightly qualification feeds for ROCm {version}, then forks
         that carry AMD work but are not read yet.
       </p>
-      {lanes.map((lane) => (
+      {shown.map((lane) => (
         <table key={lane.engine} className="lanes-table">
           <caption>{lane.label}</caption>
           <thead>

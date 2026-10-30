@@ -115,6 +115,7 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
     );
   return selected ? (
     <ProjectPage
+      key={selected.id}
       overview={data}
       project={selected}
       session={session}

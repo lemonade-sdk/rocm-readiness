@@ -209,6 +209,24 @@ def manifest(root, allow_legacy=False):
     return paths
 
 
+def drop_invalid_upstream(root):
+    """Restore must not fail because the published upstream view no longer
+    validates (for example after its schema changes): the collector rebuilds
+    it, so drop it and its files and carry on with the readiness data."""
+    index = read_json(Path(root) / "index.json")
+    if "upstream" not in index:
+        return
+    try:
+        validate_upstream_dataset(root, index["upstream"])
+    except (ValueError, KeyError, TypeError) as error:
+        print(
+            f"Dropping unreadable upstream view from restore: {error}", file=sys.stderr
+        )
+        shutil.rmtree(Path(root) / "upstream", ignore_errors=True)
+        index.pop("upstream")
+        write(Path(root) / "index.json", index)
+
+
 def valid_sync(dataset):
     checked(dataset, "sync.json")
     data = read_json(dataset / "sync.json")
@@ -314,6 +332,7 @@ def restore(remote, branch, work_dir, output_dir, state_file, source_commit=None
                         target.write_text(
                             git(root, "cat-file", "blob", obj).stdout, encoding="utf-8"
                         )
+                    drop_invalid_upstream(staging)
                     allowed = manifest(staging, allow_legacy=True)
                     if read_json(staging / "index.json").get("sync") != valid_sync(
                         staging

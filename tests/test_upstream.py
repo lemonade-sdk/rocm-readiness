@@ -137,9 +137,11 @@ class FakeGitHub:
         parts = parsed.path.split("/")
         if "workflows" in parts:
             workflow = parts[parts.index("workflows") + 1]
-            since = query["created"][0][2:]
+            start, _, end = query["created"][0].partition("..")
             rows = [
-                r for r in self.runs.get(workflow, []) if r["created_at"][:10] >= since
+                r
+                for r in self.runs.get(workflow, [])
+                if start <= r["created_at"][:10] <= (end or "9999")
             ]
             if "branch" in query:
                 rows = [r for r in rows if r["head_branch"] == query["branch"][0]]
@@ -152,11 +154,17 @@ class FakeGitHub:
                 "workflow_runs": rows[(page - 1) * 100 : page * 100],
             }
         if parts[-1] == "jobs":
-            return {"jobs": self.jobs.get(int(parts[-2]), [])}
+            rows = self.jobs.get(int(parts[-2]), [])
+            return {"total_count": len(rows), "jobs": rows}
         if parts[-1] == "pulls":
             return self.pulls.get(parts[-2], [])
         if parts[-1] == "check-runs":
-            return {"check_runs": self.checks.get(parts[-2], [])}
+            rows = self.checks.get(parts[-2], [])
+            page = int(query.get("page", ["1"])[0])
+            return {
+                "total_count": len(rows),
+                "check_runs": rows[(page - 1) * 100 : page * 100],
+            }
         raise OSError(f"unexpected url {url}")
 
 
@@ -350,9 +358,7 @@ class CollectionTests(unittest.TestCase):
         self.gh.calls.clear()
         with tempfile.TemporaryDirectory() as second:
             collect(self.gh, second, previous=self.out)
-            self.assertFalse(
-                [u for u in self.gh.calls if u.endswith("/jobs?per_page=100")]
-            )
+            self.assertFalse([u for u in self.gh.calls if "/jobs" in u])
             self.assertEqual(
                 overview(second)["projects"][0]["kpis"],
                 overview(self.out)["projects"][0]["kpis"],
@@ -368,7 +374,7 @@ class CollectionTests(unittest.TestCase):
         broken = self.gh
 
         def flaky(url):
-            if url.endswith("/runs/2/jobs?per_page=100"):
+            if "/runs/2/jobs" in url:
                 raise OSError("502 Bad Gateway")
             return broken(url)
 
@@ -388,6 +394,111 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual(gpu["quiet_days"], ["2026-10-29"])
         self.assertEqual(card["kpis"]["not_running"], 1)
         self.assertTrue(any(f["kind"] == "not_running" for f in card["findings"]))
+
+    def test_a_removed_job_does_not_break_the_next_publication(self):
+        collect(self.gh, self.out)
+        (self.out / "index.json").write_text(
+            json.dumps({"upstream": {"overview": "upstream/overview.json"}})
+        )
+        cfg = config()
+        cfg["projects"][0]["jobs"] = cfg["projects"][0]["jobs"][:1]
+        with tempfile.TemporaryDirectory() as second:
+            entry = collect(self.gh, second, cfg, previous=self.out)
+            self.assertEqual(
+                validate_upstream_dataset(second, entry) >= {"upstream/overview.json"},
+                True,
+            )
+            card = overview(second)["projects"][0]
+            self.assertEqual([j["id"] for j in card["jobs"]], ["gpu"])
+
+    def test_a_lost_merge_verdict_is_read_again(self):
+        broken = self.gh
+
+        def no_pulls(url):
+            if url.endswith("/pulls"):
+                raise OSError("502 Bad Gateway")
+            return broken(url)
+
+        collect_upstream(
+            config(),
+            self.out,
+            fetch=no_pulls,
+            now=NOW,
+            write_json=write_json,
+            workers=2,
+        )
+        self.assertFalse(overview(self.out)["projects"][0]["coverage"]["complete"])
+        (self.out / "index.json").write_text(
+            json.dumps({"upstream": {"overview": "upstream/overview.json"}})
+        )
+        with tempfile.TemporaryDirectory() as second:
+            collect(self.gh, second, previous=self.out)
+            gpu = overview(second)["projects"][0]["jobs"][0]
+            self.assertEqual(gpu["gate"]["merged"], 2)
+            self.assertTrue(overview(second)["projects"][0]["coverage"]["complete"])
+
+    def test_a_rerun_replaces_its_earlier_attempt(self):
+        collect(self.gh, self.out)
+        (self.out / "index.json").write_text(
+            json.dumps({"upstream": {"overview": "upstream/overview.json"}})
+        )
+        rerun = dict(self.gh.runs["ci.yml"][1], run_attempt=2)
+        self.gh.runs["ci.yml"][1] = rerun
+        self.gh.jobs[2] = [job(22, "gpu-rocm")]
+        with tempfile.TemporaryDirectory() as second:
+            collect(self.gh, second, previous=self.out)
+            data = json.loads(
+                (Path(second) / "upstream/demo/ci/2026-10.json").read_text()
+            )
+            run2 = [r for r in data["runs"] if r["run_id"] == "2"]
+            self.assertEqual(
+                [(r["job_id"], r["state"], r["attempt"]) for r in run2],
+                [("22", "passed", 2)],
+            )
+
+    def test_one_failing_shard_makes_the_verdict_failed(self):
+        cfg = config()
+        cfg["projects"][0]["jobs"][0]["match"] = {"prefix": "gpu-rocm"}
+        self.gh.checks["e" * 40] = [
+            dict(check("gpu-rocm (1)", "failure"), started_at="2026-10-28T08:00:00Z"),
+            dict(check("gpu-rocm (2)", "success"), started_at="2026-10-28T09:00:00Z"),
+        ]
+        collect(self.gh, self.out, cfg)
+        gpu = overview(self.out)["projects"][0]["jobs"][0]
+        self.assertEqual(gpu["gate"]["failed"], 2)
+
+    def test_a_cut_off_check_list_is_not_read_as_never_ran(self):
+        self.gh.checks["e" * 40] = [check(f"other-{i}", "success") for i in range(1001)]
+        collect(self.gh, self.out)
+        build_job = overview(self.out)["projects"][0]["jobs"][1]
+        gpu = overview(self.out)["projects"][0]["jobs"][0]
+        self.assertEqual(gpu["gate"]["no_result"], 1)
+        self.assertEqual(build_job["gate"]["not_triggered"], 1)
+
+    def test_an_over_long_run_list_is_split_not_truncated(self):
+        from scripts import upstream
+
+        self.gh.runs["ci.yml"] = [
+            run(1000 + i, f"2026-10-{1 + i % 28:02d}T10:00:00Z", sha=f"{i:040x}")
+            for i in range(150)
+        ]
+        old = upstream.MAX_RUN_PAGES
+        upstream.MAX_RUN_PAGES = 1
+        try:
+            collect(self.gh, self.out)
+        finally:
+            upstream.MAX_RUN_PAGES = old
+        listed = {
+            u.split("created=")[1]
+            for u in self.gh.calls
+            if "/workflows/ci.yml/" in u and "page=1" in u
+        }
+        self.assertGreater(len(listed), 1)
+        self.assertTrue(overview(self.out)["projects"][0]["coverage"]["complete"])
+
+    def test_every_read_is_charged_to_the_budget(self):
+        entry = collect(self.gh, self.out, budget=10_000)
+        self.assertEqual(entry["api_calls"], len(self.gh.calls))
 
 
 class DatasetTests(unittest.TestCase):
@@ -413,6 +524,16 @@ class DatasetTests(unittest.TestCase):
         data = json.loads(target.read_text())
         change(data)
         target.write_text(json.dumps(data))
+
+    def test_restore_drops_an_upstream_view_that_no_longer_validates(self):
+        overview_path = self.root / "upstream/overview.json"
+        data = json.loads(overview_path.read_text())
+        data["schema_version"] = 99
+        overview_path.write_text(json.dumps(data))
+        publish.drop_invalid_upstream(self.root)
+        self.assertNotIn("upstream", json.loads((self.root / "index.json").read_text()))
+        self.assertFalse((self.root / "upstream").exists())
+        self.assertNotIn("upstream/overview.json", publish.manifest(self.root))
 
     def test_tampered_upstream_files_are_rejected(self):
         for relative, change, field in (

@@ -20,14 +20,14 @@ if __package__:
     from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
-    from .upstream import collect_upstream
+    from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
-    from upstream import collect_upstream
+    from upstream import collect_upstream, validate_upstream_dataset
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
 METRICS = (
@@ -848,11 +848,20 @@ def collect(
             budget_calls=upstream_budget,
         )
         upstream = output["dataset"]["upstream"]
-        print(
-            f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
-            f'{upstream["api_calls"]} API calls',
-            flush=True,
-        )
+        try:
+            validate_upstream_dataset(destination, upstream)
+        except (PipelineValidationError, ValueError, KeyError, TypeError) as error:
+            # A writer bug must cost the upstream view, not the readiness
+            # dataset: unreference it and say why.
+            print(f"Upstream view dropped: {error}", file=sys.stderr, flush=True)
+            output["dataset"].pop("upstream")
+            upstream = None
+        if upstream:
+            print(
+                f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
+                f'{upstream["api_calls"]} API calls',
+                flush=True,
+            )
     write_json(destination / "errors.json", {"errors": output["errors"]})
     if output["errors"]:
         output["dataset"]["errors"] = output["errors"]
@@ -999,11 +1008,13 @@ def main():
     )
     upstream = output["dataset"].get("upstream")
     if upstream:
-        lines.extend([
-            "",
-            f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
-            f'{upstream["api_calls"]} GitHub API calls',
-        ])
+        lines.extend(
+            [
+                "",
+                f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
+                f'{upstream["api_calls"]} GitHub API calls',
+            ]
+        )
         lines.extend(f"- upstream: {error}" for error in upstream.get("errors", []))
     if output["errors"]:
         lines.extend(["", "### Errors", *[f"- {error}" for error in output["errors"]]])

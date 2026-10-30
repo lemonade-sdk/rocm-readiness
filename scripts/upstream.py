@@ -46,6 +46,7 @@ import json
 from pathlib import Path, PurePosixPath
 import re
 from statistics import median
+from urllib.error import HTTPError
 from urllib.parse import quote
 
 if __package__:
@@ -265,21 +266,24 @@ def matcher(spec):
 
 
 class Budget:
-    """Caps API calls in one collection so a scheduled run stays in its rate limit."""
+    """Caps API calls in one collection so a scheduled run stays in its rate
+    limit. Every read charges it, from any thread."""
 
     def __init__(self, calls):
         self.limit = calls
         self.used = 0
+        self._lock = Lock()
 
     @property
     def exhausted(self):
         return self.used >= self.limit
 
     def take(self):
-        if self.exhausted:
-            return False
-        self.used += 1
-        return True
+        with self._lock:
+            if self.used >= self.limit:
+                return False
+            self.used += 1
+            return True
 
 
 class OutOfBudget(Exception):
@@ -292,54 +296,112 @@ def _get(fetch, budget, url):
     return fetch(url)
 
 
-def _runs(fetch, budget, repo, workflow, since, query):
-    """Workflow runs created on or after ``since``, newest first.
+def _parallel(items, work, workers):
+    """Run ``work`` over ``items`` on a small thread pool, keeping input order.
 
-    ``query`` narrows the list server side (``branch=<default>`` or
-    ``event=push``). Without it, pull request runs crowd the ten-page cap and the
-    oldest default-branch runs of a busy repository silently fall off."""
+    GitHub reads are latency bound, so this is the difference between seconds
+    and minutes. One failed read (a timeout, a rate limit, an empty budget)
+    costs that item, not the whole project: it comes back as None and the
+    caller treats the item as not read yet."""
+    if not items:
+        return []
+    failures = []
 
-    def url(page):
-        return (
-            f"{API}/repos/{repo}/actions/workflows/{quote(workflow)}/runs"
-            f"?per_page=100&page={page}&exclude_pull_requests=true&{query}"
-            f"&created=%3E%3D{since.strftime('%Y-%m-%d')}"
+    def guarded(item):
+        try:
+            return work(item)
+        except (OSError, ValueError, KeyError, TypeError, OutOfBudget) as error:
+            failures.append(f"{type(error).__name__}: {error}")
+            return None
+
+    with ThreadPoolExecutor(max_workers=max(1, min(workers, len(items)))) as pool:
+        results = list(pool.map(guarded, items))
+    if failures:
+        print(
+            f"  {len(failures)} reads failed, will retry next run: {failures[0]}",
+            flush=True,
         )
+    return results
 
-    first = _get(fetch, budget, url(1))
-    out = list(first.get("workflow_runs") or [])
-    total = first.get("total_count") or 0
-    # Run lists are large; read the remaining pages side by side.
-    pages = list(range(2, min(MAX_RUN_PAGES, -(-total // 100)) + 1))
-    for page in pages:
-        if not budget.take():
-            raise OutOfBudget(url(page))
-    for data in _parallel(pages, lambda page: fetch(url(page)), 6):
+
+def _pages(fetch, budget, url, key, workers, cap):
+    """Read a paged list. The first page gives ``total_count``; the rest are
+    read side by side. Returns (items, truncated) where truncated means the
+    list was longer than ``cap`` pages."""
+    sep = "&" if "?" in url else "?"
+    first = _get(fetch, budget, f"{url}{sep}per_page=100&page=1")
+    items = list(first.get(key) or [])
+    total = first.get("total_count") or len(items)
+    pages = list(range(2, min(cap, -(-total // 100)) + 1))
+    for data in _parallel(
+        pages,
+        lambda p: _get(fetch, budget, f"{url}{sep}per_page=100&page={p}"),
+        workers,
+    ):
         if data is None:
-            raise OSError("a run list page could not be read")
-        out.extend(data.get("workflow_runs") or [])
-    return out
+            raise OSError(f"a page of {url} could not be read")
+        items.extend(data.get(key) or [])
+    return items, total > cap * 100
 
 
-def _listed_runs(fetch, budget, project, workflow, since):
-    runs = _runs(
+def _runs(fetch, budget, repo, workflow, query, start, end, workers):
+    """Workflow runs created from ``start`` to ``end`` (dates), newest first.
+
+    GitHub stops a run list at 1000. A busy repository can pass that within a
+    30 day window, so an over-long range is split in two and read again,
+    rather than silently losing its oldest runs."""
+    span = f"{start.isoformat()}..{end.isoformat()}"
+    url = (
+        f"{API}/repos/{repo}/actions/workflows/{quote(workflow)}/runs"
+        f"?exclude_pull_requests=true&{query}&created={span}"
+    )
+    runs, truncated = _pages(
+        fetch, budget, url, "workflow_runs", workers, MAX_RUN_PAGES
+    )
+    if truncated and start < end:
+        middle = start + (end - start) // 2
+        newer, t1 = _runs(
+            fetch,
+            budget,
+            repo,
+            workflow,
+            query,
+            middle + timedelta(days=1),
+            end,
+            workers,
+        )
+        older, t2 = _runs(fetch, budget, repo, workflow, query, start, middle, workers)
+        return newer + older, t1 or t2
+    return runs, truncated
+
+
+def _listed_runs(fetch, budget, project, workflow, since, now, workers):
+    query = "branch=" + quote(project["default_branch"], safe="")
+    runs, truncated = _runs(
         fetch,
         budget,
         project["repository"],
         workflow,
-        since,
-        "branch=" + quote(project["default_branch"], safe=""),
+        query,
+        since.date(),
+        now.date(),
+        workers,
     )
     if project.get("tag_pattern"):
         seen = {r["id"] for r in runs}
-        runs += [
-            r
-            for r in _runs(
-                fetch, budget, project["repository"], workflow, since, "event=push"
-            )
-            if r["id"] not in seen
-        ]
-    return [r for r in runs if _keep_run(r, project)]
+        tagged, more = _runs(
+            fetch,
+            budget,
+            project["repository"],
+            workflow,
+            "event=push",
+            since.date(),
+            now.date(),
+            workers,
+        )
+        runs += [r for r in tagged if r["id"] not in seen]
+        truncated = truncated or more
+    return [r for r in runs if _keep_run(r, project)], truncated
 
 
 def _keep_run(run, project):
@@ -352,6 +414,15 @@ def _keep_run(run, project):
         return True
     pattern = project.get("tag_pattern")
     return bool(pattern and event == "push" and re.match(pattern, ref))
+
+
+def _scan_key(run):
+    """A run is scanned per attempt, so a re-run is read again."""
+    return f"{run['id']}#{run.get('run_attempt') or 1}@{(run.get('created_at') or '')[:10]}"
+
+
+def _scan_day(key):
+    return key.rpartition("@")[2]
 
 
 def _state(job):
@@ -405,10 +476,8 @@ def _record(run, job, spec):
     }
 
 
-def _merged_pr(fetch, budget, repo, sha, branch, cache):
+def _merged_pr(fetch, budget, repo, sha, branch):
     """The pull request that put ``sha`` on the default branch, if any."""
-    if sha in cache:
-        return cache[sha]
     data = _get(fetch, budget, f"{API}/repos/{repo}/commits/{sha}/pulls")
     pr = next(
         (
@@ -418,56 +487,62 @@ def _merged_pr(fetch, budget, repo, sha, branch, cache):
         ),
         None,
     )
-    cache[sha] = (
-        None
-        if pr is None
-        else {
-            "number": pr["number"],
-            "url": pr["html_url"],
-            "head_sha": pr["head"]["sha"],
-            "author": (pr.get("user") or {}).get("login"),
-            "merged_at": pr.get("merged_at"),
-        }
+    if pr is None:
+        return None
+    return {
+        "number": pr["number"],
+        "url": pr["html_url"],
+        "head_sha": pr["head"]["sha"],
+        "author": (pr.get("user") or {}).get("login"),
+        "merged_at": pr.get("merged_at"),
+    }
+
+
+def _check_runs(fetch, budget, repo, sha, workers):
+    """Every check run on a commit, and whether the list was cut short."""
+    rows, truncated = _pages(
+        fetch,
+        budget,
+        f"{API}/repos/{repo}/commits/{sha}/check-runs",
+        "check_runs",
+        workers,
+        10,
     )
-    return cache[sha]
-
-
-def _check_runs(fetch, budget, repo, sha, cache):
-    if sha in cache:
-        return cache[sha]
-    out = []
-    for page in (1, 2, 3):
-        data = _get(
-            fetch,
-            budget,
-            f"{API}/repos/{repo}/commits/{sha}/check-runs?per_page=100&page={page}",
-        )
-        batch = data.get("check_runs") or []
-        out.extend(
+    return {
+        "truncated": truncated,
+        "runs": [
             {
                 "name": c.get("name") or "",
                 "conclusion": c.get("conclusion"),
                 "started_at": c.get("started_at") or "",
                 "url": c.get("html_url"),
             }
-            for c in batch
-        )
-        if len(batch) < 100:
-            break
-    cache[sha] = out
-    return out
+            for c in rows
+        ],
+    }
 
 
 def _verdict(checks, match):
-    runs = [c for c in checks if match(c["name"])]
-    if not runs:
-        return "not_triggered", None
-    last = max(runs, key=lambda c: c["started_at"])
-    if last["conclusion"] == "success":
-        return "passed", last["url"]
-    if last["conclusion"] == "failure":
-        return "failed", last["url"]
-    return "no_result", last["url"]
+    """What a job said on a pull request's final commit.
+
+    Matrix jobs (shards, architectures) match several check names; the newest
+    attempt of each counts, and one failing shard makes the verdict failed."""
+    latest = {}
+    for c in checks["runs"]:
+        if match(c["name"]) and c["started_at"] >= latest.get(c["name"], {}).get(
+            "started_at", ""
+        ):
+            latest[c["name"]] = c
+    if not latest:
+        # A cut-off check list cannot prove the job never ran.
+        return ("no_result" if checks["truncated"] else "not_triggered"), None
+    runs = sorted(latest.values(), key=lambda c: c["started_at"])
+    failed = [c for c in runs if c["conclusion"] == "failure"]
+    if failed:
+        return "failed", failed[-1]["url"]
+    if all(c["conclusion"] == "success" for c in runs):
+        return "passed", runs[-1]["url"]
+    return "no_result", runs[-1]["url"]
 
 
 # ---- previous data -------------------------------------------------------------------
@@ -486,19 +561,16 @@ def _safe_relative(relative):
 
 
 def load_previous(previous_data):
-    """Previously published run records, scanned run ids and coverage, per project."""
+    """Previously published run records, scanned runs and coverage, per project."""
     runs, scanned, coverage = {}, {}, {}
     if previous_data is None:
         return runs, scanned, coverage
     root = Path(previous_data)
     try:
         index = json.loads((root / "index.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return runs, scanned, coverage
-    entry = index.get("upstream") if isinstance(index, dict) else None
-    if not isinstance(entry, dict) or not _safe_relative(entry.get("overview", "")):
-        return runs, scanned, coverage
-    try:
+        entry = index.get("upstream") if isinstance(index, dict) else None
+        if not isinstance(entry, dict) or not _safe_relative(entry.get("overview", "")):
+            return runs, scanned, coverage
         overview = json.loads((root / entry["overview"]).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return runs, scanned, coverage
@@ -518,39 +590,15 @@ def load_previous(previous_data):
                 runs.setdefault(pid, {})[
                     (row["job"], row["run_id"], row["job_id"])
                 ] = row
-            scanned.setdefault(pid, set()).update(data.get("scanned_runs", []))
+            # Older files kept bare run ids; those are read once more and
+            # then stored in the per-attempt form.
+            scanned.setdefault(pid, set()).update(
+                s for s in data.get("scanned_runs", []) if "#" in s and "@" in s
+            )
     return runs, scanned, coverage
 
 
 # ---- collection -----------------------------------------------------------------------
-
-
-def _parallel(items, work, workers):
-    """Run ``work`` over ``items`` on a small thread pool, keeping input order.
-    GitHub reads are latency bound, so this is the difference between seconds
-    and minutes for a daily collection."""
-    if not items:
-        return []
-
-    def guarded(item):
-        # One failed read (a timeout, a secondary rate limit) must cost one
-        # run, not the whole project: it returns None and stays unscanned, so
-        # the next collection retries it.
-        try:
-            return work(item)
-        except (OSError, ValueError, KeyError, TypeError, OutOfBudget) as error:
-            failures.append(f"{type(error).__name__}: {error}")
-            return None
-
-    failures = []
-    with ThreadPoolExecutor(max_workers=max(1, min(workers, len(items)))) as pool:
-        results = list(pool.map(guarded, items))
-    if failures:
-        print(
-            f"  {len(failures)} reads failed, will retry next run: {failures[0]}",
-            flush=True,
-        )
-    return results
 
 
 def collect_project(
@@ -564,14 +612,33 @@ def collect_project(
     workers=6,
     prior_coverage=None,
 ):
-    """Return (records, scanned run ids, coverage) for one project."""
+    """Return (records, scanned runs, coverage) for one project."""
     since = (now - timedelta(days=window_days - 1)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
+    repo, branch = project["repository"], project["default_branch"]
+    specs = [(job, matcher(job["match"])) for job in project.get("jobs", [])]
+    job_ids = {job["id"] for job, _ in specs}
+    by_workflow = {}
+    for job, match in specs:
+        by_workflow.setdefault(job["workflow"], []).append((job, match))
+    match_of = {job["id"]: match for job, match in specs}
+    spec_of = {job["id"]: job for job, _ in specs}
+
+    # Rows for jobs no longer configured are dropped: conformance rejects a run
+    # that names an unknown job, and a removed job must not break publication.
+    records = {
+        key: row
+        for key, row in previous.items()
+        if row.get("job") in job_ids
+        and (_time(row.get("created_at")) or since) >= since
+    }
+    done = {key for key in scanned if _scan_day(key) >= since.date().isoformat()}
+
     # Once a project's window has been read completely, later collections only
     # list runs created since shortly before the last one: older runs are
     # already recorded, and listing a busy repository's whole window costs
-    # dozens of large pages. Runs still in progress last time are re-read by id.
+    # dozens of large pages. Runs still unfinished last time are re-read by id.
     list_since = since
     prior = prior_coverage or {}
     last = _time(prior.get("collected_at"))
@@ -582,43 +649,34 @@ def collect_project(
                 hour=0, minute=0, second=0, microsecond=0
             ),
         )
-    repo, branch = project["repository"], project["default_branch"]
-    specs = [(job, matcher(job["match"])) for job in project.get("jobs", [])]
-    by_workflow = {}
-    for job, match in specs:
-        by_workflow.setdefault(job["workflow"], []).append((job, match))
-    records = {
-        key: row
-        for key, row in previous.items()
-        if (_time(row.get("created_at")) or since) >= since
-    }
-    done = set(scanned)
-    listed = set()
-    complete = True
-    oldest = None
 
-    # 1. List default-branch runs per workflow (a few calls each).
+    complete = True
     pending = []
+    listed_ids = set()
     for workflow, jobs in sorted(by_workflow.items()):
         try:
-            runs = _listed_runs(fetch, budget, project, workflow, list_since)
-        except OutOfBudget:
+            runs, truncated = _listed_runs(
+                fetch, budget, project, workflow, list_since, now, workers
+            )
+        except (OutOfBudget, OSError, ValueError) as error:
+            print(
+                f"  {workflow}: run list not read ({type(error).__name__}: {error})",
+                flush=True,
+            )
             complete = False
-            break
-        listed.update(str(r["id"]) for r in runs)
+            continue
+        if truncated:
+            complete = False
         for run in runs:
-            oldest = min(oldest or run["created_at"], run["created_at"])
-            if not (str(run["id"]) in done and run.get("status") == "completed"):
+            listed_ids.add(str(run["id"]))
+            if not (_scan_key(run) in done and run.get("status") == "completed"):
                 pending.append((run, jobs))
-    # Runs recorded unfinished before this listing window are re-read by id.
-    listed_ids = {str(run["id"]) for run, _ in pending} | listed
-    workflow_of = {job["id"]: job["workflow"] for job, _ in specs}
     for row in previous.values():
         if (
-            row.get("status") != "completed"
+            row.get("job") in job_ids
+            and row.get("status") != "completed"
             and row["run_id"] not in listed_ids
-            and row["run_id"] not in done
-            and row["job"] in workflow_of
+            and (_time(row.get("created_at")) or since) >= since
         ):
             run = {
                 "id": row["run_id"],
@@ -630,39 +688,57 @@ def collect_project(
                 "status": "unknown",
                 "html_url": row["url"],
             }
-            pending.append((run, by_workflow[workflow_of[row["job"]]]))
+            pending.append((run, by_workflow[spec_of[row["job"]]["workflow"]]))
             listed_ids.add(row["run_id"])
 
-    # 2. Read the jobs of every run not already recorded, newest first, as far
-    #    as the budget allows.
+    # Newest first, in chunks, until the budget is spent.
     pending.sort(key=lambda item: item[0].get("created_at") or "", reverse=True)
-    affordable = []
-    for item in pending:
-        if not budget.take():
-            complete = False
-            break
-        affordable.append(item)
 
     def read_jobs(item):
         run, _ = item
-        return fetch(f"{API}/repos/{repo}/actions/runs/{run['id']}/jobs?per_page=100")
+        try:
+            jobs, _ = _pages(
+                fetch,
+                budget,
+                f"{API}/repos/{repo}/actions/runs/{run['id']}/jobs",
+                "jobs",
+                2,
+                5,
+            )
+        except HTTPError as error:
+            if error.code == 404:  # the run was deleted
+                return {"jobs": [], "gone": True}
+            raise
+        return {"jobs": jobs}
 
-    fetched = _parallel(affordable, read_jobs, workers)
-    new_rows = []
-    for (run, jobs), data in zip(affordable, fetched):
-        if data is None:
+    read = []
+    step = max(1, workers * 4)
+    for start in range(0, len(pending), step):
+        if budget.exhausted:
             complete = False
-            continue
+            break
+        chunk = pending[start : start + step]
+        for item, data in zip(chunk, _parallel(chunk, read_jobs, workers)):
+            if data is None:
+                complete = False
+            else:
+                read.append((item, data))
+
+    new_rows = []
+    for (run, jobs), data in read:
+        # A re-run replaces the rows of its earlier attempt.
+        for key in [k for k, r in records.items() if r["run_id"] == str(run["id"])]:
+            del records[key]
         rows = []
-        for job in data.get("jobs") or []:
+        for job in data["jobs"]:
             for spec, match in jobs:
                 if match(job.get("name") or ""):
-                    rows.append((_record(run, job, spec), spec, match))
-        new_rows.append((run, rows))
+                    rows.append((_record(run, job, spec), spec))
+        new_rows.append((run, rows, data.get("gone", False)))
 
-    # 3. Merge verdicts: which pull request landed each pushed commit, and what
-    #    its own checks said on the commit that merged. Only jobs that also run
-    #    on pull requests have one; release and nightly jobs never do.
+    # Merge verdicts: which pull request landed each pushed commit, and what its
+    # own checks said on the commit that merged. Only jobs that also run on pull
+    # requests have one; release and nightly jobs never do.
     def gated(run, spec):
         return (
             run.get("event") == "push"
@@ -673,55 +749,42 @@ def collect_project(
     shas = sorted(
         {
             run["head_sha"]
-            for run, rows in new_rows
-            if any(gated(run, spec) for _, spec, _ in rows)
+            for run, rows, _ in new_rows
+            if any(gated(run, s) for _, s in rows)
         }
     )
-    pr_cache, check_cache = {}, {}
-    gate_ok = True
-    shas_affordable = []
-    for sha in shas:
-        if not budget.take():
-            gate_ok = complete = False
-            break
-        shas_affordable.append(sha)
-
-    def read_pr(sha):
-        # Wrapped so "no pull request" (None) differs from a failed read.
-        return {"pr": _merged_pr(fetch, Budget(1), repo, sha, branch, {})}
-
-    for sha, pr in zip(shas_affordable, _parallel(shas_affordable, read_pr, workers)):
-        if pr is not None:
-            pr_cache[sha] = pr["pr"]
-    heads = sorted({pr["head_sha"] for pr in pr_cache.values() if pr})
-    heads_affordable = []
-    for head in heads:
-        # Up to three pages of check runs; most commits need one.
-        if not budget.take():
-            gate_ok = complete = False
-            break
-        heads_affordable.append(head)
-
-    def read_checks(head):
-        return _check_runs(fetch, Budget(3), repo, head, {})
-
-    for head, checks in zip(
-        heads_affordable, _parallel(heads_affordable, read_checks, workers)
+    prs = {}
+    for sha, found in zip(
+        shas,
+        _parallel(
+            shas, lambda s: {"pr": _merged_pr(fetch, budget, repo, s, branch)}, workers
+        ),
     ):
-        if checks is not None:
-            check_cache[head] = checks
+        if found is not None:
+            prs[sha] = found["pr"]
+    heads = sorted({pr["head_sha"] for pr in prs.values() if pr})
+    checks = {}
+    for head, result in zip(
+        heads,
+        _parallel(heads, lambda h: _check_runs(fetch, budget, repo, h, 3), workers),
+    ):
+        if result is not None:
+            checks[head] = result
+    gate_ok = len(prs) == len(shas) and len(checks) == len(heads)
 
-    for run, rows in new_rows:
-        run_complete = True
-        for row, spec, match in rows:
+    for run, rows, gone in new_rows:
+        settled = True
+        for row, spec in rows:
             if gated(run, spec):
-                if run["head_sha"] not in pr_cache:
-                    run_complete = False
-                else:
-                    pr = pr_cache[run["head_sha"]]
-                    if pr and pr["head_sha"] in check_cache:
+                if run["head_sha"] not in prs:
+                    settled = False
+                elif prs[run["head_sha"]] is not None:
+                    pr = prs[run["head_sha"]]
+                    if pr["head_sha"] not in checks:
+                        settled = False
+                    else:
                         verdict, check_url = _verdict(
-                            check_cache[pr["head_sha"]], match
+                            checks[pr["head_sha"]], match_of[spec["id"]]
                         )
                         row["pr"] = {
                             "number": pr["number"],
@@ -730,27 +793,31 @@ def collect_project(
                             "verdict": verdict,
                             "check_url": check_url,
                         }
-                    elif pr:
-                        run_complete = False
             records[(row["job"], row["run_id"], row["job_id"])] = row
-        # A run is only "done" once its jobs and merge verdicts are settled, so
-        # a budget cut never freezes a half-read run.
-        settled = run.get("status") == "completed" or (
-            run.get("status") == "unknown"
-            and rows
-            and all(r["status"] == "completed" for r, _, _ in rows)
+        finished = (
+            gone
+            or run.get("status") == "completed"
+            or (
+                run.get("status") == "unknown"
+                and all(r["status"] == "completed" for r, _ in rows)
+            )
         )
-        if settled and run_complete:
-            done.add(str(run["id"]))
-    if complete and gate_ok and list_since == since:
-        # Forget scanned ids that fell out of the window.
-        done &= listed
+        # A run is only "done" once its jobs and merge verdicts are settled, so
+        # a budget cut or a failed read never freezes a half-read run.
+        if finished and settled:
+            done.add(_scan_key(run))
+    complete = complete and gate_ok
+    if complete and list_since == since:
+        # Forget scanned runs that are no longer listed (deleted or re-run).
+        listed_keys = {key for key in done if key.partition("#")[0] in listed_ids}
+        done = listed_keys
+    created = [r["created_at"] for r in records.values() if r.get("created_at")]
     coverage = {
-        "complete": complete and gate_ok,
+        "complete": complete,
         "since": _iso(since),
         "listed_since": _iso(list_since),
         "collected_at": _iso(now),
-        "oldest_run_at": oldest,
+        "oldest_run_at": min(created) if created else None,
     }
     return list(records.values()), done, coverage
 
@@ -824,7 +891,9 @@ def _job_summary(job, rows, days):
                 "main_url": None,
             },
         )
-        if r["state"] in ("passed", "failed"):
+        # Several rows per pull request (shards, re-runs): a failure on main
+        # is what matters, so it wins over a pass.
+        if r["state"] == "failed" or (r["state"] == "passed" and entry["main"] is None):
             entry["main"], entry["main_url"] = r["state"], r["url"]
     gate_rows = list(gate.values())
     return {
@@ -1132,8 +1201,13 @@ def collect_upstream(
                     "upstream", pid, "collect", f"{type(error).__name__}: {error}"
                 ).diagnostic
             )
+            configured = {job["id"] for job in project.get("jobs", [])}
             collected[pid] = (
-                list(previous.get(pid, {}).values()),
+                [
+                    r
+                    for r in previous.get(pid, {}).values()
+                    if r.get("job") in configured
+                ],
                 scanned.get(pid, set()),
                 {"complete": False, "error": str(error)},
             )

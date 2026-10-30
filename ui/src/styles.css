@@ -1,3 +1,7 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 :root {
   font-family:
     "DM Sans",
@@ -712,7 +716,10 @@ footer p {
   height: 65px;
   flex: 0 0 65px;
   border-radius: 50%;
-  background: conic-gradient(var(--chart-pass) var(--qualified), var(--chart-track) 0);
+  background: conic-gradient(
+    var(--chart-pass) var(--qualified),
+    var(--chart-track) 0
+  );
   position: relative;
   display: grid;
   place-items: center;
@@ -947,4 +954,10 @@ footer p {
 .theme-options button[aria-pressed="true"] {
   color: var(--selection-text);
   background: var(--selection-bg);
+}
+
+.readiness-definition {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 16px;
 }

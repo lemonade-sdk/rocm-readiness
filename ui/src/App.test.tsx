@@ -25,7 +25,9 @@ it("shows separate linked UI and active data versions without the tagline", asyn
     /^https:\/\/github.com\/lemonade-sdk\/rocm-readiness\/commit\/[a-f0-9]{40}$/,
   );
   expect(
-    screen.getByRole("link", { name: `Data ${pointer.data_commit.slice(0, 8)}` }),
+    screen.getByRole("link", {
+      name: `Data ${pointer.data_commit.slice(0, 8)}`,
+    }),
   ).toHaveAttribute(
     "href",
     `https://github.com/lemonade-sdk/rocm-readiness/commit/${pointer.data_commit}`,
@@ -35,8 +37,12 @@ it("shows separate linked UI and active data versions without the tagline", asyn
 it("keeps the UI version visible when initial data loading fails", async () => {
   mount(vi.fn().mockRejectedValue(new Error("Offline")));
   await screen.findByRole("alert");
-  expect(screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ })).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: /^Data / })).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: /^Data / }),
+  ).not.toBeInTheDocument();
 });
 it("updates only the data version after a successful dataset refresh", async () => {
   const original = fixtureFetch();
@@ -45,13 +51,16 @@ it("updates only the data version after a successful dataset refresh", async () 
   const nextIndex = indexUrl.replace(pointer.data_commit, nextCommit);
   const fetcher = vi.fn(async (input: string | URL | Request) => {
     const url = String(input);
-    if (url.includes("/history/") && !advance) throw new Error("History offline");
+    if (url.includes("/history/") && !advance)
+      throw new Error("History offline");
     if (advance && url.endsWith("/main/data/latest.json")) {
-      return new Response(JSON.stringify({
-        ...pointer,
-        data_commit: nextCommit,
-        index_url: nextIndex,
-      }));
+      return new Response(
+        JSON.stringify({
+          ...pointer,
+          data_commit: nextCommit,
+          index_url: nextIndex,
+        }),
+      );
     }
     return original(url.replace(nextCommit, pointer.data_commit));
   });
@@ -65,21 +74,55 @@ it("updates only the data version after a successful dataset refresh", async () 
   expect(
     await screen.findByRole("link", { name: "Data bbbbbbbb" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ })).toHaveAttribute(
-    "href", uiHref,
-  );
-  expect(screen.queryByRole("link", { name: "Data aaaaaaaa" })).not.toBeInTheDocument();
-});
-it("applies platform scope to retained qualification counts", async () => {
-  mount(fixtureFetch(), "/?version=10.1&platform=linux");
-  await waitFor(() =>
-    expect(screen.getByLabelText("Build qualification")).toHaveTextContent(
-      "13 / 13",
-    ),
-  );
   expect(
-    screen.getByRole("button", { name: "Linux", pressed: true }),
+    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+  ).toHaveAttribute("href", uiHref);
+  expect(
+    screen.queryByRole("link", { name: "Data aaaaaaaa" }),
+  ).not.toBeInTheDocument();
+});
+it("ignores legacy overview platform filters and links builds to scoped Page Two", async () => {
+  const data = overview();
+  data.engines[0].latest_builds.push({
+    ...data.engines[0].latest_builds[0],
+    build_id: "windows-build",
+    os: "windows",
+    tag: "b-windows",
+  });
+  mount(
+    fixtureFetch({ [new URL("rocm/10.1/overview.json", indexUrl).href]: data }),
+    "/?version=10.1&platform=linux",
+  );
+  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  expect(screen.getByRole("heading", { name: "Linux" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
+  expect(
+    screen.queryByRole("group", { name: "Platform" }),
+  ).not.toBeInTheDocument();
+  const link = screen.getByRole("link", { name: /b11972/ });
+  const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
+  expect(Object.fromEntries(query)).toMatchObject({
+    view: "engine",
+    engine: "llamacpp",
+    version: "10.1",
+    platform: "linux",
+    channel: "stable",
+    build: "linux-build",
+    source: "llamacpp-stable-qualification",
+  });
+  fireEvent.click(link);
+  await screen.findByRole("heading", { name: "llama.cpp builds" });
+  expect(
+    await screen.findByText("Selected stable build: linux-build"),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: /Open build history-2 / }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Show all engine builds" }));
+  expect(
+    (await screen.findAllByRole("link", { name: /Open build history-2 / }))
+      .length,
+  ).toBeGreaterThan(0);
 });
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");
@@ -97,7 +140,10 @@ it("shows a not-measured state for versions without measurements", async () => {
     }),
   );
   await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
-  expect(screen.getByText("Not measured", { exact: true })).toBeInTheDocument();
+  expect(
+    screen.queryByText("Not measured", { exact: true }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Model measurements")).not.toBeInTheDocument();
 });
 it("loads the default version and shows real dataset scope", async () => {
   mount();
@@ -105,7 +151,9 @@ it("loads the default version and shows real dataset scope", async () => {
     await screen.findByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeInTheDocument();
   expect(screen.getByLabelText("ROCm version")).toHaveValue("10.1");
-  expect(screen.getByLabelText("Build qualification")).toHaveTextContent("26");
+  expect(
+    screen.getByRole("heading", { name: "llama.cpp" }),
+  ).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Pinned dataset" })).toHaveAttribute(
     "href",
     indexUrl,
@@ -122,14 +170,22 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
   await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
   fetcher.mockRejectedValue(new Error("Network offline"));
   fireEvent.click(await screen.findByRole("button", { name: "Retry history" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Network offline");
+  await waitFor(() =>
+    expect(
+      screen
+        .getAllByRole("alert")
+        .some((entry) => entry.textContent?.includes("Network offline")),
+    ).toBe(true),
+  );
   expect(
     screen.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeInTheDocument();
   expect(
     screen.getByText(/Keeping the last usable dataset/),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Data aaaaaaaa" })).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Data aaaaaaaa" }),
+  ).toBeInTheDocument();
 });
 it("omits the normal status strip and refresh button", async () => {
   mount();

@@ -352,7 +352,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </nav>
             {view === "overview" && (
               <>
-                <EngineOverview engines={engines} version={selected} />
+                <EngineOverview
+                  engines={engines}
+                  version={selected}
+                  history={history?.session === session ? history.builds : null}
+                />
                 {!busy &&
                   !error &&
                   history?.session === session &&

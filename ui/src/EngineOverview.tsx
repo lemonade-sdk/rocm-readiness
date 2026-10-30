@@ -1,10 +1,14 @@
 import { Link } from "react-router";
 import type { Build, Overview } from "./data";
+import { previousBuild, checkChanges } from "./overview/comparison";
+import { Tooltip } from "./overview/Tooltip";
+import { BuildComparison } from "./overview/BuildComparison";
 import { PlatformChecks } from "./ReadinessVisuals";
 
 type Props = {
   engines: Overview["engines"];
   version: string;
+  history?: Build[] | null;
 };
 
 function engineLink(version: string, engine: string, build?: Build) {
@@ -18,7 +22,7 @@ function engineLink(version: string, engine: string, build?: Build) {
   return `?${query}`;
 }
 
-export function EngineOverview({ engines, version }: Props) {
+export function EngineOverview({ engines, version, history = null }: Props) {
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
       {engines
@@ -40,72 +44,112 @@ export function EngineOverview({ engines, version }: Props) {
               </Link>
             </div>
             <div className="platform-grid">
-              {engine.latest_builds.map((build) => (
-                <div
-                  className="platform-card"
-                  key={`${build.source_id ?? ""}:${build.os}:${build.build_id}`}
-                >
-                  <div className="card-heading">
-                    <h3>
-                      {build.os === "linux"
-                        ? "Linux"
-                        : build.os === "windows"
-                          ? "Windows"
-                          : build.os}
-                    </h3>
-                    {build.qualified != null && (
-                      <span
-                        className={`pill ${build.qualified ? "good" : "bad"}`}
+              {engine.latest_builds.map((build) => {
+                const previous = previousBuild(build, history);
+                const qualification = (
+                  <span className={`pill ${build.qualified ? "good" : "bad"}`}>
+                    <span aria-hidden="true">●</span>{" "}
+                    {build.qualified ? "Qualified" : "Not qualified"}
+                  </span>
+                );
+                return (
+                  <div
+                    className="platform-card"
+                    key={`${build.source_id ?? ""}:${build.os}:${build.build_id}`}
+                  >
+                    <div className="card-heading">
+                      <h3>
+                        {build.os === "linux"
+                          ? "Linux"
+                          : build.os === "windows"
+                            ? "Windows"
+                            : build.os}
+                      </h3>
+                      {build.qualified != null &&
+                        (previous?.qualified != null ? (
+                          <Tooltip
+                            key={`${build.build_id}:${previous.build_id}:qualification`}
+                            label={`${build.qualified ? "Qualified" : "Not qualified"}. Compare ${build.os} shipping readiness with previous build`}
+                            content={
+                              <BuildComparison
+                                current={build}
+                                previous={previous}
+                                kind="qualification"
+                              />
+                            }
+                          >
+                            {qualification}
+                          </Tooltip>
+                        ) : (
+                          qualification
+                        ))}
+                    </div>
+                    <Link
+                      className="build-tag"
+                      to={engineLink(version, engine.id, build)}
+                    >
+                      {build.tag ?? build.build_id}{" "}
+                      <span aria-hidden="true">↗</span>
+                    </Link>
+                    <span className="package-rocm">
+                      ROCm {build.rocm_version} · Stable
+                    </span>
+                    <p>
+                      Report:{" "}
+                      <time dateTime={build.generated_at}>
+                        {new Intl.DateTimeFormat("en", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                          timeZone: "UTC",
+                        }).format(new Date(build.generated_at))}{" "}
+                        UTC
+                      </time>
+                    </p>
+                    {build.tests && (
+                      <PlatformChecks
+                        build={build}
+                        checksLabel={
+                          previous && checkChanges(build, previous) ? (
+                            <Tooltip
+                              key={`${build.build_id}:${previous.build_id}:checks`}
+                              label={`Checks passed ${build.tests.passed} of ${build.tests.total}. Compare ${build.os} check results with previous build`}
+                              content={
+                                <BuildComparison
+                                  current={build}
+                                  previous={previous}
+                                  kind="checks"
+                                />
+                              }
+                            >
+                              Checks passed
+                            </Tooltip>
+                          ) : undefined
+                        }
+                      />
+                    )}
+                    {build.hardware_validated != null && (
+                      <div className="evidence-line">
+                        <span>GPU hardware verification</span>
+                        <strong>
+                          {build.hardware_validated
+                            ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
+                            : "Not validated"}
+                        </strong>
+                      </div>
+                    )}
+                    {build.report_url && (
+                      <a
+                        className="text-link"
+                        href={build.report_url}
+                        target="_blank"
+                        rel="noreferrer"
                       >
-                        <span aria-hidden="true">●</span>{" "}
-                        {build.qualified ? "Qualified" : "Not qualified"}
-                      </span>
+                        Source report ↗
+                      </a>
                     )}
                   </div>
-                  <Link
-                    className="build-tag"
-                    to={engineLink(version, engine.id, build)}
-                  >
-                    {build.tag ?? build.build_id}{" "}
-                    <span aria-hidden="true">↗</span>
-                  </Link>
-                  <span className="package-rocm">
-                    ROCm {build.rocm_version} · Stable
-                  </span>
-                  <p>
-                    Report:{" "}
-                    <time dateTime={build.generated_at}>
-                      {new Intl.DateTimeFormat("en", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                        timeZone: "UTC",
-                      }).format(new Date(build.generated_at))}{" "}
-                      UTC
-                    </time>
-                  </p>
-                  {build.tests && <PlatformChecks build={build} />}
-                  {build.hardware_validated != null && (
-                    <div className="evidence-line">
-                      <span>GPU hardware verification</span>
-                      <strong>
-                        {build.hardware_validated
-                          ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
-                          : "Not validated"}
-                      </strong>
-                    </div>
-                  )}
-                  {build.report_url && (
-                    <a
-                      className="text-link"
-                      href={build.report_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Source report ↗
-                    </a>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </article>
         ))}

@@ -1,5 +1,5 @@
 import type { Build } from "./data";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 type Segment = { label: string; count: number; tone: string };
 function OutcomeBar({
@@ -112,11 +112,17 @@ export function BuildQualification({
   );
 }
 
-function Checks({ tests }: { tests: NonNullable<Build["tests"]> }) {
+function Checks({
+  tests,
+  label,
+}: {
+  tests: NonNullable<Build["tests"]>;
+  label?: ReactNode;
+}) {
   return (
     <div className="checks-visual">
       <div className="checks-heading">
-        <span>Checks passed</span>
+        <span>{label ?? "Checks passed"}</span>
         <strong>
           {tests.passed} / {tests.total}
         </strong>
@@ -170,11 +176,17 @@ export function LatestChecks({ builds }: { builds: Build[] }) {
   );
 }
 
-export function PlatformChecks({ build }: { build: Build }) {
+export function PlatformChecks({
+  build,
+  checksLabel,
+}: {
+  build: Build;
+  checksLabel?: ReactNode;
+}) {
   return (
     <>
       {build.tests ? (
-        <Checks tests={build.tests} />
+        <Checks tests={build.tests} label={checksLabel} />
       ) : (
         <p>Check breakdown unavailable</p>
       )}

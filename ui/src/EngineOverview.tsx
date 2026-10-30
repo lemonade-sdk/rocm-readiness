@@ -39,9 +39,6 @@ export function EngineOverview({ engines, version }: Props) {
                 Explore engine <span aria-hidden="true">↗</span>
               </Link>
             </div>
-            <p className="readiness-definition">
-              Qualified means cleared the shipping gates.
-            </p>
             <div className="platform-grid">
               {engine.latest_builds.map((build) => (
                 <div

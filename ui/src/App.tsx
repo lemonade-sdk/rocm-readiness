@@ -298,7 +298,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         )}
         {session && overview && viewValid && platformValid && (
           <>
-            <div className="hero">
+            <div
+              className={view === "overview" ? "hero overview-hero" : "hero"}
+            >
               <div>
                 {view !== "overview" && (
                   <div className="eyebrow">ROCm / STABLE RELEASES</div>

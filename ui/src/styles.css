@@ -956,8 +956,23 @@ footer p {
   background: var(--selection-bg);
 }
 
-.readiness-definition {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 16px;
+.overview-hero {
+  margin: 12px 0 16px;
+}
+.overview-hero p {
+  max-width: 78ch;
+  line-height: 1.5;
+}
+.header-controls select {
+  appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23878c78' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+@media (forced-colors: active) {
+  .header-controls select {
+    appearance: auto;
+    background-image: none;
+  }
 }

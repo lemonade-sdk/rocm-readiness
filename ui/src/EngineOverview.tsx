@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { LinkArrow } from "./LinkArrow";
 import type { Build, Overview } from "./data";
 import { previousBuild, checkChanges } from "./overview/comparison";
 import { Tooltip } from "./overview/Tooltip";
@@ -40,7 +41,7 @@ export function EngineOverview({ engines, version, history = null }: Props) {
                 </div>
               </div>
               <Link className="text-link" to={engineLink(version, engine.id)}>
-                Explore engine <span aria-hidden="true">↗</span>
+                Explore engine <LinkArrow />
               </Link>
             </div>
             <div className="platform-grid">
@@ -88,8 +89,7 @@ export function EngineOverview({ engines, version, history = null }: Props) {
                       className="build-tag"
                       to={engineLink(version, engine.id, build)}
                     >
-                      {build.tag ?? build.build_id}{" "}
-                      <span aria-hidden="true">↗</span>
+                      {build.tag ?? build.build_id} <LinkArrow />
                     </Link>
                     <p>
                       Report:{" "}
@@ -141,7 +141,7 @@ export function EngineOverview({ engines, version, history = null }: Props) {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Source report ↗
+                        Source report <LinkArrow />
                       </a>
                     )}
                   </div>

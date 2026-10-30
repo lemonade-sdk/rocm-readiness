@@ -451,8 +451,22 @@ main {
   letter-spacing: -0.8px;
   color: var(--text);
 }
-.build-tag span {
-  font: 14px sans-serif;
+.link-arrow {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+.build-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+.build-tag .link-arrow {
+  width: 16px;
+  height: 16px;
   color: var(--muted);
 }
 .platform-card p {

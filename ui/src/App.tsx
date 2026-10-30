@@ -207,18 +207,20 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </div>
       </header>
       <main id="main" tabIndex={-1}>
-        <div className="topline">
-          <nav aria-label="Breadcrumb">
-            <Link to={href("overview")}>ROCm readiness</Link>
-            {view !== "overview" && (
-              <>
-                <span aria-hidden="true">/</span>
-                <Link to={href("engine")}>llama.cpp</Link>
-              </>
-            )}
-            {selected && <span className="muted">/ {selected}</span>}
-          </nav>
-        </div>
+        {view !== "overview" && (
+          <div className="topline">
+            <nav aria-label="Breadcrumb">
+              <Link to={href("overview")}>ROCm readiness</Link>
+              {view !== "overview" && (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <Link to={href("engine")}>llama.cpp</Link>
+                </>
+              )}
+              {selected && <span className="muted">/ {selected}</span>}
+            </nav>
+          </div>
+        )}
         {liveSync?.status === "failed" && (
           <div className="notice warning">
             <strong>Latest ingestion failed</strong>
@@ -298,7 +300,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           <>
             <div className="hero">
               <div>
-                <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                {view !== "overview" && (
+                  <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                )}
                 <h1>
                   {view === "overview"
                     ? `ROCm ${overview.rocm_version} readiness`
@@ -309,11 +313,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         : "Model performance"}
                 </h1>
                 <p>
-                  Build qualification and model performance, grounded in
-                  published evidence.
+                  {view === "overview"
+                    ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                    : "Build qualification and model performance, grounded in published evidence."}
                 </p>
               </div>
-              <span className="release-pill">ROCm {overview.rocm_version}</span>
+              {view !== "overview" && (
+                <span className="release-pill">
+                  ROCm {overview.rocm_version}
+                </span>
+              )}
             </div>
             <nav className="view-tabs" aria-label="Dashboard views">
               <Link

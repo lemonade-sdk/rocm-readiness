@@ -93,11 +93,4 @@ a.health-symbol:hover {
 }
 .health-table th.health-latest-date {
   color: var(--yellow);
-  font-weight: 700;
-}
-.health-latest-date time {
-  display: inline-block;
-  padding: 0.2rem 0.35rem;
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--yellow) 14%, transparent);
 }

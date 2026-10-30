@@ -84,18 +84,6 @@ export function EngineOverview({ engines, version }: Props) {
                     </time>
                   </p>
                   {build.tests && <PlatformChecks build={build} />}
-                  {build.overall && (
-                    <div className="evidence-line">
-                      <span>Test outcome</span>
-                      <strong
-                        className={
-                          build.overall === "warn" ? "warning-text" : ""
-                        }
-                      >
-                        {build.overall}
-                      </strong>
-                    </div>
-                  )}
                   {build.hardware_validated != null && (
                     <div className="evidence-line">
                       <span>GPU hardware verification</span>

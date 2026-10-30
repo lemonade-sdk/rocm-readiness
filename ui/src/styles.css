@@ -1,3 +1,7 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 :root {
   font-family:
     "DM Sans",
@@ -447,8 +451,22 @@ main {
   letter-spacing: -0.8px;
   color: var(--text);
 }
-.build-tag span {
-  font: 14px sans-serif;
+.link-arrow {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+.build-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+.build-tag .link-arrow {
+  width: 16px;
+  height: 16px;
   color: var(--muted);
 }
 .platform-card p {
@@ -712,7 +730,10 @@ footer p {
   height: 65px;
   flex: 0 0 65px;
   border-radius: 50%;
-  background: conic-gradient(var(--chart-pass) var(--qualified), var(--chart-track) 0);
+  background: conic-gradient(
+    var(--chart-pass) var(--qualified),
+    var(--chart-track) 0
+  );
   position: relative;
   display: grid;
   place-items: center;
@@ -947,4 +968,25 @@ footer p {
 .theme-options button[aria-pressed="true"] {
   color: var(--selection-text);
   background: var(--selection-bg);
+}
+
+.overview-hero {
+  margin: 12px 0 16px;
+}
+.overview-hero p {
+  max-width: 78ch;
+  line-height: 1.5;
+}
+.header-controls select {
+  appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23878c78' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+@media (forced-colors: active) {
+  .header-controls select {
+    appearance: auto;
+    background-image: none;
+  }
 }

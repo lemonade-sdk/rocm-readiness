@@ -40,7 +40,9 @@ test("follows the device, preserves overrides and returns to system", async ({
   await expect(page).toHaveURL(/platform=linux/);
   await page.reload();
   await expect(themeButton).toHaveAttribute("title", "Theme: Light (Light)");
-  await expect(page.getByLabel("Build qualification")).toContainText("13 / 13");
+  await expect(
+    page.getByRole("heading", { name: "Linux", exact: true }),
+  ).toBeVisible();
   await themeButton.click();
   await page.getByRole("button", { name: "System", exact: true }).click();
   await expect(themeButton).toHaveAttribute("title", "Theme: System (Dark)");

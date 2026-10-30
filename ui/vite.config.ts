@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { execFileSync } from "node:child_process";
 import { defineConfig } from "vitest/config";
@@ -21,7 +22,7 @@ function uiRevision(): string | null {
 }
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   base: process.env.VITE_BASE_PATH || "/",
   define: { __UI_COMMIT__: JSON.stringify(uiRevision()) },
   test: {

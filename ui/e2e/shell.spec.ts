@@ -24,31 +24,24 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("visible platform choices preserve counts and shared URL scope", async ({
+test("overview engine build links open a scoped Page Two list", async ({
   page,
-}, testInfo) => {
-  await page.goto("./?version=10.1&view=overview");
-  await page.getByRole("button", { name: "Linux", exact: true }).click();
-  await expect(page).toHaveURL(/platform=linux/);
+}) => {
+  await page.goto("./?version=10.1&view=overview&platform=windows");
+  await expect(
+    page.getByRole("heading", { name: "Linux", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Linux", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Build qualification")).toContainText("13 / 13");
-  await page.reload();
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: /b11972/ }).click();
+  await expect(page).toHaveURL(/view=engine/);
+  await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByRole("button", { name: "Linux", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await page
-    .getByRole("button", { name: "All platforms", exact: true })
-    .click();
-  await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
-  await expect(page.getByRole("link", { name: /^UI [a-f0-9]{8}$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Data aaaaaaaa" })).toBeVisible();
-  await expect(page.getByText("Evidence you can trace.", { exact: true })).toHaveCount(0);
-  const basePath = new URL(testInfo.project.use.baseURL!).pathname.replace(/\/$/, "");
-  await expect(
-    page.getByRole("link", { name: "Engine builds", exact: true }),
-  ).toHaveAttribute("href", new RegExp(`^${basePath}/\\?`));
+    page.getByText("Selected stable build: linux-build"),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Show all engine builds" }).click();
+  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
 });
 
 test("pins data, switches versions and restores scope through browser history", async ({
@@ -63,7 +56,9 @@ test("pins data, switches versions and restores scope through browser history", 
   await expect(
     page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
   ).toBeVisible();
-  await expect(page.getByLabel("Build qualification")).toContainText("26 / 26");
+  await expect(
+    page.getByRole("heading", { name: "llama.cpp", exact: true }),
+  ).toBeVisible();
   const pointerReads = reads.filter((url) =>
     url.endsWith("/main/data/latest.json"),
   ).length;

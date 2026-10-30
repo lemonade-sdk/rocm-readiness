@@ -1,0 +1,85 @@
+.comparison-tooltip {
+  position: relative;
+  display: inline-block;
+}
+.comparison-trigger {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  padding: 0;
+  cursor: help;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+.comparison-bubble {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  right: 0;
+  width: min(400px, calc(100vw - 72px));
+  padding: 14px;
+  margin-top: 0;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  white-space: normal;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.comparison-bubble strong,
+.comparison-bubble small,
+.comparison-bubble span {
+  display: block;
+}
+.comparison-bubble small {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.checks-heading .comparison-bubble {
+  right: auto;
+  left: 0;
+}
+
+.comparison-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 7px;
+}
+.comparison-summary {
+  margin-bottom: 12px;
+}
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.comparison-table th,
+.comparison-table td {
+  padding: 7px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.comparison-table thead th {
+  color: var(--text);
+  background: var(--subpanel);
+  font-weight: 600;
+  font-size: 11px;
+}
+.comparison-table tbody th {
+  font-weight: 500;
+}
+.comparison-table tbody tr:last-child th,
+.comparison-table tbody tr:last-child td {
+  border-bottom: 0;
+}

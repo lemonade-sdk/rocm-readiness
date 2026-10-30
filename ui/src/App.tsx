@@ -7,11 +7,7 @@ import {
   loadHistory,
   resolveDatasetPath,
 } from "./data";
-import {
-  BuildQualification,
-  LatestChecks,
-  PlatformChecks,
-} from "./ReadinessVisuals";
+import { EngineOverview } from "./EngineOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildBrowser } from "./builds/BuildBrowser";
@@ -27,21 +23,6 @@ function date(value: string | null) {
         timeZone: "UTC",
       }).format(new Date(value)) + " UTC"
     : "No successful ingestion";
-}
-function Qualification({ build }: { build: Build }) {
-  const label =
-    build.qualified === true
-      ? "Qualified"
-      : build.qualified === false
-        ? "Not qualified"
-        : "Qualification unknown";
-  return (
-    <span
-      className={`pill ${build.qualified === true ? "good" : build.qualified === false ? "bad" : "muted"}`}
-    >
-      <span aria-hidden="true">●</span> {label}
-    </span>
-  );
 }
 export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
@@ -133,16 +114,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const overview = scopeMatches ? session.overview : null;
   const engines =
     overview?.engines.filter((engine) => engine.id === "llamacpp") ?? [];
-  const builds = engines
-    .flatMap((engine) => engine.latest_builds)
-    .filter((build) => platform === "all" || build.os === platform);
-  const scopedHistory =
-    history?.session === session && history.builds
-      ? history.builds.filter(
-          (build) => platform === "all" || build.os === platform,
-        )
-      : null;
-  const platformValid = ["all", "linux", "windows"].includes(platform);
+  const platformValid =
+    view === "overview" || ["all", "linux", "windows"].includes(platform);
   const viewValid = [
     "overview",
     "engine",
@@ -211,7 +184,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           Lemonade <span className="brand-light">Performance</span>
         </Link>
         <div className="header-controls">
-          <span className="channel">STABLE · LLAMA.CPP</span>
           <label htmlFor="version">ROCm version</label>
           <select
             id="version"
@@ -235,18 +207,20 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </div>
       </header>
       <main id="main" tabIndex={-1}>
-        <div className="topline">
-          <nav aria-label="Breadcrumb">
-            <Link to={href("overview")}>ROCm readiness</Link>
-            {view !== "overview" && (
-              <>
-                <span aria-hidden="true">/</span>
-                <Link to={href("engine")}>llama.cpp</Link>
-              </>
-            )}
-            {selected && <span className="muted">/ {selected}</span>}
-          </nav>
-        </div>
+        {view !== "overview" && (
+          <div className="topline">
+            <nav aria-label="Breadcrumb">
+              <Link to={href("overview")}>ROCm readiness</Link>
+              {view !== "overview" && (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <Link to={href("engine")}>llama.cpp</Link>
+                </>
+              )}
+              {selected && <span className="muted">/ {selected}</span>}
+            </nav>
+          </div>
+        )}
         {liveSync?.status === "failed" && (
           <div className="notice warning">
             <strong>Latest ingestion failed</strong>
@@ -324,9 +298,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         )}
         {session && overview && viewValid && platformValid && (
           <>
-            <div className="hero">
+            <div
+              className={view === "overview" ? "hero overview-hero" : "hero"}
+            >
               <div>
-                <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                {view !== "overview" && (
+                  <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                )}
                 <h1>
                   {view === "overview"
                     ? `ROCm ${overview.rocm_version} readiness`
@@ -337,11 +315,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         : "Model performance"}
                 </h1>
                 <p>
-                  Build qualification and model performance, grounded in
-                  published evidence.
+                  {view === "overview"
+                    ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                    : "Build qualification and model performance, grounded in published evidence."}
                 </p>
               </div>
-              <span className="release-pill">ROCm {overview.rocm_version}</span>
+              {view !== "overview" && (
+                <span className="release-pill">
+                  ROCm {overview.rocm_version}
+                </span>
+              )}
             </div>
             <nav className="view-tabs" aria-label="Dashboard views">
               <Link
@@ -369,166 +352,20 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </nav>
             {view === "overview" && (
               <>
-                <div className="scope-controls">
-                  <span>Platform</span>
-                  <div
-                    className="platform-options"
-                    role="group"
-                    aria-label="Platform"
-                  >
-                    {[
-                      { value: "all", label: "All platforms" },
-                      { value: "linux", label: "Linux" },
-                      { value: "windows", label: "Windows" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        aria-pressed={platform === option.value}
-                        onClick={() => changePlatform(option.value)}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="stats">
-                  <BuildQualification
-                    builds={scopedHistory}
-                    total={
-                      scopedHistory?.length ??
-                      (platform === "all"
-                        ? engines.reduce(
-                            (sum, engine) => sum + engine.build_count,
-                            0,
-                          )
-                        : 0)
-                    }
-                    error={history?.session === session ? history.error : null}
-                    onRetry={refreshData}
-                  />
-                  <LatestChecks builds={builds} />
-                  <div>
-                    <span>Model measurements</span>
-                    <Link className="metric-link" to={href("performance")}>
-                      <strong
-                        className={
-                          overview.performance.status === "not_measured"
-                            ? "unmeasured"
-                            : undefined
-                        }
-                      >
-                        {overview.performance.measurement_count ??
-                          "Not measured"}
-                      </strong>
-                    </Link>
-                    <small>All platforms · historical observations</small>
-                  </div>
-                </div>
-                <div className="section-title">
-                  <h2>Engine readiness</h2>
-                </div>
-                {engines.length ? (
-                  engines.map((engine) => (
-                    <article className="card engine-card" key={engine.id}>
-                      <div className="card-heading">
-                        <div className="engine-identity">
-                          <span className="engine-icon" aria-hidden="true">
-                            ⌘
-                          </span>
-                          <div>
-                            <h2>{engine.label}</h2>
-                            <p>
-                              {platform === "all"
-                                ? engine.build_count
-                                : (scopedHistory?.filter(
-                                    (build) => build.engine === engine.id,
-                                  ).length ?? "…")}{" "}
-                              retained builds ·{" "}
-                              {platform === "all"
-                                ? engine.platforms.join(" + ")
-                                : platform}
-                            </p>
-                          </div>
-                        </div>
-                        <Link className="text-link" to={href("engine")}>
-                          Explore builds <span aria-hidden="true">↗</span>
-                        </Link>
-                      </div>
-                      <div className="platform-grid">
-                        {engine.latest_builds
-                          .filter(
-                            (build) =>
-                              platform === "all" || build.os === platform,
-                          )
-                          .map((build) => (
-                            <div className="platform-card" key={build.build_id}>
-                              <div className="card-heading">
-                                <h3>
-                                  {build.os === "linux"
-                                    ? "Linux"
-                                    : build.os === "windows"
-                                      ? "Windows"
-                                      : build.os}
-                                </h3>
-                                <Qualification build={build} />
-                              </div>
-                              <Link
-                                className="build-tag"
-                                to={href("build", {
-                                  build: build.build_id,
-                                  platform: build.os,
-                                })}
-                              >
-                                {build.tag ?? build.build_id}{" "}
-                                <span aria-hidden="true">↗</span>
-                              </Link>
-                              <span className="package-rocm">
-                                ROCm {build.rocm_version}
-                              </span>
-                              <p>
-                                Latest retained build ·{" "}
-                                {date(build.generated_at)}
-                              </p>
-                              <PlatformChecks build={build} />
-                              <div className="evidence-line">
-                                <span>Test outcome</span>
-                                <strong
-                                  className={
-                                    build.overall === "warn"
-                                      ? "warning-text"
-                                      : ""
-                                  }
-                                >
-                                  {build.overall ?? "Unavailable"}
-                                </strong>
-                              </div>
-                              <div className="evidence-line">
-                                <span>Hardware validation</span>
-                                <strong>
-                                  {build.hardware_validated === true
-                                    ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
-                                    : build.hardware_validated === false
-                                      ? "Not validated"
-                                      : "Unknown"}
-                                </strong>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                      {!engine.latest_builds.length && (
-                        <p>No latest-build evidence is available.</p>
-                      )}
-                    </article>
-                  ))
-                ) : (
-                  <div className="empty">
-                    <h2>No stable llama.cpp builds</h2>
-                    <p>
-                      No in-scope engine evidence is present for this version.
-                    </p>
-                  </div>
-                )}
+                <EngineOverview
+                  engines={engines}
+                  version={selected}
+                  history={history?.session === session ? history.builds : null}
+                />
+                {!busy &&
+                  !error &&
+                  history?.session === session &&
+                  history.error && (
+                    <div className="notice error" role="alert">
+                      <p>{history.error}</p>
+                      <button onClick={refreshData}>Retry history</button>
+                    </div>
+                  )}
               </>
             )}
             {["engine", "build"].includes(view) &&
@@ -539,10 +376,33 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </div>
               ) : (
                 <div onClick={handleLocalNavigation}>
+                  {view === "engine" && params.get("build") && (
+                    <div className="notice">
+                      <p>Selected stable build: {params.get("build")}</p>
+                      <Link
+                        to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
+                      >
+                        Show all engine builds
+                      </Link>
+                    </div>
+                  )}
                   <BuildBrowser
                     session={session}
                     history={
-                      history?.session === session ? history.builds : null
+                      history?.session === session
+                        ? (history.builds?.filter(
+                            (build) =>
+                              view !== "engine" ||
+                              !params.get("build") ||
+                              (build.build_id === params.get("build") &&
+                                (!params.get("source") ||
+                                  build.source_id === params.get("source")) &&
+                                (!params.get("engine") ||
+                                  build.engine === params.get("engine")) &&
+                                (!params.get("channel") ||
+                                  build.channel === params.get("channel"))),
+                          ) ?? null)
+                        : null
                     }
                     platform={platform}
                     selectedBuildId={

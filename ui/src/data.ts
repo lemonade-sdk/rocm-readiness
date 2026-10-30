@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const POINTER_URL =
   "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json";
+/**
+ * Local preview only: a dataset directory served by the Vite dev server (see
+ * vite.config.ts). When set, the app reads that directory's index.json instead
+ * of the published pointer, so a locally collected dataset can be inspected
+ * before it is published. Production builds never set it.
+ */
+export const LOCAL_DATA: string | undefined = import.meta.env?.VITE_LOCAL_DATA || undefined;
 const time = z
   .string()
   .refine(
@@ -57,6 +64,14 @@ const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   default_version: z.string().nullable(),
+  upstream: z
+    .object({
+      schema_version: z.literal(1),
+      overview: z.string(),
+      project_count: count,
+      status: z.enum(["fresh", "partial"]),
+    })
+    .optional(),
   versions: z.array(
     z.object({
       rocm_version: z.string().min(1),
@@ -178,6 +193,15 @@ export async function loadHistory(
   return builds;
 }
 
+export async function readJson<T>(
+  url: string,
+  schema: z.ZodType<T>,
+  fetcher: Fetcher,
+  signal?: AbortSignal,
+): Promise<T> {
+  return read(url, schema, fetcher, signal);
+}
+
 async function read<T>(
   url: string,
   schema: z.ZodType<T>,
@@ -263,6 +287,7 @@ export async function loadSession(
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
 ): Promise<Session> {
+  if (LOCAL_DATA) return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer);
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -306,6 +331,34 @@ export async function loadSession(
     version: null,
     overview: null,
   };
+  const selected = version || index.default_version;
+  return selected ? loadVersion(session, selected, fetcher, signal) : session;
+}
+
+async function loadLocalSession(
+  root: string,
+  version: string | undefined,
+  fetcher: Fetcher,
+  signal?: AbortSignal,
+  onPointer?: (pointer: Pointer) => void,
+): Promise<Session> {
+  const base = new URL(root.endsWith("/") ? root : `${root}/`, window.location.href);
+  const indexUrl = new URL("index.json", base).href;
+  const index = await read(indexUrl, indexSchema, fetcher, signal);
+  const raw = index as { sync?: Sync };
+  const pointer: Pointer = {
+    schema_version: 1,
+    data_commit: null,
+    index_url: indexUrl,
+    sync: raw.sync ?? {
+      attempted_at: index.generated_at,
+      status: "success",
+      last_successful_at: index.generated_at,
+      errors: [],
+    },
+  };
+  onPointer?.(pointer);
+  const session: Session = { pointer, index, indexUrl, version: null, overview: null };
   const selected = version || index.default_version;
   return selected ? loadVersion(session, selected, fetcher, signal) : session;
 }

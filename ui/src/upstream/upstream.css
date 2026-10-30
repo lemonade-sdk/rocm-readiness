@@ -1,0 +1,492 @@
+/* Upstream health. Uses the dashboard's own theme variables, so it follows the
+   light/dark choice like every other view. */
+
+.up-home,
+.up-page {
+  display: grid;
+  gap: 1rem;
+}
+.up-totals,
+.up-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.up-stat {
+  display: grid;
+  min-width: 9rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--panel);
+}
+.up-stat strong {
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.up-stat span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.up-stat.bad strong,
+.up-page .bad,
+.up-home .bad {
+  color: var(--bad);
+}
+.up-rule {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.up-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr));
+  gap: 1rem;
+}
+.up-card {
+  cursor: pointer;
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+.up-card .up-kpis {
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+}
+.up-card .up-stat {
+  min-width: 0;
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+}
+.up-card .up-stat strong {
+  font-size: 1.25rem;
+}
+.up-empty-chart {
+  margin: 0.2rem 0;
+  font-size: 0.75rem;
+}
+.up-card:hover {
+  border-color: var(--accent-line);
+}
+.up-card-head,
+.up-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.up-card-head h2,
+.up-page-head h1 {
+  margin: 0;
+}
+.up-card-head h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.up-repo {
+  margin-left: auto;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.up-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.up-badge-up {
+  color: var(--good);
+}
+.up-badge-partial {
+  color: var(--warning);
+}
+.up-badge-down {
+  color: var(--bad);
+}
+.up-forks {
+  font-size: 0.75rem;
+  position: relative;
+}
+.up-forks summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.up-forks ul {
+  position: absolute;
+  z-index: 5;
+  margin: 0.3rem 0 0;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  min-width: 22rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+}
+.up-forks li {
+  display: grid;
+  padding: 0.2rem 0;
+}
+.up-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.up-strip-label {
+  width: 4.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.up-ticks {
+  display: flex;
+  gap: 2px;
+}
+.up-tick {
+  display: block;
+  width: 6px;
+  height: 18px;
+  border-radius: 2px;
+  border: 0;
+  padding: 0;
+  background: var(--chart-track);
+}
+button.up-tick {
+  cursor: pointer;
+}
+.up-good {
+  background: var(--chart-pass);
+}
+.up-warn {
+  background: var(--chart-warn);
+}
+.up-bad {
+  background: var(--chart-fail);
+}
+.up-none {
+  background: var(--chart-skip);
+}
+.up-stall {
+  background: transparent;
+  outline: 1px solid var(--chart-fail);
+  outline-offset: -1px;
+}
+.up-skip {
+  background: repeating-linear-gradient(135deg, var(--chart-skip) 0 3px, transparent 3px 6px);
+}
+.up-idle {
+  background: var(--chart-track);
+}
+.up-filter {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--background);
+}
+.up-filter button {
+  border: 1px solid var(--line);
+  background: var(--control);
+  color: inherit;
+  border-radius: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.up-filter button[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-surface);
+}
+.up-filter-sum {
+  margin-left: auto;
+  font-size: 0.8rem;
+}
+.up-findings summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.up-findings p {
+  margin: 0.4rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--bad);
+  background: var(--error);
+  border-radius: 0.3rem;
+}
+.up-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .up-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.up-cols > div {
+  display: grid;
+  gap: 1rem;
+}
+.up-panel h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 0.4rem;
+}
+.up-panel h2 .muted {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.up-daychart h3 {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 0.4rem 0 0.2rem;
+}
+.up-bars {
+  display: flex;
+  gap: 4px;
+}
+.up-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.up-bar.selected,
+.up-bar:hover {
+  border-color: var(--line);
+}
+.up-bar-up,
+.up-bar-down {
+  display: flex;
+  flex-direction: column;
+}
+.up-bar-up {
+  justify-content: flex-end;
+}
+.up-bar i {
+  display: block;
+  border-radius: 2px;
+}
+.up-bar .up-pass {
+  background: var(--chart-pass);
+}
+.up-bar .up-fail {
+  background: var(--chart-fail);
+}
+.up-bar .up-stall,
+.up-bar .up-skip {
+  height: 10px;
+}
+.up-bar-base {
+  height: 1px;
+  background: var(--line);
+  margin: 1px -2px;
+}
+.up-bar-day {
+  font-size: 0.65rem;
+  color: var(--muted);
+  text-align: center;
+}
+.up-daypanel {
+  margin-top: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--subpanel);
+}
+.up-daypanel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.up-daypanel-head .muted {
+  flex: 1;
+  font-size: 0.8rem;
+}
+.up-daypanel-head button,
+.up-link {
+  border: 1px solid var(--line);
+  background: var(--control);
+  color: inherit;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  font: inherit;
+}
+.up-link {
+  border: 0;
+  background: none;
+  text-decoration: underline dotted;
+  padding: 0;
+}
+.up-runs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 14rem;
+  overflow: auto;
+}
+.up-run {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+.up-run a {
+  color: inherit;
+  text-decoration: none;
+}
+.up-run a:hover {
+  text-decoration: underline;
+}
+.up-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chart-skip);
+}
+.up-run-passed .up-dot {
+  background: var(--chart-pass);
+}
+.up-run-failed .up-dot {
+  background: var(--chart-fail);
+}
+.up-run-job {
+  width: 9rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.up-sha {
+  font-family: ui-monospace, Consolas, monospace;
+  color: var(--muted) !important;
+}
+.up-run-step {
+  margin-left: auto;
+  color: var(--muted) !important;
+}
+.up-chip {
+  font-size: 0.7rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+}
+.up-chip-passed {
+  color: var(--good) !important;
+}
+.up-chip-failed {
+  color: var(--bad) !important;
+  border-color: var(--error-line);
+}
+.up-chip-not_triggered,
+.up-chip-no_result {
+  color: var(--warning) !important;
+}
+.up-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.up-table th,
+.up-table td {
+  padding: 0.25rem 0.4rem;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.up-table th:first-child,
+.up-table td:first-child {
+  text-align: left;
+}
+.up-table td.good {
+  color: var(--good);
+}
+.up-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.up-steps li {
+  display: grid;
+  grid-template-columns: 12rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.15rem 0;
+}
+.up-steps li span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.up-steps i {
+  display: block;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--chart-fail);
+}
+.up-jobs summary {
+  cursor: pointer;
+  list-style: none;
+}
+.up-jobs summary h2 {
+  display: inline;
+}
+.up-job {
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--line);
+}
+.up-job-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.up-job-head strong {
+  width: 11rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.up-job-head .muted {
+  flex: 1;
+  font-size: 0.75rem;
+}
+.up-job-rate {
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.track-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+.track-tabs a {
+  padding: 0.25rem 0.7rem;
+  border-radius: 0.4rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+.track-tabs a[aria-current="page"] {
+  color: var(--text);
+  background: var(--control);
+}

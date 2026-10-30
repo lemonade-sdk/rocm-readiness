@@ -14,6 +14,7 @@ import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
+import { UpstreamView } from "./upstream/UpstreamView";
 
 function date(value: string | null) {
   return value
@@ -28,6 +29,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
   const version = params.get("version") || undefined;
   const view = params.get("view") ?? "overview";
+  // Two dashboards over one dataset: ROCm readiness (default) and Upstream
+  // health, the projects' own client AMD CI on their default branch.
+  const track = params.get("track") === "upstream" ? "upstream" : "readiness";
   const platform = params.get("platform") ?? "all";
   const [session, setSession] = useState<Session | null>(null);
   const [liveSync, setLiveSync] = useState<Sync | null>(null);
@@ -183,9 +187,26 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </span>{" "}
           Lemonade <span className="brand-light">Performance</span>
         </Link>
+        <nav className="track-tabs" aria-label="Dashboards">
+          <Link
+            aria-current={track === "readiness" ? "page" : undefined}
+            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
+          >
+            ROCm readiness
+          </Link>
+          <Link
+            aria-current={track === "upstream" ? "page" : undefined}
+            to="?track=upstream"
+          >
+            Upstream health
+          </Link>
+        </nav>
         <div className="header-controls">
-          <label htmlFor="version">ROCm version</label>
+          {track === "readiness" && (
+            <label htmlFor="version">ROCm version</label>
+          )}
           <select
+            hidden={track !== "readiness"}
             id="version"
             value={selected}
             disabled={!session?.index.versions.length}
@@ -207,7 +228,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </div>
       </header>
       <main id="main" tabIndex={-1}>
-        {view !== "overview" && (
+        {track === "readiness" && view !== "overview" && (
           <div className="topline">
             <nav aria-label="Breadcrumb">
               <Link to={href("overview")}>ROCm readiness</Link>
@@ -276,7 +297,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             <p>Reading one immutable dataset revision.</p>
           </div>
         )}
-        {session && scopeMatches && !overview && (
+        {track === "upstream" && session && (
+          <UpstreamView
+            session={session}
+            fetcher={fetcher}
+            params={params}
+            onNavigate={(next) => setParams(next)}
+          />
+        )}
+        {track === "readiness" && session && scopeMatches && !overview && (
           <div className="empty">
             <h1>No ROCm versions available</h1>
             <p>
@@ -285,7 +314,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </p>
           </div>
         )}
-        {overview && (!viewValid || !platformValid) && (
+        {track === "readiness" && overview && (!viewValid || !platformValid) && (
           <div className="notice" role="alert">
             <h1>Unavailable view or platform</h1>
             <p>
@@ -296,7 +325,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </Link>
           </div>
         )}
-        {session && overview && viewValid && platformValid && (
+        {track === "readiness" &&
+          session &&
+          overview &&
+          viewValid &&
+          platformValid && (
           <>
             <div
               className={view === "overview" ? "hero overview-hero" : "hero"}
@@ -471,14 +504,18 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {session ? (
                 <>
                   {" · "}
-                  <a
-                    href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
-                    title={`Data commit ${session.pointer.data_commit}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Data {session.pointer.data_commit?.slice(0, 8)}
-                  </a>
+                  {session.pointer.data_commit ? (
+                    <a
+                      href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
+                      title={`Data commit ${session.pointer.data_commit}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Data {session.pointer.data_commit.slice(0, 8)}
+                    </a>
+                  ) : (
+                    <span>Local dataset preview</span>
+                  )}
                   {" · "}
                   <time dateTime={session.index.generated_at}>
                     Data updated {date(session.index.generated_at)}

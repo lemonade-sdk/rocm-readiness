@@ -56,6 +56,14 @@ const pointerSchema = z.object({
 const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
+  sources: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        stale_after_hours: z.number().nonnegative().nullable().optional(),
+      }),
+    )
+    .optional(),
   default_version: z.string().nullable(),
   versions: z.array(
     z.object({
@@ -262,6 +270,7 @@ export async function loadSession(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
+  requireOverview = true,
 ): Promise<Session> {
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
@@ -307,5 +316,10 @@ export async function loadSession(
     overview: null,
   };
   const selected = version || index.default_version;
+  if (selected && !index.versions.some((row) => row.rocm_version === selected))
+    throw new Error(
+      `ROCm ${selected} is not available in this dataset. Choose an available version.`,
+    );
+  if (!requireOverview) return { ...session, version: selected };
   return selected ? loadVersion(session, selected, fetcher, signal) : session;
 }

@@ -47,7 +47,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     const current = sessionRef.current;
     const refreshNeeded = completedRefresh.current !== refresh;
     const selected = version ?? current?.index.default_version ?? undefined;
-    if (current && !refreshNeeded && current.version === (selected ?? null)) {
+    if (
+      current &&
+      !refreshNeeded &&
+      current.version === (selected ?? null) &&
+      (view === "overview" || current.overview)
+    ) {
       setBusy(false);
       setError(null);
       return () => controller.abort();
@@ -57,9 +62,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     const task =
       current && !refreshNeeded && selected
         ? loadVersion(current, selected, fetcher, controller.signal)
-        : loadSession(version, fetcher, controller.signal, (pointer) => {
-            if (!controller.signal.aborted) setLiveSync(pointer.sync);
-          });
+        : loadSession(
+            version,
+            fetcher,
+            controller.signal,
+            (pointer) => {
+              if (!controller.signal.aborted) setLiveSync(pointer.sync);
+            },
+            view !== "overview",
+          );
     task
       .then((next) => {
         if (controller.signal.aborted) return;
@@ -78,10 +89,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         setBusy(false);
       });
     return () => controller.abort();
-  }, [version, refresh, fetcher]);
+  }, [version, refresh, fetcher, view]);
 
   useEffect(() => {
-    if (!session?.overview) return;
+    if (!session?.overview || view === "overview") return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
     loadHistory(session, fetcher, controller.signal)
@@ -107,13 +118,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           });
       });
     return () => controller.abort();
-  }, [session, fetcher]);
+  }, [session, fetcher, view]);
 
   const selected = version ?? session?.version ?? "";
   const scopeMatches = session && (!version || session.version === version);
   const overview = scopeMatches ? session.overview : null;
-  const engines =
-    overview?.engines.filter((engine) => engine.id === "llamacpp") ?? [];
+  const hasScope =
+    scopeMatches &&
+    (view === "overview"
+      ? session.index.versions.length > 0
+      : overview !== null);
   const platformValid =
     view === "overview" || ["all", "linux", "windows"].includes(platform);
   const viewValid = [
@@ -137,6 +151,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("source");
     next.delete("model");
     if (next.get("compare") === value) next.delete("compare");
+    next.delete("date");
     if (view === "build") next.set("view", "engine");
     if (view === "model") next.set("view", "performance");
     setParams(next);
@@ -184,25 +199,29 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           Lemonade <span className="brand-light">Performance</span>
         </Link>
         <div className="header-controls">
-          <label htmlFor="version">ROCm version</label>
-          <select
-            id="version"
-            value={selected}
-            disabled={!session?.index.versions.length}
-            onChange={(event) => changeVersion(event.target.value)}
-          >
-            {!session && <option value="">Loading…</option>}
-            {version &&
-              session &&
-              !session.index.versions.some(
-                (row) => row.rocm_version === version,
-              ) && <option value={version}>{version} · unavailable</option>}
-            {session?.index.versions.map((row) => (
-              <option key={row.rocm_version} value={row.rocm_version}>
-                {row.rocm_version}
-              </option>
-            ))}
-          </select>
+          {view !== "overview" && (
+            <>
+              <label htmlFor="version">ROCm version</label>
+              <select
+                id="version"
+                value={selected}
+                disabled={!session?.index.versions.length}
+                onChange={(event) => changeVersion(event.target.value)}
+              >
+                {!session && <option value="">Loading…</option>}
+                {version &&
+                  session &&
+                  !session.index.versions.some(
+                    (row) => row.rocm_version === version,
+                  ) && <option value={version}>{version} · unavailable</option>}
+                {session?.index.versions.map((row) => (
+                  <option key={row.rocm_version} value={row.rocm_version}>
+                    {row.rocm_version}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           <ThemeControl />
         </div>
       </header>
@@ -276,7 +295,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             <p>Reading one immutable dataset revision.</p>
           </div>
         )}
-        {session && scopeMatches && !overview && (
+        {session && scopeMatches && !session.index.versions.length && (
           <div className="empty">
             <h1>No ROCm versions available</h1>
             <p>
@@ -285,7 +304,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </p>
           </div>
         )}
-        {overview && (!viewValid || !platformValid) && (
+        {hasScope && (!viewValid || !platformValid) && (
           <div className="notice" role="alert">
             <h1>Unavailable view or platform</h1>
             <p>
@@ -296,7 +315,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </Link>
           </div>
         )}
-        {session && overview && viewValid && platformValid && (
+        {session && hasScope && viewValid && platformValid && (
           <>
             <div
               className={view === "overview" ? "hero overview-hero" : "hero"}
@@ -307,7 +326,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 )}
                 <h1>
                   {view === "overview"
-                    ? `ROCm ${overview.rocm_version} readiness`
+                    ? "ROCm readiness"
                     : view === "engine"
                       ? "llama.cpp builds"
                       : view === "build"
@@ -316,14 +335,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </h1>
                 <p>
                   {view === "overview"
-                    ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                    ? "See qualification health over time across published ROCm versions. Select a status symbol to explore all contributing builds."
                     : "Build qualification and model performance, grounded in published evidence."}
                 </p>
               </div>
               {view !== "overview" && (
-                <span className="release-pill">
-                  ROCm {overview.rocm_version}
-                </span>
+                <span className="release-pill">ROCm {selected}</span>
               )}
             </div>
             <nav className="view-tabs" aria-label="Dashboard views">
@@ -353,19 +370,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             {view === "overview" && (
               <>
                 <EngineOverview
-                  engines={engines}
-                  version={selected}
-                  history={history?.session === session ? history.builds : null}
+                  session={session}
+                  fetcher={fetcher}
+                  onRetry={refreshData}
                 />
-                {!busy &&
-                  !error &&
-                  history?.session === session &&
-                  history.error && (
-                    <div className="notice error" role="alert">
-                      <p>{history.error}</p>
-                      <button onClick={refreshData}>Retry history</button>
-                    </div>
-                  )}
               </>
             )}
             {["engine", "build"].includes(view) &&
@@ -376,16 +384,21 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </div>
               ) : (
                 <div onClick={handleLocalNavigation}>
-                  {view === "engine" && params.get("build") && (
-                    <div className="notice">
-                      <p>Selected stable build: {params.get("build")}</p>
-                      <Link
-                        to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
-                      >
-                        Show all engine builds
-                      </Link>
-                    </div>
-                  )}
+                  {view === "engine" &&
+                    (params.get("build") || params.get("date")) && (
+                      <div className="notice">
+                        <p>
+                          {params.get("date")
+                            ? `Qualification reports for ${params.get("date")} UTC`
+                            : `Selected stable build: ${params.get("build")}`}
+                        </p>
+                        <Link
+                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
+                        >
+                          Show all engine builds
+                        </Link>
+                      </div>
+                    )}
                   <BuildBrowser
                     session={session}
                     history={
@@ -393,8 +406,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         ? (history.builds?.filter(
                             (build) =>
                               view !== "engine" ||
-                              !params.get("build") ||
-                              (build.build_id === params.get("build") &&
+                              ((!params.get("date") ||
+                                new Date(build.generated_at)
+                                  .toISOString()
+                                  .slice(0, 10) === params.get("date")) &&
+                                (!params.get("build") ||
+                                  build.build_id === params.get("build")) &&
                                 (!params.get("source") ||
                                   build.source_id === params.get("source")) &&
                                 (!params.get("engine") ||

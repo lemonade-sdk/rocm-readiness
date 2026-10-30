@@ -24,21 +24,28 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("overview engine build links open a scoped Page Two list", async ({
+test("daily symbols open all date-scoped builds and survive reload", async ({
   page,
 }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
+  await expect(page.getByLabel("ROCm version", { exact: true })).toHaveCount(0);
+  await page
+    .getByRole("link", { name: /10.1 stable linux: 2026-10-29/ })
+    .click();
+  await expect(page).toHaveURL(/date=2026-10-29/);
+  await expect(page).toHaveURL(/platform=linux/);
   await expect(
-    page.getByRole("heading", { name: "Linux", exact: true }),
+    page.getByText("Qualification reports for 2026-10-29 UTC"),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Linux", exact: true }),
-  ).toHaveCount(0);
-  await page.getByRole("link", { name: /b11972/ }).click();
-  await expect(page).toHaveURL(/view=engine/);
-  await expect(page).toHaveURL(/build=linux-build/);
+    page.getByRole("link", { name: /Open build history-2 / }).first(),
+  ).toBeVisible();
   await expect(
-    page.getByText("Selected stable build: linux-build"),
+    page.getByRole("link", { name: /Open build history-1 / }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("link", { name: /Open build history-2 / }).first(),
   ).toBeVisible();
   await page.getByRole("link", { name: "Show all engine builds" }).click();
   await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
@@ -54,17 +61,20 @@ test("pins data, switches versions and restores scope through browser history", 
   });
   await page.goto("./");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp", exact: true }),
+    page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
+      .getByRole("heading", { name: "llama.cpp", exact: true }),
   ).toBeVisible();
   const pointerReads = reads.filter((url) =>
     url.endsWith("/main/data/latest.json"),
   ).length;
+  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByLabel("ROCm version").selectOption("10.0");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.0 readiness" }),
+    page.getByRole("heading", { name: "llama.cpp builds" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await expect(
@@ -140,18 +150,18 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
     page.getByText("Latest ingestion failed", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Retry history" }),
+    page.getByRole("button", { name: "Retry history" }).first(),
   ).toBeVisible();
   await page.route("**/main/data/latest.json", (route) =>
     route.fulfill({ status: 503, body: "{}" }),
   );
-  await page.getByRole("button", { name: "Retry history" }).click();
-  await expect(page.getByRole("alert")).toContainText("HTTP 503");
+  await page.getByRole("button", { name: "Retry history" }).first().click();
+  await expect(page.getByRole("alert").first()).toContainText("HTTP 503");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm readiness" }),
   ).toBeVisible();
 });
 
@@ -181,7 +191,7 @@ test("has a keyboard skip link and fits the viewport", async ({
 }, testInfo) => {
   await page.goto("./");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm readiness" }),
   ).toBeVisible();
   await page.keyboard.press(browserName === "webkit" ? "Alt+Tab" : "Tab");
   await expect(

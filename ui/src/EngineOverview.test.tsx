@@ -17,6 +17,7 @@ it("omits unsupported evidence without inventing a passing count or qualificatio
             latest_builds: [
               {
                 ...build,
+                channel: "stable",
                 qualified: null,
                 overall: null,
                 hardware_validated: null,

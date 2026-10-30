@@ -91,9 +91,6 @@ export function EngineOverview({ engines, version, history = null }: Props) {
                       {build.tag ?? build.build_id}{" "}
                       <span aria-hidden="true">↗</span>
                     </Link>
-                    <span className="package-rocm">
-                      ROCm {build.rocm_version} · Stable
-                    </span>
                     <p>
                       Report:{" "}
                       <time dateTime={build.generated_at}>

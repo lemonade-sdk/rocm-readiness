@@ -1,0 +1,91 @@
+.timeline-intro p {
+  color: var(--muted);
+  max-width: 85ch;
+  margin: 0.65rem 0;
+}
+.timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+.timeline-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.timeline-scope {
+  margin-top: 1.5rem;
+}
+.timeline-scope h3 {
+  font-size: 1rem;
+}
+.timeline-scroll {
+  overflow-x: auto;
+  padding: 0.4rem 0;
+}
+.health-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+.health-table th {
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: center;
+}
+.health-table th:first-child {
+  text-align: left;
+  min-width: 11rem;
+}
+.health-table td {
+  text-align: center;
+  min-width: 2.25rem;
+}
+.health-table th small {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.health-symbol {
+  display: inline-flex;
+  width: 1.8rem;
+  height: 1.8rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  text-decoration: none;
+  font-weight: 700;
+  font-style: normal;
+}
+.health-qualified {
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 12%, transparent);
+}
+.health-failed {
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 12%, transparent);
+}
+.health-warning {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+}
+.health-unknown {
+  color: var(--text);
+  border-style: dashed;
+}
+.health-no-report {
+  color: var(--muted);
+  border-color: var(--line);
+}
+a.health-symbol:hover {
+  background: var(--control);
+  transform: translateY(-1px);
+}
+.engine-card {
+  min-width: 0;
+}

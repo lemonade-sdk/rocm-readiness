@@ -1,55 +1,83 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { expect, it } from "vitest";
 import { EngineOverview } from "./EngineOverview";
-import { overview } from "./fixtures";
+import { fixtureFetch, indexUrl, historyFixture } from "./fixtures";
+import { loadSession } from "./data";
 
-it("omits unsupported evidence without inventing a passing count or qualification", () => {
-  const engines = overview().engines;
-  const build = engines[0].latest_builds[0];
+it("shows all published versions grouped within an engine and retains both OS rows", async () => {
+  const fetcher = fixtureFetch();
+  const session = await loadSession(undefined, fetcher);
   render(
     <MemoryRouter>
-      <EngineOverview
-        version="10.1"
-        engines={[
-          {
-            ...engines[0],
-            latest_builds: [
-              {
-                ...build,
-                channel: "stable",
-                qualified: null,
-                overall: null,
-                hardware_validated: null,
-                report_url: null,
-              },
-            ],
-          },
-        ]}
-      />
+      <EngineOverview session={session} fetcher={fetcher} onRetry={() => {}} />
     </MemoryRouter>,
   );
-  expect(screen.getByRole("link", { name: /b11972/ })).toBeInTheDocument();
-  for (const label of [
-    "Qualified",
-    "Test outcome",
-    "GPU hardware verification",
-    "Models passing",
-    "Unavailable",
-    "Check breakdown unavailable",
-  ])
-    expect(screen.queryByText(label, { exact: true })).not.toBeInTheDocument();
+  const scope = await screen.findByRole("region", {
+    name: "llama.cpp ROCm 10.1 stable",
+  });
+  await screen.findByRole("region", { name: "llama.cpp ROCm 10.0 stable" });
+  expect(screen.getAllByRole("heading", { name: "llama.cpp" })).toHaveLength(1);
+  expect(
+    within(scope).getByRole("rowheader", { name: /Linux/ }),
+  ).toBeInTheDocument();
+  expect(
+    within(scope).getByRole("rowheader", { name: /Windows/ }),
+  ).toBeInTheDocument();
+  expect(within(scope).getAllByRole("columnheader")).toHaveLength(15);
+  const link = within(scope).getByRole("link", {
+    name: /stable linux: 2026-10-29/,
+  });
+  expect(link).toHaveAttribute(
+    "href",
+    expect.stringContaining("date=2026-10-29"),
+  );
+  expect(link).not.toHaveAttribute("href", expect.stringContaining("build="));
+  expect(screen.queryByText("b11972")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Timeline window"), {
+    target: { value: "20" },
+  });
+  expect(within(scope).getAllByRole("columnheader")).toHaveLength(21);
 });
-
-it("does not create engine placeholders from absent build evidence", () => {
-  const engine = overview().engines[0];
+it("distinguishes a collection error for one version from empty days and keeps other versions", async () => {
+  const original = fixtureFetch();
+  const fetcher: typeof fetch = async (input, init) =>
+    String(input).includes("rocm/10.0/history")
+      ? new Response("{}", { status: 503 })
+      : original(input);
+  const session = await loadSession(undefined, fetcher);
   render(
     <MemoryRouter>
-      <EngineOverview
-        version="10.1"
-        engines={[{ ...engine, latest_builds: [] }]}
-      />
+      <EngineOverview session={session} fetcher={fetcher} onRetry={() => {}} />
     </MemoryRouter>,
   );
-  expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  await screen.findByRole("region", { name: "llama.cpp ROCm 10.1 stable" });
+  expect(await screen.findByRole("alert")).toHaveTextContent("ROCm 10.0");
+  expect(screen.getByRole("alert")).toHaveTextContent("HTTP 503");
+  expect(
+    screen.getByRole("button", { name: "Retry history" }),
+  ).toBeInTheDocument();
+});
+it("keeps unknown qualification visible and omits unsupported engine placeholders", async () => {
+  const history = historyFixture();
+  const fetcher = fixtureFetch({
+    [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
+      ...history,
+      builds: history.builds.map((row) => ({ ...row, qualified: null })),
+    },
+  });
+  const session = await loadSession(undefined, fetcher);
+  render(
+    <MemoryRouter>
+      <EngineOverview session={session} fetcher={fetcher} onRetry={() => {}} />
+    </MemoryRouter>,
+  );
+  expect(
+    await screen.findByRole("link", {
+      name: /10.1 stable linux:.*Qualification unknown/,
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: "vLLM" }),
+  ).not.toBeInTheDocument();
 });

@@ -17,6 +17,7 @@ import "./styles.css";
 import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
+import { ThemeControl } from "./ThemeControl";
 
 function date(value: string | null) {
   return value
@@ -230,6 +231,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               </option>
             ))}
           </select>
+          <ThemeControl />
         </div>
       </header>
       <main id="main" tabIndex={-1}>

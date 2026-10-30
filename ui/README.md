@@ -13,6 +13,15 @@ Open the Local URL printed by Vite. The browser reads the public
 `main/data/latest.json` pointer and follows its pinned dataset revision. No data
 server, credentials or local collection is required.
 
+## Appearance
+
+The dashboard follows the device's light/dark preference by default, including
+changes while it is open. Use the sun/moon control in the header to choose
+**System**, **Light**, or **Dark**. Explicit choices are saved in this browser;
+choosing System restores automatic behavior. Theme selection is applied before
+the app renders. If browser storage is unavailable, switching still works for
+the current visit.
+
 The dashboard provides version selection, readiness summaries, retained build
 history, inline qualification evidence and model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.

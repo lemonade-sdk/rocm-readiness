@@ -68,7 +68,7 @@
 }
 
 .build-browser-status {
-  background: #292d26;
+  background: var(--badge);
   border-radius: 999px;
   font-size: 11px;
   padding: 4px 9px;
@@ -76,7 +76,7 @@
 }
 
 .build-browser-status.status-pass {
-  color: #9ed592;
+  color: var(--good);
 }
 
 .build-browser-status.status-warn {
@@ -84,7 +84,7 @@
 }
 
 .build-browser-status.status-fail {
-  color: #ec9791;
+  color: var(--bad);
 }
 
 .build-browser-status.status-skip,
@@ -147,8 +147,8 @@
 }
 
 .build-browser-report-error {
-  background: #302420;
-  border: 1px solid #81524d;
+  background: var(--error);
+  border: 1px solid var(--error-line);
   border-radius: 10px;
   display: grid;
   gap: 10px;
@@ -212,7 +212,7 @@
 }
 
 .build-browser-evidence strong {
-  color: #d5d7ca;
+  color: var(--emphasis);
 }
 
 .build-browser-table-wrap details {

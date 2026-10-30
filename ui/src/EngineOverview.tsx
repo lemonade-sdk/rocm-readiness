@@ -160,120 +160,148 @@ export function EngineOverview({
                   return (
                     <article className="card engine-card" key={id}>
                       <h3>{label}</h3>
-                      {groups.map((channel) => (
-                        <section
-                          key={channel}
-                          aria-label={`${label} ROCm ${row.version} ${channel}`}
-                          className="timeline-scope"
-                        >
-                          <div className="card-heading">
-                            <h4>{channel === "stable" ? "Stable" : channel}</h4>
-                            <Link
-                              className="text-link"
-                              to={`?${new URLSearchParams({ version: row.version, view: "engine", engine: id, channel })}`}
-                            >
-                              Explore builds
-                            </Link>
-                          </div>
-                          <div
-                            className="timeline-scroll"
-                            tabIndex={0}
-                            role="region"
-                            aria-label={`${label} ROCm ${row.version} timeline`}
+                      {groups.map((channel) => {
+                        const latestDay = builds
+                          .filter((build) => build.channel === channel)
+                          .map((build) =>
+                            new Date(build.generated_at)
+                              .toISOString()
+                              .slice(0, 10),
+                          )
+                          .sort()
+                          .at(-1);
+                        return (
+                          <section
+                            key={channel}
+                            aria-label={`${label} ROCm ${row.version} ${channel}`}
+                            className="timeline-scope"
                           >
-                            <table className="health-table">
-                              <thead>
-                                <tr>
-                                  <th scope="col">OS / latest report (UTC)</th>
-                                  {dailyTimeline([], end, days).map((day) => (
-                                    <th scope="col" key={day.date}>
-                                      <time dateTime={day.date}>
-                                        {day.date.slice(5)}
-                                      </time>
+                            <div className="card-heading">
+                              <h4>
+                                {channel === "stable" ? "Stable" : channel}
+                              </h4>
+                              <Link
+                                className="text-link"
+                                to={`?${new URLSearchParams({ version: row.version, view: "engine", engine: id, channel })}`}
+                              >
+                                Explore builds
+                              </Link>
+                            </div>
+                            <div
+                              className="timeline-scroll"
+                              tabIndex={0}
+                              role="region"
+                              aria-label={`${label} ROCm ${row.version} timeline`}
+                            >
+                              <table className="health-table">
+                                <thead>
+                                  <tr>
+                                    <th scope="col">
+                                      OS / latest report (UTC)
                                     </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {[
-                                  ...new Set(
-                                    builds
-                                      .filter(
-                                        (build) => build.channel === channel,
-                                      )
-                                      .map((build) => build.os),
-                                  ),
-                                ]
-                                  .sort()
-                                  .map((os) => {
-                                    const platformBuilds = builds.filter(
-                                      (build) =>
-                                        build.channel === channel &&
-                                        build.os === os,
-                                    );
-                                    const latest = platformBuilds.reduce(
-                                      (a, b) =>
-                                        Date.parse(a.generated_at) >
-                                        Date.parse(b.generated_at)
-                                          ? a
-                                          : b,
-                                    );
-                                    return (
-                                      <tr key={os}>
-                                        <th scope="row">
-                                          {os === "linux"
-                                            ? "Linux"
-                                            : os === "windows"
-                                              ? "Windows"
-                                              : os}
-                                          <small>
-                                            <time
-                                              dateTime={latest.generated_at}
-                                            >
-                                              {new Date(latest.generated_at)
-                                                .toISOString()
-                                                .replace("T", " ")
-                                                .slice(0, 16)}
-                                            </time>
-                                          </small>
-                                        </th>
-                                        {dailyTimeline(
-                                          platformBuilds,
-                                          end,
-                                          days,
-                                        ).map((day) => (
-                                          <td key={day.date}>
-                                            {day.builds.length ? (
-                                              <Link
-                                                className={`health-symbol health-${day.status}${day.date === new Date(latest.generated_at).toISOString().slice(0, 10) ? " health-latest" : ""}`}
-                                                title={`${dayLabel(day)}${day.date === new Date(latest.generated_at).toISOString().slice(0, 10) ? "; Latest recorded day" : ""}`}
-                                                aria-label={`${label} ROCm ${row.version} ${channel} ${os}: ${dayLabel(day)}${day.date === new Date(latest.generated_at).toISOString().slice(0, 10) ? "; Latest recorded day" : ""}`}
-                                                to={dayHref(
-                                                  day.builds[0],
-                                                  day.date,
-                                                )}
+                                    {dailyTimeline([], end, days).map((day) => (
+                                      <th
+                                        scope="col"
+                                        key={day.date}
+                                        className={
+                                          day.date === latestDay
+                                            ? "health-latest-date"
+                                            : undefined
+                                        }
+                                        aria-label={
+                                          day.date === latestDay
+                                            ? `${day.date} · Latest recorded day`
+                                            : undefined
+                                        }
+                                      >
+                                        <time dateTime={day.date}>
+                                          {day.date.slice(5)}
+                                        </time>
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {[
+                                    ...new Set(
+                                      builds
+                                        .filter(
+                                          (build) => build.channel === channel,
+                                        )
+                                        .map((build) => build.os),
+                                    ),
+                                  ]
+                                    .sort()
+                                    .map((os) => {
+                                      const platformBuilds = builds.filter(
+                                        (build) =>
+                                          build.channel === channel &&
+                                          build.os === os,
+                                      );
+                                      const latest = platformBuilds.reduce(
+                                        (a, b) =>
+                                          Date.parse(a.generated_at) >
+                                          Date.parse(b.generated_at)
+                                            ? a
+                                            : b,
+                                      );
+                                      return (
+                                        <tr key={os}>
+                                          <th scope="row">
+                                            {os === "linux"
+                                              ? "Linux"
+                                              : os === "windows"
+                                                ? "Windows"
+                                                : os}
+                                            <small>
+                                              <time
+                                                dateTime={latest.generated_at}
                                               >
-                                                {statusSymbols[day.status]}
-                                              </Link>
-                                            ) : (
-                                              <span
-                                                className="health-symbol health-no-report"
-                                                title={dayLabel(day)}
-                                                aria-label={dayLabel(day)}
-                                              >
-                                                —
-                                              </span>
-                                            )}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    );
-                                  })}
-                              </tbody>
-                            </table>
-                          </div>
-                        </section>
-                      ))}
+                                                {new Date(latest.generated_at)
+                                                  .toISOString()
+                                                  .replace("T", " ")
+                                                  .slice(0, 16)}
+                                              </time>
+                                            </small>
+                                          </th>
+                                          {dailyTimeline(
+                                            platformBuilds,
+                                            end,
+                                            days,
+                                          ).map((day) => (
+                                            <td key={day.date}>
+                                              {day.builds.length ? (
+                                                <Link
+                                                  className={`health-symbol health-${day.status}`}
+                                                  title={dayLabel(day)}
+                                                  aria-label={`${label} ROCm ${row.version} ${channel} ${os}: ${dayLabel(day)}`}
+                                                  to={dayHref(
+                                                    day.builds[0],
+                                                    day.date,
+                                                  )}
+                                                >
+                                                  {statusSymbols[day.status]}
+                                                </Link>
+                                              ) : (
+                                                <span
+                                                  className="health-symbol health-no-report"
+                                                  title={dayLabel(day)}
+                                                  aria-label={dayLabel(day)}
+                                                >
+                                                  —
+                                                </span>
+                                              )}
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      );
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </section>
+                        );
+                      })}
                     </article>
                   );
                 })}

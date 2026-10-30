@@ -48,11 +48,12 @@ it("groups engines inside descending ROCm versions with a fixed timeline and lat
       { name: "llama.cpp" },
     ),
   ).toBeInTheDocument();
-  expect(link).toHaveClass("health-latest");
-  expect(link).toHaveAttribute(
-    "aria-label",
-    expect.stringContaining("Latest recorded day"),
-  );
+  expect(link).not.toHaveClass("health-latest");
+  expect(
+    within(scope).getByRole("columnheader", {
+      name: "2026-10-29 · Latest recorded day",
+    }),
+  ).toHaveClass("health-latest-date");
 });
 it("distinguishes a collection error for one version from empty days and keeps other versions", async () => {
   const original = fixtureFetch();

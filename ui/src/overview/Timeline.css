@@ -91,8 +91,13 @@ a.health-symbol:hover {
 .rocm-version-group > h2 {
   margin: 0 0 1rem;
 }
-.health-latest {
-  outline: 2px solid var(--yellow);
-  outline-offset: 3px;
-  box-shadow: 0 0 0 5px color-mix(in srgb, var(--yellow) 12%, transparent);
+.health-table th.health-latest-date {
+  color: var(--yellow);
+  font-weight: 700;
+}
+.health-latest-date time {
+  display: inline-block;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--yellow) 14%, transparent);
 }

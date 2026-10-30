@@ -990,3 +990,33 @@ footer p {
     background-image: none;
   }
 }
+
+.channel-lanes {
+  margin-top: 1.5rem;
+}
+.channel-lanes h2 {
+  margin: 0;
+}
+.lanes-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+.lanes-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.4rem;
+}
+.lanes-table th,
+.lanes-table td {
+  text-align: left;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.lanes-table td.good {
+  color: var(--good);
+}
+.lanes-table td.bad {
+  color: var(--bad);
+}

@@ -15,6 +15,9 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
+import { ChannelLanes } from "./readiness/ChannelLanes";
+import { loadUpstream } from "./upstream/data";
+import type { UpstreamOverview } from "./upstream/data";
 
 function date(value: string | null) {
   return value
@@ -44,6 +47,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     error: string | null;
   } | null>(null);
   const sessionRef = useRef<Session | null>(null);
+  const [upstream, setUpstream] = useState<{
+    session: Session;
+    data: UpstreamOverview | null;
+  } | null>(null);
   const completedRefresh = useRef(-1);
 
   useEffect(() => {
@@ -110,6 +117,17 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 : "Unable to load build history",
           });
       });
+    return () => controller.abort();
+  }, [session, fetcher]);
+
+  // Fork registry for the readiness channel lanes. Optional: a dataset without
+  // the upstream view simply shows the configured feeds.
+  useEffect(() => {
+    if (!session) return;
+    const controller = new AbortController();
+    loadUpstream(session, fetcher, controller.signal)
+      .then((data) => !controller.signal.aborted && setUpstream({ session, data }))
+      .catch(() => !controller.signal.aborted && setUpstream({ session, data: null }));
     return () => controller.abort();
   }, [session, fetcher]);
 
@@ -389,6 +407,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   engines={engines}
                   version={selected}
                   history={history?.session === session ? history.builds : null}
+                />
+                <ChannelLanes
+                  sources={session.index.sources ?? []}
+                  engines={overview.engines}
+                  version={selected}
+                  upstream={upstream?.session === session ? upstream.data : null}
                 />
                 {!busy &&
                   !error &&

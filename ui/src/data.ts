@@ -64,6 +64,19 @@ const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   default_version: z.string().nullable(),
+  sources: z
+    .array(
+      z.object({
+        id: z.string(),
+        engine: z.string(),
+        channel: z.string(),
+        adapter: z.string().optional(),
+        status: z.string(),
+        repository: z.string().optional(),
+        record_count: count.optional(),
+      }),
+    )
+    .optional(),
   upstream: z
     .object({
       schema_version: z.literal(1),
@@ -83,7 +96,7 @@ const indexSchema = z.object({
 const buildSchema = z.object({
   build_id: z.string(),
   engine: z.string(),
-  channel: z.literal("stable"),
+  channel: z.enum(["stable", "nightly"]),
   rocm_version: z.string(),
   os: z.string(),
   tag: z.string().nullable().optional(),

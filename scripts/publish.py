@@ -18,6 +18,7 @@ if __package__:
         _systems_for,
     )
     from .sync import load_last_success
+    from .upstream import validate_upstream_dataset
 else:
     from dataset import (
         _load_previous,
@@ -26,6 +27,7 @@ else:
         _systems_for,
     )
     from sync import load_last_success
+    from upstream import validate_upstream_dataset
 
 
 def git(cwd, *args, check=True):
@@ -146,6 +148,10 @@ def manifest(root, allow_legacy=False):
         paths.update(entry["path"] for entry in overview["history"])
         if overview.get("performance", {}).get("path"):
             paths.add(overview["performance"]["path"])
+    if "upstream" in index:
+        # The Upstream health view: its overview and every monthly run file
+        # it references are part of the published dataset.
+        paths.update(validate_upstream_dataset(root, index["upstream"]))
     entries = [
         ("comparison_performance", "performance/comparisons.json"),
         ("unassigned_performance", "performance/unassigned.json"),

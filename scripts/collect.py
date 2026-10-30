@@ -20,12 +20,14 @@ if __package__:
     from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
+    from .upstream import collect_upstream
 else:
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
+    from upstream import collect_upstream
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
 METRICS = (
@@ -663,6 +665,8 @@ def collect(
     previous_data=None,
     package_evidence=None,
     resolve_packages=None,
+    projects=None,
+    upstream_budget=800,
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
@@ -830,6 +834,25 @@ def collect(
         publish_index=False,
         source_configs={source["id"]: source for source in config["sources"]},
     )
+    if projects is not None:
+        # The upstream view reads projects' own CI. It is collected after the
+        # readiness dataset and never degrades it: a project that cannot be
+        # read keeps its previous records and is reported as partial.
+        output["dataset"]["upstream"] = collect_upstream(
+            projects,
+            destination,
+            fetch=fetch,
+            now=now,
+            write_json=write_json,
+            previous_data=previous_data,
+            budget_calls=upstream_budget,
+        )
+        upstream = output["dataset"]["upstream"]
+        print(
+            f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
+            f'{upstream["api_calls"]} API calls',
+            flush=True,
+        )
     write_json(destination / "errors.json", {"errors": output["errors"]})
     if output["errors"]:
         output["dataset"]["errors"] = output["errors"]
@@ -872,6 +895,18 @@ def main():
         type=Path,
         help="Previous complete dataset to carry build history forward",
     )
+    parser.add_argument(
+        "--projects",
+        type=Path,
+        default=Path(__file__).resolve().parents[1] / "projects.json",
+        help="Upstream projects to collect for the Upstream health view",
+    )
+    parser.add_argument(
+        "--upstream-budget",
+        type=int,
+        default=int(os.environ.get("UPSTREAM_API_BUDGET", "800")),
+        help="Most GitHub API calls the upstream collection may spend in one run",
+    )
     args = parser.parse_args()
     attempted_at = datetime.now(timezone.utc).isoformat()
     last_success = None
@@ -899,6 +934,12 @@ def main():
             previous_data=args.previous_data,
             package_evidence=evidence["packages"],
             resolve_packages=resolve_package,
+            projects=(
+                json.loads(args.projects.read_text(encoding="utf-8"))
+                if args.projects.exists()
+                else None
+            ),
+            upstream_budget=args.upstream_budget,
         )
     except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
         print(f"Collection error: {error}", file=sys.stderr)
@@ -956,6 +997,14 @@ def main():
         f'| {s["id"]} | {s["status"]} | {s["record_count"]} | {s.get("destination", "—")} |'
         for s in output["sources"]
     )
+    upstream = output["dataset"].get("upstream")
+    if upstream:
+        lines.extend([
+            "",
+            f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
+            f'{upstream["api_calls"]} GitHub API calls',
+        ])
+        lines.extend(f"- upstream: {error}" for error in upstream.get("errors", []))
     if output["errors"]:
         lines.extend(["", "### Errors", *[f"- {error}" for error in output["errors"]]])
     summary = "\n".join(lines) + "\n"

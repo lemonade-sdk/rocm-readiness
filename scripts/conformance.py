@@ -13,9 +13,11 @@ from urllib.parse import urlparse
 
 if __package__:
     from .attribution import validate_measurement_package
+    from .upstream import validate_upstream_dataset
     from .validation import PipelineValidationError
 else:
     from attribution import validate_measurement_package
+    from upstream import validate_upstream_dataset
     from validation import PipelineValidationError
 
 RAW = re.compile(
@@ -1417,6 +1419,8 @@ def validate_dataset(root, config=None, *, check_live_pointer=True):
             "/sync/last_successful_at",
             "live status must retain the successful dataset timestamp",
         )
+    if "upstream" in index:
+        paths.update(validate_upstream_dataset(root, index["upstream"]))
     if check_live_pointer and (root / "latest.json").exists():
         latest = read("latest.json")
         schema(latest, "latest.json", 1)

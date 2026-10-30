@@ -50,7 +50,8 @@
       },
       "include_forks": [
         "llamacpp-rocm-stable"
-      ]
+      ],
+      "execution_details": true
     }
   ]
 }

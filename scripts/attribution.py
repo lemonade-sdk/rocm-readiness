@@ -181,6 +181,17 @@ def validate_evidence(row):
             )
             seen.add(job["job_id"])
             if job.get("method") == "cached_binary_registry_match":
+                if "cache_binary_path" in job or "cache_marker_version" in job:
+                    _require(
+                        job.get("cache_marker_version") == row["engine_version"]
+                        and isinstance(job.get("cache_binary_path"), str)
+                        and re.fullmatch(
+                            _cache_path_pattern(row["fork_id"]),
+                            job["cache_binary_path"],
+                        )
+                        is not None,
+                        "invalid cached binary evidence",
+                    )
                 _require(
                     _registry_package(job.get("registry_evidence", {}), row)
                     == row["package_url"],
@@ -235,6 +246,15 @@ def _gh(args):
     return process.stdout
 
 
+def _cache_path_pattern(fork_id):
+    # Release archives can retain an inner directory from a different build tag.
+    return (
+        r"/[^\n]*?/bench-binaries/"
+        + re.escape(fork_id)
+        + r"/(?:llama-b[0-9]+/)?llama-server"
+    )
+
+
 def _registry_package(evidence, row):
     body = evidence.get("body")
     _require(
@@ -259,11 +279,40 @@ def _registry_package(evidence, row):
     ]
     _require(len(forks) == 1, "cached fork registry is missing or ambiguous")
     fork = forks[0]
-    return (
+    url = (
         fork["binary_url_linux"]
         .replace("{version}", row["engine_version"])
         .replace("{arch}", fork.get("arch", ""))
     )
+    if "{therock_ver}" in url:
+        versions = evidence.get("backend_versions")
+        _require(isinstance(versions, dict), "missing pinned backend versions")
+        version_body = versions.get("body")
+        _require(
+            isinstance(version_body, str)
+            and versions.get("sha256")
+            == hashlib.sha256(version_body.encode()).hexdigest(),
+            "backend versions checksum mismatch",
+        )
+        _require(
+            versions.get("url")
+            == evidence["url"].replace("benchmark_forks.json", "backend_versions.json"),
+            "backend versions must use the registry checkout",
+        )
+        version_data = json.loads(version_body)
+        _require(
+            isinstance(version_data, dict)
+            and isinstance(version_data.get("therock"), dict),
+            "missing or invalid therock version",
+        )
+        version = version_data["therock"].get("version")
+        _require(
+            isinstance(version, str)
+            and re.fullmatch(r"v?[0-9]+(?:\.[0-9]+)+", version) is not None,
+            "missing or invalid therock version",
+        )
+        url = url.replace("{therock_ver}", ".".join(version.lstrip("v").split(".")[:2]))
+    return url
 
 
 def resolve_package(row, run=_gh):
@@ -313,20 +362,24 @@ def resolve_package(row, run=_gh):
             ):
                 candidates.append(url)
         registry_evidence = None
+        cache_binary_path = None
         method = "download_log"
         if not candidates:
-            cached = re.search(
-                r"\[cache\] "
-                + re.escape(row["engine_version"])
-                + r" already installed: /[^\n]*?/bench-binaries/"
-                + re.escape(row["fork_id"])
-                + r"/llama-server\s*(?:$|\n)",
-                log,
+            cached = set(
+                re.findall(
+                    r"\[cache\] "
+                    + re.escape(row["engine_version"])
+                    + r" already installed: ("
+                    + _cache_path_pattern(row["fork_id"])
+                    + r")\s*(?:$|\n)",
+                    log,
+                )
             )
             _require(
-                cached is not None,
+                len(cached) == 1,
                 "exact downloaded ROCm package is missing or ambiguous",
             )
+            cache_binary_path = next(iter(cached))
             commits = re.findall(
                 r"git log -1 --format=%H\n[^\n]*?\b([a-f0-9]{40})\s*(?:$|\n)", log
             )
@@ -343,6 +396,26 @@ def resolve_package(row, run=_gh):
                 "body": body,
                 "sha256": hashlib.sha256(body.encode()).hexdigest(),
             }
+            registry_forks = json.loads(body).get("forks", [])
+            if any(
+                fork.get("fork_id") == row["fork_id"]
+                and fork.get("repo") == row["engine_repository"]
+                and "{therock_ver}" in fork.get("binary_url_linux", "")
+                for fork in registry_forks
+            ):
+                versions_body = run(
+                    [
+                        "api",
+                        f"repos/{repo}/contents/src/cpp/resources/backend_versions.json?ref={commit}",
+                        "-H",
+                        "Accept: application/vnd.github.raw+json",
+                    ]
+                )
+                registry_evidence["backend_versions"] = {
+                    "url": f"https://raw.githubusercontent.com/{repo}/{commit}/src/cpp/resources/backend_versions.json",
+                    "body": versions_body,
+                    "sha256": hashlib.sha256(versions_body.encode()).hexdigest(),
+                }
             candidates = [
                 _registry_package(registry_evidence, {**row, "repository": repo})
             ]
@@ -380,6 +453,14 @@ def resolve_package(row, run=_gh):
                 **(
                     {"registry_evidence": registry_evidence}
                     if registry_evidence
+                    else {}
+                ),
+                **(
+                    {
+                        "cache_binary_path": cache_binary_path,
+                        "cache_marker_version": row["engine_version"],
+                    }
+                    if cache_binary_path
                     else {}
                 ),
                 "package_url": candidates[0],
@@ -469,11 +550,27 @@ def attribute_stable(
             return previous
         jobs = {job["job_id"]: job for job in previous["job_evidence"]}
         for job in item["job_evidence"]:
-            _require(
-                job["job_id"] not in jobs or jobs[job["job_id"]] == job,
-                "conflicting job evidence",
-            )
-            jobs[job["job_id"]] = job
+            if job["job_id"] in jobs:
+                prior_job = jobs[job["job_id"]]
+                optional = {"method", "cache_binary_path", "cache_marker_version"}
+                _require(
+                    prior_job.get("method", "download_log")
+                    == job.get("method", "download_log")
+                    and {
+                        key: value
+                        for key, value in prior_job.items()
+                        if key not in optional
+                    }
+                    == {key: value for key, value in job.items() if key not in optional}
+                    and all(
+                        prior_job[key] == job[key]
+                        for key in optional & prior_job.keys() & job.keys()
+                    ),
+                    "conflicting job evidence",
+                )
+                jobs[job["job_id"]] = {**prior_job, **job}
+            else:
+                jobs[job["job_id"]] = job
         previous["job_evidence"] = sorted(
             jobs.values(), key=lambda job: int(job["job_id"])
         )

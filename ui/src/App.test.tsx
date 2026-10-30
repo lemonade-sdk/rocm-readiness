@@ -140,7 +140,7 @@ it("loads the default version and shows real dataset scope", async () => {
   expect(screen.queryByLabelText("ROCm version")).not.toBeInTheDocument();
   await screen.findByRole("region", { name: "llama.cpp ROCm 10.1 stable" });
   expect(
-    screen.getByRole("heading", { name: "llama.cpp" }),
+    screen.getAllByRole("heading", { name: "llama.cpp" })[0],
   ).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Pinned dataset" })).toHaveAttribute(
     "href",

@@ -49,8 +49,8 @@ export function dailyTimeline(
     return { date, status, builds: rows };
   });
 }
-export function dayHref(build: Build, date: string, days?: number): string {
-  return `?${new URLSearchParams({ view: "engine", version: build.rocm_version, engine: build.engine, channel: build.channel, platform: build.os, date, ...(days ? { days: String(days) } : {}) })}`;
+export function dayHref(build: Build, date: string): string {
+  return `?${new URLSearchParams({ view: "engine", version: build.rocm_version, engine: build.engine, channel: build.channel, platform: build.os, date })}`;
 }
 export function dayLabel(day: Day): string {
   const skipped = day.builds.reduce(

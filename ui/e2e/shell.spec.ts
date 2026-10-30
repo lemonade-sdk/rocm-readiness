@@ -64,7 +64,9 @@ test("pins data, switches versions and restores scope through browser history", 
     page.getByRole("heading", { name: "ROCm readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp", exact: true }),
+    page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
+      .getByRole("heading", { name: "llama.cpp", exact: true }),
   ).toBeVisible();
   const pointerReads = reads.filter((url) =>
     url.endsWith("/main/data/latest.json"),

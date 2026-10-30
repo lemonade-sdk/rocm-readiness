@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { expect, it } from "vitest";
 import { EngineOverview } from "./EngineOverview";
 import { fixtureFetch, indexUrl, historyFixture } from "./fixtures";
 import { loadSession } from "./data";
 
-it("shows all published versions grouped within an engine and retains both OS rows", async () => {
+it("groups engines inside descending ROCm versions with a fixed timeline and latest-day highlight", async () => {
   const fetcher = fixtureFetch();
   const session = await loadSession(undefined, fetcher);
   render(
@@ -17,7 +17,7 @@ it("shows all published versions grouped within an engine and retains both OS ro
     name: "llama.cpp ROCm 10.1 stable",
   });
   await screen.findByRole("region", { name: "llama.cpp ROCm 10.0 stable" });
-  expect(screen.getAllByRole("heading", { name: "llama.cpp" })).toHaveLength(1);
+  expect(screen.getAllByRole("heading", { name: "llama.cpp" })).toHaveLength(2);
   expect(
     within(scope).getByRole("rowheader", { name: /Linux/ }),
   ).toBeInTheDocument();
@@ -34,10 +34,25 @@ it("shows all published versions grouped within an engine and retains both OS ro
   );
   expect(link).not.toHaveAttribute("href", expect.stringContaining("build="));
   expect(screen.queryByText("b11972")).not.toBeInTheDocument();
-  fireEvent.change(screen.getByLabelText("Timeline window"), {
-    target: { value: "20" },
-  });
-  expect(within(scope).getAllByRole("columnheader")).toHaveLength(21);
+  expect(screen.queryByLabelText("Timeline window")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Each symbol includes/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/dataset captured/)).not.toBeInTheDocument();
+  const versions = screen.getAllByRole("heading", { level: 2 });
+  expect(versions.map((node) => node.textContent)).toEqual([
+    "ROCm 10.1",
+    "ROCm 10.0",
+  ]);
+  expect(
+    within(screen.getByRole("region", { name: "ROCm 10.1" })).getByRole(
+      "heading",
+      { name: "llama.cpp" },
+    ),
+  ).toBeInTheDocument();
+  expect(link).toHaveClass("health-latest");
+  expect(link).toHaveAttribute(
+    "aria-label",
+    expect.stringContaining("Latest recorded day"),
+  );
 });
 it("distinguishes a collection error for one version from empty days and keeps other versions", async () => {
   const original = fixtureFetch();

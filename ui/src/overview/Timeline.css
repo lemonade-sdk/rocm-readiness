@@ -1,13 +1,8 @@
-.timeline-intro p {
-  color: var(--muted);
-  max-width: 85ch;
-  margin: 0.65rem 0;
-}
 .timeline-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1.25rem;
-  margin-top: 1rem;
+  margin-top: 0;
   font-size: 0.85rem;
 }
 .timeline-legend > span {
@@ -18,7 +13,7 @@
 .timeline-scope {
   margin-top: 1.5rem;
 }
-.timeline-scope h3 {
+.timeline-scope h4 {
   font-size: 1rem;
 }
 .timeline-scroll {
@@ -88,4 +83,16 @@ a.health-symbol:hover {
 }
 .engine-card {
   min-width: 0;
+}
+
+.rocm-version-group {
+  min-width: 0;
+}
+.rocm-version-group > h2 {
+  margin: 0 0 1rem;
+}
+.health-latest {
+  outline: 2px solid var(--yellow);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--yellow) 12%, transparent);
 }

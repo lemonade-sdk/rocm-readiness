@@ -74,11 +74,7 @@ it("drills into all builds in a date scope rather than selecting an arbitrary id
     date: "2026-10-29",
   });
 });
-it("preserves the chosen window in daily drill-down URLs", () => {
-  expect(
-    new URLSearchParams(dayHref(base, "2026-10-29", 30).slice(1)).get("days"),
-  ).toBe("30");
-});
+
 it("does not invent an overall warning when a qualified archive has no overall field", () => {
   expect(
     dailyTimeline([build({ overall: null })], "2026-10-29Z", 1)[0].status,

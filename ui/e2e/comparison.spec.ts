@@ -23,7 +23,7 @@ test("daily qualification preserves mixed outcomes and supports keyboard and tou
     });
   });
   await page.goto("./");
-  await page.getByLabel("Timeline window").selectOption("30");
+  await expect(page.getByLabel("Timeline window")).toHaveCount(0);
   const symbol = page.getByRole("link", {
     name: /10.1 stable linux:.*Not qualified/,
   });
@@ -35,20 +35,20 @@ test("daily qualification preserves mixed outcomes and supports keyboard and tou
     await page.keyboard.press("Enter");
   }
   await expect(page).toHaveURL(/date=2026-10-29/);
-  await expect(page).toHaveURL(/days=30/);
+
   await expect(
     page.getByRole("link", { name: /Open build history-2 / }).first(),
   ).toBeVisible();
   await page.goBack();
   await expect(symbol).toBeVisible();
-  await expect(page.getByLabel("Timeline window")).toHaveValue("30");
+  await expect(page.getByLabel("Timeline window")).toHaveCount(0);
   await page.reload();
-  await expect(page.getByLabel("Timeline window")).toHaveValue("30");
+  await expect(page.getByLabel("Timeline window")).toHaveCount(0);
   await expect(
     page
       .getByRole("region", { name: "llama.cpp ROCm 10.1 timeline" })
       .getByRole("columnheader"),
-  ).toHaveCount(31);
+  ).toHaveCount(15);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

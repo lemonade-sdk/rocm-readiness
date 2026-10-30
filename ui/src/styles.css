@@ -974,7 +974,7 @@ footer p {
   margin: 12px 0 16px;
 }
 .overview-hero p {
-  max-width: 78ch;
+  max-width: none;
   line-height: 1.5;
 }
 .header-controls select {

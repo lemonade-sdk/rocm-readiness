@@ -25,7 +25,7 @@
 }
 
 .performance-platform-note {
-  color: var(--muted, #667085);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -50,8 +50,8 @@
 .performance-table-wrap,
 .performance-observation,
 .performance-comparison {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border, #d9dce3);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
   padding: 1rem;
 }
@@ -68,7 +68,7 @@
 
 .performance-table-wrap th,
 .performance-table-wrap td {
-  border-bottom: 1px solid var(--border, #d9dce3);
+  border-bottom: 1px solid var(--border);
   padding: 0.65rem;
   text-align: left;
   vertical-align: top;
@@ -85,7 +85,7 @@
 }
 
 .performance-observation time {
-  color: var(--muted, #667085);
+  color: var(--muted);
   font-size: 0.85rem;
   white-space: nowrap;
 }
@@ -108,7 +108,7 @@
 .performance-metadata dt,
 .performance-metrics dt,
 .performance-deltas dt {
-  color: var(--muted, #667085);
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .performance-comparison-row {
-  border-top: 1px solid var(--border, #d9dce3);
+  border-top: 1px solid var(--border);
   padding-top: 0.9rem;
 }
 

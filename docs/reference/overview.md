@@ -10,7 +10,7 @@ not a copy of an upstream `latest` file.
 | `/schema_version` | integer, required; `2` | Writer constant. |
 | `/generated_at` | timestamp string, required | Same collector attempt time as the catalog. |
 | `/rocm_version` | version string, required | Must equal its catalog entry and directory. |
-| `/engines` | array of engine cards, required | Only configured engines with at least one build or measurement in this version. |
+| `/engines` | array of engine cards, required | Only configured engines with at least one build, performance measurement or execution attempt in this version. |
 | `/engines/*/id`, `/engines/*/label`, `/engines/*/platforms` | string, string, array of strings; required | Copy the matching configured engine. |
 | `/engines/*/build_count` | nonnegative integer, required | Number of retained builds owned by this engine in this version. A measurement-only engine has zero builds. |
 | `/engines/*/latest_builds` | array of [build records](history.md), required | Newest retained build per `(channel, os, gfx_target)` group within this engine/version. |
@@ -28,6 +28,9 @@ When `status` is `not_measured`, the performance object contains only that
 property and there is no linked performance file. A measurement date/build is
 not a test of the newest qualification build.
 
+Optional `execution` links detailed [benchmark execution outcomes](executions.md),
+with an attempt count and source-backed model summaries.
+
 ## Selection rules
 
 Build identity is `(source_id, build_id)`. A current row replaces its prior row;
@@ -42,8 +45,8 @@ the first encountered retained record wins. Group keys separate hardware IDs,
 model, scenario and quantization; no fastest-model or best-throughput choice is
 made. Full records and dates remain available in the performance file.
 
-An engine card is omitted when both its build and measurement collections are
-empty. Therefore a catalog's configured-engine count can exceed the number of
+An engine card is omitted when its build, performance and execution collections
+are all empty. Therefore a catalog's configured-engine count can exceed the number of
 cards for one version.
 
 ## Example
@@ -61,5 +64,5 @@ A measurement-free version's overview can be empty before any build is retained:
 }
 ```
 
-Normal catalog construction lists only versions with builds or measurements.
+Normal catalog construction lists only versions with builds, performance measurements or execution attempts.
 For a populated source-to-overview example, see [pinned lineage](mappings.md).

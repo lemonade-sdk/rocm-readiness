@@ -12,18 +12,30 @@ import re
 from urllib.parse import urlparse
 
 if __package__:
+    from .execution_dataset import (
+        validate_execution_file,
+        validate_execution_provenance,
+        validate_execution_completeness,
+    )
     from .attribution import validate_measurement_package
     from .validation import PipelineValidationError
 else:
+    from execution_dataset import (
+        validate_execution_file,
+        validate_execution_provenance,
+        validate_execution_completeness,
+    )
     from attribution import validate_measurement_package
     from validation import PipelineValidationError
 
 RAW = re.compile(
     r"https://raw\.githubusercontent\.com/([^/]+/[^/]+)/([a-f0-9]{40})/[^?#]+"
 )
-BUILD_REQUIRED = set("""source_id build_id engine tag rocm_version channel os gfx_target
+BUILD_REQUIRED = set(
+    """source_id build_id engine tag rocm_version channel os gfx_target
 hardware_validated gfx qualified version_qualified overall generated_at run_attempt tests
-blocked_by blocking_tests report_url run_url source_pointer source_url""".split())
+blocked_by blocking_tests report_url run_url source_pointer source_url""".split()
+)
 MEASUREMENT_REQUIRED = set(
     """source_id source_pointer kind engine channel backend fork_id
 engine_repository engine_version model scenario quant system_id context_size input_tokens
@@ -108,7 +120,9 @@ def _same_records(left, right):
     return [canonical(row) for row in left] == [canonical(row) for row in right]
 
 
-def validate_dataset(root, config=None, *, check_live_pointer=True):
+def validate_dataset(
+    root, config=None, *, check_live_pointer=True, require_execution_evidence=False
+):
     """Return referenced paths after validating a complete schema-v2 dataset.
 
     ``root`` is the directory containing index.json. ``config`` is sources.json,
@@ -591,7 +605,30 @@ def validate_dataset(root, config=None, *, check_live_pointer=True):
         return system_ids
 
     versions = sequence(index.get("versions"), "index.json", "/versions")
+    raw_execution = None
+    package_execution = None
+    needs_execution = (
+        require_execution_evidence
+        and config is not None
+        and any(s.get("execution_details") for s in config["sources"])
+    )
+    if needs_execution or (root / "provenance/executions.json").exists():
+        raw_execution = read("provenance/executions.json")
+        package_execution = read("provenance/packages.json")
     version_names = [row.get("rocm_version") for row in versions]
+    if raw_execution is not None:
+        try:
+            expected_execution_versions = validate_execution_completeness(
+                [], raw_execution, package_execution, None
+            )
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            _fail("index.json", "/versions", str(error))
+        _check(
+            expected_execution_versions <= set(version_names),
+            "index.json",
+            "/versions",
+            "source-backed execution version is missing from the catalog",
+        )
     order = [
         _version(value, "index.json", f"/versions/{pos}/rocm_version")
         for pos, value in enumerate(version_names)
@@ -1145,14 +1182,56 @@ def validate_dataset(root, config=None, *, check_live_pointer=True):
                 "/performance",
                 "unmeasured versions cannot claim performance paths or counts",
             )
+        attempts = []
+        if "execution" in overview:
+            execution = overview["execution"]
+            epath = f"rocm/{version}/executions.json"
+            _check(
+                isinstance(execution, dict) and execution.get("path") == epath,
+                overview_path,
+                "/execution/path",
+                "invalid execution path",
+            )
+            detail = read(epath)
+            try:
+                attempts = validate_execution_file(detail, version)
+                has_raw = (root / "provenance/executions.json").exists()
+                if require_execution_evidence or has_raw:
+                    validate_execution_provenance(
+                        attempts, read("provenance/executions.json")
+                    )
+                    validate_execution_completeness(
+                        attempts,
+                        read("provenance/executions.json"),
+                        read("provenance/packages.json"),
+                        version,
+                    )
+            except (ValueError, KeyError, TypeError, AttributeError) as error:
+                _fail(epath, "/attempts", str(error))
+            _check(
+                execution.get("attempt_count") == len(attempts)
+                and execution.get("summaries") == detail["summaries"],
+                overview_path,
+                "/execution",
+                "execution summary must match detail",
+            )
+            for pos, row in enumerate(attempts):
+                ownership(row, epath, f"/attempts/{pos}", measurement=True)
+        elif raw_execution is not None:
+            try:
+                validate_execution_completeness(
+                    [], raw_execution, package_execution, version
+                )
+            except (ValueError, KeyError, TypeError, AttributeError) as error:
+                _fail(overview_path, "/execution", str(error))
         cards = sequence(overview.get("engines"), overview_path, "/engines")
-        expected_engines = {row["engine"] for row in builds + measurements}
+        expected_engines = {row["engine"] for row in builds + measurements + attempts}
         _check(
             [card.get("id") for card in cards]
             == [engine["id"] for engine in engines if engine["id"] in expected_engines],
             overview_path,
             "/engines",
-            "cards must contain only engines owning builds or measurements, in catalog order",
+            "cards must contain only engines owning builds, measurements or execution evidence, in catalog order",
         )
         for cpos, card in enumerate(cards):
             ptr = f"/engines/{cpos}"

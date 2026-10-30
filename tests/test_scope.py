@@ -15,6 +15,10 @@ from tests.test_dataset import SOURCE_A, build, normalized
 class ScopeTests(unittest.TestCase):
     def test_production_scope_skips_vllm_fetch_and_prunes_its_saved_records(self):
         config = json.loads(Path("sources.json").read_text())
+        # This fixture exercises source pruning, not the separate detailed-run feed.
+        next(s for s in config["sources"] if s["id"] == "lemonade-performance")[
+            "execution_details"
+        ] = False
         old = normalized(
             [
                 build(
@@ -38,6 +42,8 @@ class ScopeTests(unittest.TestCase):
                 return fixture("llama.json")
             if url.endswith("leaderboard.json"):
                 return fixture("performance.json")
+            if "/git/trees/" in url:
+                return {"truncated": False, "tree": []}
             raise AssertionError(url)
 
         with tempfile.TemporaryDirectory() as folder:
@@ -150,8 +156,9 @@ class ScopeTests(unittest.TestCase):
             ["not-configured"],
             ["llamacpp-rocm-stable", "llamacpp-rocm-stable"],
         ):
-            with self.subTest(value=value), self.assertRaisesRegex(
-                ValueError, "fork selection"
+            with (
+                self.subTest(value=value),
+                self.assertRaisesRegex(ValueError, "fork selection"),
             ):
                 validate_config(
                     {**config, "sources": [{**source, "include_forks": value}]}

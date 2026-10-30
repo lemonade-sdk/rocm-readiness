@@ -25,6 +25,7 @@ by a producer. Its schema version is **1**.
 | `/sources/*/os` | string, optional | Qualification OS fallback when the producer row lacks one; aliases normalize as in [build history](history.md). |
 | `/sources/*/forks` | object, required for available performance feeds | Map from producer fork ID to the object below. |
 | `/sources/*/include_forks` | nonempty array of unique strings, optional | Selects only listed configured fork IDs before validating/associating their records; absent selects all mapped forks. |
+| `/sources/*/execution_details` | boolean, optional | Collect detailed stable execution reports in addition to leaderboard measurements. |
 | `/sources/*/forks/*/engine` | string, required | Configured engine ID. |
 | `/sources/*/forks/*/channel` | string, required | `stable`, `nightly`, `reference`, or `experimental`. |
 | `/sources/*/forks/*/backend` | string, required for performance mapping | Backend identity; current stable mapping is `rocm`. |

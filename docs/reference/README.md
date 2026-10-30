@@ -14,6 +14,7 @@ relative dataset path against the pinned `index_url`.
 | `data/rocm/<version>/overview.json` | [ROCm overview](overview.md) |
 | `data/rocm/<version>/history/YYYY-MM.json` | [Build history and build records](history.md) |
 | `data/rocm/<version>/performance.json` | [Measurements and hardware](performance.md) |
+| `data/rocm/<version>/executions.json` | [Benchmark execution outcomes](executions.md) |
 | Producer-to-output transformations | [Field lineage and pinned examples](mappings.md) |
 
 The references describe the current stable llama.cpp contract. A field marked

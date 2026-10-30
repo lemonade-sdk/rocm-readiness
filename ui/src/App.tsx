@@ -184,7 +184,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           Lemonade <span className="brand-light">Performance</span>
         </Link>
         <div className="header-controls">
-          <span className="channel">STABLE · LLAMA.CPP</span>
           <label htmlFor="version">ROCm version</label>
           <select
             id="version"

@@ -18,7 +18,7 @@ The upstream budget caps upstream HTTP attempts, including failed attempts, acro
 
 Previous monthly files retain completed scan IDs and job records. `coverage.cache_identity` binds reuse to relevant source/job configuration; incompatible or legacy cache is recollected. `coverage.pending` checkpoints paginated enrichment so subsequent collections can advance. Each run must still have enough budget to read the relevant project run listings; repeated runs are not guaranteed to converge under an arbitrarily small budget. [Issue 56](https://github.com/lemonade-sdk/rocm-readiness/issues/56) tracks the listing pagination floor. `coverage.complete`, `since`, `listed_since`, `collected_at`, and `oldest_run_at` describe collection progress. Reused evidence is bounded by the current window.
 
-`index.json` references `upstream/overview.json`, containing project aggregates, coverage and monthly file references. `upstream/<project>/ci/YYYY-MM.json` holds retained executions and scan state. Conformance validates file references, records and aggregates against the overview. Publication pins the whole dataset to one commit.
+`index.json` references `upstream/overview.json`, containing project aggregates, coverage and monthly file references. `upstream/<project>/ci/YYYY-MM.json` holds retained executions and scan state. Conformance validates file references and retained records, and reconciles monthly daily-state counts and pass/decided totals with the overview; it does not validate badges, platforms, not-running counts or merged-red totals. Publication pins the whole dataset to one commit.
 
 ## Local preview
 

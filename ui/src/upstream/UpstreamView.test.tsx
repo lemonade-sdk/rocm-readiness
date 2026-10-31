@@ -267,3 +267,57 @@ it('does not retry a failed refresh implicitly when switching dashboards', async
   await screen.findByRole('heading', { name: 'llama.cpp' });
   expect(pointers).toBe(2);
 });
+
+function incompleteFetch(error?: string) {
+  const project = upstreamOverview.projects[0];
+  const jobs = project.jobs.map((job) => ({
+    ...job, daily: {}, decided: 0, passed: 0, started: 0, stalled: 0,
+    skipped: 0, last_ran: null, quiet_days: [], failed_steps: {}, gate: null,
+  }));
+  return upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
+    ...upstreamOverview, projects: [{ ...project, jobs, files: [], findings: [],
+      kpis: { ...project.kpis, decided: 0, passed: 0, not_running: 2, merged_red: 0 },
+      coverage: { complete: false, ...(error ? { error } : {}) } }],
+  }});
+}
+
+it('shows unknown rather than unobserved not-running counts in incomplete project cards and totals', async () => {
+  mount('/?track=upstream', incompleteFetch());
+  const card = (await screen.findByRole('heading', { name: 'llama.cpp' })).closest('article')!;
+  expect(within(card).getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  const total = screen.getByRole('region', { name: 'Upstream projects' });
+  expect(within(total).getAllByText('tests not running')[0].parentElement).toHaveTextContent('Unknown');
+});
+
+it('does not describe uncollected runs as absent in incomplete project details', async () => {
+  mount('/?track=upstream&project=llamacpp', incompleteFetch());
+  await screen.findByRole('heading', { level: 1, name: 'llama.cpp' });
+  expect(screen.getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
+  expect(screen.getByText(/No collected failures/)).toBeInTheDocument();
+  const perDay = screen.getByRole('region', { name: 'Per day' });
+  fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: no collected evidence/ }));
+  expect(await screen.findByText('No collected evidence for this day.')).toBeInTheDocument();
+  fireEvent.click(screen.getByText('By job'));
+  expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
+});
+
+it('shows a plain collection failure with optional diagnostics', async () => {
+  mount('/?track=upstream&project=llamacpp', incompleteFetch('OSError: https://example.com/private'));
+  expect(await screen.findByText('Collection failed. The displayed results may be incomplete.')).toBeInTheDocument();
+  const details = screen.getByText('Technical details').closest('details')!;
+  expect(details).not.toHaveAttribute('open');
+  expect(within(details).getByText('OSError: https://example.com/private')).toBeInTheDocument();
+});
+
+it('retains observed failures and stalls when collection is incomplete', async () => {
+  const project = upstreamOverview.projects[0];
+  const fetcher = upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
+    ...upstreamOverview, projects: [{ ...project, coverage: { complete: false } }],
+  }});
+  mount('/?track=upstream&project=llamacpp', fetcher);
+  const perDay = await screen.findByRole('region', { name: 'Per day' });
+  expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).querySelector('.up-fail')).toBeInTheDocument();
+  expect(within(perDay).getByRole('button', { name: /2026-10-29: 2 requested, none ran/ }).querySelector('.up-stall')).toBeInTheDocument();
+  expect(screen.getByText('Test')).toBeInTheDocument();
+});

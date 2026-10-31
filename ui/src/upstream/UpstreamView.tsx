@@ -209,14 +209,14 @@ export function Ticks({
 }
 
 function describe(day: string, cell: Cell | undefined) {
-  if (!cell) return `${day}: nothing requested`;
+  if (!cell) return `${day}: no collected evidence`;
   const ran = cell.passed + cell.failed + cell.other + cell.running;
   if (!ran)
     return cell.stalled
       ? `${day}: ${cell.stalled} requested, none ran`
       : cell.skipped
         ? `${day}: ${cell.skipped} skipped`
-        : `${day}: nothing requested`;
+        : `${day}: no collected evidence`;
   return `${day}: ${cell.passed} passed, ${cell.failed} failed of ${ran} runs`;
 }
 
@@ -307,6 +307,7 @@ function ProjectGrid({
   const totals = rate(all);
   const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
   const quiet = overview.projects.reduce((n, p) => n + p.kpis.not_running, 0);
+  const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
       <div className="up-totals">
@@ -314,10 +315,10 @@ function ProjectGrid({
         <Stat value={all.length} label="configured client jobs" />
         <Stat
           value={totals.pct === null ? "–" : `${totals.pct}%`}
-          label="passed on main"
+          label={complete ? "passed on main" : "of collected results passed on main"}
         />
-        <Stat value={red} label="PRs merged red" bad={red > 0} />
-        <Stat value={quiet} label="tests not running" bad={quiet > 0} />
+        <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
+        <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
       </div>
       <p className="up-rule muted">
         Upstream means a test on the default branch ran on{" "}
@@ -354,24 +355,24 @@ function ProjectGrid({
                 <Forks project={project} />
                 <span className="muted up-repo">{project.repository}</span>
               </div>
-              {project.coverage.error && <p className="bad">Collection error: {project.coverage.error}</p>}
+              {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
               {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
                 <>
                   <div className="up-kpis">
                     <Stat
                       value={r.pct === null ? "–" : `${r.pct}%`}
-                      label={`of ${r.decided} results on main passed`}
+                      label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
                     />
                     <Stat
-                      value={project.kpis.not_running}
+                      value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
                       label="tests not running"
-                      bad={project.kpis.not_running > 0}
+                      bad={project.coverage.complete && project.kpis.not_running > 0}
                     />
                     {project.jobs.some((j) => j.gate) && (
                       <Stat
                         value={project.kpis.merged_red}
-                        label="PRs merged red"
+                        label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
                         bad={project.kpis.merged_red > 0}
                       />
                     )}
@@ -403,6 +404,18 @@ function ProjectGrid({
         })}
       </div>
     </section>
+  );
+}
+
+function CollectionFailure({ error }: { error: string }) {
+  return (
+    <div className="notice error" role="alert" onClick={(event) => event.stopPropagation()}>
+      <p>Collection failed. The displayed results may be incomplete.</p>
+      <details>
+        <summary>Technical details</summary>
+        <p>{error}</p>
+      </details>
+    </div>
   );
 }
 
@@ -462,6 +475,7 @@ function ProjectPage({
   const r = rate(jobs);
   const red = mergedRed(jobs);
   const quiet = jobs.filter(notRunning).length;
+  const findings = project.coverage.complete ? project.findings : project.findings.filter((f) => !["not_running", "never_ran"].includes(f.kind));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -534,11 +548,11 @@ function ProjectPage({
       <div className="up-kpis up-kpis-page">
         <Stat
           value={r.pct === null ? "–" : `${r.pct}%`}
-          label={`of ${r.decided} results on main passed`}
+          label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
         />
-        <Stat value={quiet} label="tests not running" bad={quiet > 0} />
+        <Stat value={project.coverage.complete ? quiet : "Unknown"} label="tests not running" bad={project.coverage.complete && quiet > 0} />
         {project.jobs.some((j) => j.gate) && (
-          <Stat value={red} label="PRs merged red" bad={red > 0} />
+          <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
       </div>
       {(stacks.length > 1 || targets.length > 1) && (
@@ -560,20 +574,20 @@ function ProjectPage({
           </span>
         </div>
       )}
-      {project.findings.length > 0 && (
+      {findings.length > 0 && (
         <details className="up-findings">
           <summary>
-            {project.findings.length}{" "}
-            {project.findings.length > 1 ? "findings" : "finding"}
+            Project-wide: {findings.length}{" "}
+            {findings.length > 1 ? "findings" : "finding"}
           </summary>
-          {project.findings.map((f) => (
+          {findings.map((f) => (
             <p key={f.head}>
               <strong>{f.head}</strong> {f.body}
             </p>
           ))}
         </details>
       )}
-      {project.coverage.error && <p className="notice error" role="alert">Collection error: {project.coverage.error}</p>}
+      {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       {!project.coverage.complete && !project.coverage.error && (
         <p className="notice">
           Collection for this project is still filling its window; the oldest
@@ -600,7 +614,7 @@ function ProjectPage({
                   </h3>
                   {days14.every((d) => !group.some((j) => j.daily[d])) && (
                     <p className="muted up-empty-chart">
-                      No runs on the default branch in the last 14 days.
+                      No collected runs on the default branch in the last 14 days.
                     </p>
                   )}
                   <DayBars
@@ -634,7 +648,7 @@ function ProjectPage({
         </div>
         <div>
           <Platforms project={project} />
-          <MergeGate jobs={jobs} />
+          <MergeGate jobs={jobs} complete={project.coverage.complete} />
           <section
             className="card up-panel"
             aria-label="What is failing on main"
@@ -655,7 +669,7 @@ function ProjectPage({
                 ))}
               </ol>
             ) : (
-              <p className="muted">Nothing failed on main.</p>
+              <p className="muted">No collected failures on main.</p>
             )}
           </section>
         </div>
@@ -687,7 +701,7 @@ function ProjectPage({
                   title={`${job.workflow} · ${job.cadence} · ${job.stack}`}
                 >
                   {job.target} · {job.where}
-                  {notRunning(job) && (
+                  {project.coverage.complete && notRunning(job) && (
                     <span className="bad">
                       {" "}
                       ·{" "}
@@ -846,7 +860,7 @@ function DayPanel({
             ? "Skipped by the job's own condition."
             : cell.stalled
               ? "Requested, and no machine took it."
-              : "Nothing was requested."}
+              : "No collected evidence for this day."}
         </p>
       )}
     </div>
@@ -904,7 +918,7 @@ function Platforms({ project }: { project: Project }) {
   );
 }
 
-function MergeGate({ jobs }: { jobs: Job[] }) {
+function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
   const gated = jobs.filter((j) => j.gate);
   const [list, setList] = useState<{
     job: string;
@@ -916,7 +930,7 @@ function MergeGate({ jobs }: { jobs: Job[] }) {
     <section className="card up-panel" aria-label="Merge gate">
       <h2>
         Merge gate{" "}
-        <span className="muted">the job on the commit that merged</span>
+        <span className="muted">{complete ? "the job on the commit that merged" : "collected evidence on the commit that merged; incomplete"}</span>
       </h2>
       <table className="up-table">
         <thead>

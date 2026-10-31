@@ -138,6 +138,8 @@ def load_config(config):
             raise ValueError("wrong source type for view")
         return ids
 
+    if "readiness" not in views or views["readiness"] is None:
+        raise ValueError("missing readiness view")
     rids = selected("readiness")
     uids = selected("upstream")
     by_readiness = {s["id"]: s for s in readiness_sources}

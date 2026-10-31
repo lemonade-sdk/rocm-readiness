@@ -1476,6 +1476,8 @@ def main():
             if args.sources is None
             else load_config(json.loads(args.sources.read_text(encoding="utf-8")))[0]
         )
+        if args.sources is not None and config is None:
+            raise ValueError("sources configuration has no readiness input")
         paths = validate_dataset(args.data_dir, config)
     except (PipelineValidationError, OSError, ValueError, KeyError, TypeError) as error:
         print(str(error), file=sys.stderr)

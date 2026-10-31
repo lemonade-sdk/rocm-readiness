@@ -87,3 +87,38 @@ class ConfigurationTests(unittest.TestCase):
             mutate(config)
             with self.subTest(mutation=mutate), self.assertRaises(ValueError):
                 self.load(config)
+
+    def test_readiness_view_must_be_explicit(self):
+        original = json.loads((ROOT / "sources.json").read_text())
+        for misspelled in (False, True):
+            config = copy.deepcopy(original)
+            readiness = config["views"].pop("readiness")
+            if misspelled:
+                config["views"]["readines"] = readiness
+            with self.subTest(misspelled=misspelled), self.assertRaisesRegex(
+                ValueError, "readiness"
+            ):
+                self.load(config)
+        original["views"]["readiness"]["sources"] = []
+        self.assertEqual(self.load(original)[0]["sources"], [])
+
+    def test_conformance_rejects_upstream_only_sources(self):
+        _, upstream = self.load(json.loads((ROOT / "sources.json").read_text()))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "upstream.json"
+            path.write_text(json.dumps(upstream))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/conformance.py"),
+                    "--data-dir",
+                    str(ROOT / "data"),
+                    "--sources",
+                    str(path),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no readiness", result.stderr)

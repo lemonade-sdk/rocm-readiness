@@ -20,7 +20,8 @@ Outputs go under ``upstream/`` in the dataset:
     pull request commit that was merged.
 
 Collection is incremental and budgeted. Runs already recorded as complete in the
-previous dataset are reused without another API call, and a call budget caps a
+previous dataset reuse enrichment after run metadata is rediscovered across the
+retained window, and a call budget caps a
 single collection so a scheduled run stays inside the GITHUB_TOKEN rate limit.
 When the budget runs out the newest runs are kept and coverage says so.
 
@@ -87,18 +88,23 @@ def _iso(moment):
 
 
 def validate_projects(config):
-    """Check projects.json before any network call."""
-    _require(isinstance(config, dict), "projects.json", "/", "expected object")
+    """Validate the normalized upstream projection before any network call."""
+    _require(
+        isinstance(config, dict),
+        "sources.json upstream projection",
+        "/",
+        "expected object",
+    )
     _require(
         config.get("schema_version") == 1,
-        "projects.json",
+        "sources.json upstream projection",
         "/schema_version",
         "unsupported projects schema_version",
     )
     window = config.get("window_days")
     _require(
         type(window) is int and 1 <= window <= 90,
-        "projects.json",
+        "sources.json upstream projection",
         "/window_days",
         "window_days must be an integer from 1 to 90",
     )
@@ -108,56 +114,64 @@ def validate_projects(config):
         and isinstance(rule.get("targets"), list)
         and rule["targets"]
         and all(isinstance(t, str) and t.startswith("gfx") for t in rule["targets"]),
-        "projects.json",
+        "sources.json upstream projection",
         "/client_rule/targets",
         "client_rule.targets must list gfx targets",
     )
     projects = config.get("projects")
     _require(
         isinstance(projects, list) and projects,
-        "projects.json",
+        "sources.json upstream projection",
         "/projects",
         "expected a nonempty project list",
     )
     seen = set()
     for pos, project in enumerate(projects):
         where = f"/projects/{pos}"
-        _require(isinstance(project, dict), "projects.json", where, "expected object")
+        _require(
+            isinstance(project, dict),
+            "sources.json upstream projection",
+            where,
+            "expected object",
+        )
         pid = project.get("id")
         _require(
             isinstance(pid, str) and PROJECT_ID.fullmatch(pid) is not None,
-            "projects.json",
+            "sources.json upstream projection",
             where + "/id",
             "invalid project id",
         )
         _require(
-            pid not in seen, "projects.json", where + "/id", "duplicate project id"
+            pid not in seen,
+            "sources.json upstream projection",
+            where + "/id",
+            "duplicate project id",
         )
         seen.add(pid)
         _require(
             isinstance(project.get("label"), str) and project["label"],
-            "projects.json",
+            "sources.json upstream projection",
             where + "/label",
             "missing label",
         )
         _require(
             isinstance(project.get("repository"), str)
             and REPOSITORY.fullmatch(project["repository"]) is not None,
-            "projects.json",
+            "sources.json upstream projection",
             where + "/repository",
             "invalid repository",
         )
         _require(
             isinstance(project.get("default_branch"), str)
             and project["default_branch"],
-            "projects.json",
+            "sources.json upstream projection",
             where + "/default_branch",
             "missing default branch",
         )
         if "note" in project:
             _require(
                 isinstance(project["note"], str),
-                "projects.json",
+                "sources.json upstream projection",
                 where + "/note",
                 "note must be text",
             )
@@ -165,21 +179,26 @@ def validate_projects(config):
             try:
                 re.compile(project["tag_pattern"])
             except (re.error, TypeError) as error:
-                _require(False, "projects.json", where + "/tag_pattern", str(error))
+                _require(
+                    False,
+                    "sources.json upstream projection",
+                    where + "/tag_pattern",
+                    str(error),
+                )
         for fpos, fork in enumerate(project.get("forks", [])):
             _require(
                 isinstance(fork, dict)
                 and isinstance(fork.get("repository"), str)
                 and REPOSITORY.fullmatch(fork["repository"]) is not None
                 and isinstance(fork.get("role"), str),
-                "projects.json",
+                "sources.json upstream projection",
                 f"{where}/forks/{fpos}",
                 "fork needs a repository and a role",
             )
             if "channel" in fork:
                 _require(
                     fork["channel"] in ("stable", "nightly", "preview"),
-                    "projects.json",
+                    "sources.json upstream projection",
                     f"{where}/forks/{fpos}/channel",
                     "invalid fork channel",
                 )
@@ -187,19 +206,24 @@ def validate_projects(config):
         _require(
             isinstance(ships, dict)
             and all(k in OSES and isinstance(v, str) for k, v in ships.items()),
-            "projects.json",
+            "sources.json upstream projection",
             where + "/ships",
             "ships maps linux/windows to a description",
         )
         job_ids = set()
         for jpos, job in enumerate(project.get("jobs", [])):
             jwhere = f"{where}/jobs/{jpos}"
-            _require(isinstance(job, dict), "projects.json", jwhere, "expected object")
+            _require(
+                isinstance(job, dict),
+                "sources.json upstream projection",
+                jwhere,
+                "expected object",
+            )
             _require(
                 isinstance(job.get("id"), str)
                 and PROJECT_ID.fullmatch(job["id"]) is not None
                 and job["id"] not in job_ids,
-                "projects.json",
+                "sources.json upstream projection",
                 jwhere + "/id",
                 "job ids must be unique slugs",
             )
@@ -207,42 +231,50 @@ def validate_projects(config):
             for field in ("label", "workflow", "where", "cadence"):
                 _require(
                     isinstance(job.get(field), str) and job[field],
-                    "projects.json",
+                    "sources.json upstream projection",
                     f"{jwhere}/{field}",
                     f"missing {field}",
                 )
             _require(
                 job["workflow"].endswith((".yml", ".yaml"))
                 and "/" not in job["workflow"],
-                "projects.json",
+                "sources.json upstream projection",
                 jwhere + "/workflow",
                 "workflow must be a file name",
             )
             _require(
                 job.get("category") in CATEGORIES,
-                "projects.json",
+                "sources.json upstream projection",
                 jwhere + "/category",
                 "invalid category",
             )
             _require(
                 job.get("stack") in STACKS,
-                "projects.json",
+                "sources.json upstream projection",
                 jwhere + "/stack",
                 "invalid stack",
             )
             _require(
-                job.get("os") in OSES, "projects.json", jwhere + "/os", "invalid os"
+                job.get("os") in OSES,
+                "sources.json upstream projection",
+                jwhere + "/os",
+                "invalid os",
             )
             _require(
                 isinstance(job.get("target"), str) and job["target"],
-                "projects.json",
+                "sources.json upstream projection",
                 jwhere + "/target",
                 "missing target",
             )
             try:
                 matcher(job.get("match"))
             except (ValueError, re.error, TypeError) as error:
-                _require(False, "projects.json", jwhere + "/match", str(error))
+                _require(
+                    False,
+                    "sources.json upstream projection",
+                    jwhere + "/match",
+                    str(error),
+                )
     return config
 
 
@@ -297,13 +329,14 @@ def _get(fetch, budget, url):
     return fetch(url)
 
 
-def _parallel(items, work, workers):
+def _parallel(items, work, workers, return_errors=False):
     """Run ``work`` over ``items`` on a small thread pool, keeping input order.
 
     GitHub reads are latency bound, so this is the difference between seconds
     and minutes. One failed read (a timeout, a rate limit, an empty budget)
-    costs that item, not the whole project: it comes back as None and the
-    caller treats the item as not read yet."""
+    costs that item, not the whole project: by default it comes back as None;
+    callers may request the exception to distinguish a budget stop from a read failure.
+    """
     if not items:
         return []
     failures = []
@@ -313,7 +346,7 @@ def _parallel(items, work, workers):
             return work(item)
         except (OSError, ValueError, KeyError, TypeError, OutOfBudget) as error:
             failures.append(f"{type(error).__name__}: {error}")
-            return None
+            return error if return_errors else None
 
     with ThreadPoolExecutor(max_workers=max(1, min(workers, len(items)))) as pool:
         results = list(pool.map(guarded, items))
@@ -338,9 +371,12 @@ def _pages(fetch, budget, url, key, workers, cap):
         pages,
         lambda p: _get(fetch, budget, f"{url}{sep}per_page=100&page={p}"),
         workers,
+        return_errors=True,
     ):
-        if data is None:
-            raise OSError(f"a page of {url} could not be read")
+        if isinstance(data, OutOfBudget):
+            raise data
+        if isinstance(data, Exception):
+            raise OSError(f"a page of {url} could not be read") from data
         items.extend(data.get(key) or [])
     return items, total > cap * 100
 
@@ -749,14 +785,6 @@ def collect_project(
     cache = prior.get("pending", {})
     cache = dict(cache) if isinstance(cache, dict) else {}
     list_since = since
-    last = _time(prior.get("collected_at"))
-    if prior.get("complete") and last and (_time(prior.get("since")) or now) <= since:
-        list_since = max(
-            since,
-            (last - timedelta(days=2)).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            ),
-        )
     complete = True
     errors = []
     listed_ids = set()
@@ -1137,7 +1165,7 @@ def _findings(jobs, merged_red):
                     "kind": "not_on_pr",
                     "job": j["id"],
                     "head": f"{j['label']} never ran on {gate['not_triggered']} of {gate['merged']} merged pull requests.",
-                    "body": f"Those changes met AMD hardware here only after merge; {len(gate['escaped'])} of them then failed on main.",
+                    "body": f"{len(gate['escaped'])} merged pull requests with no run or an unknown historical result then failed on main.",
                 }
             )
     if merged_red:

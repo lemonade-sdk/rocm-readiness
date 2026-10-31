@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router";
 import { expect, it } from "vitest";
 import { App } from "../App";
 import { fixtureFetch, indexUrl } from "../fixtures";
-import { cellState, keepJob, loadUpstream } from "./data";
+import { cellState, keepJob, loadUpstream, type UpstreamOverview } from "./data";
 import { upstreamFetch, upstreamOverview } from "./fixtures";
 import { loadSession } from "../data";
 
@@ -332,4 +332,25 @@ it('does not imply there were no failures when failing-step details are absent',
   const perDay = await screen.findByRole('region', { name: 'Per day' });
   expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).querySelector('.up-fail')).toBeInTheDocument();
   expect(screen.getByText('No collected failing-step details.')).toBeInTheDocument();
+});
+
+it("distinguishes missing checks from unknown historical results and escaped failures", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  const gate = data.projects[0].jobs[0].gate!;
+  gate.no_result = 1;
+  gate.escaped = [
+    { ...gate.red[0], number: 502, verdict: "no_result" },
+    { ...gate.red[0], number: 503, verdict: "not_triggered" },
+  ];
+  mount("/?track=upstream&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const region = await screen.findByRole("region", { name: "Merge gate" });
+  expect(within(region).getByText("No run")).toHaveAttribute("title", "never ran on the pull request");
+  expect(within(region).getByText("Unknown")).toHaveAttribute("title", "historical pull request result is unknown");
+  const row = within(region).getByRole("row", { name: /gpu-rocm/ });
+  expect(within(row).getAllByRole("cell").map(cell => cell.textContent)).toEqual(["3", "1", "1", "1", "1", "2"]);
+  fireEvent.click(within(row).getByRole("button", { name: "2" }));
+  expect(within(region).getByText("historical result unknown")).toBeInTheDocument();
+  expect(within(region).getByText("never ran on the pull request")).toBeInTheDocument();
 });

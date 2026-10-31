@@ -14,6 +14,7 @@ from scripts.conformance import validate_dataset
 from scripts.dataset import write_dataset
 from scripts.upstream import (
     _state,
+    _findings,
     collect_upstream,
     load_previous,
     matcher,
@@ -253,6 +254,12 @@ class ConfigTests(unittest.TestCase):
                 validate_projects(cfg)
             self.assertIn(field, raised.exception.diagnostic["field"])
 
+    def test_validation_identifies_normalized_sources_projection(self):
+        with self.assertRaises(PipelineValidationError) as raised:
+            validate_projects({})
+        self.assertIn("sources.json", str(raised.exception))
+        self.assertNotIn("projects.json", str(raised.exception))
+
     def test_matchers(self):
         self.assertTrue(matcher({"name": "rocm"})("rocm"))
         self.assertFalse(matcher({"name": "rocm"})("rocm-x"))
@@ -308,6 +315,16 @@ class CollectionTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.out = Path(self.temp.name)
         self.gh = fake_github()
+
+    def test_missing_pr_finding_does_not_attribute_unknown_results_to_never_run(self):
+        collect(self.gh, self.out)
+        gpu = overview(self.out)["projects"][0]["jobs"][0]
+        gpu["gate"].update(
+            merged=2, not_triggered=1, no_result=1, escaped=[{"verdict": "no_result"}]
+        )
+        finding = next(f for f in _findings([gpu], 0) if f["kind"] == "not_on_pr")
+        self.assertNotIn("Those changes", finding["body"])
+        self.assertIn("unknown", finding["body"])
 
     def test_only_default_branch_runs_are_recorded(self):
         entry = collect(self.gh, self.out)
@@ -608,6 +625,57 @@ class CollectionTests(unittest.TestCase):
             gpu = overview(second)["projects"][0]["jobs"][0]
             self.assertEqual(gpu["gate"]["merged"], 2)
             self.assertTrue(overview(second)["projects"][0]["coverage"]["complete"])
+
+    def test_old_retained_run_rerun_is_discovered_after_complete_coverage(self):
+        self.gh.runs["ci.yml"][1]["created_at"] = "2026-10-20T10:00:00Z"
+        collect(self.gh, self.out)
+        self.assertTrue(overview(self.out)["projects"][0]["coverage"]["complete"])
+        (self.out / "index.json").write_text(
+            json.dumps({"upstream": {"overview": "upstream/overview.json"}})
+        )
+        self.gh.runs["ci.yml"][1]["run_attempt"] = 2
+        self.gh.jobs[2] = [job(22, "gpu-rocm")]
+        with tempfile.TemporaryDirectory() as second:
+            collect_upstream(
+                config(),
+                Path(second),
+                fetch=self.gh,
+                now=datetime(2026, 10, 30, 12, tzinfo=timezone.utc),
+                write_json=write_json,
+                previous_data=self.out,
+                budget_calls=10000,
+                workers=2,
+            )
+            rows = json.loads(
+                (Path(second) / "upstream/demo/ci/2026-10.json").read_text()
+            )["runs"]
+            self.assertEqual(
+                [(r["state"], r["attempt"]) for r in rows if r["run_id"] == "2"],
+                [("passed", 2)],
+            )
+
+    def test_listing_budget_exhaustion_is_not_reported_as_api_error(self):
+        self.gh.runs["ci.yml"] = [run(i, "2026-10-28T10:00:00Z") for i in range(101)]
+        cfg = config()
+        cfg["projects"][0]["jobs"] = cfg["projects"][0]["jobs"][:1]
+        collect(self.gh, self.out, cfg, budget=1)
+        coverage = overview(self.out)["projects"][0]["coverage"]
+        self.assertFalse(coverage["complete"])
+        self.assertFalse(coverage.get("error"))
+        self.assertEqual(len(self.gh.calls), 1)
+
+    def test_listing_page_read_failure_is_reported_as_api_error(self):
+        self.gh.runs["ci.yml"] = [run(i, "2026-10-28T10:00:00Z") for i in range(101)]
+
+        def fetch(url):
+            if "page=2" in url:
+                raise OSError("page unavailable")
+            return self.gh(url)
+
+        collect(fetch, self.out)
+        coverage = overview(self.out)["projects"][0]["coverage"]
+        self.assertFalse(coverage["complete"])
+        self.assertIn("could not be read", coverage["error"])
 
     def test_a_rerun_replaces_its_earlier_attempt(self):
         collect(self.gh, self.out)

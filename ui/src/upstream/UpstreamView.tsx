@@ -940,7 +940,8 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
             <th title="green on the merged commit">Passed</th>
             <th title="red on the merged commit, merged anyway">Red</th>
             <th title="never ran on the pull request">No run</th>
-            <th title="never ran on the pull request, then failed on main">
+            <th title="historical pull request result is unknown">Unknown</th>
+            <th title="no run or unknown result on the pull request, then failed on main">
               Broke main
             </th>
           </tr>
@@ -966,7 +967,8 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
                     0
                   )}
                 </td>
-                <td>{g.not_triggered + g.no_result}</td>
+                <td>{g.not_triggered}</td>
+                <td>{g.no_result}</td>
                 <td>
                   {g.escaped.length ? (
                     <button
@@ -996,7 +998,7 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
             <span className="muted">
               {list.kind === "red"
                 ? "merged while failing"
-                : "never ran on the PR, then failed on main"}
+                : "no run or unknown result on the PR, then failed on main"}
             </span>
             <button
               type="button"
@@ -1014,6 +1016,9 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
                   #{g.number}
                 </a>
                 <span className="muted">{g.author}</span>
+                {list.kind === "escaped" && (
+                  <span className="muted">{g.verdict === "not_triggered" ? "never ran on the pull request" : "historical result unknown"}</span>
+                )}
                 {list.kind === "red" && g.check_url && (
                   <a
                     className="up-chip up-chip-failed"

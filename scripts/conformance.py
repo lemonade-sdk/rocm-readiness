@@ -12,10 +12,12 @@ import re
 from urllib.parse import urlparse
 
 if __package__:
+    from .config import load_config
     from .attribution import validate_measurement_package
     from .upstream import validate_upstream_dataset
     from .validation import PipelineValidationError
 else:
+    from config import load_config
     from attribution import validate_measurement_package
     from upstream import validate_upstream_dataset
     from validation import PipelineValidationError
@@ -1472,7 +1474,7 @@ def main():
         config = (
             None
             if args.sources is None
-            else json.loads(args.sources.read_text(encoding="utf-8"))
+            else load_config(json.loads(args.sources.read_text(encoding="utf-8")))[0]
         )
         paths = validate_dataset(args.data_dir, config)
     except (PipelineValidationError, OSError, ValueError, KeyError, TypeError) as error:

@@ -209,7 +209,10 @@ def overview(root):
 
 class ConfigTests(unittest.TestCase):
     def test_repository_projects_file_is_valid(self):
-        validate_projects(json.loads((ROOT / "projects.json").read_text()))
+        from scripts.config import load_config
+
+        _, upstream = load_config(json.loads((ROOT / "sources.json").read_text()))
+        validate_projects(upstream)
 
     def test_rejects_unknown_category_duplicate_ids_and_bad_matchers(self):
         for change, field in (

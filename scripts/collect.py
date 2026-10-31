@@ -15,6 +15,7 @@ from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 if __package__:
+    from .config import load_config
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
     from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
@@ -22,6 +23,7 @@ if __package__:
     from .sync import load_last_success, publish_sync
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
+    from config import load_config
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
@@ -905,12 +907,6 @@ def main():
         help="Previous complete dataset to carry build history forward",
     )
     parser.add_argument(
-        "--projects",
-        type=Path,
-        default=Path(__file__).resolve().parents[1] / "projects.json",
-        help="Upstream projects to collect for the Upstream health view",
-    )
-    parser.add_argument(
         "--upstream-budget",
         type=int,
         default=int(os.environ.get("UPSTREAM_API_BUDGET", "800")),
@@ -936,18 +932,19 @@ def main():
                 "package_evidence",
                 "invalid package evidence",
             )
+        readiness_config, upstream_config = load_config(
+            json.loads(args.sources.read_text(encoding="utf-8"))
+        )
+        if readiness_config is None:
+            raise ValueError("sources configuration has no readiness input")
         output = collect(
-            json.loads(args.sources.read_text(encoding="utf-8")),
+            readiness_config,
             args.output_dir,
             now=attempted_at,
             previous_data=args.previous_data,
             package_evidence=evidence["packages"],
             resolve_packages=resolve_package,
-            projects=(
-                json.loads(args.projects.read_text(encoding="utf-8"))
-                if args.projects.exists()
-                else None
-            ),
+            projects=upstream_config,
             upstream_budget=args.upstream_budget,
         )
     except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:

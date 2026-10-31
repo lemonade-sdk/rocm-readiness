@@ -5,7 +5,7 @@ qualification feeds. This module answers a different question from a different
 place: how healthy is Radeon and Ryzen AI support in each project as it ships,
 read from the project's own GitHub Actions on its default branch.
 
-Inputs come from ``projects.json``. For each project it names the workflows and
+Inputs come from the upstream view in ``sources.json``. For each project it names the workflows and
 jobs that exercise client AMD hardware or build for it, the forks that carry AMD
 work, and what the project ships per operating system.
 
@@ -1503,7 +1503,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description=main.__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--projects", type=Path, default=root / "projects.json")
+    parser.add_argument("--sources", type=Path, default=root / "sources.json")
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument(
         "--seed-from", type=Path, help="published dataset to copy readiness files from"
@@ -1529,7 +1529,13 @@ def main(argv=None):
             if (args.seed_from / name).is_dir():
                 shutil.copytree(args.seed_from / name, out / name, dirs_exist_ok=True)
     index = json.loads((out / "index.json").read_text(encoding="utf-8"))
-    config = json.loads(args.projects.read_text(encoding="utf-8"))
+    if __package__:
+        from .config import load_config
+    else:
+        from config import load_config
+    _, config = load_config(json.loads(args.sources.read_text(encoding="utf-8")))
+    if config is None:
+        raise ValueError("sources configuration has no upstream view members")
     entry = collect_upstream(
         config,
         out,

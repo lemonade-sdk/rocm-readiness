@@ -15,17 +15,21 @@ from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 if __package__:
+    from .config import load_config
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
     from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
+    from .upstream import collect_upstream, validate_upstream_dataset
 else:
+    from config import load_config
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
+    from upstream import collect_upstream, validate_upstream_dataset
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
 METRICS = (
@@ -621,12 +625,12 @@ def normalize_performance(source, data):
     return rows
 
 
-def fetch_json(url):
+def fetch_json(url, *, attempts=3):
     headers = {"User-Agent": "rocm-readiness-collector", "Accept": "application/json"}
     token = os.environ.get("GH_TOKEN")
     if url.startswith("https://api.github.com/") and token:
         headers["Authorization"] = f"Bearer {token}"
-    for attempt in range(3):
+    for attempt in range(attempts):
         try:
             with urlopen(Request(url, headers=headers), timeout=45) as response:
                 raw = response.read(32 * 1024 * 1024 + 1)
@@ -641,9 +645,13 @@ def fetch_json(url):
                 504,
             ):
                 raise
-            if attempt == 2:
+            if attempt == attempts - 1:
                 raise
             time.sleep(2**attempt)
+
+
+def fetch_upstream_json(url):
+    return fetch_json(url, attempts=1)
 
 
 def write_json(path, data):
@@ -663,6 +671,8 @@ def collect(
     previous_data=None,
     package_evidence=None,
     resolve_packages=None,
+    projects=None,
+    upstream_budget=800,
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
@@ -830,6 +840,39 @@ def collect(
         publish_index=False,
         source_configs={source["id"]: source for source in config["sources"]},
     )
+    if projects is not None:
+        # The upstream view reads projects' own CI. It is collected after the
+        # readiness dataset and never degrades it: a project that cannot be
+        # read keeps its previous records and is reported as partial.
+        upstream = None
+        try:
+            upstream = collect_upstream(
+                projects,
+                destination,
+                fetch=fetch_upstream_json if fetch is fetch_json else fetch,
+                now=now,
+                write_json=write_json,
+                previous_data=previous_data,
+                budget_calls=upstream_budget,
+            )
+            validate_upstream_dataset(destination, upstream)
+            output["dataset"]["upstream"] = upstream
+        except (
+            PipelineValidationError,
+            OSError,
+            ValueError,
+            KeyError,
+            TypeError,
+            AttributeError,
+        ) as error:
+            print(f"Upstream view dropped: {error}", file=sys.stderr, flush=True)
+            upstream = None
+        if upstream:
+            print(
+                f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
+                f'{upstream["api_calls"]} API calls',
+                flush=True,
+            )
     write_json(destination / "errors.json", {"errors": output["errors"]})
     if output["errors"]:
         output["dataset"]["errors"] = output["errors"]
@@ -872,6 +915,12 @@ def main():
         type=Path,
         help="Previous complete dataset to carry build history forward",
     )
+    parser.add_argument(
+        "--upstream-budget",
+        type=int,
+        default=int(os.environ.get("UPSTREAM_API_BUDGET", "800")),
+        help="Most GitHub API calls the upstream collection may spend in one run",
+    )
     args = parser.parse_args()
     attempted_at = datetime.now(timezone.utc).isoformat()
     last_success = None
@@ -892,13 +941,20 @@ def main():
                 "package_evidence",
                 "invalid package evidence",
             )
+        readiness_config, upstream_config = load_config(
+            json.loads(args.sources.read_text(encoding="utf-8"))
+        )
+        if readiness_config is None:
+            raise ValueError("sources configuration has no readiness input")
         output = collect(
-            json.loads(args.sources.read_text(encoding="utf-8")),
+            readiness_config,
             args.output_dir,
             now=attempted_at,
             previous_data=args.previous_data,
             package_evidence=evidence["packages"],
             resolve_packages=resolve_package,
+            projects=upstream_config,
+            upstream_budget=args.upstream_budget,
         )
     except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
         print(f"Collection error: {error}", file=sys.stderr)
@@ -956,6 +1012,16 @@ def main():
         f'| {s["id"]} | {s["status"]} | {s["record_count"]} | {s.get("destination", "—")} |'
         for s in output["sources"]
     )
+    upstream = output["dataset"].get("upstream")
+    if upstream:
+        lines.extend(
+            [
+                "",
+                f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
+                f'{upstream["api_calls"]} GitHub API calls',
+            ]
+        )
+        lines.extend(f"- upstream: {error}" for error in upstream.get("errors", []))
     if output["errors"]:
         lines.extend(["", "### Errors", *[f"- {error}" for error in output["errors"]]])
     summary = "\n".join(lines) + "\n"

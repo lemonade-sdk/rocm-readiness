@@ -2,6 +2,16 @@ import { z } from "zod";
 
 export const POINTER_URL =
   "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json";
+/**
+ * Local preview only: a dataset directory served by the Vite dev server (see
+ * vite.config.ts). When set, the app reads that directory's index.json instead
+ * of the published pointer, so a locally collected dataset can be inspected
+ * before it is published. Production builds never set it.
+ */
+declare const __LOCAL_DATA__: string | null;
+export const LOCAL_DATA: string | null = import.meta.env.DEV
+  ? __LOCAL_DATA__
+  : null;
 const time = z
   .string()
   .refine(
@@ -57,6 +67,27 @@ const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   default_version: z.string().nullable(),
+  sources: z
+    .array(
+      z.object({
+        id: z.string(),
+        engine: z.string(),
+        channel: z.string(),
+        adapter: z.string().optional(),
+        status: z.string(),
+        repository: z.string().optional(),
+        record_count: count.optional(),
+      }),
+    )
+    .optional(),
+  upstream: z
+    .object({
+      schema_version: z.literal(1),
+      overview: z.string(),
+      project_count: count,
+      status: z.enum(["fresh", "partial"]),
+    })
+    .optional(),
   versions: z.array(
     z.object({
       rocm_version: z.string().min(1),
@@ -68,7 +99,7 @@ const indexSchema = z.object({
 const buildSchema = z.object({
   build_id: z.string(),
   engine: z.string(),
-  channel: z.literal("stable"),
+  channel: z.enum(["stable", "nightly"]),
   rocm_version: z.string(),
   os: z.string(),
   tag: z.string().nullable().optional(),
@@ -178,6 +209,15 @@ export async function loadHistory(
   return builds;
 }
 
+export async function readJson<T>(
+  url: string,
+  schema: z.ZodType<T>,
+  fetcher: Fetcher,
+  signal?: AbortSignal,
+): Promise<T> {
+  return read(url, schema, fetcher, signal);
+}
+
 async function read<T>(
   url: string,
   schema: z.ZodType<T>,
@@ -262,7 +302,10 @@ export async function loadSession(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
+  includeOverview = true,
 ): Promise<Session> {
+  if (LOCAL_DATA)
+    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer, includeOverview);
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -307,5 +350,43 @@ export async function loadSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
+}
+
+async function loadLocalSession(
+  root: string,
+  version: string | undefined,
+  fetcher: Fetcher,
+  signal?: AbortSignal,
+  onPointer?: (pointer: Pointer) => void,
+  includeOverview = true,
+): Promise<Session> {
+  const base = new URL(
+    root.endsWith("/") ? root : `${root}/`,
+    window.location.href,
+  );
+  const indexUrl = new URL("index.json", base).href;
+  const index = await read(indexUrl, indexSchema, fetcher, signal);
+  const raw = index as { sync?: Sync };
+  const pointer: Pointer = {
+    schema_version: 1,
+    data_commit: null,
+    index_url: indexUrl,
+    sync: raw.sync ?? {
+      attempted_at: index.generated_at,
+      status: "success",
+      last_successful_at: index.generated_at,
+      errors: [],
+    },
+  };
+  onPointer?.(pointer);
+  const session: Session = {
+    pointer,
+    index,
+    indexUrl,
+    version: null,
+    overview: null,
+  };
+  const selected = version || index.default_version;
+  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
 }

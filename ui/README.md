@@ -13,6 +13,34 @@ Open the Local URL printed by Vite. The browser reads the public
 `main/data/latest.json` pointer and follows its pinned dataset revision. No data
 server, credentials or local collection is required.
 
+## Local dataset preview
+
+To inspect a dataset you collected locally, before it is published:
+
+```sh
+npm run dev:local
+```
+
+This serves `../data/local-preview` (set `LOCAL_DATA_DIR` to change it) at
+`/local-data/` and reads its `index.json` instead of the published pointer.
+Create the directory with `scripts/check.py --output-dir data/local-preview` or
+refresh only the upstream view with `scripts/upstream.py`. See
+[Upstream health](../docs/upstream-health.md).
+
+## Upstream health
+
+The header switches between **ROCm readiness** and **Upstream health**
+(`?track=upstream`). Upstream health shows one card per project with its
+computed badge, forks and 14-day status strips. A project page
+(`&project=<id>`) has a filter (`&lens=<stack or gfx target>`) that filters job-derived numbers and charts. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
+
+- per-day diverging bars (passes up, failures down);
+- day panels linking each run's job log, commit and pull request;
+- platform coverage;
+- the merge gate;
+- what is failing on main;
+- per-job status ticks for the whole window.
+
 ## Appearance
 
 The dashboard follows the device's light/dark preference by default, including
@@ -45,8 +73,8 @@ checks remain in the total. Partial check breakdowns retain their known counts
 without inventing absent categories. Platform cards also show compiled GPU-target
 coverage and the package's ROCm version.
 
-Reloading the page reads the live pointer again. Error-specific retry controls
-replace the active dataset only after its requested version loads successfully;
+Reloading the page reads the live pointer again. Readiness retry controls
+replace an existing active dataset only after its requested version loads successfully;
 a failed retry retains the last usable session.
 Ingestion status and browser-read errors are displayed separately. Timestamps
 are shown in UTC. External JSON evidence opens in a separate tab.

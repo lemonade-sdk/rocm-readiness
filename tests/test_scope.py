@@ -6,6 +6,7 @@ import unittest
 
 from scripts.attribution import attribute_stable
 from scripts.collect import collect, normalize_performance, validate_config
+from scripts.config import load_config
 from scripts.dataset import write_dataset
 from tests.test_attribution import evidence, measurement
 from tests.test_collect import fixture
@@ -14,7 +15,7 @@ from tests.test_dataset import SOURCE_A, build, normalized
 
 class ScopeTests(unittest.TestCase):
     def test_production_scope_skips_vllm_fetch_and_prunes_its_saved_records(self):
-        config = json.loads(Path("sources.json").read_text())
+        config, _ = load_config(json.loads(Path("sources.json").read_text()))
         old = normalized(
             [
                 build(
@@ -140,7 +141,7 @@ class ScopeTests(unittest.TestCase):
             normalize_performance(source, data)
 
     def test_invalid_allowlist_cannot_silently_drop_the_feed(self):
-        config = json.loads(Path("sources.json").read_text())
+        config, _ = load_config(json.loads(Path("sources.json").read_text()))
         source = next(
             s for s in config["sources"] if s["adapter"] == "lemonade-leaderboard-v1"
         )

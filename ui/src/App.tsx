@@ -14,6 +14,7 @@ import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
+import { UpstreamView } from "./upstream/UpstreamView";
 
 function date(value: string | null) {
   return value
@@ -28,6 +29,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
   const version = params.get("version") || undefined;
   const view = params.get("view") ?? "overview";
+  // Two dashboards over one dataset: ROCm readiness (default) and Upstream
+  // health, the projects' own client AMD CI on their default branch.
+  const track = params.get("track") === "upstream" ? "upstream" : "readiness";
   const platform = params.get("platform") ?? "all";
   const [session, setSession] = useState<Session | null>(null);
   const [liveSync, setLiveSync] = useState<Sync | null>(null);
@@ -44,44 +48,59 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const current = sessionRef.current;
-    const refreshNeeded = completedRefresh.current !== refresh;
-    const selected = version ?? current?.index.default_version ?? undefined;
-    if (current && !refreshNeeded && current.version === (selected ?? null)) {
-      setBusy(false);
+    const run = async () => {
+      setBusy(true);
       setError(null);
-      return () => controller.abort();
-    }
-    setBusy(true);
-    setError(null);
-    const task =
-      current && !refreshNeeded && selected
-        ? loadVersion(current, selected, fetcher, controller.signal)
-        : loadSession(version, fetcher, controller.signal, (pointer) => {
-            if (!controller.signal.aborted) setLiveSync(pointer.sync);
-          });
-    task
-      .then((next) => {
-        if (controller.signal.aborted) return;
-        sessionRef.current = next;
+      try {
+        let current = sessionRef.current;
+        if (!current || completedRefresh.current !== refresh) {
+          current = await loadSession(
+            undefined, fetcher, controller.signal,
+            (pointer) => {
+              if (!controller.signal.aborted) setLiveSync(pointer.sync);
+            },
+            false,
+          );
+          if (controller.signal.aborted) return;
+          if (!sessionRef.current || track === "upstream") {
+            sessionRef.current = current;
+            completedRefresh.current = refresh;
+            setSession(current);
+          }
+        }
+        const selected = version ?? current.index.default_version;
+        if (
+          track === "readiness" && selected && current.version !== selected
+        ) {
+          current = await loadVersion(
+            current, selected, fetcher, controller.signal,
+          );
+          if (controller.signal.aborted) return;
+          sessionRef.current = current;
+          setSession(current);
+        }
+        sessionRef.current = current;
         completedRefresh.current = refresh;
-        setSession(next);
-        setBusy(false);
-      })
-      .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Unable to read published data. Retry.",
-        );
-        setBusy(false);
-      });
+        setSession(current);
+      } catch (reason: unknown) {
+        if (!controller.signal.aborted) {
+          if (sessionRef.current) completedRefresh.current = refresh;
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Unable to read published data. Retry.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) setBusy(false);
+      }
+    };
+    void run();
     return () => controller.abort();
-  }, [version, refresh, fetcher]);
+  }, [version, track, refresh, fetcher]);
 
   useEffect(() => {
-    if (!session?.overview) return;
+    if (track !== "readiness" || !session?.overview) return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
     loadHistory(session, fetcher, controller.signal)
@@ -107,7 +126,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           });
       });
     return () => controller.abort();
-  }, [session, fetcher]);
+  }, [session, track, fetcher]);
 
   const selected = version ?? session?.version ?? "";
   const scopeMatches = session && (!version || session.version === version);
@@ -183,9 +202,26 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </span>{" "}
           Lemonade <span className="brand-light">Performance</span>
         </Link>
+        <nav className="track-tabs" aria-label="Dashboards">
+          <Link
+            aria-current={track === "readiness" ? "page" : undefined}
+            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
+          >
+            ROCm readiness
+          </Link>
+          <Link
+            aria-current={track === "upstream" ? "page" : undefined}
+            to="?track=upstream"
+          >
+            Upstream health
+          </Link>
+        </nav>
         <div className="header-controls">
-          <label htmlFor="version">ROCm version</label>
+          {track === "readiness" && (
+            <label htmlFor="version">ROCm version</label>
+          )}
           <select
+            hidden={track !== "readiness"}
             id="version"
             value={selected}
             disabled={!session?.index.versions.length}
@@ -207,7 +243,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </div>
       </header>
       <main id="main" tabIndex={-1}>
-        {view !== "overview" && (
+        {track === "readiness" && view !== "overview" && (
           <div className="topline">
             <nav aria-label="Breadcrumb">
               <Link to={href("overview")}>ROCm readiness</Link>
@@ -276,7 +312,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             <p>Reading one immutable dataset revision.</p>
           </div>
         )}
-        {session && scopeMatches && !overview && (
+        {track === "upstream" && session && (
+          <UpstreamView
+            session={session}
+            fetcher={fetcher}
+            params={params}
+            onNavigate={(next) => setParams(next)}
+          />
+        )}
+        {track === "readiness" && session && scopeMatches && !overview && !busy && !error && (
           <div className="empty">
             <h1>No ROCm versions available</h1>
             <p>
@@ -285,174 +329,188 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </p>
           </div>
         )}
-        {overview && (!viewValid || !platformValid) && (
-          <div className="notice" role="alert">
-            <h1>Unavailable view or platform</h1>
-            <p>
-              This URL requests a view or platform outside the selected dataset.
-            </p>
-            <Link to={`?version=${encodeURIComponent(selected)}&view=overview`}>
-              Return to this version’s overview
-            </Link>
-          </div>
-        )}
-        {session && overview && viewValid && platformValid && (
-          <>
-            <div
-              className={view === "overview" ? "hero overview-hero" : "hero"}
-            >
-              <div>
-                {view !== "overview" && (
-                  <div className="eyebrow">ROCm / STABLE RELEASES</div>
-                )}
-                <h1>
-                  {view === "overview"
-                    ? `ROCm ${overview.rocm_version} readiness`
-                    : view === "engine"
-                      ? "llama.cpp builds"
-                      : view === "build"
-                        ? "Build evidence"
-                        : "Model performance"}
-                </h1>
-                <p>
-                  {view === "overview"
-                    ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
-                    : "Build qualification and model performance, grounded in published evidence."}
-                </p>
-              </div>
-              {view !== "overview" && (
-                <span className="release-pill">
-                  ROCm {overview.rocm_version}
-                </span>
-              )}
+        {track === "readiness" &&
+          overview &&
+          (!viewValid || !platformValid) && (
+            <div className="notice" role="alert">
+              <h1>Unavailable view or platform</h1>
+              <p>
+                This URL requests a view or platform outside the selected
+                dataset.
+              </p>
+              <Link
+                to={`?version=${encodeURIComponent(selected)}&view=overview`}
+              >
+                Return to this version’s overview
+              </Link>
             </div>
-            <nav className="view-tabs" aria-label="Dashboard views">
-              <Link
-                aria-current={view === "overview" ? "page" : undefined}
-                to={href("overview")}
+          )}
+        {track === "readiness" &&
+          session &&
+          overview &&
+          viewValid &&
+          platformValid && (
+            <>
+              <div
+                className={view === "overview" ? "hero overview-hero" : "hero"}
               >
-                Overview
-              </Link>
-              <Link
-                aria-current={
-                  ["engine", "build"].includes(view) ? "page" : undefined
-                }
-                to={href("engine")}
-              >
-                Engine builds
-              </Link>
-              <Link
-                aria-current={
-                  ["performance", "model"].includes(view) ? "page" : undefined
-                }
-                to={href("performance")}
-              >
-                Model performance
-              </Link>
-            </nav>
-            {view === "overview" && (
-              <>
-                <EngineOverview
-                  engines={engines}
-                  version={selected}
-                  history={history?.session === session ? history.builds : null}
-                />
-                {!busy &&
-                  !error &&
-                  history?.session === session &&
-                  history.error && (
-                    <div className="notice error" role="alert">
-                      <p>{history.error}</p>
-                      <button onClick={refreshData}>Retry history</button>
-                    </div>
+                <div>
+                  {view !== "overview" && (
+                    <div className="eyebrow">ROCm / STABLE RELEASES</div>
                   )}
-              </>
-            )}
-            {["engine", "build"].includes(view) &&
-              (history?.session === session && history.error ? (
-                <div className="notice error" role="alert">
-                  <p>{history.error}</p>
-                  <button onClick={refreshData}>Retry history</button>
+                  <h1>
+                    {view === "overview"
+                      ? `ROCm ${overview.rocm_version} readiness`
+                      : view === "engine"
+                        ? "llama.cpp builds"
+                        : view === "build"
+                          ? "Build evidence"
+                          : "Model performance"}
+                  </h1>
+                  <p>
+                    {view === "overview"
+                      ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                      : "Build qualification and model performance, grounded in published evidence."}
+                  </p>
                 </div>
-              ) : (
-                <div onClick={handleLocalNavigation}>
-                  {view === "engine" && params.get("build") && (
-                    <div className="notice">
-                      <p>Selected stable build: {params.get("build")}</p>
-                      <Link
-                        to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
-                      >
-                        Show all engine builds
-                      </Link>
-                    </div>
-                  )}
-                  <BuildBrowser
-                    session={session}
+                {view !== "overview" && (
+                  <span className="release-pill">
+                    ROCm {overview.rocm_version}
+                  </span>
+                )}
+              </div>
+              <nav className="view-tabs" aria-label="Dashboard views">
+                <Link
+                  aria-current={view === "overview" ? "page" : undefined}
+                  to={href("overview")}
+                >
+                  Overview
+                </Link>
+                <Link
+                  aria-current={
+                    ["engine", "build"].includes(view) ? "page" : undefined
+                  }
+                  to={href("engine")}
+                >
+                  Engine builds
+                </Link>
+                <Link
+                  aria-current={
+                    ["performance", "model"].includes(view) ? "page" : undefined
+                  }
+                  to={href("performance")}
+                >
+                  Model performance
+                </Link>
+              </nav>
+              {view === "overview" && (
+                <>
+                  <EngineOverview
+                    engines={engines}
+                    version={selected}
                     history={
-                      history?.session === session
-                        ? (history.builds?.filter(
-                            (build) =>
-                              view !== "engine" ||
-                              !params.get("build") ||
-                              (build.build_id === params.get("build") &&
-                                (!params.get("source") ||
-                                  build.source_id === params.get("source")) &&
-                                (!params.get("engine") ||
-                                  build.engine === params.get("engine")) &&
-                                (!params.get("channel") ||
-                                  build.channel === params.get("channel"))),
-                          ) ?? null)
-                        : null
-                    }
-                    platform={platform}
-                    selectedBuildId={
-                      view === "build" ? params.get("build") || "" : null
-                    }
-                    selectedSourceId={params.get("source") || null}
-                    query={params.get("build_filter") ?? ""}
-                    onQueryChange={(query) => {
-                      const next = new URLSearchParams(params);
-                      if (query) next.set("build_filter", query);
-                      else next.delete("build_filter");
-                      setParams(next, { replace: true });
-                    }}
-                    onPlatformChange={changePlatform}
-                    buildHref={(build) =>
-                      href("build", {
-                        build: build.build_id,
-                        platform: build.os,
-                        ...(build.source_id ? { source: build.source_id } : {}),
-                      })
+                      history?.session === session ? history.builds : null
                     }
                   />
+                  {!busy &&
+                    !error &&
+                    history?.session === session &&
+                    history.error && (
+                      <div className="notice error" role="alert">
+                        <p>{history.error}</p>
+                        <button onClick={refreshData}>Retry history</button>
+                      </div>
+                    )}
+                </>
+              )}
+              {["engine", "build"].includes(view) &&
+                (history?.session === session && history.error ? (
+                  <div className="notice error" role="alert">
+                    <p>{history.error}</p>
+                    <button onClick={refreshData}>Retry history</button>
+                  </div>
+                ) : (
+                  <div onClick={handleLocalNavigation}>
+                    {view === "engine" && params.get("build") && (
+                      <div className="notice">
+                        <p>Selected stable build: {params.get("build")}</p>
+                        <Link
+                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
+                        >
+                          Show all engine builds
+                        </Link>
+                      </div>
+                    )}
+                    <BuildBrowser
+                      session={session}
+                      history={
+                        history?.session === session
+                          ? (history.builds?.filter(
+                              (build) =>
+                                view !== "engine" ||
+                                !params.get("build") ||
+                                (build.build_id === params.get("build") &&
+                                  (!params.get("source") ||
+                                    build.source_id === params.get("source")) &&
+                                  (!params.get("engine") ||
+                                    build.engine === params.get("engine")) &&
+                                  (!params.get("channel") ||
+                                    build.channel === params.get("channel"))),
+                            ) ?? null)
+                          : null
+                      }
+                      platform={platform}
+                      selectedBuildId={
+                        view === "build" ? params.get("build") || "" : null
+                      }
+                      selectedSourceId={params.get("source") || null}
+                      query={params.get("build_filter") ?? ""}
+                      onQueryChange={(query) => {
+                        const next = new URLSearchParams(params);
+                        if (query) next.set("build_filter", query);
+                        else next.delete("build_filter");
+                        setParams(next, { replace: true });
+                      }}
+                      onPlatformChange={changePlatform}
+                      buildHref={(build) =>
+                        href("build", {
+                          build: build.build_id,
+                          platform: build.os,
+                          ...(build.source_id
+                            ? { source: build.source_id }
+                            : {}),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              {["performance", "model"].includes(view) && (
+                <div onClick={handleLocalNavigation}>
+                  <PerformanceView
+                    session={session}
+                    params={params}
+                    onNavigate={(next) => setParams(next)}
+                    buildHref={(id, os) => {
+                      const candidates =
+                        history?.session === session
+                          ? history.builds?.filter(
+                              (build) =>
+                                build.build_id === id && build.os === os,
+                            )
+                          : [];
+                      return href("build", {
+                        build: id,
+                        platform: os,
+                        ...(candidates?.length === 1 && candidates[0].source_id
+                          ? { source: candidates[0].source_id }
+                          : {}),
+                      });
+                    }}
+                  />
                 </div>
-              ))}
-            {["performance", "model"].includes(view) && (
-              <div onClick={handleLocalNavigation}>
-                <PerformanceView
-                  session={session}
-                  params={params}
-                  onNavigate={(next) => setParams(next)}
-                  buildHref={(id, os) => {
-                    const candidates =
-                      history?.session === session
-                        ? history.builds?.filter(
-                            (build) => build.build_id === id && build.os === os,
-                          )
-                        : [];
-                    return href("build", {
-                      build: id,
-                      platform: os,
-                      ...(candidates?.length === 1 && candidates[0].source_id
-                        ? { source: candidates[0].source_id }
-                        : {}),
-                    });
-                  }}
-                />
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
         <footer>
           <div>
             <p>
@@ -471,14 +529,18 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {session ? (
                 <>
                   {" · "}
-                  <a
-                    href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
-                    title={`Data commit ${session.pointer.data_commit}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Data {session.pointer.data_commit?.slice(0, 8)}
-                  </a>
+                  {session.pointer.data_commit ? (
+                    <a
+                      href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
+                      title={`Data commit ${session.pointer.data_commit}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Data {session.pointer.data_commit.slice(0, 8)}
+                    </a>
+                  ) : (
+                    <span>Local dataset preview</span>
+                  )}
                   {" · "}
                   <time dateTime={session.index.generated_at}>
                     Data updated {date(session.index.generated_at)}

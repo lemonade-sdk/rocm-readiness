@@ -12,10 +12,14 @@ import re
 from urllib.parse import urlparse
 
 if __package__:
+    from .config import load_config
     from .attribution import validate_measurement_package
+    from .upstream import validate_upstream_dataset
     from .validation import PipelineValidationError
 else:
+    from config import load_config
     from attribution import validate_measurement_package
+    from upstream import validate_upstream_dataset
     from validation import PipelineValidationError
 
 RAW = re.compile(
@@ -1417,6 +1421,8 @@ def validate_dataset(root, config=None, *, check_live_pointer=True):
             "/sync/last_successful_at",
             "live status must retain the successful dataset timestamp",
         )
+    if "upstream" in index:
+        paths.update(validate_upstream_dataset(root, index["upstream"]))
     if check_live_pointer and (root / "latest.json").exists():
         latest = read("latest.json")
         schema(latest, "latest.json", 1)
@@ -1468,8 +1474,10 @@ def main():
         config = (
             None
             if args.sources is None
-            else json.loads(args.sources.read_text(encoding="utf-8"))
+            else load_config(json.loads(args.sources.read_text(encoding="utf-8")))[0]
         )
+        if args.sources is not None and config is None:
+            raise ValueError("sources configuration has no readiness input")
         paths = validate_dataset(args.data_dir, config)
     except (PipelineValidationError, OSError, ValueError, KeyError, TypeError) as error:
         print(str(error), file=sys.stderr)

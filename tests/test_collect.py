@@ -320,6 +320,21 @@ class PerformanceTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.TestCase):
+    def test_upstream_restore_error_does_not_block_readiness_finalization(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder, patch(
+            "scripts.collect.collect_upstream", side_effect=KeyError("malformed row")
+        ):
+            root = Path(folder)
+            output = collect(
+                self.config(), root, fetch, now="2026-10-29T18:00:00Z", projects={}
+            )
+            self.assertEqual(output["collection_status"], "complete")
+            self.assertTrue((root / "index.json").exists())
+            self.assertNotIn("upstream", json.loads((root / "index.json").read_text()))
+
     def test_recollection_leaves_existing_publication_pointer_to_publisher(self):
         def fetch(url):
             return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")

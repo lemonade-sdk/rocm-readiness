@@ -43,6 +43,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime, timedelta, timezone
 import json
+import hashlib
 from pathlib import Path, PurePosixPath
 import re
 from statistics import median
@@ -503,7 +504,7 @@ def _check_runs(fetch, budget, repo, sha, workers):
     rows, truncated = _pages(
         fetch,
         budget,
-        f"{API}/repos/{repo}/commits/{sha}/check-runs",
+        f"{API}/repos/{repo}/commits/{sha}/check-runs?filter=all",
         "check_runs",
         workers,
         10,
@@ -515,6 +516,7 @@ def _check_runs(fetch, budget, repo, sha, workers):
                 "name": c.get("name") or "",
                 "conclusion": c.get("conclusion"),
                 "started_at": c.get("started_at") or "",
+                "completed_at": c.get("completed_at"),
                 "url": c.get("html_url"),
             }
             for c in rows
@@ -522,27 +524,41 @@ def _check_runs(fetch, budget, repo, sha, workers):
     }
 
 
-def _verdict(checks, match):
-    """What a job said on a pull request's final commit.
-
-    Matrix jobs (shards, architectures) match several check names; the newest
-    attempt of each counts, and one failing shard makes the verdict failed."""
+def _verdict(checks, match, merged_at):
+    """Use the latest attempt that existed at merge, only if it had finished."""
+    merge = _time(merged_at)
     latest = {}
-    for c in checks["runs"]:
-        if match(c["name"]) and c["started_at"] >= latest.get(c["name"], {}).get(
-            "started_at", ""
-        ):
-            latest[c["name"]] = c
+    uncertain = False
+    post_merge = False
+    for check in checks["runs"]:
+        if not match(check["name"]):
+            continue
+        started = _time(check.get("started_at"))
+        if started is None:
+            uncertain = True
+        elif merge is not None and started > merge:
+            post_merge = True
+        elif merge is not None and started <= merge:
+            if check["name"] not in latest or started >= _time(
+                latest[check["name"]]["started_at"]
+            ):
+                latest[check["name"]] = check
+    if merge is None or uncertain or checks["truncated"]:
+        return "no_result", None
     if not latest:
-        # A cut-off check list cannot prove the job never ran.
-        return ("no_result" if checks["truncated"] else "not_triggered"), None
-    runs = sorted(latest.values(), key=lambda c: c["started_at"])
-    failed = [c for c in runs if c["conclusion"] == "failure"]
+        return ("no_result" if post_merge else "not_triggered"), None
+    rows = sorted(latest.values(), key=lambda c: c["started_at"])
+    if any(
+        not _time(c.get("completed_at")) or _time(c["completed_at"]) > merge
+        for c in rows
+    ):
+        return "no_result", rows[-1]["url"]
+    failed = [c for c in rows if c["conclusion"] == "failure"]
     if failed:
         return "failed", failed[-1]["url"]
-    if all(c["conclusion"] == "success" for c in runs):
-        return "passed", runs[-1]["url"]
-    return "no_result", runs[-1]["url"]
+    if all(c["conclusion"] == "success" for c in rows):
+        return "passed", rows[-1]["url"]
+    return "no_result", rows[-1]["url"]
 
 
 # ---- previous data -------------------------------------------------------------------
@@ -586,7 +602,30 @@ def load_previous(previous_data):
                 data = json.loads((root / relative).read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 continue
-            for row in data.get("runs", []):
+            rows = data.get("runs", [])
+            required = (
+                "job",
+                "run_id",
+                "job_id",
+                "created_at",
+                "event",
+                "ref",
+                "sha",
+                "status",
+                "url",
+                "day",
+                "state",
+                "queue_seconds",
+            )
+            if not isinstance(rows, list) or any(
+                not isinstance(row, dict) or not all(k in row for k in required)
+                for row in rows
+            ):
+                runs.pop(pid, None)
+                scanned.pop(pid, None)
+                coverage.pop(pid, None)
+                break
+            for row in rows:
                 runs.setdefault(pid, {})[
                     (row["job"], row["run_id"], row["job_id"])
                 ] = row
@@ -625,8 +664,21 @@ def collect_project(
     match_of = {job["id"]: match for job, match in specs}
     spec_of = {job["id"]: job for job, _ in specs}
 
-    # Rows for jobs no longer configured are dropped: conformance rejects a run
-    # that names an unknown job, and a removed job must not break publication.
+    identity = hashlib.sha256(
+        json.dumps(
+            {
+                "repository": repo,
+                "branch": branch,
+                "tag_pattern": project.get("tag_pattern"),
+                "jobs": project.get("jobs", []),
+                "cache_version": 2,
+            },
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    prior = prior_coverage or {}
+    if prior.get("cache_identity") != identity:
+        previous, scanned, prior = {}, set(), {}
     records = {
         key: row
         for key, row in previous.items()
@@ -634,13 +686,9 @@ def collect_project(
         and (_time(row.get("created_at")) or since) >= since
     }
     done = {key for key in scanned if _scan_day(key) >= since.date().isoformat()}
-
-    # Once a project's window has been read completely, later collections only
-    # list runs created since shortly before the last one: older runs are
-    # already recorded, and listing a busy repository's whole window costs
-    # dozens of large pages. Runs still unfinished last time are re-read by id.
+    cache = prior.get("pending", {})
+    cache = dict(cache) if isinstance(cache, dict) else {}
     list_since = since
-    prior = prior_coverage or {}
     last = _time(prior.get("collected_at"))
     if prior.get("complete") and last and (_time(prior.get("since")) or now) <= since:
         list_since = max(
@@ -649,35 +697,36 @@ def collect_project(
                 hour=0, minute=0, second=0, microsecond=0
             ),
         )
-
     complete = True
-    pending = []
+    errors = []
     listed_ids = set()
     for workflow, jobs in sorted(by_workflow.items()):
         try:
             runs, truncated = _listed_runs(
                 fetch, budget, project, workflow, list_since, now, workers
             )
-        except (OutOfBudget, OSError, ValueError) as error:
-            print(
-                f"  {workflow}: run list not read ({type(error).__name__}: {error})",
-                flush=True,
-            )
+            if truncated:
+                complete = False
+            for run in runs:
+                listed_ids.add(str(run["id"]))
+                key = _scan_key(run)
+                if key not in done or run.get("status") != "completed":
+                    for stale in [
+                        k
+                        for k in cache
+                        if k != key and k.partition("#")[0] == str(run["id"])
+                    ]:
+                        del cache[stale]
+                    old = cache.get(key)
+                    if old and old["run"].get("status") != run.get("status"):
+                        del cache[key]
+                    cache.setdefault(key, {"run": run, "workflow": workflow})
+        except (OutOfBudget, OSError, ValueError, KeyError, TypeError) as error:
             complete = False
-            continue
-        if truncated:
-            complete = False
-        for run in runs:
-            listed_ids.add(str(run["id"]))
-            if not (_scan_key(run) in done and run.get("status") == "completed"):
-                pending.append((run, jobs))
+            if not isinstance(error, OutOfBudget):
+                errors.append(f"{workflow}: {type(error).__name__}: {error}")
     for row in previous.values():
-        if (
-            row.get("job") in job_ids
-            and row.get("status") != "completed"
-            and row["run_id"] not in listed_ids
-            and (_time(row.get("created_at")) or since) >= since
-        ):
+        if row.get("status") != "completed" and row["run_id"] not in listed_ids:
             run = {
                 "id": row["run_id"],
                 "created_at": row["created_at"],
@@ -688,129 +737,85 @@ def collect_project(
                 "status": "unknown",
                 "html_url": row["url"],
             }
-            pending.append((run, by_workflow[spec_of[row["job"]]["workflow"]]))
-            listed_ids.add(row["run_id"])
-
-    # Newest first, in chunks, until the budget is spent.
-    pending.sort(key=lambda item: item[0].get("created_at") or "", reverse=True)
-
-    def read_jobs(item):
-        run, _ = item
+            cache.setdefault(
+                _scan_key(run),
+                {"run": run, "workflow": spec_of[row["job"]]["workflow"]},
+            )
+    for key in sorted(
+        cache, key=lambda k: cache[k]["run"].get("created_at") or "", reverse=True
+    ):
+        item = cache[key]
+        run = item["run"]
         try:
-            jobs, _ = _pages(
-                fetch,
-                budget,
-                f"{API}/repos/{repo}/actions/runs/{run['id']}/jobs",
-                "jobs",
-                2,
-                5,
+            if "jobs" not in item:
+                try:
+                    jobs, truncated = _pages(
+                        fetch,
+                        budget,
+                        f"{API}/repos/{repo}/actions/runs/{run['id']}/jobs",
+                        "jobs",
+                        2,
+                        5,
+                    )
+                    if truncated:
+                        raise OSError("job list truncated")
+                    item["jobs"] = jobs
+                except HTTPError as error:
+                    if error.code != 404:
+                        raise
+                    item["jobs"], item["gone"] = [], True
+            rows = [
+                (_record(run, job, spec), spec)
+                for job in item["jobs"]
+                for spec, match in by_workflow[item["workflow"]]
+                if match(job.get("name") or "")
+            ]
+            gated = (
+                run.get("event") == "push"
+                and run.get("head_branch") == branch
+                and any(spec["category"] in ("tests", "builds") for _, spec in rows)
             )
-        except HTTPError as error:
-            if error.code == 404:  # the run was deleted
-                return {"jobs": [], "gone": True}
-            raise
-        return {"jobs": jobs}
-
-    read = []
-    step = max(1, workers * 4)
-    for start in range(0, len(pending), step):
-        if budget.exhausted:
+            if gated and "pr" not in item:
+                item["pr"] = _merged_pr(fetch, budget, repo, run["head_sha"], branch)
+            pr = item.get("pr")
+            if pr and "checks" not in item:
+                item["checks"] = _check_runs(
+                    fetch, budget, repo, pr["head_sha"], workers
+                )
+            for row, spec in rows:
+                if pr and spec["category"] in ("tests", "builds"):
+                    verdict, check_url = _verdict(
+                        item["checks"], match_of[spec["id"]], pr["merged_at"]
+                    )
+                    row["pr"] = {
+                        "number": pr["number"],
+                        "url": pr["url"],
+                        "author": pr["author"],
+                        "verdict": verdict,
+                        "check_url": check_url,
+                    }
+            for old in [k for k, r in records.items() if r["run_id"] == str(run["id"])]:
+                del records[old]
+            for row, _ in rows:
+                records[(row["job"], row["run_id"], row["job_id"])] = row
+            finished = (
+                item.get("gone")
+                or run.get("status") == "completed"
+                or (
+                    run.get("status") == "unknown"
+                    and all(r["status"] == "completed" for r, _ in rows)
+                )
+            )
+            if finished:
+                done.add(key)
+            del cache[key]
+        except (OutOfBudget, OSError, ValueError, KeyError, TypeError) as error:
             complete = False
-            break
-        chunk = pending[start : start + step]
-        for item, data in zip(chunk, _parallel(chunk, read_jobs, workers)):
-            if data is None:
-                complete = False
-            else:
-                read.append((item, data))
-
-    new_rows = []
-    for (run, jobs), data in read:
-        # A re-run replaces the rows of its earlier attempt.
-        for key in [k for k, r in records.items() if r["run_id"] == str(run["id"])]:
-            del records[key]
-        rows = []
-        for job in data["jobs"]:
-            for spec, match in jobs:
-                if match(job.get("name") or ""):
-                    rows.append((_record(run, job, spec), spec))
-        new_rows.append((run, rows, data.get("gone", False)))
-
-    # Merge verdicts: which pull request landed each pushed commit, and what its
-    # own checks said on the commit that merged. Only jobs that also run on pull
-    # requests have one; release and nightly jobs never do.
-    def gated(run, spec):
-        return (
-            run.get("event") == "push"
-            and run.get("head_branch") == branch
-            and spec["category"] in ("tests", "builds")
-        )
-
-    shas = sorted(
-        {
-            run["head_sha"]
-            for run, rows, _ in new_rows
-            if any(gated(run, s) for _, s in rows)
-        }
-    )
-    prs = {}
-    for sha, found in zip(
-        shas,
-        _parallel(
-            shas, lambda s: {"pr": _merged_pr(fetch, budget, repo, s, branch)}, workers
-        ),
-    ):
-        if found is not None:
-            prs[sha] = found["pr"]
-    heads = sorted({pr["head_sha"] for pr in prs.values() if pr})
-    checks = {}
-    for head, result in zip(
-        heads,
-        _parallel(heads, lambda h: _check_runs(fetch, budget, repo, h, 3), workers),
-    ):
-        if result is not None:
-            checks[head] = result
-    gate_ok = len(prs) == len(shas) and len(checks) == len(heads)
-
-    for run, rows, gone in new_rows:
-        settled = True
-        for row, spec in rows:
-            if gated(run, spec):
-                if run["head_sha"] not in prs:
-                    settled = False
-                elif prs[run["head_sha"]] is not None:
-                    pr = prs[run["head_sha"]]
-                    if pr["head_sha"] not in checks:
-                        settled = False
-                    else:
-                        verdict, check_url = _verdict(
-                            checks[pr["head_sha"]], match_of[spec["id"]]
-                        )
-                        row["pr"] = {
-                            "number": pr["number"],
-                            "url": pr["url"],
-                            "author": pr["author"],
-                            "verdict": verdict,
-                            "check_url": check_url,
-                        }
-            records[(row["job"], row["run_id"], row["job_id"])] = row
-        finished = (
-            gone
-            or run.get("status") == "completed"
-            or (
-                run.get("status") == "unknown"
-                and all(r["status"] == "completed" for r, _ in rows)
-            )
-        )
-        # A run is only "done" once its jobs and merge verdicts are settled, so
-        # a budget cut or a failed read never freezes a half-read run.
-        if finished and settled:
-            done.add(_scan_key(run))
-    complete = complete and gate_ok
+            if not isinstance(error, OutOfBudget):
+                errors.append(f"run {run['id']}: {type(error).__name__}: {error}")
+    complete = complete and not cache
     if complete and list_since == since:
-        # Forget scanned runs that are no longer listed (deleted or re-run).
-        listed_keys = {key for key in done if key.partition("#")[0] in listed_ids}
-        done = listed_keys
+        done = {key for key in done if key.partition("#")[0] in listed_ids}
     created = [r["created_at"] for r in records.values() if r.get("created_at")]
     coverage = {
         "complete": complete,
@@ -818,7 +823,12 @@ def collect_project(
         "listed_since": _iso(list_since),
         "collected_at": _iso(now),
         "oldest_run_at": min(created) if created else None,
+        "cache_identity": identity,
+        "pending": cache,
     }
+    if errors:
+        coverage["error"] = "; ".join(errors)
+
     return list(records.values()), done, coverage
 
 
@@ -1402,6 +1412,7 @@ def validate_upstream_dataset(root, entry):
             at + "/kpis",
             "project totals must equal its jobs",
         )
+        actual_daily = {job_id: {} for job_id in job_ids}
         for fpos, chunk in enumerate(project.get("files") or []):
             relative = chunk.get("path")
             match = FILE_PATH.fullmatch(relative or "")
@@ -1462,6 +1473,34 @@ def validate_upstream_dataset(root, entry):
                     rat + "/url",
                     "expected a GitHub link",
                 )
+                _ok(
+                    all(
+                        field in run
+                        for field in (
+                            "run_id",
+                            "job_id",
+                            "created_at",
+                            "event",
+                            "ref",
+                            "sha",
+                            "status",
+                            "queue_seconds",
+                        )
+                    )
+                    and isinstance(run["run_id"], str)
+                    and isinstance(run["job_id"], str)
+                    and _time(run["created_at"]) is not None
+                    and window["start"] <= run["day"] <= window["end"],
+                    relative,
+                    rat,
+                    "missing or invalid fields required for restore",
+                )
+                cell = actual_daily[run["job"]].setdefault(
+                    run["day"], {k: 0 for k in STATES + ("slow",)}
+                )
+                cell[run["state"]] += 1
+                if (run.get("queue_seconds") or 0) > SLOW_QUEUE_SECONDS:
+                    cell["slow"] += 1
                 if run.get("pr") is not None:
                     _ok(
                         run["pr"].get("verdict") in VERDICTS,
@@ -1469,6 +1508,13 @@ def validate_upstream_dataset(root, entry):
                         rat + "/pr/verdict",
                         "invalid verdict",
                     )
+        for job in jobs:
+            _ok(
+                job["daily"] == actual_daily[job["id"]],
+                where,
+                at + "/jobs",
+                "daily aggregates must match monthly runs",
+            )
     return paths
 
 

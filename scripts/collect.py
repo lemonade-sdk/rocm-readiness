@@ -840,23 +840,27 @@ def collect(
         # The upstream view reads projects' own CI. It is collected after the
         # readiness dataset and never degrades it: a project that cannot be
         # read keeps its previous records and is reported as partial.
-        output["dataset"]["upstream"] = collect_upstream(
-            projects,
-            destination,
-            fetch=fetch,
-            now=now,
-            write_json=write_json,
-            previous_data=previous_data,
-            budget_calls=upstream_budget,
-        )
-        upstream = output["dataset"]["upstream"]
+        upstream = None
         try:
+            upstream = collect_upstream(
+                projects,
+                destination,
+                fetch=fetch,
+                now=now,
+                write_json=write_json,
+                previous_data=previous_data,
+                budget_calls=upstream_budget,
+            )
             validate_upstream_dataset(destination, upstream)
-        except (PipelineValidationError, ValueError, KeyError, TypeError) as error:
-            # A writer bug must cost the upstream view, not the readiness
-            # dataset: unreference it and say why.
+            output["dataset"]["upstream"] = upstream
+        except (
+            PipelineValidationError,
+            OSError,
+            ValueError,
+            KeyError,
+            TypeError,
+        ) as error:
             print(f"Upstream view dropped: {error}", file=sys.stderr, flush=True)
-            output["dataset"].pop("upstream")
             upstream = None
         if upstream:
             print(

@@ -186,6 +186,7 @@ def check(name, conclusion):
         "name": name,
         "conclusion": conclusion,
         "started_at": "2026-10-28T08:00:00Z",
+        "completed_at": "2026-10-28T08:30:00Z",
         "html_url": f"https://github.com/example/demo/runs/{name}",
     }
 
@@ -367,6 +368,106 @@ class CollectionTests(unittest.TestCase):
                 overview(self.out)["projects"][0]["kpis"],
             )
 
+    def test_small_budget_eventually_completes_static_backlog(self):
+        entry = None
+        for _ in range(20):
+            entry = collect(self.gh, self.out, previous=self.out, budget=3)
+            (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+            if entry["status"] == "fresh":
+                break
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["kpis"]["decided"], 3)
+
+    def test_changed_selector_recollects_previously_scanned_runs(self):
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        cfg = config()
+        cfg["projects"][0]["jobs"][0]["match"] = {"name": "cpu"}
+        entry = collect(self.gh, self.out, cfg, previous=self.out)
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["jobs"][0]["decided"], 1)
+
+    def test_post_merge_reruns_do_not_change_merge_verdict(self):
+        self.gh.checks["d" * 40].append(
+            dict(
+                check("gpu-rocm", "success"),
+                started_at="2026-10-28T10:00:00Z",
+                completed_at="2026-10-28T10:30:00Z",
+            )
+        )
+        self.gh.checks["e" * 40].append(
+            dict(
+                check("gpu-rocm", "failure"),
+                started_at="2026-10-28T10:00:00Z",
+                completed_at="2026-10-28T10:30:00Z",
+            )
+        )
+        collect(self.gh, self.out)
+        gate = overview(self.out)["projects"][0]["jobs"][0]["gate"]
+        self.assertEqual((gate["failed"], gate["passed"]), (1, 1))
+        self.assertTrue(
+            all("filter=all" in u for u in self.gh.calls if "check-runs" in u)
+        )
+
+    def test_only_post_merge_check_is_unknown(self):
+        self.gh.checks["d" * 40] = [
+            dict(
+                check("gpu-rocm", "success"),
+                started_at="2026-10-28T10:00:00Z",
+                completed_at="2026-10-28T10:30:00Z",
+            )
+        ]
+        collect(self.gh, self.out)
+        gate = overview(self.out)["projects"][0]["jobs"][0]["gate"]
+        self.assertEqual(gate["no_result"], 1)
+
+    def test_check_in_progress_at_merge_is_unknown(self):
+        self.gh.checks["d" * 40] = [
+            dict(check("gpu-rocm", "success"), completed_at="2026-10-28T09:30:00Z")
+        ]
+        collect(self.gh, self.out)
+        gate = overview(self.out)["projects"][0]["jobs"][0]["gate"]
+        self.assertEqual(gate["no_result"], 1)
+
+    def test_running_job_is_refreshed_when_run_finishes(self):
+        self.gh.runs["ci.yml"][0]["status"] = "in_progress"
+        self.gh.jobs[1] = [job(11, "gpu-rocm", None, status="in_progress")]
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        self.gh.runs["ci.yml"][0]["status"] = "completed"
+        self.gh.jobs[1] = [job(11, "gpu-rocm", "success")]
+        entry = collect(self.gh, self.out, previous=self.out)
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["jobs"][0]["passed"], 1)
+
+    def test_cached_incomplete_job_is_refreshed_after_run_finishes(self):
+        cfg = config(project(jobs=[project()["jobs"][0]]))
+        self.gh.runs["ci.yml"] = [self.gh.runs["ci.yml"][0]]
+        self.gh.runs["ci.yml"][0]["status"] = "in_progress"
+        self.gh.jobs[1] = [job(11, "gpu-rocm", None, status="in_progress")]
+        entry = collect(self.gh, self.out, cfg, previous=self.out, budget=2)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        self.gh.runs["ci.yml"][0]["status"] = "completed"
+        self.gh.jobs[1] = [job(11, "gpu-rocm", "success")]
+        for _ in range(5):
+            entry = collect(self.gh, self.out, cfg, previous=self.out, budget=2)
+            (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+            if entry["status"] == "fresh":
+                break
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["jobs"][0]["passed"], 1)
+
+    def test_malformed_previous_row_is_discarded(self):
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        path = self.out / "upstream/demo/ci/2026-10.json"
+        data = json.loads(path.read_text())
+        del data["runs"][0]["run_id"]
+        path.write_text(json.dumps(data))
+        entry = collect(self.gh, self.out, previous=self.out)
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["kpis"]["decided"], 3)
+
     def test_budget_keeps_newest_runs_and_reports_partial(self):
         entry = collect(self.gh, self.out, budget=3)
         self.assertEqual(entry["status"], "partial")
@@ -527,6 +628,17 @@ class DatasetTests(unittest.TestCase):
         data = json.loads(target.read_text())
         change(data)
         target.write_text(json.dumps(data))
+
+    def test_monthly_state_must_match_overview(self):
+        path = self.root / "upstream/demo/ci/2026-10.json"
+        data = json.loads(path.read_text())
+        data["runs"][0]["state"] = "skipped"
+        path.write_text(json.dumps(data))
+        with self.assertRaises(PipelineValidationError):
+            validate_upstream_dataset(
+                self.root,
+                json.loads((self.root / "index.json").read_text())["upstream"],
+            )
 
     def test_restore_drops_an_upstream_view_that_no_longer_validates(self):
         overview_path = self.root / "upstream/overview.json"

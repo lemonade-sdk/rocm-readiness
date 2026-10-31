@@ -320,6 +320,21 @@ class PerformanceTests(unittest.TestCase):
 
 
 class CollectionTests(unittest.TestCase):
+    def test_upstream_attribute_error_does_not_block_readiness_finalization(self):
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")
+
+        with tempfile.TemporaryDirectory() as folder, patch(
+            "scripts.collect.collect_upstream",
+            side_effect=AttributeError("invalid prior project"),
+        ):
+            root = Path(folder)
+            output = collect(
+                self.config(), root, fetch, now="2026-10-29T18:00:00Z", projects={}
+            )
+            self.assertEqual(output["collection_status"], "complete")
+            self.assertTrue((root / "index.json").exists())
+
     def test_upstream_restore_error_does_not_block_readiness_finalization(self):
         def fetch(url):
             return {"sha": "a" * 40} if "/commits/" in url else fixture("llama.json")

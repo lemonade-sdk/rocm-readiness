@@ -499,28 +499,66 @@ def _merged_pr(fetch, budget, repo, sha, branch):
     }
 
 
-def _check_runs(fetch, budget, repo, sha, workers):
-    """Every check run on a commit, and whether the list was cut short."""
-    rows, truncated = _pages(
-        fetch,
-        budget,
-        f"{API}/repos/{repo}/commits/{sha}/check-runs?filter=all",
-        "check_runs",
-        workers,
-        10,
-    )
+def _incremental_pages(fetch, budget, url, key, cap, state, select):
+    """Persist successful pages before a later page exhausts the budget."""
+    while state.get("next", 1) <= state.get("pages", 1):
+        page = state.get("next", 1)
+        sep = "&" if "?" in url else "?"
+        data = _get(fetch, budget, f"{url}{sep}per_page=100&page={page}")
+        rows = data.get(key) or []
+        if page == 1:
+            total = data.get("total_count") or len(rows)
+            state["pages"] = min(cap, max(1, -(-total // 100)))
+            state["truncated"] = total > cap * 100
+        state.setdefault("rows", []).extend(
+            x for row in rows if (x := select(row)) is not None
+        )
+        state["next"] = page + 1
+    return state.get("rows", []), state.get("truncated", False)
+
+
+def _minimal_run(run):
     return {
-        "truncated": truncated,
-        "runs": [
-            {
-                "name": c.get("name") or "",
-                "conclusion": c.get("conclusion"),
-                "started_at": c.get("started_at") or "",
-                "completed_at": c.get("completed_at"),
-                "url": c.get("html_url"),
-            }
-            for c in rows
-        ],
+        k: run.get(k)
+        for k in (
+            "id",
+            "created_at",
+            "event",
+            "head_branch",
+            "head_sha",
+            "status",
+            "run_attempt",
+            "html_url",
+        )
+    }
+
+
+def _minimal_job(job):
+    fields = (
+        "id",
+        "name",
+        "status",
+        "conclusion",
+        "created_at",
+        "started_at",
+        "runner_name",
+        "html_url",
+    )
+    result = {k: job.get(k) for k in fields}
+    result["steps"] = [
+        {"name": step.get("name"), "conclusion": step.get("conclusion")}
+        for step in job.get("steps") or []
+    ]
+    return result
+
+
+def _minimal_check(check):
+    return {
+        "name": check.get("name") or "",
+        "conclusion": check.get("conclusion"),
+        "started_at": check.get("started_at") or "",
+        "completed_at": check.get("completed_at"),
+        "url": check.get("html_url"),
     }
 
 
@@ -565,10 +603,11 @@ def _verdict(checks, match, merged_at):
 
 
 def _safe_relative(relative):
+    if not isinstance(relative, str):
+        return False
     parts = PurePosixPath(relative).parts
     return (
-        isinstance(relative, str)
-        and relative.endswith(".json")
+        relative.endswith(".json")
         and "\\" not in relative
         and parts
         and not relative.startswith("/")
@@ -590,50 +629,71 @@ def load_previous(previous_data):
         overview = json.loads((root / entry["overview"]).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return runs, scanned, coverage
-    for project in overview.get("projects", []):
-        pid = project.get("id")
+    if not isinstance(overview, dict) or not isinstance(overview.get("projects"), list):
+        return runs, scanned, coverage
+    for project in overview["projects"]:
+        if not isinstance(project, dict) or not isinstance(project.get("id"), str):
+            continue
+        pid = project["id"]
+        project_runs, project_scanned = {}, set()
+        try:
+            chunks = project.get("files")
+            if not isinstance(chunks, list) or not chunks:
+                raise ValueError("missing project files")
+            for chunk in chunks:
+                if not isinstance(chunk, dict):
+                    raise ValueError("invalid file reference")
+                relative = chunk.get("path")
+                if not isinstance(relative, str) or not _safe_relative(relative):
+                    raise ValueError("unsafe file path")
+                data = json.loads((root / relative).read_text(encoding="utf-8"))
+                if (
+                    not isinstance(data, dict)
+                    or data.get("schema_version") != SCHEMA_VERSION
+                    or data.get("project") != pid
+                    or data.get("month") != chunk.get("month")
+                ):
+                    raise ValueError("invalid file identity")
+                rows = data.get("runs")
+                scanned_rows = data.get("scanned_runs")
+                required = (
+                    "job",
+                    "run_id",
+                    "job_id",
+                    "created_at",
+                    "event",
+                    "ref",
+                    "sha",
+                    "status",
+                    "url",
+                    "day",
+                    "state",
+                    "queue_seconds",
+                )
+                if (
+                    not isinstance(rows, list)
+                    or len(rows) != chunk.get("run_count")
+                    or not isinstance(scanned_rows, list)
+                    or any(not isinstance(s, str) for s in scanned_rows)
+                    or any(
+                        not isinstance(row, dict)
+                        or not all(k in row for k in required)
+                        or any(
+                            not isinstance(row[k], str)
+                            for k in ("job", "run_id", "job_id")
+                        )
+                        for row in rows
+                    )
+                ):
+                    raise ValueError("invalid prior records")
+                for row in rows:
+                    project_runs[(row["job"], row["run_id"], row["job_id"])] = row
+                project_scanned.update(s for s in scanned_rows if "#" in s and "@" in s)
+        except (OSError, ValueError, TypeError, KeyError, UnicodeError):
+            continue
+        runs[pid], scanned[pid] = project_runs, project_scanned
         if isinstance(project.get("coverage"), dict):
             coverage[pid] = project["coverage"]
-        for chunk in project.get("files", []):
-            relative = chunk.get("path", "")
-            if not _safe_relative(relative):
-                continue
-            try:
-                data = json.loads((root / relative).read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            rows = data.get("runs", [])
-            required = (
-                "job",
-                "run_id",
-                "job_id",
-                "created_at",
-                "event",
-                "ref",
-                "sha",
-                "status",
-                "url",
-                "day",
-                "state",
-                "queue_seconds",
-            )
-            if not isinstance(rows, list) or any(
-                not isinstance(row, dict) or not all(k in row for k in required)
-                for row in rows
-            ):
-                runs.pop(pid, None)
-                scanned.pop(pid, None)
-                coverage.pop(pid, None)
-                break
-            for row in rows:
-                runs.setdefault(pid, {})[
-                    (row["job"], row["run_id"], row["job_id"])
-                ] = row
-            # Older files kept bare run ids; those are read once more and
-            # then stored in the per-attempt form.
-            scanned.setdefault(pid, set()).update(
-                s for s in data.get("scanned_runs", []) if "#" in s and "@" in s
-            )
     return runs, scanned, coverage
 
 
@@ -671,7 +731,7 @@ def collect_project(
                 "branch": branch,
                 "tag_pattern": project.get("tag_pattern"),
                 "jobs": project.get("jobs", []),
-                "cache_version": 2,
+                "cache_version": 3,
             },
             sort_keys=True,
         ).encode()
@@ -720,7 +780,9 @@ def collect_project(
                     old = cache.get(key)
                     if old and old["run"].get("status") != run.get("status"):
                         del cache[key]
-                    cache.setdefault(key, {"run": run, "workflow": workflow})
+                    cache.setdefault(
+                        key, {"run": _minimal_run(run), "workflow": workflow}
+                    )
         except (OutOfBudget, OSError, ValueError, KeyError, TypeError) as error:
             complete = False
             if not isinstance(error, OutOfBudget):
@@ -749,17 +811,26 @@ def collect_project(
         try:
             if "jobs" not in item:
                 try:
-                    jobs, truncated = _pages(
+                    jobs, truncated = _incremental_pages(
                         fetch,
                         budget,
                         f"{API}/repos/{repo}/actions/runs/{run['id']}/jobs",
                         "jobs",
-                        2,
                         5,
+                        item.setdefault("jobs_pages", {}),
+                        lambda job: (
+                            _minimal_job(job)
+                            if any(
+                                match(job.get("name") or "")
+                                for _, match in by_workflow[item["workflow"]]
+                            )
+                            else None
+                        ),
                     )
                     if truncated:
                         raise OSError("job list truncated")
                     item["jobs"] = jobs
+                    item.pop("jobs_pages", None)
                 except HTTPError as error:
                     if error.code != 404:
                         raise
@@ -779,9 +850,24 @@ def collect_project(
                 item["pr"] = _merged_pr(fetch, budget, repo, run["head_sha"], branch)
             pr = item.get("pr")
             if pr and "checks" not in item:
-                item["checks"] = _check_runs(
-                    fetch, budget, repo, pr["head_sha"], workers
+                checks, truncated = _incremental_pages(
+                    fetch,
+                    budget,
+                    f"{API}/repos/{repo}/commits/{pr['head_sha']}/check-runs?filter=all",
+                    "check_runs",
+                    10,
+                    item.setdefault("checks_pages", {}),
+                    lambda check: (
+                        _minimal_check(check)
+                        if any(
+                            match(check.get("name") or "")
+                            for _, match in by_workflow[item["workflow"]]
+                        )
+                        else None
+                    ),
                 )
+                item["checks"] = {"runs": checks, "truncated": truncated}
+                item.pop("checks_pages", None)
             for row, spec in rows:
                 if pr and spec["category"] in ("tests", "builds"):
                     verdict, check_url = _verdict(
@@ -1541,9 +1627,9 @@ def main(argv=None):
     import sys
 
     if __package__:
-        from .collect import fetch_json, write_json
+        from .collect import fetch_upstream_json, write_json
     else:
-        from collect import fetch_json, write_json
+        from collect import fetch_upstream_json, write_json
 
     root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(
@@ -1585,7 +1671,7 @@ def main(argv=None):
     entry = collect_upstream(
         config,
         out,
-        fetch=fetch_json,
+        fetch=fetch_upstream_json,
         now=datetime.now(timezone.utc),
         write_json=write_json,
         previous_data=out,

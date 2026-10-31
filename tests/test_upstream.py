@@ -5,9 +5,11 @@ from pathlib import Path
 import tempfile
 import unittest
 from urllib.parse import parse_qs, urlparse
+from urllib.error import HTTPError
+from unittest.mock import patch
 
 from scripts import publish
-from scripts.collect import write_json
+from scripts.collect import fetch_upstream_json, write_json
 from scripts.conformance import validate_dataset
 from scripts.dataset import write_dataset
 from scripts.upstream import (
@@ -155,7 +157,11 @@ class FakeGitHub:
             }
         if parts[-1] == "jobs":
             rows = self.jobs.get(int(parts[-2]), [])
-            return {"total_count": len(rows), "jobs": rows}
+            page = int(query.get("page", ["1"])[0])
+            return {
+                "total_count": len(rows),
+                "jobs": rows[(page - 1) * 100 : page * 100],
+            }
         if parts[-1] == "pulls":
             return self.pulls.get(parts[-2], [])
         if parts[-1] == "check-runs":
@@ -467,6 +473,68 @@ class CollectionTests(unittest.TestCase):
         entry = collect(self.gh, self.out, previous=self.out)
         self.assertEqual(entry["status"], "fresh")
         self.assertEqual(overview(self.out)["projects"][0]["kpis"]["decided"], 3)
+
+    def test_missing_old_chunk_invalidates_whole_project_cache(self):
+        self.gh.runs["ci.yml"].append(run(9, "2026-09-30T10:00:00Z"))
+        self.gh.jobs[9] = [job(91, "gpu-rocm")]
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        (self.out / "upstream/demo/ci/2026-09.json").unlink()
+        entry = collect(self.gh, self.out, previous=self.out)
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["jobs"][0]["decided"], 3)
+        self.assertTrue((self.out / "upstream/demo/ci/2026-09.json").exists())
+
+    def test_null_project_in_previous_overview_is_ignored(self):
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        path = self.out / "upstream/overview.json"
+        data = json.loads(path.read_text())
+        data["projects"].insert(0, None)
+        path.write_text(json.dumps(data))
+        entry = collect(self.gh, self.out, previous=self.out)
+        self.assertEqual(entry["status"], "fresh")
+
+    def test_enrichment_pages_converge_under_two_call_budget(self):
+        cfg = config(project(jobs=[project()["jobs"][0]]))
+        self.gh.runs["ci.yml"] = [self.gh.runs["ci.yml"][0]]
+        self.gh.runs["ci.yml"][0]["irrelevant_metadata"] = "large-run"
+        self.gh.jobs[1] = [
+            dict(job(i + 100, "other"), irrelevant_metadata="large-job")
+            for i in range(100)
+        ] + [job(11, "gpu-rocm")]
+        self.gh.checks["d" * 40] = [
+            dict(check(f"other-{i}", "success"), irrelevant_metadata="large-check")
+            for i in range(100)
+        ] + [check("gpu-rocm", "failure")]
+        for _ in range(10):
+            entry = collect(self.gh, self.out, cfg, previous=self.out, budget=2)
+            (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+            self.assertNotIn("irrelevant_metadata", json.dumps(overview(self.out)))
+            if entry["status"] == "fresh":
+                break
+        self.assertEqual(entry["status"], "fresh")
+        gpu = overview(self.out)["projects"][0]["jobs"][0]
+        self.assertEqual((gpu["passed"], gpu["gate"]["failed"]), (1, 1))
+
+    def test_budget_counts_each_transient_http_attempt(self):
+        def unavailable(request, timeout):
+            raise HTTPError(request.full_url, 503, "unavailable", {}, None)
+
+        with patch(
+            "scripts.collect.urlopen", side_effect=unavailable
+        ) as transport, patch("scripts.collect.time.sleep"):
+            entry = collect_upstream(
+                config(),
+                self.out,
+                fetch=fetch_upstream_json,
+                now=NOW,
+                write_json=write_json,
+                budget_calls=2,
+            )
+        self.assertEqual(entry["status"], "partial")
+        self.assertEqual(transport.call_count, 2)
+        self.assertEqual(entry["api_calls"], transport.call_count)
 
     def test_budget_keeps_newest_runs_and_reports_partial(self):
         entry = collect(self.gh, self.out, budget=3)

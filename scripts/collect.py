@@ -625,12 +625,12 @@ def normalize_performance(source, data):
     return rows
 
 
-def fetch_json(url):
+def fetch_json(url, *, attempts=3):
     headers = {"User-Agent": "rocm-readiness-collector", "Accept": "application/json"}
     token = os.environ.get("GH_TOKEN")
     if url.startswith("https://api.github.com/") and token:
         headers["Authorization"] = f"Bearer {token}"
-    for attempt in range(3):
+    for attempt in range(attempts):
         try:
             with urlopen(Request(url, headers=headers), timeout=45) as response:
                 raw = response.read(32 * 1024 * 1024 + 1)
@@ -645,9 +645,13 @@ def fetch_json(url):
                 504,
             ):
                 raise
-            if attempt == 2:
+            if attempt == attempts - 1:
                 raise
             time.sleep(2**attempt)
+
+
+def fetch_upstream_json(url):
+    return fetch_json(url, attempts=1)
 
 
 def write_json(path, data):
@@ -845,7 +849,7 @@ def collect(
             upstream = collect_upstream(
                 projects,
                 destination,
-                fetch=fetch,
+                fetch=fetch_upstream_json if fetch is fetch_json else fetch,
                 now=now,
                 write_json=write_json,
                 previous_data=previous_data,
@@ -859,6 +863,7 @@ def collect(
             ValueError,
             KeyError,
             TypeError,
+            AttributeError,
         ) as error:
             print(f"Upstream view dropped: {error}", file=sys.stderr, flush=True)
             upstream = None

@@ -669,7 +669,7 @@ function ProjectPage({
                 ))}
               </ol>
             ) : (
-              <p className="muted">No collected failures on main.</p>
+              <p className="muted">No collected failing-step details.</p>
             )}
           </section>
         </div>

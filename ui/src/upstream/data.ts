@@ -110,7 +110,7 @@ const projectSchema = z.object({
       body: z.string(),
     }),
   ),
-  coverage: z.object({ complete: z.boolean() }).passthrough(),
+  coverage: z.object({ complete: z.boolean(), error: z.string().optional() }).passthrough(),
   files: z.array(
     z.object({ month: z.string(), path: z.string(), run_count: count }),
   ),

@@ -1,146 +1,34 @@
 # Upstream health
 
-The dashboard has two views over one published dataset:
+Upstream health shows observed GitHub Actions results for explicitly configured jobs in each project's repository. It shares the published immutable dataset and pointer with ROCm readiness, but opens independently of any ROCm version overview.
 
-- **ROCm readiness** answers how ready a ROCm version is. It reads fork and
-  qualification feeds by ROCm version and channel.
-- **Upstream health** answers how healthy Radeon and Ryzen AI support is in each
-  project as it ships. It reads each project's own GitHub Actions on its
-  default branch.
+## Configuration and scope
 
-Both views are collected by the same run of `scripts/check.py` and published
-behind the same `latest.json` pointer.
+[sources.json](../sources.json) schema 2 defines project identities and forks, typed sources, and explicit readiness and upstream view membership. An upstream source uses `github-actions-v1` and names job selectors and configured target, stack, OS, category and cadence. The upstream view supplies `window_days` and `client_rule.targets`. See the [source reference](reference/sources.md) for the contract and legacy behavior. The `ships` text is manually configured distribution information, not proof of a release or artifact.
 
-```mermaid
-flowchart LR
-    Projects["projects.json"] --> Upstream["scripts/upstream.py"]
-    Actions["Projects' GitHub Actions"] --> Upstream
-    Previous["Last published dataset"] --> Upstream
-    Upstream --> Files["upstream/overview.json<br/>upstream/&lt;project&gt;/ci/YYYY-MM.json"]
-    Files --> Index["index.json · upstream"]
-    Index --> UI["UI · Upstream health"]
-```
+The badge describes observed runs of configured test jobs: a target in `client_rule.targets`, another configured client target, or no configured test observed. It does not prove the machine's physical hardware, comprehensive project support, or published artifacts. No configured jobs and incomplete collection have unknown coverage. The configured hardware and selectors need [independent review](https://github.com/lemonade-sdk/rocm-readiness/issues/55); [artifact evidence](https://github.com/lemonade-sdk/rocm-readiness/issues/49) is separate work.
 
-## What is collected
+Each retained default-branch job records its own result, first failing step, queue wait and links. Pull request verdicts use checks on the final head commit completed by merge time; later reruns do not establish the earlier result. Missing or insufficient historical evidence is unknown. A job with no steps is skipped if its condition skipped it, otherwise recorded as requested but not run. Default-branch runs and configured release tags are included; pull request runs and PyTorch `ciflow` tag pushes are excluded.
 
-`projects.json` lists the projects. For each one it names:
+On a project page the lens filters job-derived KPIs, charts, merge gate and failed steps. Badge, platform table and findings are project-wide. Platform columns reflect configured jobs and observed results; distribution is manual text. Green bars count passes only. A partial-collection notice indicates backfill; a collection error is shown separately.
 
-- the repository and its default branch;
-- the jobs that build for, or run on, client AMD hardware, each with a
-  category (`tests`, `builds`, `nightlies` or `releases`), software stack, GPU
-  target and operating system;
-- the forks that carry AMD work;
-- what the project ships per operating system.
+## Collection and publication
 
-For every configured job on the default branch, the collector records:
+The upstream budget caps upstream HTTP attempts, including failed attempts, across projects. Readiness collection makes additional calls, so the upstream cap alone does not guarantee a total hourly API limit. The default cap is 800; CI uses 100 for pull requests and 800 otherwise. Projects share the budget, newest first. Budget exhaustion yields partial coverage; API failures are recorded in `coverage.error`. Readiness publication remains independent of upstream collection failures.
 
-- the job's own result;
-- its first failing step;
-- its queue wait;
-- its links.
+Previous monthly files retain completed scan IDs and job records. `coverage.cache_identity` binds reuse to relevant source/job configuration; incompatible or legacy cache is recollected. `coverage.pending` checkpoints paginated enrichment so subsequent collections can advance. Each run must still have enough budget to read the relevant project run listings; repeated runs are not guaranteed to converge under an arbitrarily small budget. [Issue 56](https://github.com/lemonade-sdk/rocm-readiness/issues/56) tracks the listing pagination floor. `coverage.complete`, `since`, `listed_since`, `collected_at`, and `oldest_run_at` describe collection progress. Reused evidence is bounded by the current window.
 
-For pushes that came from a pull request, the collector also records what the
-same job said on the pull request's final commit.
+`index.json` references `upstream/overview.json`, containing project aggregates, coverage and monthly file references. `upstream/<project>/ci/YYYY-MM.json` holds retained executions and scan state. Conformance validates file references, records and aggregates against the overview. Publication pins the whole dataset to one commit.
 
-The rules below are deliberate. Each one fixed a wrong number during the
-investigation that produced this view.
-
-| Rule | Why |
-| --- | --- |
-| Default branch only. Pull request runs and PyTorch's `ciflow/<workflow>/<PR>` tag pushes are skipped. Release tags count only when a project sets `tag_pattern`. | A contributor iterating on a broken branch is the gate working, not a regression. |
-| A job is judged by its own conclusion, never the workflow's. | Workflows mix NVIDIA, Apple and AMD jobs. |
-| A job with no steps never reached a machine. `skipped` means its own condition switched it off. Anything else is "requested, never ran". | A cancelled job is not a failed one. A dead runner otherwise shows nothing red. |
-| Merge verdicts come from the check runs on the pull request's final head commit. | The workflow-run list is capped at ten pages and eventually consistent. |
-| Re-run bookkeeping that puts `created_at` after `started_at` is dropped, not clamped. | Clamping invents a zero wait. |
-
-## Upstream badge
-
-The badge is computed from the collected jobs. Nothing sets it by hand.
-
-| Badge | Rule |
-| --- | --- |
-| upstream | A test on the default branch ran on a GPU in `client_rule.targets` (gfx1151 or gfx1201). |
-| partially upstream | Other client hardware was tested on the default branch, for example the Ryzen AI NPU or a Radeon RX 7900 (gfx1100). |
-| not upstreamed | No test on the default branch ran on client hardware. A project's `note` explains why. |
-
-## Collection budget
-
-Upstream collection runs after the readiness dataset is written, and it never
-degrades it. A project that cannot be read keeps its previous records and is
-marked `partial`.
-
-A run spends at most `UPSTREAM_API_BUDGET` GitHub API calls. The default is
-800, which is inside the hourly `GITHUB_TOKEN` limit. The budget is split
-evenly across projects, and the newest runs are read first. Runs already
-recorded as complete in the previous dataset cost no calls.
-
-Once a project's window has been read completely, later collections list only
-recent runs. A first collection over a 30 day window may need several daily
-runs to fill. Until it is full, the project's `coverage.complete` is false and
-the UI says so.
-
-## Published files
-
-| Path | Contents |
-| --- | --- |
-| `index.json` → `upstream` | `overview` path, `project_count`, `status` (`fresh` or `partial`), `api_calls` |
-| `upstream/overview.json` | Window, client rule, and per project: badge, forks, KPIs, per-job daily aggregates, merge gate, platforms, findings, coverage, monthly files |
-| `upstream/<project>/ci/YYYY-MM.json` | Every retained job execution in the window, plus the scanned run ids that let the next collection skip them |
-
-`scripts/conformance.py` validates every file and its totals against the
-overview. `scripts/publish.py` includes them in the publication manifest.
-
-## Running it locally
-
-The full pipeline, as CI runs it:
+## Local preview
 
 ```sh
 GH_TOKEN=<token> uv run --no-project --python 3.12 python scripts/check.py \
   --output-dir data/local-preview --previous-data data
-```
-
-To refresh only the upstream view in an existing dataset, which is faster
-while you work on it:
-
-```sh
 GH_TOKEN=<token> uv run --no-project --python 3.12 python scripts/upstream.py \
-  --output-dir data/local-preview --seed-from data --budget 800
-```
-
-Run the second command again to fill a large window: each run reuses what the
-previous one recorded. Then open the dashboard against that directory:
-
-```sh
+  --sources sources.json --output-dir data/local-preview --seed-from data --budget 800
 cd ui
 npm run dev:local
 ```
 
-`dev:local` serves `../data/local-preview` at `/local-data/`. Set
-`LOCAL_DATA_DIR` to read a different directory. The footer reads
-"Local dataset preview".
-
-## Adding a project
-
-Add an entry to `projects.json`, then run the unit tests and a local
-collection. `tests/test_upstream.py` validates the shipped file.
-
-```json
-{
-  "id": "example",
-  "label": "Example",
-  "repository": "owner/example",
-  "default_branch": "main",
-  "forks": [{"repository": "org/example", "role": "ROCm builds", "channel": "nightly"}],
-  "ships": {"linux": "ROCm wheels"},
-  "jobs": [
-    {"id": "gpu-tests", "label": "gpu tests", "category": "tests",
-     "workflow": "ci.yml", "match": {"name": "rocm-gfx1151"},
-     "target": "gfx1151", "stack": "rocm", "os": "linux",
-     "where": "Strix Halo runner", "cadence": "per push"}
-  ]
-}
-```
-
-`match` takes exactly one of `name` (exact), `prefix` or `regex`. It is matched
-against the job name GitHub reports. GitHub cuts job names at 100 characters,
-so prefer a prefix for matrix jobs.
+The second command refreshes upstream alone. `dev:local` is a development-only preview of `../data/local-preview`, or `LOCAL_DATA_DIR` if set; it does not change the published pointer. Add a project and its typed source to `sources.json`, explicitly select it in `views.upstream.sources`, and run the unit and local collection checks. Job `match` accepts exactly one of `name`, `prefix`, or `regex`; GitHub truncates job names at 100 characters.

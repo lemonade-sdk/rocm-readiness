@@ -8,7 +8,7 @@ The dashboard has two views of that dataset. **ROCm readiness** shows each
 engine's builds and model performance for a ROCm version, with stable and
 nightly channels. **Upstream health** shows Radeon and Ryzen AI CI in each
 project's own repository on its default branch, configured in
-[projects.json](projects.json). See [Upstream health](docs/upstream-health.md).
+[sources.json](sources.json). See [Upstream health](docs/upstream-health.md).
 
 ## Run locally
 
@@ -30,7 +30,7 @@ data; failed runs preserve the last good pointer and report errors in sync statu
 
 - [Data flow](docs/data-flow.md): ingestion and published-file diagrams.
 - [Data pipeline](docs/data-pipeline.md): source setup, adapters, channels, and package mappings.
-- [Upstream health](docs/upstream-health.md): projects.json, collection rules, the upstream badge and local runs.
+- [Upstream health](docs/upstream-health.md): sources.json, collection rules, the upstream badge and local runs.
 - [Data publication](docs/data-publication.md): runtime files and ROCm directory names.
 - [JSON reference](docs/reference/README.md): field contracts, source mappings, and validation.
 - [Dashboard UI](ui/README.md): local browser preview, static build and UI checks.

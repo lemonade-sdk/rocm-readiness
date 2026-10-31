@@ -302,9 +302,10 @@ export async function loadSession(
   fetcher: Fetcher = fetch,
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
+  includeOverview = true,
 ): Promise<Session> {
   if (LOCAL_DATA)
-    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer);
+    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer, includeOverview);
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -349,7 +350,7 @@ export async function loadSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
 }
 
 async function loadLocalSession(
@@ -358,6 +359,7 @@ async function loadLocalSession(
   fetcher: Fetcher,
   signal?: AbortSignal,
   onPointer?: (pointer: Pointer) => void,
+  includeOverview = true,
 ): Promise<Session> {
   const base = new URL(
     root.endsWith("/") ? root : `${root}/`,
@@ -386,5 +388,5 @@ async function loadLocalSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
 }

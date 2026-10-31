@@ -19,7 +19,7 @@ const GH = "https://github.com/";
 const BADGE_LABEL = {
   up: "upstream",
   partial: "partially upstream",
-  down: "not upstreamed",
+  down: "no configured test observed",
 };
 const VERDICT_LABEL = {
   passed: "ok",
@@ -131,10 +131,12 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 /* ---- shared pieces ------------------------------------------------------------ */
 
 function Badge({ project }: { project: Project }) {
+  if (!project.jobs.length || !project.coverage.complete)
+    return <span className="up-badge">Configured coverage unknown</span>;
   return (
     <span
       className={`up-badge up-badge-${project.badge.state}`}
-      title={project.badge.reason}
+      title={`Configured jobs: ${project.badge.reason}`}
     >
       {BADGE_LABEL[project.badge.state]}
     </span>
@@ -236,15 +238,15 @@ function DayBars({
   const down = 14;
   const peak = Math.max(
     1,
-    ...days.map((d) => cellOf(d).passed + cellOf(d).other + cellOf(d).running),
+    ...days.map((d) => cellOf(d).passed),
   );
   const failPeak = Math.max(1, ...days.map((d) => cellOf(d).failed));
   return (
     <div className="up-bars" role="group" aria-label={label}>
       {days.map((day) => {
         const cell = cellOf(day);
-        const ok = cell.passed + cell.other + cell.running;
-        const ran = ok + cell.failed;
+        const ok = cell.passed;
+        const ran = ok + cell.failed + cell.other + cell.running;
         return (
           <button
             key={day}
@@ -256,14 +258,14 @@ function DayBars({
             onClick={() => onPick(day)}
           >
             <span className="up-bar-up" style={{ height: up }}>
-              {ran ? (
+              {ok > 0 ? (
                 <i
                   className="up-pass"
                   style={{ height: Math.max(2, Math.round((up * ok) / peak)) }}
                 />
-              ) : cell.stalled ? (
+              ) : !ran && cell.stalled ? (
                 <i className="up-stall" />
-              ) : cell.skipped ? (
+              ) : !ran && cell.skipped ? (
                 <i className="up-skip" />
               ) : null}
             </span>
@@ -309,7 +311,7 @@ function ProjectGrid({
     <section aria-label="Upstream projects" className="up-home">
       <div className="up-totals">
         <Stat value={overview.projects.length} label="projects" />
-        <Stat value={all.length} label="client AMD jobs" />
+        <Stat value={all.length} label="configured client jobs" />
         <Stat
           value={totals.pct === null ? "–" : `${totals.pct}%`}
           label="passed on main"
@@ -319,8 +321,8 @@ function ProjectGrid({
       </div>
       <p className="up-rule muted">
         Upstream means a test on the default branch ran on{" "}
-        {overview.client_rule.targets.join(" or ")}; partial means other client
-        hardware only. Window {overview.window.start} to {overview.window.end}.
+        configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
+        targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
       </p>
       <div className="up-cards">
         {overview.projects.map((project) => {
@@ -352,6 +354,8 @@ function ProjectGrid({
                 <Forks project={project} />
                 <span className="muted up-repo">{project.repository}</span>
               </div>
+              {project.coverage.error && <p className="bad">Collection error: {project.coverage.error}</p>}
+              {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
                 <>
                   <div className="up-kpis">
@@ -390,7 +394,9 @@ function ProjectGrid({
                   })}
                 </>
               ) : (
-                <p className="muted">{project.note ?? project.badge.reason}</p>
+                <p className="muted">
+                  No conclusion about upstream support can be drawn from the configured coverage.
+                </p>
               )}
             </article>
           );
@@ -514,6 +520,7 @@ function ProjectPage({
         </a>
         <h1>{project.label}</h1>
         <Badge project={project} />
+        <p className="muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
         <Forks project={project} />
         <a
           className="muted up-repo"
@@ -566,7 +573,8 @@ function ProjectPage({
           ))}
         </details>
       )}
-      {!project.coverage.complete && (
+      {project.coverage.error && <p className="notice error" role="alert">Collection error: {project.coverage.error}</p>}
+      {!project.coverage.complete && !project.coverage.error && (
         <p className="notice">
           Collection for this project is still filling its window; the oldest
           days may be incomplete.
@@ -854,15 +862,16 @@ function Platforms({ project }: { project: Project }) {
   return (
     <section className="card up-panel" aria-label="Platforms">
       <h2>
-        Platforms <span className="muted">client AMD only</span>
+        Platforms <span className="muted">project-wide configured targets</span>
       </h2>
+      <p className="muted">Configured targets and distribution do not verify physical hardware or published artifacts.</p>
       <table className="up-table">
         <thead>
           <tr>
             <th />
             <th>Built in CI</th>
-            <th>Tested on AMD hardware</th>
-            <th>Shipped</th>
+            <th>Configured test target observed</th>
+            <th>Configured distribution</th>
           </tr>
         </thead>
         <tbody>
@@ -878,13 +887,13 @@ function Platforms({ project }: { project: Project }) {
                 {cell(
                   p.tested,
                   p.tested_rate !== null ? `${p.tested_rate}%` : null,
-                  !p.tested && !!p.shipped,
+                  !p.tested && !!p.shipped && project.coverage.complete && project.jobs.length > 0,
                 )}
                 <td
-                  className={p.shipped ? "good" : "muted"}
+                  className="muted"
                   title={p.shipped ?? undefined}
                 >
-                  {p.shipped ? "✓" : "–"}
+                  {p.shipped ?? "–"}
                 </td>
               </tr>
             );

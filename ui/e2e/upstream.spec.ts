@@ -43,7 +43,7 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goto("./");
   await page.getByRole("link", { name: "Upstream health" }).click();
   await expect(page).toHaveURL(/track=upstream/);
-  await expect(page.getByText("not upstreamed")).toBeVisible();
+  await expect(page.getByText("Configured coverage unknown")).toBeVisible();
   await page.getByRole("heading", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12 results on main passed")).toBeVisible();

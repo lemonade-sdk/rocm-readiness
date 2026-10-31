@@ -27,9 +27,9 @@ it("shows one card per project with its computed upstream badge", async () => {
   const vllm = screen
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
-  expect(within(vllm).getByText("not upstreamed")).toBeInTheDocument();
+  expect(within(vllm).getByText("Configured coverage unknown")).toBeInTheDocument();
   expect(
-    within(vllm).getByText("No Radeon or Ryzen AI GPU is tested upstream."),
+    within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
   ).toBeInTheDocument();
   // Totals across projects come from the job records, not a stored number.
   expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
@@ -160,4 +160,110 @@ it("colours a day by its pass rate and keeps stalls distinct", () => {
   const job = upstreamOverview.projects[0].jobs[1] as never;
   expect(keepJob("vulkan")(job)).toBe(true);
   expect(keepJob("gfx1151")(job)).toBe(false);
+});
+
+it("opens upstream without requesting a readiness overview, even for an unknown version", async () => {
+  const base = upstreamFetch();
+  const requested: string[] = [];
+  const fetcher = async (input: string | URL | Request) => {
+    requested.push(String(input));
+    if (String(input).includes('/rocm/')) return new Response('', { status: 404 });
+    return base(input);
+  };
+  mount('/?track=upstream&version=unknown', fetcher);
+  expect(await screen.findByRole('heading', { name: 'llama.cpp' })).toBeInTheDocument();
+  expect(requested.some((url) => url.includes('/rocm/'))).toBe(false);
+});
+
+it('does not draw pass bars for failed or running-only days', async () => {
+  const project = upstreamOverview.projects[0];
+  const empty = { passed: 0, failed: 0, other: 0, stalled: 0, skipped: 0, running: 0, slow: 0 };
+  const fetcher = upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
+    ...upstreamOverview, projects: [{ ...project, jobs: [{ ...project.jobs[0], daily: { '2026-10-27': { ...empty, failed: 1 }, '2026-10-28': { ...empty, running: 1 } } }] }]
+  }});
+  mount('/?track=upstream&project=llamacpp', fetcher);
+  const region = await screen.findByRole('region', { name: 'Per day' });
+  expect(within(region).getByRole('button', { name: /2026-10-27:/ }).querySelector('.up-pass')).toBeNull();
+  expect(within(region).getByRole('button', { name: /2026-10-28:/ }).querySelector('.up-pass')).toBeNull();
+});
+
+it('shows collection errors and labels configured distribution without shipment checks', async () => {
+  const project = upstreamOverview.projects[0];
+  const fetcher = upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
+    ...upstreamOverview, projects: [{ ...project, coverage: { complete: false, error: 'API unavailable' } }]
+  }});
+  mount('/?track=upstream&project=llamacpp', fetcher);
+  expect(await screen.findByText(/API unavailable/)).toBeInTheDocument();
+  const platforms = screen.getByRole('region', { name: 'Platforms' });
+  expect(within(platforms).getByText('Configured distribution')).toBeInTheDocument();
+  expect(within(platforms).getByText('win-rocm archive')).toBeInTheDocument();
+});
+
+it('keeps the pinned index when navigating between dashboards', async () => {
+  const base = upstreamFetch();
+  let pointers = 0;
+  const fetcher = async (input: string | URL | Request) => {
+    if (String(input).endsWith('/main/data/latest.json')) pointers++;
+    return base(input);
+  };
+  mount('/', fetcher);
+  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
+  await screen.findByRole('heading', { name: 'llama.cpp' });
+  fireEvent.click(screen.getByRole('link', { name: 'ROCm readiness' }));
+  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  expect(pointers).toBe(1);
+});
+
+it('opens upstream when the default readiness overview returns 404', async () => {
+  const base = upstreamFetch();
+  const fetcher = async (input: string | URL | Request) =>
+    String(input).includes('/rocm/') ? new Response('', { status: 404 }) : base(input);
+  mount('/?track=upstream', fetcher);
+  expect(await screen.findByRole('heading', { name: 'llama.cpp' })).toBeInTheDocument();
+});
+
+it('does not fetch upstream on a readiness route', async () => {
+  const base = upstreamFetch();
+  const requested: string[] = [];
+  const fetcher = async (input: string | URL | Request) => {
+    requested.push(String(input));
+    return base(input);
+  };
+  mount('/', fetcher);
+  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  expect(requested.some((url) => url.includes('/upstream/'))).toBe(false);
+});
+
+it('opens upstream on the same pinned index after readiness overview fails', async () => {
+  const base = upstreamFetch();
+  let pointers = 0;
+  const fetcher = async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.endsWith('/main/data/latest.json')) pointers++;
+    if (url.includes('/rocm/')) return new Response('', { status: 404 });
+    return base(input);
+  };
+  mount('/', fetcher);
+  await screen.findByRole('alert');
+  fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
+  expect(await screen.findByRole('heading', { name: 'llama.cpp' })).toBeInTheDocument();
+  expect(pointers).toBe(1);
+});
+
+it('does not retry a failed refresh implicitly when switching dashboards', async () => {
+  const base = upstreamFetch();
+  let pointers = 0;
+  const fetcher = async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.endsWith('/main/data/latest.json') && ++pointers > 1) throw new Error('Offline');
+    if (url.includes('/history/')) throw new Error('History offline');
+    return base(input);
+  };
+  mount('/', fetcher);
+  fireEvent.click(await screen.findByRole('button', { name: 'Retry history' }));
+  await screen.findByText('Offline');
+  fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
+  await screen.findByRole('heading', { name: 'llama.cpp' });
+  expect(pointers).toBe(2);
 });

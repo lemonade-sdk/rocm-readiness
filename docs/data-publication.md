@@ -31,7 +31,11 @@ that successful dataset, including its original sync status.
 
 Build records link to detailed reports in the producer repository through
 `report_url`. Full performance files exist only for versions with measurements.
-Source copies, standalone errors, and intermediate caches stay in CI artifacts.
+Source copies and standalone errors stay in CI artifacts. Upstream monthly files and
+project coverage retain scan and pending-enrichment state for later collections;
+the upstream view can be partial or report collection errors while readiness
+remains publishable. See [Upstream health](upstream-health.md) for cache,
+budget and evidence limits.
 
 ## Qualification evidence
 

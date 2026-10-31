@@ -15,9 +15,6 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
-import { ChannelLanes } from "./readiness/ChannelLanes";
-import { loadUpstream } from "./upstream/data";
-import type { UpstreamOverview } from "./upstream/data";
 
 function date(value: string | null) {
   return value
@@ -47,52 +44,63 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     error: string | null;
   } | null>(null);
   const sessionRef = useRef<Session | null>(null);
-  const [upstream, setUpstream] = useState<{
-    session: Session;
-    data: UpstreamOverview | null;
-  } | null>(null);
   const completedRefresh = useRef(-1);
 
   useEffect(() => {
     const controller = new AbortController();
-    const current = sessionRef.current;
-    const refreshNeeded = completedRefresh.current !== refresh;
-    const selected = version ?? current?.index.default_version ?? undefined;
-    if (current && !refreshNeeded && current.version === (selected ?? null)) {
-      setBusy(false);
+    const run = async () => {
+      setBusy(true);
       setError(null);
-      return () => controller.abort();
-    }
-    setBusy(true);
-    setError(null);
-    const task =
-      current && !refreshNeeded && selected
-        ? loadVersion(current, selected, fetcher, controller.signal)
-        : loadSession(version, fetcher, controller.signal, (pointer) => {
-            if (!controller.signal.aborted) setLiveSync(pointer.sync);
-          });
-    task
-      .then((next) => {
-        if (controller.signal.aborted) return;
-        sessionRef.current = next;
+      try {
+        let current = sessionRef.current;
+        if (!current || completedRefresh.current !== refresh) {
+          current = await loadSession(
+            undefined, fetcher, controller.signal,
+            (pointer) => {
+              if (!controller.signal.aborted) setLiveSync(pointer.sync);
+            },
+            false,
+          );
+          if (controller.signal.aborted) return;
+          if (!sessionRef.current || track === "upstream") {
+            sessionRef.current = current;
+            completedRefresh.current = refresh;
+            setSession(current);
+          }
+        }
+        const selected = version ?? current.index.default_version;
+        if (
+          track === "readiness" && selected && current.version !== selected
+        ) {
+          current = await loadVersion(
+            current, selected, fetcher, controller.signal,
+          );
+          if (controller.signal.aborted) return;
+          sessionRef.current = current;
+          setSession(current);
+        }
+        sessionRef.current = current;
         completedRefresh.current = refresh;
-        setSession(next);
-        setBusy(false);
-      })
-      .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Unable to read published data. Retry.",
-        );
-        setBusy(false);
-      });
+        setSession(current);
+      } catch (reason: unknown) {
+        if (!controller.signal.aborted) {
+          if (sessionRef.current) completedRefresh.current = refresh;
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : "Unable to read published data. Retry.",
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) setBusy(false);
+      }
+    };
+    void run();
     return () => controller.abort();
-  }, [version, refresh, fetcher]);
+  }, [version, track, refresh, fetcher]);
 
   useEffect(() => {
-    if (!session?.overview) return;
+    if (track !== "readiness" || !session?.overview) return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
     loadHistory(session, fetcher, controller.signal)
@@ -118,23 +126,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           });
       });
     return () => controller.abort();
-  }, [session, fetcher]);
-
-  // Fork registry for the readiness channel lanes. Optional: a dataset without
-  // the upstream view simply shows the configured feeds.
-  useEffect(() => {
-    if (!session) return;
-    const controller = new AbortController();
-    loadUpstream(session, fetcher, controller.signal)
-      .then(
-        (data) => !controller.signal.aborted && setUpstream({ session, data }),
-      )
-      .catch(
-        () =>
-          !controller.signal.aborted && setUpstream({ session, data: null }),
-      );
-    return () => controller.abort();
-  }, [session, fetcher]);
+  }, [session, track, fetcher]);
 
   const selected = version ?? session?.version ?? "";
   const scopeMatches = session && (!version || session.version === version);
@@ -328,7 +320,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             onNavigate={(next) => setParams(next)}
           />
         )}
-        {track === "readiness" && session && scopeMatches && !overview && (
+        {track === "readiness" && session && scopeMatches && !overview && !busy && !error && (
           <div className="empty">
             <h1>No ROCm versions available</h1>
             <p>
@@ -418,14 +410,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                     version={selected}
                     history={
                       history?.session === session ? history.builds : null
-                    }
-                  />
-                  <ChannelLanes
-                    sources={session.index.sources ?? []}
-                    engines={overview.engines}
-                    version={selected}
-                    upstream={
-                      upstream?.session === session ? upstream.data : null
                     }
                   />
                   {!busy &&

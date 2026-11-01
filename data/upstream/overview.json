@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-31T18:27:34Z",
+  "generated_at": "2026-11-01T11:04:22Z",
   "window": {
-    "start": "2026-10-02",
-    "end": "2026-10-31",
+    "start": "2026-10-03",
+    "end": "2026-11-01",
     "days": 30
   },
   "client_rule": {
@@ -50,8 +50,8 @@
         "reason": "no test on main runs on client hardware"
       },
       "kpis": {
-        "decided": 35,
-        "passed": 35,
+        "decided": 65,
+        "passed": 65,
         "pass_rate": 100.0,
         "not_running": 3,
         "merged_red": 0
@@ -68,20 +68,29 @@
           "where": "Strix Halo, one self-hosted box",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-31": {
-              "passed": 0,
-              "failed": 0,
-              "other": 0,
-              "stalled": 6,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
             "2026-10-30": {
               "passed": 0,
               "failed": 0,
               "other": 0,
               "stalled": 8,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-11-01": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 2,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-31": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 12,
               "skipped": 0,
               "running": 0,
               "slow": 0
@@ -91,20 +100,21 @@
           "passed": 0,
           "started": 0,
           "skipped": 0,
-          "stalled": 14,
+          "stalled": 22,
           "last_ran": null,
           "quiet_days": [
             "2026-10-30",
-            "2026-10-31"
+            "2026-10-31",
+            "2026-11-01"
           ],
           "median_queue_seconds": null,
           "failed_steps": {},
           "gate": {
-            "merged": 14,
+            "merged": 22,
             "passed": 0,
             "failed": 0,
-            "not_triggered": 12,
-            "no_result": 2,
+            "not_triggered": 18,
+            "no_result": 4,
             "red": [],
             "escaped": []
           }
@@ -120,7 +130,16 @@
           "where": "Radeon AI PRO R9700 pool",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-31": {
+            "2026-10-30": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 1,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-11-01": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -129,11 +148,11 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-30": {
+            "2026-10-31": {
               "passed": 0,
               "failed": 0,
               "other": 0,
-              "stalled": 1,
+              "stalled": 7,
               "skipped": 0,
               "running": 0,
               "slow": 0
@@ -143,20 +162,21 @@
           "passed": 0,
           "started": 0,
           "skipped": 0,
-          "stalled": 3,
+          "stalled": 10,
           "last_ran": null,
           "quiet_days": [
             "2026-10-30",
-            "2026-10-31"
+            "2026-10-31",
+            "2026-11-01"
           ],
           "median_queue_seconds": null,
           "failed_steps": {},
           "gate": {
-            "merged": 3,
+            "merged": 10,
             "passed": 0,
             "failed": 0,
             "not_triggered": 0,
-            "no_result": 3,
+            "no_result": 10,
             "red": [],
             "escaped": []
           }
@@ -172,7 +192,16 @@
           "where": "Radeon AI PRO R9700 pool",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-31": {
+            "2026-10-30": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 1,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-11-01": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -181,11 +210,11 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-30": {
+            "2026-10-31": {
               "passed": 0,
               "failed": 0,
               "other": 0,
-              "stalled": 1,
+              "stalled": 7,
               "skipped": 0,
               "running": 0,
               "slow": 0
@@ -195,20 +224,21 @@
           "passed": 0,
           "started": 0,
           "skipped": 0,
-          "stalled": 3,
+          "stalled": 10,
           "last_ran": null,
           "quiet_days": [
             "2026-10-30",
-            "2026-10-31"
+            "2026-10-31",
+            "2026-11-01"
           ],
           "median_queue_seconds": null,
           "failed_steps": {},
           "gate": {
-            "merged": 3,
+            "merged": 10,
             "passed": 0,
             "failed": 0,
             "not_triggered": 0,
-            "no_result": 3,
+            "no_result": 10,
             "red": [],
             "escaped": []
           }
@@ -224,15 +254,6 @@
           "where": "GitHub-hosted, no GPU",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-31": {
-              "passed": 6,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
             "2026-10-30": {
               "passed": 8,
               "failed": 0,
@@ -241,22 +262,40 @@
               "skipped": 0,
               "running": 0,
               "slow": 4
+            },
+            "2026-10-31": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-11-01": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
             }
           },
-          "decided": 14,
-          "passed": 14,
-          "started": 14,
+          "decided": 22,
+          "passed": 22,
+          "started": 22,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
-          "median_queue_seconds": 201,
+          "median_queue_seconds": 179,
           "failed_steps": {},
           "gate": {
-            "merged": 14,
+            "merged": 22,
             "passed": 0,
             "failed": 0,
-            "not_triggered": 14,
+            "not_triggered": 22,
             "no_result": 0,
             "red": [],
             "escaped": []
@@ -281,14 +320,23 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-01": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 1,
-          "passed": 1,
-          "started": 1,
+          "decided": 2,
+          "passed": 2,
+          "started": 2,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
           "median_queue_seconds": 2731,
           "failed_steps": {},
@@ -305,15 +353,6 @@
           "where": "GitHub-hosted, no GPU",
           "cadence": "every release tag",
           "daily": {
-            "2026-10-31": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 1,
-              "slow": 3
-            },
             "2026-10-30": {
               "passed": 6,
               "failed": 0,
@@ -322,16 +361,34 @@
               "skipped": 1,
               "running": 0,
               "slow": 0
+            },
+            "2026-10-31": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 4
+            },
+            "2026-11-01": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 9,
-          "passed": 9,
-          "started": 10,
+          "decided": 20,
+          "passed": 20,
+          "started": 20,
           "skipped": 1,
           "stalled": 0,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
-          "median_queue_seconds": 214,
+          "median_queue_seconds": 85,
           "failed_steps": {},
           "gate": null
         },
@@ -346,15 +403,6 @@
           "where": "GitHub-hosted, no GPU",
           "cadence": "every release tag",
           "daily": {
-            "2026-10-31": {
-              "passed": 4,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            },
             "2026-10-30": {
               "passed": 7,
               "failed": 0,
@@ -363,16 +411,34 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
+            },
+            "2026-10-31": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 3
+            },
+            "2026-11-01": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 11,
-          "passed": 11,
-          "started": 11,
+          "decided": 21,
+          "passed": 21,
+          "started": 21,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
-          "median_queue_seconds": 298,
+          "median_queue_seconds": 5,
           "failed_steps": {},
           "gate": null
         }
@@ -397,21 +463,21 @@
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm",
-          "head": "gpu-rocm never ran on 12 of 14 merged pull requests.",
+          "head": "gpu-rocm never ran on 18 of 22 merged pull requests.",
           "body": "0 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "hip-build",
-          "head": "hip build never ran on 14 of 14 merged pull requests.",
+          "head": "hip build never ran on 22 of 22 merged pull requests.",
           "body": "0 merged pull requests with no run or an unknown historical result then failed on main."
         }
       ],
       "coverage": {
         "complete": false,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
         "oldest_run_at": "2026-10-30T08:15:10Z",
         "cache_identity": "fa28cf7fd6b727c8cb61093a3cac29f9c7cbb7007200141b520e4146a2723f62",
         "pending": {
@@ -28963,14 +29029,45 @@
             },
             "workflow": "release.yml",
             "jobs_pages": {}
+          },
+          "41116640176#1@2026-10-30": {
+            "run": {
+              "id": 41116640176,
+              "created_at": "2026-10-30T19:36:34Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "5047748f114564fcf271e6a648f60e2d2eae6264",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/41116640176"
+            },
+            "workflow": "ci-self-hosted-cuda.yml",
+            "jobs": [
+              {
+                "id": 124272459884,
+                "name": "gpu-rocm",
+                "status": "completed",
+                "conclusion": "cancelled",
+                "created_at": "2026-10-30T19:36:34Z",
+                "started_at": "2026-10-30T19:36:34Z",
+                "runner_name": "",
+                "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/41116640176/job/124272459884",
+                "steps": []
+              }
+            ]
           }
         }
       },
       "files": [
         {
+          "month": "2026-11",
+          "path": "upstream/llamacpp/ci/2026-11.json",
+          "run_count": 13
+        },
+        {
           "month": "2026-10",
           "path": "upstream/llamacpp/ci/2026-10.json",
-          "run_count": 57
+          "run_count": 95
         }
       ]
     },
@@ -28991,8 +29088,8 @@
         "reason": "client hardware is tested on main (npu-amd-linux on Ryzen AI NPU, npu-amd-windows on Ryzen AI NPU) but no test runs on gfx1151 or gfx1201"
       },
       "kpis": {
-        "decided": 24,
-        "passed": 24,
+        "decided": 22,
+        "passed": 22,
         "pass_rate": 100.0,
         "not_running": 0,
         "merged_red": 0
@@ -29009,44 +29106,8 @@
           "where": "Strix Halo devlab, Linux",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-30": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-29": {
+            "2026-10-06": {
               "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-28": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-19": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-12": {
-              "passed": 1,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -29063,8 +29124,8 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-06": {
-              "passed": 2,
+            "2026-10-12": {
+              "passed": 1,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -29072,7 +29133,34 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-02": {
+            "2026-10-19": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-28": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-29": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-30": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -29082,9 +29170,9 @@
               "slow": 0
             }
           },
-          "decided": 12,
-          "passed": 12,
-          "started": 12,
+          "decided": 11,
+          "passed": 11,
+          "started": 11,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-10-30",
@@ -29092,8 +29180,8 @@
           "median_queue_seconds": 35,
           "failed_steps": {},
           "gate": {
-            "merged": 12,
-            "passed": 12,
+            "merged": 11,
+            "passed": 11,
             "failed": 0,
             "not_triggered": 0,
             "no_result": 0,
@@ -29112,7 +29200,43 @@
           "where": "Strix Halo devlab, Windows",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-30": {
+            "2026-10-06": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
+            "2026-10-11": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-12": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-19": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-28": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -29130,7 +29254,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-28": {
+            "2026-10-30": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -29138,65 +29262,20 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
-            },
-            "2026-10-19": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-12": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-11": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-06": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            },
-            "2026-10-02": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
             }
           },
-          "decided": 12,
-          "passed": 12,
-          "started": 12,
+          "decided": 11,
+          "passed": 11,
+          "started": 11,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-10-30",
           "quiet_days": [],
-          "median_queue_seconds": 115,
+          "median_queue_seconds": 105,
           "failed_steps": {},
           "gate": {
-            "merged": 12,
-            "passed": 12,
+            "merged": 11,
+            "passed": 11,
             "failed": 0,
             "not_triggered": 0,
             "no_result": 0,
@@ -29224,18 +29303,23 @@
       "findings": [],
       "coverage": {
         "complete": true,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
-        "oldest_run_at": "2026-10-02T13:21:16Z",
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
+        "oldest_run_at": "2026-10-06T10:33:55Z",
         "cache_identity": "f5320d6c42cbdf31a16c47317cab21206c22f43d7133d45775b446f12ae63e08",
         "pending": {}
       },
       "files": [
         {
+          "month": "2026-11",
+          "path": "upstream/whispercpp/ci/2026-11.json",
+          "run_count": 0
+        },
+        {
           "month": "2026-10",
           "path": "upstream/whispercpp/ci/2026-10.json",
-          "run_count": 24
+          "run_count": 22
         }
       ]
     },
@@ -29269,7 +29353,7 @@
           "where": "GitHub-hosted, Dockerfile.rocm",
           "cadence": "weekly and every release tag",
           "daily": {
-            "2026-10-30": {
+            "2026-10-23": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -29278,7 +29362,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-28": {
+            "2026-10-26": {
               "passed": 0,
               "failed": 1,
               "other": 0,
@@ -29296,7 +29380,7 @@
               "running": 0,
               "slow": 1
             },
-            "2026-10-26": {
+            "2026-10-28": {
               "passed": 0,
               "failed": 1,
               "other": 0,
@@ -29305,7 +29389,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-23": {
+            "2026-10-30": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -29339,16 +29423,16 @@
           "where": "GitHub-hosted, Dockerfile.studio-rocm",
           "cadence": "weekly and every release tag",
           "daily": {
-            "2026-10-30": {
+            "2026-10-23": {
               "passed": 1,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 0
             },
-            "2026-10-28": {
+            "2026-10-26": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -29366,7 +29450,7 @@
               "running": 0,
               "slow": 1
             },
-            "2026-10-26": {
+            "2026-10-28": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -29375,14 +29459,14 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-23": {
+            "2026-10-30": {
               "passed": 1,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 0
+              "slow": 1
             }
           },
           "decided": 3,
@@ -29407,25 +29491,7 @@
           "where": "self-hosted amd-gpu, gated on HAS_AMD_GPU_RUNNER",
           "cadence": "after every image build",
           "daily": {
-            "2026-10-30": {
-              "passed": 0,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 1,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-28": {
-              "passed": 0,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 1,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-27": {
+            "2026-10-23": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -29443,7 +29509,25 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-23": {
+            "2026-10-27": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-28": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-30": {
               "passed": 0,
               "failed": 0,
               "other": 0,
@@ -29491,14 +29575,19 @@
       ],
       "coverage": {
         "complete": true,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
         "oldest_run_at": "2026-10-23T15:26:54Z",
         "cache_identity": "305eddca38e13a94d49b207e2247510506e28739653f033e56dcc27eaba9ee15",
         "pending": {}
       },
       "files": [
+        {
+          "month": "2026-11",
+          "path": "upstream/unsloth/ci/2026-11.json",
+          "run_count": 0
+        },
         {
           "month": "2026-10",
           "path": "upstream/unsloth/ci/2026-10.json",
@@ -29523,8 +29612,8 @@
         "reason": "client hardware is tested on main (rx7900 tests on gfx1100) but no test runs on gfx1151 or gfx1201"
       },
       "kpis": {
-        "decided": 359,
-        "passed": 346,
+        "decided": 362,
+        "passed": 349,
         "pass_rate": 96.4,
         "not_running": 0,
         "merged_red": 0
@@ -29541,7 +29630,7 @@
           "where": "CPU builder",
           "cadence": "every 2 hours on weekdays",
           "daily": {
-            "2026-10-31": {
+            "2026-10-18": {
               "passed": 2,
               "failed": 0,
               "other": 0,
@@ -29550,88 +29639,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-30": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-29": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-28": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-27": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-26": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-25": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-24": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-23": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-22": {
-              "passed": 12,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-21": {
+            "2026-10-19": {
               "passed": 12,
               "failed": 0,
               "other": 0,
@@ -29649,7 +29657,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-19": {
+            "2026-10-21": {
               "passed": 12,
               "failed": 0,
               "other": 0,
@@ -29658,8 +29666,98 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-18": {
+            "2026-10-22": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-23": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-24": {
               "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-25": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-26": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-27": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-28": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-29": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-30": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-31": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-11-01": {
+              "passed": 1,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -29668,14 +29766,14 @@
               "slow": 0
             }
           },
-          "decided": 128,
-          "passed": 128,
-          "started": 128,
+          "decided": 129,
+          "passed": 129,
+          "started": 129,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
-          "median_queue_seconds": 35,
+          "median_queue_seconds": 36,
           "failed_steps": {},
           "gate": null
         },
@@ -29690,99 +29788,18 @@
           "where": "Radeon RX 7900, 2 shards",
           "cadence": "every 2 hours on weekdays",
           "daily": {
-            "2026-10-31": {
+            "2026-10-18": {
               "passed": 4,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 0
             },
-            "2026-10-30": {
-              "passed": 24,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 11
-            },
-            "2026-10-29": {
+            "2026-10-19": {
               "passed": 21,
               "failed": 1,
-              "other": 2,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 9
-            },
-            "2026-10-28": {
-              "passed": 24,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 15
-            },
-            "2026-10-27": {
-              "passed": 24,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 19
-            },
-            "2026-10-26": {
-              "passed": 15,
-              "failed": 6,
-              "other": 3,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 4
-            },
-            "2026-10-25": {
-              "passed": 4,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-24": {
-              "passed": 4,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-23": {
-              "passed": 18,
-              "failed": 2,
-              "other": 3,
-              "stalled": 1,
-              "skipped": 0,
-              "running": 0,
-              "slow": 5
-            },
-            "2026-10-22": {
-              "passed": 14,
-              "failed": 2,
-              "other": 5,
-              "stalled": 3,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            },
-            "2026-10-21": {
-              "passed": 22,
-              "failed": 0,
               "other": 2,
               "stalled": 0,
               "skipped": 0,
@@ -29798,17 +29815,107 @@
               "running": 0,
               "slow": 1
             },
-            "2026-10-19": {
-              "passed": 21,
-              "failed": 1,
+            "2026-10-21": {
+              "passed": 22,
+              "failed": 0,
               "other": 2,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
               "slow": 2
             },
-            "2026-10-18": {
+            "2026-10-22": {
+              "passed": 14,
+              "failed": 2,
+              "other": 5,
+              "stalled": 3,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
+            "2026-10-23": {
+              "passed": 18,
+              "failed": 2,
+              "other": 3,
+              "stalled": 1,
+              "skipped": 0,
+              "running": 0,
+              "slow": 5
+            },
+            "2026-10-24": {
               "passed": 4,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-25": {
+              "passed": 4,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-26": {
+              "passed": 15,
+              "failed": 6,
+              "other": 3,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 4
+            },
+            "2026-10-27": {
+              "passed": 24,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 19
+            },
+            "2026-10-28": {
+              "passed": 24,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 15
+            },
+            "2026-10-29": {
+              "passed": 21,
+              "failed": 1,
+              "other": 2,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 9
+            },
+            "2026-10-30": {
+              "passed": 24,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 11
+            },
+            "2026-10-31": {
+              "passed": 4,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-11-01": {
+              "passed": 2,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -29817,12 +29924,12 @@
               "slow": 0
             }
           },
-          "decided": 231,
-          "passed": 218,
-          "started": 251,
+          "decided": 233,
+          "passed": 220,
+          "started": 253,
           "skipped": 0,
           "stalled": 5,
-          "last_ran": "2026-10-31",
+          "last_ran": "2026-11-01",
           "quiet_days": [],
           "median_queue_seconds": 13,
           "failed_steps": {
@@ -29858,14 +29965,19 @@
       ],
       "coverage": {
         "complete": true,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
         "oldest_run_at": "2026-10-18T04:51:10Z",
         "cache_identity": "c98b786c44c238c14d88c53152d8e514f2b5ffe08764d7112fe6abbe59ae5f53",
         "pending": {}
       },
       "files": [
+        {
+          "month": "2026-11",
+          "path": "upstream/pytorch/ci/2026-11.json",
+          "run_count": 3
+        },
         {
           "month": "2026-10",
           "path": "upstream/pytorch/ci/2026-10.json",
@@ -29890,9 +30002,9 @@
         "reason": "no test on main runs on client hardware"
       },
       "kpis": {
-        "decided": 166,
-        "passed": 164,
-        "pass_rate": 98.8,
+        "decided": 192,
+        "passed": 190,
+        "pass_rate": 99.0,
         "not_running": 0,
         "merged_red": 0
       },
@@ -29908,133 +30020,16 @@
           "where": "GitHub-hosted, no GPU",
           "cadence": "per push and pull request",
           "daily": {
-            "2026-10-31": {
-              "passed": 2,
+            "2026-10-06": {
+              "passed": 15,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 0
+              "slow": 13
             },
-            "2026-10-29": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-28": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-27": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 4
-            },
-            "2026-10-26": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-25": {
-              "passed": 7,
-              "failed": 1,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-24": {
-              "passed": 6,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            },
-            "2026-10-23": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-22": {
-              "passed": 8,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 4
-            },
-            "2026-10-21": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            },
-            "2026-10-20": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-18": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-17": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-16": {
-              "passed": 4,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-15": {
+            "2026-10-08": {
               "passed": 3,
               "failed": 0,
               "other": 0,
@@ -30043,17 +30038,8 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-13": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-12": {
-              "passed": 2,
+            "2026-10-09": {
+              "passed": 3,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -30070,67 +30056,7 @@
               "running": 0,
               "slow": 2
             },
-            "2026-10-09": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-08": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-06": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
-            }
-          },
-          "decided": 83,
-          "passed": 82,
-          "started": 83,
-          "skipped": 0,
-          "stalled": 0,
-          "last_ran": "2026-10-31",
-          "quiet_days": [],
-          "median_queue_seconds": 49,
-          "failed_steps": {
-            "Clone": 1
-          },
-          "gate": {
-            "merged": 76,
-            "passed": 47,
-            "failed": 0,
-            "not_triggered": 8,
-            "no_result": 21,
-            "red": [],
-            "escaped": []
-          }
-        },
-        {
-          "id": "rocm-build-windows",
-          "label": "rocm build windows",
-          "category": "builds",
-          "workflow": "build.yml",
-          "target": "multi-arch",
-          "stack": "rocm",
-          "os": "windows",
-          "where": "GitHub-hosted, no GPU",
-          "cadence": "per push and pull request",
-          "daily": {
-            "2026-10-31": {
+            "2026-10-12": {
               "passed": 2,
               "failed": 0,
               "other": 0,
@@ -30139,7 +30065,7 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-29": {
+            "2026-10-13": {
               "passed": 5,
               "failed": 0,
               "other": 0,
@@ -30148,7 +30074,97 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-28": {
+            "2026-10-15": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-16": {
+              "passed": 4,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-17": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-18": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-20": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-21": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
+            "2026-10-22": {
+              "passed": 8,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 4
+            },
+            "2026-10-23": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-24": {
+              "passed": 6,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
+            "2026-10-25": {
+              "passed": 7,
+              "failed": 1,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-26": {
               "passed": 2,
               "failed": 0,
               "other": 0,
@@ -30166,7 +30182,7 @@
               "running": 0,
               "slow": 4
             },
-            "2026-10-26": {
+            "2026-10-28": {
               "passed": 2,
               "failed": 0,
               "other": 0,
@@ -30175,25 +30191,157 @@
               "running": 0,
               "slow": 0
             },
-            "2026-10-25": {
-              "passed": 7,
-              "failed": 1,
+            "2026-10-29": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-31": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            }
+          },
+          "decided": 96,
+          "passed": 95,
+          "started": 96,
+          "skipped": 0,
+          "stalled": 0,
+          "last_ran": "2026-10-31",
+          "quiet_days": [],
+          "median_queue_seconds": 121,
+          "failed_steps": {
+            "Clone": 1
+          },
+          "gate": {
+            "merged": 89,
+            "passed": 49,
+            "failed": 0,
+            "not_triggered": 8,
+            "no_result": 32,
+            "red": [],
+            "escaped": []
+          }
+        },
+        {
+          "id": "rocm-build-windows",
+          "label": "rocm build windows",
+          "category": "builds",
+          "workflow": "build.yml",
+          "target": "multi-arch",
+          "stack": "rocm",
+          "os": "windows",
+          "where": "GitHub-hosted, no GPU",
+          "cadence": "per push and pull request",
+          "daily": {
+            "2026-10-06": {
+              "passed": 15,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 13
+            },
+            "2026-10-08": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-09": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-10": {
+              "passed": 5,
+              "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
               "slow": 2
             },
-            "2026-10-24": {
-              "passed": 6,
+            "2026-10-12": {
+              "passed": 2,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 5
+              "slow": 0
             },
-            "2026-10-23": {
+            "2026-10-13": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-15": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-16": {
+              "passed": 4,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-17": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-18": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-20": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
+            "2026-10-21": {
               "passed": 5,
               "failed": 0,
               "other": 0,
@@ -30211,7 +30359,7 @@
               "running": 0,
               "slow": 6
             },
-            "2026-10-21": {
+            "2026-10-23": {
               "passed": 5,
               "failed": 0,
               "other": 0,
@@ -30220,123 +30368,87 @@
               "running": 0,
               "slow": 3
             },
-            "2026-10-20": {
-              "passed": 5,
+            "2026-10-24": {
+              "passed": 6,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 5
             },
-            "2026-10-18": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-17": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-16": {
-              "passed": 4,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
-            },
-            "2026-10-15": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-13": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-12": {
-              "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-10": {
-              "passed": 5,
-              "failed": 0,
+            "2026-10-25": {
+              "passed": 7,
+              "failed": 1,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
               "slow": 2
             },
-            "2026-10-09": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-08": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-10-06": {
+            "2026-10-26": {
               "passed": 2,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 2
+              "slow": 0
+            },
+            "2026-10-27": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 4
+            },
+            "2026-10-28": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-29": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-10-31": {
+              "passed": 2,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 83,
-          "passed": 82,
-          "started": 83,
+          "decided": 96,
+          "passed": 95,
+          "started": 96,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-10-31",
           "quiet_days": [],
-          "median_queue_seconds": 280,
+          "median_queue_seconds": 321,
           "failed_steps": {
             "Run actions/checkout@v3": 1
           },
           "gate": {
-            "merged": 76,
-            "passed": 45,
+            "merged": 89,
+            "passed": 50,
             "failed": 0,
             "not_triggered": 8,
-            "no_result": 23,
+            "no_result": 31,
             "red": [],
             "escaped": []
           }
@@ -30360,387 +30472,24 @@
       },
       "findings": [],
       "coverage": {
-        "complete": false,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
-        "oldest_run_at": "2026-10-06T12:04:43Z",
+        "complete": true,
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
+        "oldest_run_at": "2026-10-06T08:42:05Z",
         "cache_identity": "79d8b80dc51eadd50b08a2b1236f51a4a736779516b6fb43a07390fc21dbff57",
-        "pending": {
-          "37459176523#1@2026-10-06": {
-            "run": {
-              "id": 37459176523,
-              "created_at": "2026-10-06T11:51:15Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "fd43b542a63db62fe26960536a6848b1fb7f6d7a",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37459176523"
-            },
-            "workflow": "build.yml",
-            "jobs": [
-              {
-                "id": 112254144620,
-                "name": "ubuntu-latest-rocm (7.14.0, gfx900;gfx906;gfx908;gfx90a;gfx90c;gfx942;gfx950;gfx1010;gfx1011;gfx1...",
-                "status": "completed",
-                "conclusion": "success",
-                "created_at": "2026-10-06T11:51:16Z",
-                "started_at": "2026-10-06T15:38:26Z",
-                "runner_name": "GitHub Actions 1000037667",
-                "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37459176523/job/112254144620",
-                "steps": [
-                  {
-                    "name": "Set up job",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Clone",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "ccache",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Dependencies",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Free disk space",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Setup TheRock with Wheels",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Setup Node",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Setup pnpm",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Build",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Get commit hash",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Prepare artifacts",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Fetch system info",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Pack artifacts",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Upload artifacts",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Setup pnpm",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Setup Node",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post ccache",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Clone",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Complete job",
-                    "conclusion": "success"
-                  }
-                ]
-              },
-              {
-                "id": 112254144646,
-                "name": "windows-latest-rocm",
-                "status": "completed",
-                "conclusion": "success",
-                "created_at": "2026-10-06T11:51:16Z",
-                "started_at": "2026-10-06T18:10:24Z",
-                "runner_name": "GitHub Actions 1000037742",
-                "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37459176523/job/112254144646",
-                "steps": [
-                  {
-                    "name": "Set up job",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Run actions/checkout@v3",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Setup Node",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Setup pnpm",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Cache ROCm Installation",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "ccache",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Install ROCm with Wheels",
-                    "conclusion": "skipped"
-                  },
-                  {
-                    "name": "Setup ROCm Environment",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Build",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Get commit hash",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Bundle HIP runtime libraries",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Pack artifacts",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Upload artifacts",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post ccache",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Cache ROCm Installation",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Setup pnpm",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Setup Node",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Post Run actions/checkout@v3",
-                    "conclusion": "success"
-                  },
-                  {
-                    "name": "Complete job",
-                    "conclusion": "success"
-                  }
-                ]
-              }
-            ],
-            "pr": {
-              "number": 2106,
-              "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2106",
-              "head_sha": "cea0121d3c9198839a6f803cdf5d6d4b27f59b78",
-              "author": "leejet",
-              "merged_at": "2026-10-06T11:51:12Z"
-            },
-            "checks_pages": {}
-          },
-          "37458010468#1@2026-10-06": {
-            "run": {
-              "id": 37458010468,
-              "created_at": "2026-10-06T11:40:52Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "09633572149742445487cdbc25431a1b92bd76ce",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37458010468"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37456644236#1@2026-10-06": {
-            "run": {
-              "id": 37456644236,
-              "created_at": "2026-10-06T11:28:33Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "1da55ebde86e9925324d3f6fc8b96f8a2ea739e5",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37456644236"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37455780671#1@2026-10-06": {
-            "run": {
-              "id": 37455780671,
-              "created_at": "2026-10-06T11:20:46Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "fb8ee71f55ad603dc0e567984663c147c71879af",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37455780671"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37455702128#1@2026-10-06": {
-            "run": {
-              "id": 37455702128,
-              "created_at": "2026-10-06T11:20:05Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "96f67fe631864a58f285a5fc9ae364a663ccd0bc",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37455702128"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37449834814#1@2026-10-06": {
-            "run": {
-              "id": 37449834814,
-              "created_at": "2026-10-06T10:26:52Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "203a882a280bec440ff446bccb150a54496a349d",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37449834814"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37449493541#1@2026-10-06": {
-            "run": {
-              "id": 37449493541,
-              "created_at": "2026-10-06T10:23:44Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "019bcfc0ae3bc1a5bf37b93c65727dee149a9c31",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37449493541"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37446247357#1@2026-10-06": {
-            "run": {
-              "id": 37446247357,
-              "created_at": "2026-10-06T09:55:03Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "c150a6bafeb21824f30b813ae1212321a5d131fd",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37446247357"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37445708851#1@2026-10-06": {
-            "run": {
-              "id": 37445708851,
-              "created_at": "2026-10-06T09:50:19Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "f4b5326da7ca4168dd1e0726de21400a10a9a1cc",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37445708851"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37442608893#1@2026-10-06": {
-            "run": {
-              "id": 37442608893,
-              "created_at": "2026-10-06T09:23:25Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "bbdcad48dd1edd13a69f0889803e9cf05a431d67",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37442608893"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37442213967#1@2026-10-06": {
-            "run": {
-              "id": 37442213967,
-              "created_at": "2026-10-06T09:19:59Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "b6947b8bdc84552ec5f9af47e61112ee174ab9c4",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37442213967"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37439332709#1@2026-10-06": {
-            "run": {
-              "id": 37439332709,
-              "created_at": "2026-10-06T08:54:58Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "9db0db65706fdf78544e52322943f8aed14f3d35",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37439332709"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          },
-          "37437868351#1@2026-10-06": {
-            "run": {
-              "id": 37437868351,
-              "created_at": "2026-10-06T08:42:05Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "d4bfcd5d78cc6d41ec856ddb65b287a6686df108",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/37437868351"
-            },
-            "workflow": "build.yml",
-            "jobs_pages": {}
-          }
-        }
+        "pending": {}
       },
       "files": [
         {
+          "month": "2026-11",
+          "path": "upstream/sdcpp/ci/2026-11.json",
+          "run_count": 0
+        },
+        {
           "month": "2026-10",
           "path": "upstream/sdcpp/ci/2026-10.json",
-          "run_count": 166
+          "run_count": 192
         }
       ]
     },
@@ -30787,17 +30536,17 @@
       "findings": [],
       "coverage": {
         "complete": true,
-        "since": "2026-10-02T00:00:00Z",
-        "listed_since": "2026-10-02T00:00:00Z",
-        "collected_at": "2026-10-31T18:27:34Z",
+        "since": "2026-10-03T00:00:00Z",
+        "listed_since": "2026-10-03T00:00:00Z",
+        "collected_at": "2026-11-01T11:04:22Z",
         "oldest_run_at": null,
         "cache_identity": "f581be8b08118e8eb4261350bbeb6c513bd6825e7b9c68e5d879185835322d74",
         "pending": {}
       },
       "files": [
         {
-          "month": "2026-10",
-          "path": "upstream/vllm/ci/2026-10.json",
+          "month": "2026-11",
+          "path": "upstream/vllm/ci/2026-11.json",
           "run_count": 0
         }
       ]

@@ -535,9 +535,9 @@
       "event": "schedule",
       "ref": "main",
       "sha": "b85dea2eeaedfb91a8ac92fb9f12429ac4f09ded",
-      "status": "in_progress",
-      "conclusion": null,
-      "state": "running",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
       "failed_step": null,
       "queue_seconds": 4,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-nq9g4",
@@ -596,10 +596,27 @@
       "queue_seconds": 11,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-848d6",
       "url": "https://github.com/pytorch/pytorch/actions/runs/41485120251/job/125425668292"
+    },
+    {
+      "job": "rx7900-build",
+      "run_id": "41504047827",
+      "job_id": "125478787866",
+      "attempt": 1,
+      "day": "2026-11-02",
+      "created_at": "2026-11-02T18:48:32Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "d94de59f368fe49659f15bce2ae27dd75137153c",
+      "status": "queued",
+      "conclusion": null,
+      "state": "stalled",
+      "failed_step": null,
+      "queue_seconds": null,
+      "runner": null,
+      "url": "https://github.com/pytorch/pytorch/actions/runs/41504047827/job/125478787866"
     }
   ],
   "scanned_runs": [
-    "39306634516#1@2026-10-19",
     "39322571933#1@2026-10-19",
     "39337538387#1@2026-10-19",
     "39351948818#1@2026-10-20",
@@ -724,6 +741,7 @@
     "41402624051#1@2026-11-02",
     "41415767194#1@2026-11-02",
     "41431782069#1@2026-11-02",
-    "41447735586#1@2026-11-02"
+    "41447735586#1@2026-11-02",
+    "41465439184#1@2026-11-02"
   ]
 }

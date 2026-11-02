@@ -26,6 +26,7 @@ supported for readiness-only inputs. The table below describes readiness feeds.
 | `/sources/*/os` | string, optional | Qualification OS fallback when the producer row lacks one; aliases normalize as in [build history](history.md). |
 | `/sources/*/forks` | object, required for available performance feeds | Map from producer fork ID to the object below. |
 | `/sources/*/include_forks` | nonempty array of unique strings, optional | Selects only listed configured fork IDs before validating/associating their records; absent selects all mapped forks. |
+| `/sources/*/execution_details` | boolean, optional | Collect detailed stable execution reports in addition to leaderboard measurements. |
 | `/sources/*/forks/*/engine` | string, required | Configured engine ID. |
 | `/sources/*/forks/*/channel` | string, required | `stable`, `nightly`, `reference`, or `experimental`. |
 | `/sources/*/forks/*/backend` | string, required for performance mapping | Backend identity; current stable mapping is `rocm`. |
@@ -90,3 +91,20 @@ Use `python scripts/collect.py --sources sources.json` for the full collection,
 `python scripts/upstream.py --sources sources.json --output-dir data` for an
 upstream-only refresh, and `python scripts/conformance.py --data-dir data
 --sources sources.json` for conformance against the selected readiness feeds.
+
+### Readiness ingestion scope
+
+`views.readiness.stable_anchor` optionally records the owner-selected current stable
+ROCm version as a numeric version string (the repository sets `10.1`). The unified
+loader carries this as `readiness.stable_anchor` into the collector. CI normalizes
+and emits only that track and newer tracks with actual qualification, attributed
+performance or execution records, for every engine. Out-of-scope previous history
+is not retained. No missing track or release verdict is invented.
+
+The generated catalog carries `readiness: {"stable_anchor": "10.1"}` as additive
+schema-v2 metadata, orders its existing `versions` array numerically ascending and
+sets `default_version` to the first supplied track (null if none). This is the only
+catalog; detail views use the same app scope. UI code consumes the catalog without
+release filtering. Original upstream files and external historical datasets are
+untouched. Raw source/provenance artifacts may include historical evidence needed
+to verify package attribution; they are not published app inventories.

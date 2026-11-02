@@ -179,7 +179,7 @@ qualification build **40870439417-ubuntu-rocm-10.1**.
 | --- | --- | --- |
 | Merged in-scope builds | Derived grouping by `rocm_version` and recorded calendar month of `generated_at` | History `/rocm_version`, `/month`, `/builds`; overview history `/month`, `/path` |
 | Each monthly group | Derived length | Overview `/history/*/build_count` |
-| Configured engine and retained version records | Derived presence: emit a card only if this engine has a build or measurement | Overview `/engines` |
+| Configured engine and retained version records | Derived presence: emit a card only if this engine has a build, performance measurement or execution attempt | Overview `/engines` |
 | Retained builds owned by that engine/version | Derived length | Overview `/engines/*/build_count` |
 | Engine/version builds grouped by `(channel, os, gfx_target)` | Derived maximum of `(parsed generated_at, run_attempt, source_id, build_id)` | Overview `/engines/*/latest_builds` |
 | Retained assigned measurements for one version | Derived length and relative path; no rows → only `status: not_measured` | Overview `/performance/{status,measurement_count,path}` |

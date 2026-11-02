@@ -50,8 +50,34 @@ choosing System restores automatic behavior. Theme selection is applied before
 the app renders. If browser storage is unavailable, switching still works for
 the current visit.
 
-The dashboard provides version selection, readiness summaries, retained build
-history, inline qualification evidence and model-performance details. URLs retain
+The collector uses `views.readiness.stable_anchor` in
+[sources.json](../sources.json) (currently owner-selected `10.1`) to scope the
+**whole app's dataset** to current stable and newer ROCm tracks with actual records.
+CI emits only eligible qualification histories, performance and execution inventories
+across all engines; retained older tracks are not reintroduced. Its catalog is ordered
+numerically ascending, with the configured stable track first when it has records.
+There is no fixed future-track count or invented nightly data. The UI renders this
+supplied catalog and uses `index.readiness.stable_anchor` only to label the anchor;
+it does not import release policy, compare versions or select tracks. Older external
+datasets without scope metadata render their supplied catalog with an explicit
+legacy-scope notice; the UI never guesses a stable release from build channels.
+
+Page One nests engines and recorded channels under each version. There is no
+Page One version selector. One shared legend describes qualification marks; missing
+dates remain neutral gaps. Build timelines cover the last 14 UTC calendar dates.
+
+Page One shows build qualification only. Benchmark execution inventories remain in
+the collected dataset, separate from qualification; the overview neither fetches nor
+renders their statuses, counts or attempt inspector. They do not alter qualification
+marks. Producer reports, build/source/OS identities and the 14-day window remain.
+Calendar headings group day numbers under spanning month names with a month boundary.
+Build links use the shared custom tooltip with formatted UTC report time, qualification,
+channel, revision and build identity. The repeated ROCm/channel heading is omitted
+inside a single-channel card; multiple channels retain concise channel headings.
+Mobile keeps the horizontally scrollable timeline; a vertical redesign is deferred.
+
+Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
+model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.
 Internal navigation keeps the active dataset revision; reloading reads the latest
 published pointer.
@@ -66,12 +92,22 @@ metric units. Cross-version comparisons require complete compatible hardware,
 model, quantization and workload settings. Missing metadata remains unmatched.
 Package qualification requires exactly one matching retained build record.
 
-The overview reads all referenced monthly history files at the selected dataset
-revision to show qualified builds out of retained builds, with a separate outcome
-breakdown. Latest-package check bars use published counters; skipped and missing
-checks remain in the total. Partial check breakdowns retain their known counts
-without inventing absent categories. Platform cards also show compiled GPU-target
-coverage and the package's ROCm version.
+The overview reads all referenced monthly history files at one pinned revision.
+Only engines and channels with recorded builds render. Expected OS rows come
+from JSON metadata within populated groups. Each tile has a 14-day UTC calendar
+ending today, with one selectable mark per build. Multiple same-day builds stay
+distinct. Explicit producer qualification determines pass/fail; missing verdicts
+are neutral evidence links, and dates without builds say “No data” without an
+outcome mark. Links open
+exact-build details with OS/source context. Today's date is highlighted in the
+calendar header. Dates are grouped internally in UTC. Qualification does not
+establish actual artifact publication. Page 1
+has no test counts or compiled-target panels; those remain in build details.
+
+Datasets can also retain benchmark execution attempts and summaries in
+`rocm/<version>/executions.json`, including failed attempts without throughput
+measurements. The overview timeline currently displays build qualification only;
+it does not turn benchmark execution outcomes into qualification marks.
 
 Reloading the page reads the live pointer again. Readiness retry controls
 replace an existing active dataset only after its requested version loads successfully;

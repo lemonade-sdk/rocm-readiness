@@ -67,6 +67,7 @@ const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   default_version: z.string().nullable(),
+  readiness: z.object({ stable_anchor: z.string().min(1) }).optional(),
   sources: z
     .array(
       z.object({
@@ -77,6 +78,7 @@ const indexSchema = z.object({
         status: z.string(),
         repository: z.string().optional(),
         record_count: count.optional(),
+        stale_after_hours: z.number().nonnegative().nullable().optional(),
       }),
     )
     .optional(),
@@ -134,6 +136,13 @@ const overviewSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   rocm_version: z.string(),
+  execution: z
+    .object({
+      path: z.string(),
+      attempt_count: count,
+      summaries: z.array(z.unknown()),
+    })
+    .optional(),
   engines: z.array(
     z.object({
       id: z.string(),
@@ -305,7 +314,14 @@ export async function loadSession(
   includeOverview = true,
 ): Promise<Session> {
   if (LOCAL_DATA)
-    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer, includeOverview);
+    return loadLocalSession(
+      LOCAL_DATA,
+      version,
+      fetcher,
+      signal,
+      onPointer,
+      includeOverview,
+    );
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -350,7 +366,9 @@ export async function loadSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected
+    ? loadVersion(session, selected, fetcher, signal)
+    : session;
 }
 
 async function loadLocalSession(
@@ -388,5 +406,7 @@ async function loadLocalSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected
+    ? loadVersion(session, selected, fetcher, signal)
+    : session;
 }

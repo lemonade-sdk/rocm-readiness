@@ -207,11 +207,11 @@ it('keeps the pinned index when navigating between dashboards', async () => {
     return base(input);
   };
   mount('/', fetcher);
-  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  await screen.findByRole('heading', { name: 'ROCm Readiness' });
   fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
   await screen.findByRole('heading', { name: 'llama.cpp' });
   fireEvent.click(screen.getByRole('link', { name: 'ROCm readiness' }));
-  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  await screen.findByRole('heading', { name: 'ROCm Readiness' });
   expect(pointers).toBe(1);
 });
 
@@ -231,7 +231,7 @@ it('does not fetch upstream on a readiness route', async () => {
     return base(input);
   };
   mount('/', fetcher);
-  await screen.findByRole('heading', { name: 'ROCm 10.1 readiness' });
+  await screen.findByRole('heading', { name: 'ROCm Readiness' });
   expect(requested.some((url) => url.includes('/upstream/'))).toBe(false);
 });
 
@@ -245,7 +245,7 @@ it('opens upstream on the same pinned index after readiness overview fails', asy
     return base(input);
   };
   mount('/', fetcher);
-  await screen.findByRole('alert');
+  expect(await screen.findAllByRole('alert')).toHaveLength(2);
   fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
   expect(await screen.findByRole('heading', { name: 'llama.cpp' })).toBeInTheDocument();
   expect(pointers).toBe(1);

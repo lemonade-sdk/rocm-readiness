@@ -201,7 +201,7 @@ describe("BuildBrowser", () => {
   it("rejects a report whose metadata does not match the selected feed row", async () => {
     const build = buildFixture({ build_id: "mismatch-build" });
     fetchMock.mockResolvedValue(
-      response(producerReport(build, { build: { rocm_version: "10.0" } })),
+      response(producerReport(build, { build: { rocm_version: "10.2" } })),
     );
 
     mount({

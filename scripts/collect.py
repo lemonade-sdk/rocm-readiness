@@ -16,17 +16,24 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .config import load_config
+    from .executions import collect_executions, select_latest
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
-    from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
+    from .dataset import (
+        SYSTEM_FIELDS,
+        _load_previous,
+        write_dataset,
+        in_readiness_scope,
+    )
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from config import load_config
+    from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
-    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
+    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
     from upstream import collect_upstream, validate_upstream_dataset
@@ -74,6 +81,14 @@ def safe_path(value):
 
 def validate_config(config):
     require(config.get("schema_version") == 1, "unsupported sources schema_version")
+    policy = config.get("readiness")
+    if policy is not None:
+        require(
+            isinstance(policy, dict)
+            and isinstance(policy.get("stable_anchor"), str)
+            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"]),
+            "invalid readiness stable_anchor",
+        )
     engines = config["engines"]
     engine_ids = [e["id"] for e in engines]
     require(len(engine_ids) == len(set(engine_ids)), "duplicate engine id")
@@ -87,6 +102,12 @@ def validate_config(config):
         seen.add(sid)
         require(source["engine"] in engine_ids, "unknown engine")
         require(source["adapter"] in ADAPTERS, "unknown adapter")
+        if "execution_details" in source:
+            require(
+                type(source["execution_details"]) is bool
+                and source["adapter"] == "lemonade-leaderboard-v1",
+                "invalid execution detail configuration",
+            )
         require(
             source.get("channel") in ("stable", "nightly", "from-record", "from-fork"),
             "invalid channel",
@@ -139,7 +160,7 @@ def _check(
         raise PipelineValidationError(source["id"], record, field, reason)
 
 
-def normalize_qualification(source, data, url):
+def normalize_qualification(source, data, url, policy=None):
     _check(source, "", "document", isinstance(data, dict), "expected object")
     _check(
         source,
@@ -153,6 +174,14 @@ def normalize_qualification(source, data, url):
     for index, row in enumerate(data["builds"]):
         location = f"/builds/{index}"
         _check(source, location, "record", isinstance(row, dict), "expected object")
+        # A shared producer index may contain old tracks; do not normalize their reports.
+        if (
+            policy is not None
+            and isinstance(row.get("rocm_version"), str)
+            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", row["rocm_version"])
+            and not in_readiness_scope(row, policy)
+        ):
+            continue
         for field in ("build_id", "generated_at", "rocm_version", "run_url", "tag"):
             _check(
                 source,
@@ -676,6 +705,8 @@ def collect(
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
+    # Raw execution proof is an artifact of this collection, never reused as current evidence.
+    (destination / "provenance/executions.json").unlink(missing_ok=True)
     now = now or datetime.now(timezone.utc).isoformat()
     clock = timestamp(now)
     output = {
@@ -688,8 +719,12 @@ def collect(
         "builds": [],
         "measurements": [],
         "systems": [],
+        "executions": [],
+        "execution_evidence": [],
         "errors": [],
     }
+    if "readiness" in config:
+        output["readiness"] = dict(config["readiness"])
     commits = {}
     for source in config["sources"]:
         sid = source["id"]
@@ -720,7 +755,7 @@ def collect(
             key = (repo, ref)
             if key not in commits:
                 fetch_url = (
-                    f'https://api.github.com/repos/{repo}/commits/{quote(ref, safe="")}'
+                    f"https://api.github.com/repos/{repo}/commits/{quote(ref, safe='')}"
                 )
                 commits[key] = fetch(fetch_url)["sha"]
             commit = commits[key]
@@ -728,14 +763,16 @@ def collect(
                 re.fullmatch(r"[a-f0-9]{40}", commit) is not None,
                 "invalid source commit",
             )
-            url = f'https://raw.githubusercontent.com/{repo}/{commit}/{quote(source["path"], safe="/")}'
+            url = f"https://raw.githubusercontent.com/{repo}/{commit}/{quote(source['path'], safe='/')}"
             state.update(repository=repo, ref=ref, commit=commit, url=url)
             print(f"{sid}: fetching {url}", flush=True)
             fetch_url = url
             data = fetch(url)
             fetch_url = None
             if source["adapter"] == "qualification-v1":
-                rows = normalize_qualification(source, data, url)
+                rows = normalize_qualification(
+                    source, data, url, config.get("readiness")
+                )
                 target, date_key = "builds", "generated_at"
             else:
                 rows = normalize_performance(source, data)
@@ -744,6 +781,28 @@ def collect(
                     for index, system in enumerate(data["systems"])
                 ]
                 target, date_key = "measurements", "measured_at"
+                if source.get("execution_details"):
+                    details = collect_executions(
+                        source,
+                        commit,
+                        fetch,
+                        cache_dir=destination.parent / ".execution-cache",
+                    )
+                    require(
+                        all(
+                            timestamp(row["measured_at"]) <= clock
+                            for row in details["candidates"]
+                        ),
+                        "execution timestamp is in the future",
+                    )
+                    output["executions"].extend(details["candidates"])
+                    output["execution_evidence"].append(
+                        {
+                            "source_id": sid,
+                            "inventory": details["inventory"],
+                            "snapshots": details["snapshots"],
+                        }
+                    )
             snapshot = f"raw/{sid}.json"
             state.update(
                 snapshot=snapshot, sha256=write_json(destination / snapshot, data)
@@ -773,7 +832,7 @@ def collect(
                     row["source_url"] = url
                 output["systems"].extend(systems)
             print(
-                f'{sid}: validated {len(rows)} records -> {state["destination"]} ({state["status"]})',
+                f"{sid}: validated {len(rows)} records -> {state['destination']} ({state['status']})",
                 flush=True,
             )
         except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
@@ -820,6 +879,22 @@ def collect(
     attribute_stable(
         output, evidence, resolve_packages, previous_measurements, system_matches
     )
+    if output["executions"]:
+        execution_output = {"measurements": output["executions"]}
+        attribute_stable(execution_output, output["package_evidence"], resolve_packages)
+        output["package_evidence"] = execution_output["package_evidence"]
+        output["executions"] = select_latest(output["executions"], per_version=True)
+    for field in ("builds", "measurements", "executions"):
+        output[field] = [
+            row
+            for row in output[field]
+            if in_readiness_scope(row, config.get("readiness"))
+        ]
+    if output["execution_evidence"]:
+        write_json(
+            destination / "provenance/executions.json",
+            {"schema_version": 1, "sources": output["execution_evidence"]},
+        )
     for source in output["sources"]:
         if source["adapter"] == "lemonade-leaderboard-v1" and source["status"] not in (
             "error",
@@ -885,15 +960,20 @@ def collect(
     )
     write_json(destination / "index.json", output["dataset"])
     if output["collection_status"] == "complete":
-        validate_dataset(destination, config, check_live_pointer=False)
+        validate_dataset(
+            destination,
+            config,
+            check_live_pointer=False,
+            require_execution_evidence=True,
+        )
     print(
         f"Dataset: index.json, {len(output['dataset']['versions'])} ROCm version overviews",
         flush=True,
     )
     stable = output["dataset"]["stable_performance"]
     print(
-        f'Stable model observations: {stable["assigned_count"]} assigned, '
-        f'{stable["awaiting_evidence_count"]} awaiting evidence',
+        f"Stable model observations: {stable['assigned_count']} assigned, "
+        f"{stable['awaiting_evidence_count']} awaiting evidence",
         flush=True,
     )
     return output
@@ -1003,13 +1083,13 @@ def main():
     lines = [
         "## Data collection",
         "",
-        f'Status: {output["collection_status"]}',
+        f"Status: {output['collection_status']}",
         "",
         "| Source | Status | Records | Destination |",
         "| --- | --- | ---: | --- |",
     ]
     lines.extend(
-        f'| {s["id"]} | {s["status"]} | {s["record_count"]} | {s.get("destination", "—")} |'
+        f"| {s['id']} | {s['status']} | {s['record_count']} | {s.get('destination', '—')} |"
         for s in output["sources"]
     )
     upstream = output["dataset"].get("upstream")

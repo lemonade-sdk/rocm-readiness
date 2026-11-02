@@ -76,7 +76,11 @@ Version directories group the configured builds and measurements by ROCm version
 Stable llama.cpp packages label versions such as `7.14`, `10.0`, and `10.1`.
 Each build record identifies its engine and channel; the directory groups records
 by ROCm version. History is retained when it
-matches the configured sources and selected performance forks.
+matches the configured sources, selected performance forks, and current stable/upcoming
+ROCm scope. `views.readiness.stable_anchor` applies to the entire generated app dataset,
+not just Page One. Regeneration removes obsolete generated ROCm track directories
+from its output; publication copies only the validated manifest. External producer
+files and historical datasets are not modified.
 
 ## Publishing and recovery
 

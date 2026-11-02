@@ -6,14 +6,17 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shutil
 import tempfile
 from typing import Dict, Optional
 from urllib.parse import urlparse
 
 if __package__:
+    from .execution_dataset import summarize, validate_execution_file
     from .attribution import RUN, validate_measurement_package
     from .validation import PipelineValidationError
 else:
+    from execution_dataset import summarize, validate_execution_file
     from attribution import RUN, validate_measurement_package
     from validation import PipelineValidationError
 
@@ -56,6 +59,15 @@ def _version_key(value):
         "invalid ROCm version",
     )
     return tuple(int(part) for part in value.split(".")), value
+
+
+def in_readiness_scope(row, policy):
+    """Keep only the configured stable and upcoming ROCm tracks, for every engine."""
+    if policy is None or row.get("rocm_version") is None:
+        return True  # Unversioned non-ROCm baselines retain their existing contract.
+    return (
+        _version_key(row["rocm_version"])[0] >= _version_key(policy["stable_anchor"])[0]
+    )
 
 
 def _https_url(value):
@@ -564,6 +576,7 @@ def _write_version(
     generated_at,
     measurements,
     systems,
+    executions=(),
 ):
     by_engine = {engine["id"]: [] for engine in engines}
     by_month = {}
@@ -590,8 +603,10 @@ def _write_version(
 
     cards = []
     for engine in engines:
-        if not by_engine[engine["id"]] and not any(
-            row["engine"] == engine["id"] for row in measurements
+        if (
+            not by_engine[engine["id"]]
+            and not any(row["engine"] == engine["id"] for row in measurements)
+            and not any(row["engine"] == engine["id"] for row in executions)
         ):
             continue
         latest = {}
@@ -637,6 +652,21 @@ def _write_version(
         "history": history,
         "performance": performance,
     }
+    if executions:
+        path = f"rocm/{version}/executions.json"
+        data = {
+            "schema_version": 1,
+            "rocm_version": version,
+            "attempts": list(executions),
+            "summaries": summarize(executions),
+        }
+        validate_execution_file(data, version)
+        _write_json(destination / path, data)
+        overview["execution"] = {
+            "path": path,
+            "attempt_count": len(executions),
+            "summaries": data["summaries"],
+        }
     _write_json(destination / f"rocm/{version}/overview.json", overview)
     return len(rows)
 
@@ -685,6 +715,7 @@ def write_dataset(
         _require(isinstance(output.get(key), list), f"missing {key}")
     _timestamp(output.get("generated_at"))
     destination = Path(destination)
+    policy = output.get("readiness")
     engines = output["engines"]
     _require(
         all(
@@ -699,7 +730,11 @@ def write_dataset(
         if isinstance(source, dict) and isinstance(source.get("id"), str)
     }
     compact = _unique_builds(
-        [_compact_build(row, source_urls) for row in output["builds"]]
+        [
+            _compact_build(row, source_urls)
+            for row in output["builds"]
+            if in_readiness_scope(row, policy)
+        ]
     )
     prior_measurements, prior_systems = {}, {}
     if previous_data is not None and output.get("collection_status") == "complete":
@@ -707,12 +742,12 @@ def write_dataset(
         previous = {
             key: row
             for key, row in previous.items()
-            if _record_in_scope(row, source_configs)
+            if _record_in_scope(row, source_configs) and in_readiness_scope(row, policy)
         }
         prior_measurements = {
             key: row
             for key, row in prior_measurements.items()
-            if _record_in_scope(row, source_configs)
+            if _record_in_scope(row, source_configs) and in_readiness_scope(row, policy)
         }
         for key, row in compact.items():
             old = previous.get(key)
@@ -740,6 +775,8 @@ def write_dataset(
     current = {}
     comparisons = []
     for raw in output["measurements"]:
+        if not in_readiness_scope(raw, policy):
+            continue
         row = {field: raw.get(field) for field in MEASUREMENT_FIELDS}
         row["source_url"] = row["source_url"] or source_urls.get(row["source_id"])
         if row.get("backend") in ("vulkan", "hrx"):
@@ -840,7 +877,32 @@ def write_dataset(
         grouped.setdefault(row["rocm_version"], []).append(row)
 
     versions = []
-    for version in sorted(set(grouped) | set(assigned), key=_version_key, reverse=True):
+    execution_versions = {}
+    for row in output.get("executions", []):
+        if not in_readiness_scope(row, policy):
+            continue
+        row = {**row, "attribution": dict(row["attribution"])}
+        try:
+            row = _join_measurement(
+                row,
+                [
+                    build
+                    for build in compact.values()
+                    if build["channel"] == row["channel"]
+                ],
+            )
+        except PipelineValidationError:
+            # Ambiguous packages keep their execution outcome but no guessed build link.
+            row["qualification_build_id"] = None
+            row["attribution"].update(
+                status="rocm_identified", reason="ambiguous qualification builds"
+            )
+        execution_versions.setdefault(row["rocm_version"], []).append(row)
+    for version in sorted(
+        set(grouped) | set(assigned) | set(execution_versions),
+        key=_version_key,
+        reverse=policy is None,
+    ):
         version_systems = version_systems_map.get(version, {})
         count = _write_version(
             destination,
@@ -850,6 +912,7 @@ def write_dataset(
             output["generated_at"],
             assigned.get(version, []),
             version_systems,
+            execution_versions.get(version, []),
         )
         versions.append(
             {
@@ -884,11 +947,30 @@ def write_dataset(
             "awaiting_evidence_count": 0,
         },
     }
+    if policy is not None:
+        index["readiness"] = {"stable_anchor": policy["stable_anchor"]}
+        # Remove only obsolete generated ROCm track directories in this output.
+        # Never touch upstream sources, previous_data, or unrelated output files.
+        root = destination / "rocm"
+        _require(not root.is_symlink(), "unsafe generated ROCm directory")
+        if root.exists():
+            for child in root.iterdir():
+                _require(not child.is_symlink(), "unsafe generated ROCm track")
+                if (
+                    child.is_dir()
+                    and re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", child.name)
+                    and child.name not in {row["rocm_version"] for row in versions}
+                ):
+                    shutil.rmtree(child)
     if comparisons:
         index["comparison_performance"] = {
             "count": len(comparisons),
             "path": "performance/comparisons.json",
         }
+    if policy is not None:
+        (destination / "performance/unassigned.json").unlink(missing_ok=True)
+    if not comparisons:
+        (destination / "performance/comparisons.json").unlink(missing_ok=True)
     if publish_index:
         _write_json(destination / "index.json", index)
     return index

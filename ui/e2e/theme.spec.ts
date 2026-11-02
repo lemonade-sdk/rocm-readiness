@@ -29,11 +29,21 @@ test("follows the device, preserves overrides and returns to system", async ({
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("./?version=10.1&platform=linux");
   const themeButton = page.getByRole("button", { name: "Change color theme" });
+  const today = page.locator('th[aria-current="date"]').first();
+  const previous = page.locator("thead th:nth-last-child(2)").first();
+  async function expectTodayTextContrast() {
+    await expect(today).toHaveCount(1);
+    expect(
+      await today.evaluate((node) => getComputedStyle(node).color),
+    ).not.toBe(await previous.evaluate((node) => getComputedStyle(node).color));
+  }
   await expect(themeButton).toHaveAttribute("title", "Theme: System (Light)");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
+  await expectTodayTextContrast();
   await page.emulateMedia({ colorScheme: "dark" });
   await expect(themeButton).toHaveAttribute("title", "Theme: System (Dark)");
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+  await expectTodayTextContrast();
   await themeButton.click();
   await page.getByRole("button", { name: "Light", exact: true }).click();
   await expect(page.locator("html")).toHaveCSS("color-scheme", "light");
@@ -41,7 +51,13 @@ test("follows the device, preserves overrides and returns to system", async ({
   await page.reload();
   await expect(themeButton).toHaveAttribute("title", "Theme: Light (Light)");
   await expect(
-    page.getByRole("heading", { name: "Linux", exact: true }),
+    page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
+      .getByRole("region", {
+        name: "llama.cpp stable build history",
+        exact: true,
+      })
+      .getByRole("heading", { name: "Linux", exact: true }),
   ).toBeVisible();
   await themeButton.click();
   await page.getByRole("button", { name: "System", exact: true }).click();

@@ -113,20 +113,20 @@ function sessionFor(
           measurement_count: currentMeasurements.length,
           path: "rocm/10.1/performance.json",
         };
-  const compareOverview = overview("10.0") as unknown as NonNullable<
+  const compareOverview = overview("10.2") as unknown as NonNullable<
     Session["overview"]
   >;
   compareOverview.history = [
     {
       month: "2026-10",
-      path: "rocm/10.0/history/2026-10.json",
+      path: "rocm/10.2/history/2026-10.json",
       build_count: 0,
     },
   ];
   compareOverview.performance = {
     status: "available",
     measurement_count: options.compareMeasurements?.length ?? 0,
-    path: "rocm/10.0/performance.json",
+    path: "rocm/10.2/performance.json",
   };
   return {
     session: {
@@ -147,14 +147,14 @@ function sessionFor(
         month: "2026-10",
         builds: options.history ?? [],
       },
-      [new URL("rocm/10.0/overview.json", indexUrl).href]: compareOverview,
-      [new URL("rocm/10.0/performance.json", indexUrl).href]: performance(
+      [new URL("rocm/10.2/overview.json", indexUrl).href]: compareOverview,
+      [new URL("rocm/10.2/performance.json", indexUrl).href]: performance(
         options.compareMeasurements ?? [],
         options.compareSystems,
       ),
-      [new URL("rocm/10.0/history/2026-10.json", indexUrl).href]: {
+      [new URL("rocm/10.2/history/2026-10.json", indexUrl).href]: {
         schema_version: 2,
-        rocm_version: "10.0",
+        rocm_version: "10.2",
         month: "2026-10",
         builds: [],
       },
@@ -216,15 +216,15 @@ describe("PerformanceView", () => {
     renderView(
       [measurement({ metrics: { tg_tps: 12 }, measured_at: "2026-10-29T13:00:00Z" })],
       {
-        query: "version=10.1&view=performance&compare=10.0",
+        query: "version=10.1&view=performance&compare=10.2",
         compareMeasurements: [
           measurement({
-            rocm_version: "10.0",
+            rocm_version: "10.2",
             metrics: { tg_tps: 9 },
             measured_at: "2026-10-28T11:00:00Z",
           }),
           measurement({
-            rocm_version: "10.0",
+            rocm_version: "10.2",
             metrics: { tg_tps: 10 },
             measured_at: "2026-10-28T12:00:00Z",
           }),
@@ -234,7 +234,7 @@ describe("PerformanceView", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByText("ROCm 10.0 comparison")).toBeInTheDocument(),
+      expect(screen.getByText("ROCm 10.2 comparison")).toBeInTheDocument(),
     );
     expect(screen.getByText(/Δ \+2(?:\.0+)? tok\/s/)).toBeInTheDocument();
     expect(screen.getAllByText(/2026/).length).toBeGreaterThanOrEqual(2);
@@ -242,12 +242,12 @@ describe("PerformanceView", () => {
 
   it("leaves hardware, quant, workload, and context mismatches explicitly unmatched", async () => {
     renderView([measurement()], {
-      query: "version=10.1&view=performance&compare=10.0",
+      query: "version=10.1&view=performance&compare=10.2",
       compareMeasurements: [
-        measurement({ rocm_version: "10.0", system_id: "other-system" }),
-        measurement({ rocm_version: "10.0", quant: "Q8_0" }),
-        measurement({ rocm_version: "10.0", scenario: "long-prompt" }),
-        measurement({ rocm_version: "10.0", context_size: 8192 }),
+        measurement({ rocm_version: "10.2", system_id: "other-system" }),
+        measurement({ rocm_version: "10.2", quant: "Q8_0" }),
+        measurement({ rocm_version: "10.2", scenario: "long-prompt" }),
+        measurement({ rocm_version: "10.2", context_size: 8192 }),
       ],
       compareSystems: [system, { ...system, id: "other-system" }],
     });
@@ -256,7 +256,7 @@ describe("PerformanceView", () => {
       expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
     );
     expect(screen.getByText(/1 selected observation.*unmatched/)).toBeInTheDocument();
-    expect(screen.getByText(/4 ROCm 10\.0 observations.*unmatched/)).toBeInTheDocument();
+    expect(screen.getByText(/4 ROCm 10\.2 observations.*unmatched/)).toBeInTheDocument();
     expect(screen.queryByText(/Δ /)).not.toBeInTheDocument();
   });
 
@@ -264,10 +264,10 @@ describe("PerformanceView", () => {
     renderView(
       [measurement({ system_id: null, context_size: null, input_tokens: null })],
       {
-        query: "version=10.1&view=performance&compare=10.0",
+        query: "version=10.1&view=performance&compare=10.2",
         compareMeasurements: [
           measurement({
-            rocm_version: "10.0",
+            rocm_version: "10.2",
             system_id: null,
             context_size: null,
             input_tokens: null,
@@ -295,8 +295,8 @@ describe("PerformanceView", () => {
       vram_gb: null,
     } as unknown as typeof system;
     renderView([measurement()], {
-      query: "version=10.1&view=performance&compare=10.0",
-      compareMeasurements: [measurement({ rocm_version: "10.0" })],
+      query: "version=10.1&view=performance&compare=10.2",
+      compareMeasurements: [measurement({ rocm_version: "10.2" })],
       currentSystems: [incompleteSystem],
       compareSystems: [incompleteSystem],
     });

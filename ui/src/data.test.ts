@@ -93,7 +93,7 @@ describe("immutable dataset session", () => {
             schema_version: 2,
             rocm_version: "10.1",
             month: "2026-10",
-            builds: [overview("10.0").engines[0].latest_builds[0]],
+            builds: [overview("10.2").engines[0].latest_builds[0]],
           },
         }),
       ),
@@ -142,11 +142,11 @@ describe("immutable dataset session", () => {
   it("switches versions using the existing revision without rereading the pointer", async () => {
     const session = await loadSession(undefined, fixtureFetch());
     const fetcher = vi.fn(fixtureFetch());
-    const result = await loadVersion(session, "10.0", fetcher);
-    expect(result.version).toBe("10.0");
+    const result = await loadVersion(session, "10.2", fetcher);
+    expect(result.version).toBe("10.2");
     expect(fetcher.mock.calls).toHaveLength(1);
     expect(String(fetcher.mock.calls[0][0])).toContain(
-      `/${pointer.data_commit}/data/rocm/10.0/`,
+      `/${pointer.data_commit}/data/rocm/10.2/`,
     );
   });
   it("rejects unknown versions rather than silently showing another scope", async () => {
@@ -206,7 +206,7 @@ describe("immutable dataset session", () => {
       loadSession(
         undefined,
         fixtureFetch({
-          [new URL("rocm/10.1/overview.json", indexUrl).href]: overview("10.0"),
+          [new URL("rocm/10.1/overview.json", indexUrl).href]: overview("10.2"),
         }),
       ),
     ).rejects.toThrow("does not match");
@@ -290,4 +290,77 @@ describe("immutable dataset session", () => {
   ])("rejects paths escaping the session: %s", (path) => {
     expect(() => resolveDatasetPath(indexUrl, path)).toThrow("dataset path");
   });
+});
+it("retains source freshness thresholds from the pinned index", async () => {
+  const session = await loadSession(
+    undefined,
+    fixtureFetch({
+      [indexUrl]: {
+        ...index,
+        sources: [
+          {
+            id: "llamacpp-stable-qualification",
+            engine: "llamacpp",
+            channel: "stable",
+            status: "fresh",
+            stale_after_hours: 72,
+          },
+        ],
+      },
+    }),
+  );
+  expect(session.index.sources).toEqual([
+    {
+      id: "llamacpp-stable-qualification",
+      engine: "llamacpp",
+      channel: "stable",
+      status: "fresh",
+      stale_after_hours: 72,
+    },
+  ]);
+});
+it("rejects invalid source freshness thresholds", async () => {
+  await expect(
+    loadSession(
+      undefined,
+      fixtureFetch({
+        [indexUrl]: {
+          ...index,
+          sources: [
+            {
+              id: "stable",
+              engine: "llamacpp",
+              channel: "stable",
+              status: "fresh",
+              stale_after_hours: -1,
+            },
+          ],
+        },
+      }),
+    ),
+  ).rejects.toThrow(/stale_after_hours/);
+});
+it("accepts nullable and zero freshness metadata in existing schema-2 indexes", async () => {
+  for (const stale_after_hours of [null, 0]) {
+    const session = await loadSession(
+      undefined,
+      fixtureFetch({
+        [indexUrl]: {
+          ...index,
+          sources: [
+            {
+              id: "stable",
+              engine: "llamacpp",
+              channel: "stable",
+              status: "fresh",
+              stale_after_hours,
+            },
+          ],
+        },
+      }),
+    );
+    expect(session.index.sources?.[0].stale_after_hours).toBe(
+      stale_after_hours,
+    );
+  }
 });

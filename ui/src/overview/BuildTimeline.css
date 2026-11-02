@@ -1,0 +1,126 @@
+.build-tile {
+  margin-top: 1.25rem;
+}
+.build-timeline-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.build-timeline {
+  width: 100%;
+  min-width: 800px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  table-layout: fixed;
+}
+.build-timeline th,
+.build-timeline td {
+  padding: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  text-align: center;
+}
+.build-timeline .os-column,
+.build-timeline th[scope="row"] {
+  width: 120px;
+  text-align: left;
+}
+.build-timeline h4 {
+  margin: 0;
+}
+.build-timeline small {
+  display: block;
+}
+.build-day {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 24px;
+  justify-content: center;
+  align-items: center;
+}
+.build-mark {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+.build-mark.pass,
+.build-key.pass {
+  background: var(--good);
+}
+.build-mark.fail,
+.build-key.fail {
+  background: var(--bad);
+}
+.build-mark:focus-visible,
+.build-evidence-missing:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.build-evidence-missing {
+  color: var(--text);
+  min-width: 20px;
+  text-align: center;
+}
+.build-key {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+.build-legend {
+  font-size: 0.85rem;
+}
+.build-legend > span {
+  white-space: nowrap;
+}
+.build-timeline th[aria-current="date"] {
+  color: var(--yellow);
+  font-weight: 700;
+}
+.evidence-unavailable-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.build-timeline-card {
+  min-width: 0;
+}
+.build-no-data {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+.readiness-version {
+  margin: 2rem 0;
+}
+.build-timeline h5 {
+  margin: 0;
+  font-size: inherit;
+}
+
+.build-tooltip-bubble {
+  pointer-events: none;
+  z-index: 100;
+  overflow-wrap: anywhere;
+}
+.build-tooltip-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 10px 0 0;
+}
+.build-tooltip-details dt {
+  color: var(--muted);
+}
+.build-tooltip-details dd {
+  margin: 0;
+}
+
+.build-timeline .build-months th[scope="colgroup"] {
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.55rem;
+}
+.build-timeline .month-boundary {
+  border-left: 2px solid var(--line);
+}

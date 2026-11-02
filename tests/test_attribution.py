@@ -52,6 +52,175 @@ def evidence(**changes):
 
 
 class AttributionTests(unittest.TestCase):
+    def cached_stable_resolver(
+        self,
+        *,
+        cache_tag=None,
+        marker_tag=None,
+        engine_version="b11513",
+        version="10.0.0",
+        rocm_version="10.0",
+        commit="0c8169f5bf869314051897d43e9c2aa8017f46b5",
+    ):
+        cache_tag = cache_tag or engine_version
+        marker_tag = marker_tag or engine_version
+        package = f"https://github.com/lemonade-sdk/llama.cpp/releases/download/{engine_version}/llama-{engine_version}-bin-ubuntu-rocm-{rocm_version}-x64.tar.gz"
+        versions = json.dumps({"therock": {"version": version}})
+        calls = []
+
+        def run(args):
+            calls.append(args)
+            if "--slurp" in args:
+                return json.dumps(
+                    [
+                        {
+                            "jobs": [
+                                {
+                                    "id": 99,
+                                    "name": "Bench llamacpp-rocm-stable",
+                                    "started_at": "2026-10-27T10:00:00Z",
+                                    "completed_at": "2026-10-27T11:00:00Z",
+                                }
+                            ]
+                        }
+                    ]
+                )
+            if "contents/src/cpp/resources/benchmark_forks.json" in args[1]:
+                return json.dumps(
+                    {
+                        "forks": [
+                            {
+                                "fork_id": "llamacpp-rocm-stable",
+                                "repo": "lemonade-sdk/llama.cpp",
+                                "arch": "gfx1151",
+                                "binary_url_linux": package.replace(
+                                    engine_version, "{version}"
+                                ).replace(
+                                    f"rocm-{rocm_version}-", "rocm-{therock_ver}-"
+                                ),
+                            }
+                        ]
+                    }
+                )
+            if "contents/src/cpp/resources/backend_versions.json" in args[1]:
+                return versions
+            if args[0] == "api":
+                return json.dumps(
+                    {
+                        "tag_name": engine_version,
+                        "assets": [{"browser_download_url": package}],
+                    }
+                )
+            return (
+                "git log -1 --format=%H\n"
+                + commit
+                + "\n[cache] "
+                + marker_tag
+                + " already installed: /home/runner/bench-binaries/llamacpp-rocm-stable/llama-"
+                + cache_tag
+                + "/llama-server\n"
+            )
+
+        return run, calls, versions, package, commit
+
+    def test_cached_stable_uses_pinned_backend_versions_for_therock_template(self):
+        run, calls, versions, package, commit = self.cached_stable_resolver()
+        row = measurement(engine_version="b11513")
+        result = resolve_package(row, run)
+        self.assertEqual(result["package_url"], package)
+        registry = result["job_evidence"][0]["registry_evidence"]
+        version_evidence = registry["backend_versions"]
+        self.assertEqual(version_evidence["body"], versions)
+        self.assertEqual(
+            version_evidence["sha256"], hashlib.sha256(versions.encode()).hexdigest()
+        )
+        self.assertEqual(
+            version_evidence["url"],
+            f"https://raw.githubusercontent.com/lemonade-sdk/lemonade/{commit}/src/cpp/resources/backend_versions.json",
+        )
+        self.assertTrue(
+            any(f"backend_versions.json?ref={commit}" in args[1] for args in calls)
+        )
+        attribute_stable({"measurements": [row]}, [result])
+        self.assertEqual(row["rocm_version"], "10.0")
+        for changes in (
+            {"sha256": "0" * 64},
+            {"url": version_evidence["url"].replace(commit, "a" * 40)},
+            {
+                "body": json.dumps({"therock": {"version": "10.1.0"}}),
+                "sha256": hashlib.sha256(
+                    json.dumps({"therock": {"version": "10.1.0"}}).encode()
+                ).hexdigest(),
+            },
+        ):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                broken = copy.deepcopy(row)
+                broken["attribution"]["job_evidence"][0]["registry_evidence"][
+                    "backend_versions"
+                ].update(changes)
+                validate_measurement_package(broken)
+        broken = copy.deepcopy(row)
+        del broken["attribution"]["job_evidence"][0]["registry_evidence"][
+            "backend_versions"
+        ]
+        with self.assertRaisesRegex(ValueError, "missing pinned backend versions"):
+            validate_measurement_package(broken)
+
+    def test_cached_stable_rejects_different_cache_marker_tag(self):
+        run, _, _, _, _ = self.cached_stable_resolver(marker_tag="b99999")
+        with self.assertRaisesRegex(ValueError, "package is missing or ambiguous"):
+            resolve_package(measurement(engine_version="b11513"), run)
+
+    def test_cached_package_keeps_its_release_tag_when_archive_directory_differs(self):
+        run, _, _, package, _ = self.cached_stable_resolver(
+            engine_version="b10883",
+            cache_tag="b10882",
+            version="7.14.0",
+            rocm_version="7.14",
+            commit="a5dbbb1e976723d642aa7c57bffd6fd609b719c0",
+        )
+        row = measurement(engine_version="b10883")
+        result = resolve_package(row, run)
+        self.assertEqual(result["package_url"], package)
+        job = result["job_evidence"][0]
+        self.assertEqual(
+            job["cache_binary_path"],
+            "/home/runner/bench-binaries/llamacpp-rocm-stable/llama-b10882/llama-server",
+        )
+        self.assertEqual(job["cache_marker_version"], "b10883")
+        attribute_stable({"measurements": [row]}, [result])
+        self.assertEqual(row["rocm_version"], "7.14")
+        for change in (
+            {"cache_marker_version": "b10882"},
+            {
+                "cache_binary_path": "/home/runner/bench-binaries/another-fork/llama-b10882/llama-server"
+            },
+            {
+                "cache_binary_path": "/home/runner/bench-binaries/llamacpp-rocm-stable/../other/llama-server"
+            },
+            {
+                "cache_binary_path": "/home/runner/bench-binaries/llamacpp-rocm-stable/llama-b10882/wrong-binary"
+            },
+        ):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                broken = copy.deepcopy(row)
+                broken["attribution"]["job_evidence"][0].update(change)
+                validate_measurement_package(broken)
+
+    def test_cached_package_rejects_unrecognized_extraction_layout(self):
+        for cache_tag in ("other", "b10882/../other", "b10882/nested"):
+            with self.subTest(cache_tag=cache_tag), self.assertRaisesRegex(
+                ValueError, "package is missing or ambiguous"
+            ):
+                run, _, _, _, _ = self.cached_stable_resolver(cache_tag=cache_tag)
+                resolve_package(measurement(engine_version="b11513"), run)
+
+    def test_cached_stable_rejects_missing_or_malformed_therock_version(self):
+        for version in (None, "", "10", "10.0/../../other"):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                run, _, _, _, _ = self.cached_stable_resolver(version=version)
+                resolve_package(measurement(engine_version="b11513"), run)
+
     def test_nightly_package_uses_verified_release_runtime(self):
         row = measurement(
             channel="nightly",
@@ -556,3 +725,69 @@ class AttributionTests(unittest.TestCase):
             )
         self.assertEqual(error.exception.diagnostic["record"], "/packages/0")
         self.assertEqual(error.exception.diagnostic["field"], "package_evidence")
+
+    def test_equivalent_download_method_enriches_legacy_job_evidence(self):
+        legacy = evidence(
+            scope="all_available_attempts",
+            measurement_times=[measurement()["measured_at"]],
+            job_evidence=[
+                {
+                    "job_id": "99",
+                    "package_url": PACKAGE,
+                    "evidence_url": evidence()["evidence_url"],
+                    "log_sha256": "a" * 64,
+                }
+            ],
+        )
+        explicit = copy.deepcopy(legacy)
+        explicit["job_evidence"][0]["method"] = "download_log"
+        untouched = copy.deepcopy(legacy)
+        single = {"measurements": [measurement()]}
+        attribute_stable(single, [legacy])
+        self.assertEqual(single["package_evidence"], [legacy])
+        for records in ([legacy, explicit], [explicit, legacy]):
+            with self.subTest(records=records):
+                output = {"measurements": [measurement()]}
+                attribute_stable(output, records)
+                self.assertEqual(len(output["package_evidence"]), 1)
+                self.assertEqual(
+                    output["package_evidence"][0]["job_evidence"][0]["method"],
+                    "download_log",
+                )
+        self.assertEqual(legacy, untouched)
+        for change in (
+            {"log_sha256": "b" * 64},
+            {"method": "different_method"},
+            {"registry_evidence": {"url": "different"}},
+            {"package_url": PACKAGE.replace("10.1", "10.0")},
+        ):
+            with self.subTest(change=change), self.assertRaises(
+                PipelineValidationError
+            ):
+                changed = copy.deepcopy(explicit)
+                changed["job_evidence"][0].update(change)
+                attribute_stable({"measurements": [measurement()]}, [legacy, changed])
+
+    def test_equivalent_cached_evidence_can_add_validated_path_details(self):
+        run, _, _, _, _ = self.cached_stable_resolver()
+        explicit = resolve_package(measurement(engine_version="b11513"), run)
+        legacy = copy.deepcopy(explicit)
+        for field in ("cache_binary_path", "cache_marker_version"):
+            del legacy["job_evidence"][0][field]
+        for records in ([legacy, explicit], [explicit, legacy]):
+            with self.subTest(records=records):
+                output = {"measurements": [measurement(engine_version="b11513")]}
+                attribute_stable(output, records)
+                self.assertEqual(
+                    output["package_evidence"][0]["job_evidence"],
+                    explicit["job_evidence"],
+                )
+        conflict = copy.deepcopy(explicit)
+        conflict["job_evidence"][0][
+            "cache_binary_path"
+        ] = "/different/bench-binaries/llamacpp-rocm-stable/llama-b11513/llama-server"
+        with self.assertRaisesRegex(PipelineValidationError, "conflicting job"):
+            attribute_stable(
+                {"measurements": [measurement(engine_version="b11513")]},
+                [explicit, conflict],
+            )

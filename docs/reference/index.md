@@ -14,8 +14,9 @@ is **2** and the current package association contract is `attribution_version: 2
 | `/engines` | array of engine objects, required | Copies [configuration engine metadata](sources.md); catalog lists configured engines even when a version has no corresponding card. |
 | `/sources` | array of source-state objects, required | Per-feed collection/provenance metadata below. |
 | `/reference_model` | JSON value, required | Configuration value copied unchanged; null when absent. |
-| `/default_version` | ROCm version string or null, required | First version in numeric descending version order, or null for an empty catalog. |
-| `/versions` | array of version entries, required | Union of versions with retained in-scope builds or assigned measurements, in numeric descending order. |
+| `/default_version` | ROCm version string or null, required | First supplied version, or null when empty. With configured readiness scope this is the anchor when recorded, otherwise the earliest recorded upcoming track. |
+| `/versions` | array of version entries, required | Union of versions with in-scope builds, assigned measurements or executions. Configured readiness scope emits anchor/newer tracks in numeric ascending order; legacy unscoped datasets use descending order. |
+| `/readiness` | object, optional | Additive metadata `{ "stable_anchor": "10.1" }` copied from collector policy; when present all ROCm records are scoped to this version and newer. |
 | `/versions/*/rocm_version` | string, required | Dotted nonnegative integer version components, e.g. `10.1`. |
 | `/versions/*/overview` | relative path string, required | `rocm/<version>/overview.json`. |
 | `/versions/*/build_count` | nonnegative integer, required | Count of retained, merged, in-scope build records for this version across engines. |
@@ -93,3 +94,9 @@ embedding version files:
 
 See [field lineage](mappings.md) for version ordering, retained-history identity,
 and independently pinned examples.
+
+Benchmark execution inventories retain their recorded outcomes independently of build
+qualification. `qualification_build_id` is filled only for a unique exact package
+association (repository, engine, channel, ROCm version, package tag, OS and artifact).
+Missing/ambiguous association remains null. Conformance independently verifies links
+in scoped datasets; producer qualification and publication states are unchanged.

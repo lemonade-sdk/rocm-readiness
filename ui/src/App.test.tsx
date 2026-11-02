@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -17,9 +18,19 @@ function mount(fetcher = fixtureFetch(), entry = "/") {
     </MemoryRouter>,
   );
 }
+it("omits engine and channel sections without build records", async () => {
+  mount();
+  await screen.findByRole("region", { name: "ROCm 10.1" });
+  for (const name of ["vLLM", "Whisper", "Stable Diffusion"])
+    expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: /Nightly/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+});
 it("shows separate linked UI and active data versions without the tagline", async () => {
   mount();
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
   const ui = screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ });
   expect(ui.getAttribute("href")).toMatch(
     /^https:\/\/github.com\/lemonade-sdk\/rocm-readiness\/commit\/[a-f0-9]{40}$/,
@@ -93,16 +104,24 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
     fixtureFetch({ [new URL("rocm/10.1/overview.json", indexUrl).href]: data }),
     "/?version=10.1&platform=linux",
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
-  expect(screen.getByRole("heading", { name: "Linux" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
+  const engine = within(
+    within(await screen.findByRole("region", { name: "ROCm 10.1" })).getByRole(
+      "region",
+      { name: "llama.cpp stable build history" },
+    ),
+  );
+  expect(engine.getByRole("heading", { name: "Linux" })).toBeInTheDocument();
+  expect(engine.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
   expect(
     screen.queryByRole("group", { name: "Platform" }),
   ).not.toBeInTheDocument();
-  const link = screen.getByRole("link", { name: /b11972/ });
+  const link = within(
+    screen.getByRole("region", { name: "ROCm 10.1" }),
+  ).getByRole("link", { name: /b11972.*linux-build/ });
   const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
   expect(Object.fromEntries(query)).toMatchObject({
-    view: "engine",
+    view: "build",
     engine: "llamacpp",
     version: "10.1",
     platform: "linux",
@@ -111,14 +130,14 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
     source: "llamacpp-stable-qualification",
   });
   fireEvent.click(link);
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
-  expect(
-    await screen.findByText("Selected stable build: linux-build"),
-  ).toBeInTheDocument();
+  await screen.findByRole("heading", { name: "Build evidence" });
   expect(
     screen.queryByRole("link", { name: /Open build history-2 / }),
   ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Show all engine builds" }));
+  fireEvent.click(screen.getByRole("link", { name: "Engine builds" }));
+  fireEvent.click(
+    await screen.findByRole("link", { name: "Show all engine builds" }),
+  );
   expect(
     (await screen.findAllByRole("link", { name: /Open build history-2 / }))
       .length,
@@ -127,7 +146,7 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");
   expect(
-    await screen.findByRole("heading", { name: "ROCm 10.1 readiness" }),
+    await screen.findByRole("heading", { name: "ROCm Readiness" }),
   ).toBeInTheDocument();
 });
 it("shows a not-measured state for versions without measurements", async () => {
@@ -139,7 +158,7 @@ it("shows a not-measured state for versions without measurements", async () => {
       },
     }),
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
   expect(
     screen.queryByText("Not measured", { exact: true }),
   ).not.toBeInTheDocument();
@@ -148,11 +167,11 @@ it("shows a not-measured state for versions without measurements", async () => {
 it("loads the default version and shows real dataset scope", async () => {
   mount();
   expect(
-    await screen.findByRole("heading", { name: "ROCm 10.1 readiness" }),
+    await screen.findByRole("heading", { name: "ROCm Readiness" }),
   ).toBeInTheDocument();
-  expect(screen.getByLabelText("ROCm version")).toHaveValue("10.1");
+  expect(screen.queryByLabelText("ROCm version")).not.toBeInTheDocument();
   expect(
-    screen.getByRole("heading", { name: "llama.cpp" }),
+    (await screen.findAllByRole("heading", { name: "llama.cpp" }))[0],
   ).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Pinned dataset" })).toHaveAttribute(
     "href",
@@ -167,7 +186,7 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
       : original(input),
   );
   mount(fetcher);
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
   fetcher.mockRejectedValue(new Error("Network offline"));
   fireEvent.click(await screen.findByRole("button", { name: "Retry history" }));
   await waitFor(() =>
@@ -178,7 +197,7 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
     ).toBe(true),
   );
   expect(
-    screen.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    screen.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeInTheDocument();
   expect(
     screen.getByText(/Keeping the last usable dataset/),
@@ -189,7 +208,7 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
 });
 it("omits the normal status strip and refresh button", async () => {
   mount();
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
   expect(screen.queryByLabelText("Data status")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Refresh data" }),
@@ -203,7 +222,7 @@ it("supports retry after initial fetch failure", async () => {
   await screen.findByRole("alert");
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(
-    await screen.findByRole("heading", { name: "ROCm 10.1 readiness" }),
+    await screen.findByRole("heading", { name: "ROCm Readiness" }),
   ).toBeInTheDocument();
 });
 it("shows an ingestion failure separately from the usable snapshot", async () => {
@@ -227,7 +246,7 @@ it("shows an ingestion failure separately from the usable snapshot", async () =>
         },
     }),
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "ROCm Readiness" });
   expect(screen.getByText("Latest ingestion failed")).toBeInTheDocument();
   expect(screen.getByText(/Producer unavailable/)).toBeInTheDocument();
 });
@@ -235,36 +254,36 @@ it("does not show the old version under a newly selected version while loading",
   let resolve!: (response: Response) => void;
   const original = fixtureFetch();
   const fetcher = vi.fn((input: string | URL | Request) =>
-    String(input).includes("10.0/overview")
+    String(input).includes("10.2/overview")
       ? new Promise<Response>((done) => {
           resolve = done;
         })
       : original(input),
   );
-  mount(fetcher);
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  mount(fetcher, "/?view=engine");
+  await screen.findByRole("heading", { name: "llama.cpp builds" });
   fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.0" },
+    target: { value: "10.2" },
   });
   expect(
-    screen.queryByRole("heading", { name: "ROCm 10.1 readiness" }),
+    screen.queryByRole("heading", { name: "llama.cpp builds" }),
   ).not.toBeInTheDocument();
   await waitFor(() => expect(resolve).toBeDefined());
   fireEvent.change(screen.getByLabelText("ROCm version"), {
     target: { value: "10.1" },
   });
-  await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
+  await screen.findByRole("heading", { name: "llama.cpp builds" });
   await act(async () =>
-    resolve(new Response(JSON.stringify(overview("10.0")))),
+    resolve(new Response(JSON.stringify(overview("10.2")))),
   );
   expect(
-    screen.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    screen.getByRole("heading", { name: "llama.cpp builds" }),
   ).toBeInTheDocument();
 });
 it("reopens shared engine scope and preserves filters in navigation", async () => {
   mount(
     fixtureFetch(),
-    "/?version=10.0&view=engine&platform=linux&build=linux-build",
+    "/?version=10.2&view=engine&platform=linux&build=linux-build",
   );
   expect(
     await screen.findByRole("heading", { name: "llama.cpp builds" }),

@@ -50,10 +50,17 @@
           "channel": "stable",
           "backend": "rocm",
           "repository": "lemonade-sdk/llama.cpp"
+        },
+        "llamacpp-upstream-vulkan": {
+          "engine": "llamacpp",
+          "channel": "reference",
+          "backend": "vulkan",
+          "repository": "ggml-org/llama.cpp"
         }
       },
       "include_forks": [
-        "llamacpp-rocm-stable"
+        "llamacpp-rocm-stable",
+        "llamacpp-upstream-vulkan"
       ],
       "type": "readiness",
       "project": "lemonade",

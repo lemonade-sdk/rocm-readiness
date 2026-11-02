@@ -1,0 +1,81 @@
+{
+  "source_url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/e65f962ae17e3de30ef06aa04bbb3d7fd47b4835/leaderboard.json",
+  "source_pointer": "/by_model_scenario/Gemma-4-31B-it-GGUF|context-32k",
+  "document": {
+    "systems": [
+      {
+        "id": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S|0.5|linux",
+        "cpu": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S",
+        "gpu": "gfx1151",
+        "gpu_full": [
+          {
+            "integrated": true,
+            "name": "AMD Radeon Graphics (gfx1151)",
+            "type": "amd",
+            "vram_gb": 0.5
+          }
+        ],
+        "vram_gb": 0.5,
+        "ram_gb": 124.95,
+        "os": "linux",
+        "lemonade_version": "v2026.44.1"
+      }
+    ],
+    "by_model_scenario": {
+      "Gemma-4-31B-it-GGUF|context-32k": [
+        {
+          "model": "Gemma-4-31B-it-GGUF",
+          "scenario": "context-32k",
+          "fork_id": "llamacpp-upstream-vulkan",
+          "fork_label": "llama.cpp Vulkan (upstream reference)",
+          "fork_repo": "ggml-org/llama.cpp",
+          "fork_version": "b11946",
+          "rocm_version": null,
+          "backend": "vulkan",
+          "ctx_size": 32768,
+          "quant": "Q4_K_M",
+          "tps_mean": 9.25,
+          "tps_p95": 9.29,
+          "tg_tps": 9.25,
+          "ttft_ms_mean": 118101.56,
+          "ttft_ms_best": 118082.49,
+          "pp_tps": 203.5112924915859,
+          "input_tokens": 24035,
+          "vram_peak_gb": 23.478900909423828,
+          "timestamp": "2026-10-28T02:39:16Z",
+          "lemonade_version": "v2026.43.3",
+          "hw_id": "AMD RYZEN AI MAX+ 395 w/ Radeon 8060S|0.5|linux",
+          "run_id": "40537509555",
+          "run_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40537509555",
+          "commit": "4830d4819ef56549a723a1d23208d2a0927b7999"
+        }
+      ]
+    },
+    "history": {
+      "Gemma-4-31B-it-GGUF": {
+        "context-32k": {
+          "llamacpp-upstream-vulkan": [
+            {
+              "version": "b11946",
+              "rocm_version": null,
+              "timestamp": "2026-10-28T02:39:16Z",
+              "tps_mean": 9.25,
+              "tps_p95": 9.29,
+              "tg_tps": 9.25,
+              "ttft_ms_mean": 118101.56,
+              "ttft_ms_best": 118082.49,
+              "pp_tps": 203.5112924915859,
+              "vram_peak_gb": 23.478900909423828,
+              "input_tokens": 24035,
+              "quant": "Q4_K_M",
+              "lemonade_version": "v2026.43.3",
+              "run_id": "40537509555",
+              "run_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40537509555"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "history_source_pointer": "/history/Gemma-4-31B-it-GGUF/context-32k/llamacpp-upstream-vulkan/2"
+}

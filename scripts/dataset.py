@@ -497,6 +497,34 @@ def _validate_comparison(row):
     )
 
 
+def _retain_comparison(indexed, row):
+    """Collapse latest/history copies, keeping explicitly reported settings."""
+    key = _measurement_key(row)
+    previous = indexed.get(key)
+    if previous is None:
+        indexed[key] = row
+        return
+    # One source may repeat an observation in its latest and history sections.
+    # Do not turn differing non-null settings/metrics into an arbitrary winner.
+    for field in MEASUREMENT_FIELDS:
+        if field in ("kind", "source_pointer"):
+            continue
+        left, right = previous.get(field), row.get(field)
+        _require(
+            left is None or right is None or left == right,
+            f"conflicting comparison {field} for observation {key}",
+        )
+    selected, other = (
+        (row, previous)
+        if row.get("kind") == "latest" and previous.get("kind") != "latest"
+        else (previous, row)
+    )
+    for field in ("system_id", "context_size", "input_tokens"):
+        if selected.get(field) is None:
+            selected[field] = other.get(field)
+    indexed[key] = selected
+
+
 def _join_measurement(row, builds):
     matches = []
     for build in builds:
@@ -773,7 +801,7 @@ def write_dataset(
         )
         systems[(system["source_id"], system["id"])] = system
     current = {}
-    comparisons = []
+    comparisons = {}
     for raw in output["measurements"]:
         if not in_readiness_scope(raw, policy):
             continue
@@ -781,7 +809,7 @@ def write_dataset(
         row["source_url"] = row["source_url"] or source_urls.get(row["source_id"])
         if row.get("backend") in ("vulkan", "hrx"):
             _validate_comparison(row)
-            comparisons.append(row)
+            _retain_comparison(comparisons, row)
             continue
         if row["rocm_version"] is None:
             raise PipelineValidationError(
@@ -921,6 +949,7 @@ def write_dataset(
                 "build_count": count,
             }
         )
+    comparisons = list(comparisons.values())
     performance = {
         "schema_version": 2,
         "measurements": comparisons,

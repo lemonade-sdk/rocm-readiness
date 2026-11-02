@@ -4,90 +4,94 @@ import {
   overview,
   historyFixture,
   indexUrl,
+  index,
 } from "../src/fixtures";
 
-test("comparison tooltips disclose dated qualification and result changes", async ({
+test("individual build marks retain outcomes and exact identity in a clean session", async ({
   page,
-}, testInfo) => {
+  browser,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
   const data = overview();
-  const current = {
-    ...data.engines[0].latest_builds[0],
-    tests: {
-      passed: 1,
-      failed: 0,
-      warned: 0,
-      skipped: 0,
-      missing: 1,
-      total: 2,
+  const base = data.engines[0].latest_builds[0];
+  const builds = [
+    { ...base, build_id: "warning", tag: "b-warning", overall: "warn" },
+    {
+      ...base,
+      build_id: "failed",
+      tag: "b-failed",
+      qualified: false,
+      overall: "fail",
+      os: "windows",
+      report_url: null,
     },
-    results: { "T0.1": "pass", "T0.2": "missing" },
-  };
-  data.engines[0].latest_builds = [current];
-  const history = historyFixture();
-  const rows = history.builds.map((row, i) =>
-    i === 0
-      ? current
-      : {
-          ...row,
-          tag: `b${11972 - i}`,
-          generated_at: new Date(
-            Date.parse(current.generated_at) - i * 86400000,
-          ).toISOString(),
-          tests: {
-            passed: 2,
-            failed: 0,
-            warned: 0,
-            skipped: 0,
-            missing: 0,
-            total: 2,
-          },
-          results: { "T0.1": "pass", "T0.2": "pass" },
-        },
-  );
+    { ...base, build_id: "unknown", tag: "b-unknown", qualified: null },
+  ];
+  data.engines[0].latest_builds = [
+    { ...base, build_id: "warning", tag: "b-warning", overall: "warn" },
+  ];
+  data.engines[0].build_count = 3;
+  data.history[0].build_count = 3;
   const fixture = fixtureFetch({
+    [indexUrl]: {
+      ...index,
+      versions: index.versions.map((row, i) =>
+        i === 0 ? { ...row, build_count: 3 } : row,
+      ),
+    },
     [new URL("rocm/10.1/overview.json", indexUrl).href]: data,
     [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
-      ...history,
-      builds: rows,
+      ...historyFixture(),
+      builds,
     },
   });
-  await page.route("https://raw.githubusercontent.com/**", async (route) => {
+  const routeFixture = async (route: import("@playwright/test").Route) => {
     const response = await fixture(route.request().url());
     await route.fulfill({
       status: response.status,
       body: await response.text(),
       contentType: "application/json",
     });
-  });
+  };
+  await page.route("https://raw.githubusercontent.com/**", routeFixture);
   await page.goto("./");
-  const qualification = page.getByRole("button", {
-    name: "Qualified. Compare linux shipping readiness with previous build",
-  });
-  await expect(qualification).toBeVisible();
-  if (testInfo.project.name === "mobile") await qualification.click();
-  else await qualification.hover();
-  await expect(page.getByRole("tooltip")).toContainText(
-    "Shipping readiness unchanged: qualified",
+  await expect(page.getByRole("link", { name: /b-warning.*Pass/ })).toHaveClass(
+    /build-mark pass/,
   );
+  const failed = page.getByRole("link", { name: /b-failed.*Fail/ });
+  await expect(failed).toHaveClass(/build-mark fail/);
   await expect(
-    page.getByRole("tooltip").getByRole("row", { name: /Previous/ }),
-  ).toContainText("b11970");
-  await expect(page.getByRole("tooltip")).toContainText("UTC");
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("tooltip")).toHaveCount(0);
-  const checks = page.getByRole("button", {
-    name: "Checks passed 1 of 2. Compare linux check results with previous build",
-  });
-  await checks.click();
-  await expect(page.getByRole("tooltip")).toContainText(
-    "1 check: passed → missing",
+    page.getByRole("link", { name: /b-unknown.*Evidence unavailable/ }),
+  ).not.toHaveClass(/build-mark/);
+  for (const text of ["Compiled GPU targets", "Checks passed", "Qualified"])
+    await expect(page.getByText(text, { exact: true })).toHaveCount(0);
+  const href = await failed.getAttribute("href");
+  expect(href).toContain("view=build");
+  expect(href).toContain("platform=windows");
+  expect(href).toContain("source=llamacpp-stable-qualification");
+  await failed.click();
+  await expect(
+    page.getByRole("heading", { name: "Build evidence", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "b-failed", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue(
+    "windows",
   );
-  const box = await page.getByRole("tooltip").evaluate((node) => {
-    const b = node.getBoundingClientRect();
-    return { left: b.left, right: b.right, width: innerWidth };
-  });
-  expect(box.left).toBeGreaterThanOrEqual(0);
-  expect(box.right).toBeLessThanOrEqual(box.width);
-  await page.getByRole("heading", { name: "ROCm 10.1 readiness" }).click();
-  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  const url = page.url();
+  const clean = await browser.newContext();
+  try {
+    await clean.route("https://raw.githubusercontent.com/**", routeFixture);
+    const fresh = await clean.newPage();
+    await fresh.goto(url);
+    await expect(
+      fresh.getByRole("heading", { name: "b-failed", exact: true }),
+    ).toBeVisible();
+    await expect(fresh.getByLabel("Platform", { exact: true })).toHaveValue(
+      "windows",
+    );
+  } finally {
+    await clean.close();
+  }
 });

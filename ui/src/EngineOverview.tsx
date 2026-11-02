@@ -1,155 +1,197 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { LinkArrow } from "./LinkArrow";
 import type { Build, Overview } from "./data";
-import { previousBuild, checkChanges } from "./overview/comparison";
-import { Tooltip } from "./overview/Tooltip";
-import { BuildComparison } from "./overview/BuildComparison";
-import { PlatformChecks } from "./ReadinessVisuals";
+import { EvidenceUnavailableIcon } from "./EvidenceUnavailableIcon";
+import {
+  buildDate,
+  buildIdentity,
+  calendarDays,
+  exactBuildHref,
+  qualificationOutcome,
+} from "./overview/buildTimeline";
+import "./overview/BuildTimeline.css";
 
 type Props = {
   engines: Overview["engines"];
   version: string;
   history?: Build[] | null;
+  now?: Date;
 };
 
-function engineLink(version: string, engine: string, build?: Build) {
-  const query = new URLSearchParams({ version, view: "engine", engine });
-  if (build) {
-    query.set("channel", build.channel);
-    query.set("platform", build.os);
-    query.set("build", build.build_id);
-    if (build.source_id) query.set("source", build.source_id);
-  }
-  return `?${query}`;
+function platformLabel(os: string) {
+  return os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 }
 
-export function EngineOverview({ engines, version, history = null }: Props) {
+function BuildMark({ build }: { build: Build }) {
+  const outcome = qualificationOutcome(build);
+  const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${outcome === null ? "Evidence unavailable" : outcome === "pass" ? "Pass (producer qualified)" : "Fail (producer unqualified)"}`;
+  return (
+    <Link
+      to={exactBuildHref(build)}
+      aria-label={label}
+      title={label}
+      className={
+        outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
+      }
+    >
+      {outcome === null ? <EvidenceUnavailableIcon /> : null}
+    </Link>
+  );
+}
+
+export function EngineOverview({
+  engines,
+  version,
+  history = null,
+  now,
+}: Props) {
+  const [clock, setClock] = useState(() => new Date());
+  useEffect(() => {
+    if (now) return;
+    const timer = window.setInterval(() => setClock(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [now]);
+  const days = calendarDays(now ?? clock);
+  const today = days.at(-1)!;
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
-      {engines
-        .filter((engine) => engine.latest_builds.length > 0)
-        .map((engine) => (
-          <article className="card engine-card" key={engine.id}>
-            <div className="card-heading">
-              <div className="engine-identity">
-                <span className="engine-icon" aria-hidden="true">
-                  ⌘
-                </span>
-                <div>
-                  <h2>{engine.label}</h2>
-                  <p>Current stable · ROCm {version}</p>
-                </div>
-              </div>
-              <Link className="text-link" to={engineLink(version, engine.id)}>
-                Explore engine <LinkArrow />
-              </Link>
-            </div>
-            <div className="platform-grid">
-              {engine.latest_builds.map((build) => {
-                const previous = previousBuild(build, history);
-                const qualification = (
-                  <span className={`pill ${build.qualified ? "good" : "bad"}`}>
-                    <span aria-hidden="true">●</span>{" "}
-                    {build.qualified ? "Qualified" : "Not qualified"}
-                  </span>
-                );
-                return (
-                  <div
-                    className="platform-card"
-                    key={`${build.source_id ?? ""}:${build.os}:${build.build_id}`}
-                  >
-                    <div className="card-heading">
-                      <h3>
-                        {build.os === "linux"
-                          ? "Linux"
-                          : build.os === "windows"
-                            ? "Windows"
-                            : build.os}
-                      </h3>
-                      {build.qualified != null &&
-                        (previous?.qualified != null ? (
-                          <Tooltip
-                            key={`${build.build_id}:${previous.build_id}:qualification`}
-                            label={`${build.qualified ? "Qualified" : "Not qualified"}. Compare ${build.os} shipping readiness with previous build`}
-                            content={
-                              <BuildComparison
-                                current={build}
-                                previous={previous}
-                                kind="qualification"
-                              />
-                            }
-                          >
-                            {qualification}
-                          </Tooltip>
-                        ) : (
-                          qualification
-                        ))}
-                    </div>
-                    <Link
-                      className="build-tag"
-                      to={engineLink(version, engine.id, build)}
+      <p className="build-legend">
+        <span>
+          <i className="build-key pass" /> Pass: producer qualified
+        </span>{" "}
+        <span>
+          <i className="build-key fail" /> Fail: producer unqualified
+        </span>{" "}
+        <span>
+          <EvidenceUnavailableIcon /> Evidence unavailable
+        </span>
+      </p>
+      {history === null && (
+        <p role="status">
+          History loading or unavailable; showing latest recorded builds only.
+        </p>
+      )}
+      {engines.map((engine) => {
+        const records = history ?? engine.latest_builds;
+        const builds = [
+          ...new Map(
+            records
+              .filter(
+                (build) =>
+                  build.engine === engine.id && build.rocm_version === version,
+              )
+              .map((build) => [buildIdentity(build), build]),
+          ).values(),
+        ].sort(
+          (a, b) =>
+            Date.parse(a.generated_at) - Date.parse(b.generated_at) ||
+            buildIdentity(a).localeCompare(buildIdentity(b)),
+        );
+        if (!builds.length) return null;
+        const channels = [
+          ...new Set(builds.map((build) => build.channel)),
+        ].sort((a, b) => Number(b === "stable") - Number(a === "stable"));
+        return (
+          <article
+            className="card engine-card build-timeline-card"
+            key={engine.id}
+            aria-label={engine.label}
+          >
+            <h2>{engine.label}</h2>
+            {channels.map((channel) => {
+              const channelBuilds = builds.filter(
+                (build) => build.channel === channel,
+              );
+              const platforms = [
+                ...new Set([
+                  ...engine.platforms,
+                  ...channelBuilds.map((build) => build.os),
+                ]),
+              ];
+              return (
+                <section
+                  key={channel}
+                  className="build-tile"
+                  aria-label={`${engine.label} ROCm ${version} ${channel}`}
+                >
+                  <h3>
+                    ROCm {version}
+                    {` · ${channel === "stable" ? "Stable" : "Nightly"}`}
+                  </h3>
+                  {platforms.length > 0 && (
+                    <div
+                      className="build-timeline-scroll"
+                      tabIndex={0}
+                      role="region"
+                      aria-label={`${engine.label} ${channel} build history`}
                     >
-                      {build.tag ?? build.build_id} <LinkArrow />
-                    </Link>
-                    <p>
-                      Report:{" "}
-                      <time dateTime={build.generated_at}>
-                        {new Intl.DateTimeFormat("en", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                          timeZone: "UTC",
-                        }).format(new Date(build.generated_at))}{" "}
-                        UTC
-                      </time>
-                    </p>
-                    {build.tests && (
-                      <PlatformChecks
-                        build={build}
-                        checksLabel={
-                          previous && checkChanges(build, previous) ? (
-                            <Tooltip
-                              key={`${build.build_id}:${previous.build_id}:checks`}
-                              label={`Checks passed ${build.tests.passed} of ${build.tests.total}. Compare ${build.os} check results with previous build`}
-                              content={
-                                <BuildComparison
-                                  current={build}
-                                  previous={previous}
-                                  kind="checks"
-                                />
-                              }
-                            >
-                              Checks passed
-                            </Tooltip>
-                          ) : undefined
-                        }
-                      />
-                    )}
-                    {build.hardware_validated != null && (
-                      <div className="evidence-line">
-                        <span>GPU hardware verification</span>
-                        <strong>
-                          {build.hardware_validated
-                            ? `Recorded${build.gfx_target ? ` · ${build.gfx_target}` : ""}`
-                            : "Not validated"}
-                        </strong>
-                      </div>
-                    )}
-                    {build.report_url && (
-                      <a
-                        className="text-link"
-                        href={build.report_url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Source report <LinkArrow />
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      <table className="build-timeline">
+                        <thead>
+                          <tr>
+                            <th scope="col">OS</th>
+                            {days.map((day) => (
+                              <th
+                                scope="col"
+                                key={day}
+                                aria-label={`${day} UTC`}
+                                aria-current={
+                                  day === today ? "date" : undefined
+                                }
+                              >
+                                <time dateTime={day}>{day.slice(5)}</time>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {platforms.map((os) => {
+                            const rows = channelBuilds.filter(
+                              (build) => build.os === os,
+                            );
+                            return (
+                              <tr key={os}>
+                                <th scope="row">
+                                  <h4>{platformLabel(os)}</h4>
+                                  {!rows.length && (
+                                    <small>No qualification evidence</small>
+                                  )}
+                                </th>
+                                {days.map((day) => (
+                                  <td key={day}>
+                                    <div className="build-day">
+                                      {!rows.some(
+                                        (build) => buildDate(build) === day,
+                                      ) && (
+                                        <span className="build-no-data">
+                                          No data
+                                        </span>
+                                      )}
+                                      {rows
+                                        .filter(
+                                          (build) => buildDate(build) === day,
+                                        )
+                                        .map((build) => (
+                                          <BuildMark
+                                            key={buildIdentity(build)}
+                                            build={build}
+                                          />
+                                        ))}
+                                    </div>
+                                  </td>
+                                ))}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
           </article>
-        ))}
+        );
+      })}
     </section>
   );
 }

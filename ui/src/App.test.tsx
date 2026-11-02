@@ -3,6 +3,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -17,6 +18,16 @@ function mount(fetcher = fixtureFetch(), entry = "/") {
     </MemoryRouter>,
   );
 }
+it("omits engine and channel sections without build records", async () => {
+  mount();
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  for (const name of ["vLLM", "Whisper", "Stable Diffusion"])
+    expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("heading", { name: /Nightly/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
+});
 it("shows separate linked UI and active data versions without the tagline", async () => {
   mount();
   await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
@@ -94,15 +105,18 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
     "/?version=10.1&platform=linux",
   );
   await screen.findByRole("heading", { name: "ROCm 10.1 readiness" });
-  expect(screen.getByRole("heading", { name: "Linux" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
+  const engine = within(
+    screen.getByRole("region", { name: "llama.cpp stable build history" }),
+  );
+  expect(engine.getByRole("heading", { name: "Linux" })).toBeInTheDocument();
+  expect(engine.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
   expect(
     screen.queryByRole("group", { name: "Platform" }),
   ).not.toBeInTheDocument();
-  const link = screen.getByRole("link", { name: /b11972/ });
+  const link = screen.getByRole("link", { name: /b11972.*linux-build/ });
   const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
   expect(Object.fromEntries(query)).toMatchObject({
-    view: "engine",
+    view: "build",
     engine: "llamacpp",
     version: "10.1",
     platform: "linux",
@@ -111,14 +125,14 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
     source: "llamacpp-stable-qualification",
   });
   fireEvent.click(link);
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
-  expect(
-    await screen.findByText("Selected stable build: linux-build"),
-  ).toBeInTheDocument();
+  await screen.findByRole("heading", { name: "Build evidence" });
   expect(
     screen.queryByRole("link", { name: /Open build history-2 / }),
   ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Show all engine builds" }));
+  fireEvent.click(screen.getByRole("link", { name: "Engine builds" }));
+  fireEvent.click(
+    await screen.findByRole("link", { name: "Show all engine builds" }),
+  );
   expect(
     (await screen.findAllByRole("link", { name: /Open build history-2 / }))
       .length,

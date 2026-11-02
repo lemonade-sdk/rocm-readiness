@@ -66,12 +66,17 @@ metric units. Cross-version comparisons require complete compatible hardware,
 model, quantization and workload settings. Missing metadata remains unmatched.
 Package qualification requires exactly one matching retained build record.
 
-The overview reads all referenced monthly history files at the selected dataset
-revision to show qualified builds out of retained builds, with a separate outcome
-breakdown. Latest-package check bars use published counters; skipped and missing
-checks remain in the total. Partial check breakdowns retain their known counts
-without inventing absent categories. Platform cards also show compiled GPU-target
-coverage and the package's ROCm version.
+The overview reads all referenced monthly history files at one pinned revision.
+Only engines and channels with recorded builds render. Expected OS rows come
+from JSON metadata within populated groups. Each tile has a 14-day UTC calendar
+ending today, with one selectable mark per build. Multiple same-day builds stay
+distinct. Explicit producer qualification determines pass/fail; missing verdicts
+are neutral evidence links, and dates without builds say “No data” without an
+outcome mark. Links open
+exact-build details with OS/source context. Today's date is highlighted in the
+calendar header. Dates are grouped internally in UTC. Qualification does not
+establish actual artifact publication. Page 1
+has no test counts or compiled-target panels; those remain in build details.
 
 Reloading the page reads the live pointer again. Readiness retry controls
 replace an existing active dataset only after its requested version loads successfully;

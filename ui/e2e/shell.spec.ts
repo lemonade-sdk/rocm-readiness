@@ -24,22 +24,26 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("overview engine build links open a scoped Page Two list", async ({
-  page,
-}) => {
+test("overview build marks open exact Page Two details", async ({ page }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
   await expect(
-    page.getByRole("heading", { name: "Linux", exact: true }),
+    page
+      .getByRole("region", {
+        name: "llama.cpp stable build history",
+        exact: true,
+      })
+      .getByRole("heading", { name: "Linux", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Linux", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("link", { name: /b11972/ }).click();
-  await expect(page).toHaveURL(/view=engine/);
+  await page.getByRole("link", { name: /b11972.*linux-build/ }).click();
+  await expect(page).toHaveURL(/view=build/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByText("Selected stable build: linux-build"),
+    page.getByRole("heading", { name: "Build evidence", exact: true }),
   ).toBeVisible();
+  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByRole("link", { name: "Show all engine builds" }).click();
   await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
 });

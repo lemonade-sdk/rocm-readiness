@@ -15,6 +15,7 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
+import sources from "../../sources.json";
 
 function date(value: string | null) {
   return value
@@ -55,7 +56,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         let current = sessionRef.current;
         if (!current || completedRefresh.current !== refresh) {
           current = await loadSession(
-            undefined, fetcher, controller.signal,
+            undefined,
+            fetcher,
+            controller.signal,
             (pointer) => {
               if (!controller.signal.aborted) setLiveSync(pointer.sync);
             },
@@ -69,11 +72,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           }
         }
         const selected = version ?? current.index.default_version;
-        if (
-          track === "readiness" && selected && current.version !== selected
-        ) {
+        if (track === "readiness" && selected && current.version !== selected) {
           current = await loadVersion(
-            current, selected, fetcher, controller.signal,
+            current,
+            selected,
+            fetcher,
+            controller.signal,
           );
           if (controller.signal.aborted) return;
           sessionRef.current = current;
@@ -106,10 +110,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     loadHistory(session, fetcher, controller.signal)
       .then((rows) => {
         if (controller.signal.aborted) return;
-        const builds = rows.filter((build) => build.engine === "llamacpp");
-        const expected = session
-          .overview!.engines.filter((engine) => engine.id === "llamacpp")
-          .reduce((sum, engine) => sum + engine.build_count, 0);
+        const builds = rows;
+        const expected = session.overview!.engines.reduce(
+          (sum, engine) => sum + engine.build_count,
+          0,
+        );
         if (builds.length !== expected)
           throw new Error("Retained history count does not match the overview");
         setHistory({ session, builds, error: null });
@@ -131,8 +136,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const selected = version ?? session?.version ?? "";
   const scopeMatches = session && (!version || session.version === version);
   const overview = scopeMatches ? session.overview : null;
-  const engines =
-    overview?.engines.filter((engine) => engine.id === "llamacpp") ?? [];
+  const engines = (overview?.engines ?? []).map((evidence) => {
+    const configured = sources.engines.find(
+      (engine) => engine.id === evidence.id,
+    );
+    return {
+      ...evidence,
+      platforms: configured?.platforms ?? evidence.platforms,
+    };
+  });
   const platformValid =
     view === "overview" || ["all", "linux", "windows"].includes(platform);
   const viewValid = [
@@ -320,15 +332,20 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             onNavigate={(next) => setParams(next)}
           />
         )}
-        {track === "readiness" && session && scopeMatches && !overview && !busy && !error && (
-          <div className="empty">
-            <h1>No ROCm versions available</h1>
-            <p>
-              The dataset contains no published versions. Refresh to check
-              again.
-            </p>
-          </div>
-        )}
+        {track === "readiness" &&
+          session &&
+          scopeMatches &&
+          !overview &&
+          !busy &&
+          !error && (
+            <div className="empty">
+              <h1>No ROCm versions available</h1>
+              <p>
+                The dataset contains no published versions. Refresh to check
+                again.
+              </p>
+            </div>
+          )}
         {track === "readiness" &&
           overview &&
           (!viewValid || !platformValid) && (
@@ -369,7 +386,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   </h1>
                   <p>
                     {view === "overview"
-                      ? "See the shipping readiness of each engine’s latest stable builds across supported operating systems. Select an engine or build to explore its results."
+                      ? "See recorded build qualification across engines and operating systems. Qualification alone does not establish that artifacts were published."
                       : "Build qualification and model performance, grounded in published evidence."}
                   </p>
                 </div>

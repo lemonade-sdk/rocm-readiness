@@ -159,3 +159,38 @@
     min-width: 36rem;
   }
 }
+
+.performance-reference,
+.performance-history {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+.performance-history-series {
+  margin-top: 1.2rem;
+}
+.performance-history svg {
+  width: 100%;
+  max-height: 18rem;
+  color: var(--text);
+}
+.performance-history svg text {
+  fill: currentColor;
+  font-size: 13px;
+}
+.history-axis {
+  stroke: var(--border);
+}
+.history-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.history-point {
+  fill: currentColor;
+}
+
+.build-browser + div .performance-view {
+  margin-top: 24px;
+}

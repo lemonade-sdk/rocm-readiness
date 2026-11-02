@@ -90,6 +90,7 @@ const indexSchema = z.object({
       status: z.enum(["fresh", "partial"]),
     })
     .optional(),
+  comparison_performance: z.object({ count, path: z.string().min(1) }).optional(),
   versions: z.array(
     z.object({
       rocm_version: z.string().min(1),

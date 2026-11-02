@@ -104,11 +104,11 @@ describe("immutable dataset session", () => {
     expect(session.version).toBe("10.1");
     expect(session.overview?.rocm_version).toBe("10.1");
   });
-  it("reads every version in the independently published repository snapshot", async () => {
+  it.skipIf(!process.env.READINESS_SNAPSHOT)("reads every version in an independently supplied published snapshot", async () => {
     const fetcher = async (input: string | URL | Request) => {
       const url = new URL(String(input));
       const path = url.pathname.split("/data/")[1];
-      return new Response(await readFile(resolve("..", "data", path), "utf8"));
+      return new Response(await readFile(resolve(process.env.READINESS_SNAPSHOT!, path), "utf8"));
     };
     const session = await loadSession(undefined, fetcher);
     expect(session.index.versions.length).toBeGreaterThan(0);

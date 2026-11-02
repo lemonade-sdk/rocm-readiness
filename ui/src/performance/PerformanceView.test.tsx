@@ -2,9 +2,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Build, Session } from "../data";
 import { index, indexUrl, overview, pointer } from "../fixtures";
-import { findExactQualificationBuild, PerformanceView } from "./PerformanceView";
+import {
+  findExactQualificationBuild,
+  PerformanceView,
+} from "./PerformanceView";
 
 type Measurement = {
+  run_url?: string;
+  source_url?: string;
+  lemonade_version?: string;
   source_id?: string;
   engine?: string;
   channel?: string;
@@ -44,6 +50,7 @@ const system = {
 function measurement(overrides: Measurement = {}) {
   return {
     source_id: "lemonade-performance",
+    lemonade_version: "v2026.43.3",
     engine: "llamacpp",
     channel: "stable",
     backend: "rocm",
@@ -88,9 +95,10 @@ function historyBuild(overrides: Partial<Build> = {}): Build {
 function sessionFor(
   currentMeasurements: Measurement[],
   options: {
+    baselineMeasurements?: Measurement[];
     compareMeasurements?: Measurement[];
-    currentSystems?: typeof system[];
-    compareSystems?: typeof system[];
+    currentSystems?: (typeof system)[];
+    compareSystems?: (typeof system)[];
     performanceStatus?: "available" | "not_measured";
     history?: Build[];
   } = {},
@@ -131,12 +139,25 @@ function sessionFor(
   return {
     session: {
       pointer: pointer as unknown as Session["pointer"],
-      index: index as unknown as Session["index"],
+      index: {
+        ...index,
+        ...(options.baselineMeasurements
+          ? {
+              comparison_performance: {
+                count: options.baselineMeasurements.length,
+                path: "performance/comparisons.json",
+              },
+            }
+          : {}),
+      } as unknown as Session["index"],
       indexUrl,
       version: "10.1",
       overview: currentOverview,
     },
     responses: {
+      [new URL("performance/comparisons.json", indexUrl).href]: performance(
+        options.baselineMeasurements ?? [],
+      ),
       [new URL("rocm/10.1/performance.json", indexUrl).href]: performance(
         currentMeasurements,
         options.currentSystems,
@@ -169,9 +190,12 @@ function renderView(
   const { session, responses } = sessionFor(currentMeasurements, options);
   const fetcher = vi.fn(async (input: string | URL | Request) => {
     const url = String(input);
-    return new Response(JSON.stringify(responses[url] ?? { error: "missing" }), {
-      status: url in responses ? 200 : 404,
-    });
+    return new Response(
+      JSON.stringify(responses[url] ?? { error: "missing" }),
+      {
+        status: url in responses ? 200 : 404,
+      },
+    );
   });
   vi.stubGlobal("fetch", fetcher);
   const onNavigate = vi.fn();
@@ -214,7 +238,12 @@ describe("PerformanceView", () => {
 
   it("compares deterministic latest observations only when exact hardware and workload identities match", async () => {
     renderView(
-      [measurement({ metrics: { tg_tps: 12 }, measured_at: "2026-10-29T13:00:00Z" })],
+      [
+        measurement({
+          metrics: { tg_tps: 12 },
+          measured_at: "2026-10-29T13:00:00Z",
+        }),
+      ],
       {
         query: "version=10.1&view=performance&compare=10.2",
         compareMeasurements: [
@@ -255,14 +284,25 @@ describe("PerformanceView", () => {
     await waitFor(() =>
       expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
     );
-    expect(screen.getByText(/1 selected observation.*unmatched/)).toBeInTheDocument();
-    expect(screen.getByText(/4 ROCm 10\.2 observations.*unmatched/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 selected observation.*unmatched/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/4 ROCm 10\.2 observations.*unmatched/),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Δ /)).not.toBeInTheDocument();
   });
 
   it("does not compare observations whose hardware or context metadata is absent", async () => {
     renderView(
-      [measurement({ system_id: null, context_size: null, input_tokens: null })],
+      [
+        measurement({
+          system_id: null,
+          context_size: null,
+          input_tokens: null,
+          package_url: null,
+        }),
+      ],
       {
         query: "version=10.1&view=performance&compare=10.2",
         compareMeasurements: [
@@ -271,6 +311,7 @@ describe("PerformanceView", () => {
             system_id: null,
             context_size: null,
             input_tokens: null,
+            package_url: null,
           }),
         ],
         currentSystems: [],
@@ -281,7 +322,9 @@ describe("PerformanceView", () => {
     await waitFor(() =>
       expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
     );
-    expect(screen.getByText(/Missing hardware or workload metadata/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Missing hardware or workload metadata/),
+    ).toBeInTheDocument();
   });
 
   it("requires complete published hardware records instead of trusting a shared system ID", async () => {
@@ -304,7 +347,9 @@ describe("PerformanceView", () => {
     await waitFor(() =>
       expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
     );
-    expect(screen.getByText(/Missing hardware or workload metadata/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Missing hardware or workload metadata/),
+    ).toBeInTheDocument();
   });
 
   it("shows an unmeasured version without requesting its performance file", async () => {
@@ -343,7 +388,9 @@ describe("PerformanceView", () => {
         screen.getByText("No matching stable qualification history record"),
       ).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Package qualification: Qualified")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Package qualification: Qualified"),
+    ).not.toBeInTheDocument();
   });
 
   it("applies model, system, workload, and measurement-platform URL filters and preserves unrelated parameters on model navigation", async () => {
@@ -364,7 +411,9 @@ describe("PerformanceView", () => {
     await waitFor(() =>
       expect(screen.getByRole("link", { name: "Model A" })).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("link", { name: "Model B" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Model B" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("link", { name: "Model A" }));
     const next = onNavigate.mock.calls[0][0] as URLSearchParams;
     expect(next.get("view")).toBe("model");
@@ -374,5 +423,231 @@ describe("PerformanceView", () => {
     expect(next.get("platform")).toBe("linux");
     expect(next.get("version")).toBe("10.1");
     expect(next.get("keep")).toBe("1");
+  });
+});
+
+describe("focused model detail", () => {
+  it("keeps the fixed ordinary Gemma reference at Q4 and 32K without substituting MTP or 4K", async () => {
+    renderView(
+      [
+        measurement({
+          model: "Gemma-4-31B-it-GGUF",
+          context_size: 32768,
+          scenario: "context-32k",
+          engine_version: "b11932",
+          metrics: { tg_tps: 15, ttft_ms_mean: 1250 },
+        }),
+        measurement({
+          model: "Gemma-4-31B-it-GGUF",
+          context_size: 4096,
+          scenario: "context-4k",
+          engine_version: "wrong-4k",
+        }),
+        measurement({
+          model: "Gemma-4-31B-it-GGUF",
+          context_size: 32768,
+          scenario: "context-32k",
+          quant: "Q8_0",
+          engine_version: "wrong-quant",
+        }),
+        measurement({
+          model: "Gemma-4-31B-it-GGUF-MTP",
+          context_size: 32768,
+          scenario: "context-32k",
+          engine_version: "wrong-mtp",
+        }),
+      ],
+      {
+        query:
+          "version=10.1&view=model&model=Gemma-4-31B-it-GGUF&reference=gemma-31b-32k&workload=context-32k",
+      },
+    );
+    await screen.findByRole("region", { name: "Model measurement history" });
+    expect(screen.getAllByText("b11932").length).toBeGreaterThan(0);
+    expect(screen.queryByText("wrong-4k")).not.toBeInTheDocument();
+    expect(screen.queryByText("wrong-quant")).not.toBeInTheDocument();
+    expect(screen.queryByText("wrong-mtp")).not.toBeInTheDocument();
+    expect(screen.getByText("1.25 s")).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Model", { selector: "select" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Answer accuracy: unavailable/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Vulkan baseline unavailable in this dataset."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows compatible points separately from incomplete historical observations", async () => {
+    renderView(
+      [
+        measurement({
+          measured_at: "2026-10-28T12:00:00Z",
+          metrics: { tg_tps: 10 },
+        }),
+        measurement({
+          measured_at: "2026-10-29T12:00:00Z",
+          metrics: { tg_tps: 15 },
+        }),
+        measurement({ system_id: null, engine_version: "old-unidentified" }),
+      ],
+      { query: "version=10.1&view=model&model=Model%20A" },
+    );
+    await screen.findByRole("region", { name: "Model measurement history" });
+    expect(screen.getAllByRole("img")).toHaveLength(1);
+    expect(
+      screen.getByText(/1 observation excluded from comparable history/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/old-unidentified/)[0]).toBeInTheDocument();
+    expect(
+      screen.getByRole("table", { name: "Series 1 observations" }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not assign older model measurements to a newer selected qualification build", async () => {
+    renderView([measurement({ qualification_build_id: "build-100" })], {
+      history: [historyBuild()],
+      query:
+        "version=10.1&view=engine&engine=llamacpp&build=new-build&platform=linux",
+    });
+    await screen.findByText(/No exactly associated model measurements/);
+    expect(
+      screen.queryByRole("link", { name: "Model A" }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("scope restoration", () => {
+  it("matches qualification dates in UTC and preserves the scoped engine return URL", async () => {
+    const { onNavigate } = renderView(
+      [measurement({ qualification_build_id: "build-100" })],
+      {
+        history: [
+          historyBuild({
+            generated_at: "2026-10-28T23:30:00-04:00",
+            source_id: "qualification-source",
+          }),
+        ],
+        query:
+          "version=10.1&view=engine&engine=llamacpp&channel=stable&source=qualification-source&date=2026-10-29&platform=linux",
+      },
+    );
+    const link = await screen.findByRole("link", { name: "Model A" });
+    const next = new URL(link.getAttribute("href")!, "https://example.test")
+      .searchParams;
+    expect(next.get("return_view")).toBe("engine");
+    expect(next.get("source")).toBe("qualification-source");
+    expect(next.get("date")).toBe("2026-10-29");
+    fireEvent.click(link);
+    expect(
+      (onNavigate.mock.calls[0][0] as URLSearchParams).get("return_view"),
+    ).toBe("engine");
+  });
+  it("does not show a cross-version comparison outside a narrowed qualification scope", async () => {
+    renderView([measurement()], {
+      query: "version=10.1&view=engine&date=2026-11-02&compare=10.2",
+      compareMeasurements: [measurement({ rocm_version: "10.2" })],
+    });
+    await screen.findByText(
+      "No stable llama.cpp ROCm measurements match these filters.",
+    );
+    expect(screen.queryByText("ROCm 10.2 comparison")).not.toBeInTheDocument();
+  });
+});
+
+describe("fixed reference Vulkan baseline", () => {
+  const reference = {
+    model: "Gemma-4-31B-it-GGUF",
+    scenario: "context-32k",
+    context_size: 32768,
+    input_tokens: 24035,
+    lemonade_version: "v2026.43.3",
+    run_url:
+      "https://github.com/lemonade-sdk/lemonade/actions/runs/40537509555",
+  };
+  it("uses system OS for a null-ROCm Vulkan baseline and preserves both actual packages", async () => {
+    renderView(
+      [
+        measurement({
+          ...reference,
+          engine_version: "b11932",
+          metrics: { tg_tps: 15 },
+        }),
+      ],
+      {
+        query:
+          "version=10.1&view=model&model=Gemma-4-31B-it-GGUF&reference=gemma-31b-32k&workload=context-32k",
+        baselineMeasurements: [
+          measurement({
+            ...reference,
+            backend: "vulkan",
+            channel: "reference",
+            fork_id: "llamacpp-upstream-vulkan",
+            engine_repository: "ggml-org/llama.cpp",
+            engine_version: "b11946",
+            rocm_version: null,
+            package_os: null,
+            package_url: null,
+            metrics: { tg_tps: 12 },
+          }),
+        ],
+      },
+    );
+    await screen.findByRole("table", {
+      name: "Observed backend configurations",
+    });
+    expect(
+      screen.getByText(/vulkan · ggml-org\/llama.cpp · b11946/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Vulkan is baseline evidence with no ROCm qualification/,
+      ),
+    ).toBeInTheDocument();
+  });
+  it("does not compare a baseline with unknown input settings", async () => {
+    renderView([measurement({ ...reference })], {
+      query:
+        "version=10.1&view=model&model=Gemma-4-31B-it-GGUF&reference=gemma-31b-32k&workload=context-32k",
+      baselineMeasurements: [
+        measurement({
+          ...reference,
+          backend: "vulkan",
+          rocm_version: null,
+          package_os: null,
+          input_tokens: null,
+          package_url: null,
+        }),
+      ],
+    });
+    await screen.findByText(
+      "No compatible Vulkan baseline with complete hardware and workload metadata.",
+    );
+    expect(
+      screen.queryByRole("table", { name: "Observed backend configurations" }),
+    ).not.toBeInTheDocument();
+  });
+  it("rejects baseline evidence carrying a ROCm qualification identity", async () => {
+    renderView([measurement({ ...reference })], {
+      query:
+        "version=10.1&view=model&model=Gemma-4-31B-it-GGUF&reference=gemma-31b-32k&workload=context-32k",
+      baselineMeasurements: [
+        measurement({
+          ...reference,
+          backend: "vulkan",
+          rocm_version: null,
+          package_os: null,
+          package_url: null,
+          qualification_build_id: "forged-build",
+        }),
+      ],
+    });
+    await screen.findByText(
+      /Baseline has conflicting ROCm package or qualification identity/,
+    );
+    expect(
+      screen.queryByRole("table", { name: "Observed backend configurations" }),
+    ).not.toBeInTheDocument();
   });
 });

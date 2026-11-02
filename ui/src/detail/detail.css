@@ -1,0 +1,28 @@
+.execution-evidence {
+  margin-top: 1.5rem;
+}
+.detail-scroll {
+  overflow-x: auto;
+}
+.detail-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.detail-scroll th,
+.detail-scroll td {
+  text-align: left;
+  padding: 0.75rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.detail-scroll small {
+  display: block;
+  margin-top: 0.25rem;
+}
+.scope-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}

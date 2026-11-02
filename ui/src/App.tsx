@@ -14,6 +14,8 @@ import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
+import { ExecutionEvidence } from "./detail/ExecutionEvidence";
+import { scopeBuilds, resetScope } from "./detail/scope";
 import { UpstreamView } from "./upstream/UpstreamView";
 
 function date(value: string | null) {
@@ -372,13 +374,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               >
                 <div>
                   {view !== "overview" && (
-                    <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                    <div className="eyebrow">ROCm / BUILD QUALIFICATION</div>
                   )}
                   <h1>
                     {view === "overview"
                       ? "ROCm Readiness"
                       : view === "engine"
-                        ? "llama.cpp builds"
+                        ? "Engine build and model overview"
                         : view === "build"
                           ? "Build evidence"
                           : "Model performance"}
@@ -434,32 +436,43 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   </div>
                 ) : (
                   <div onClick={handleLocalNavigation}>
-                    {view === "engine" && params.get("build") && (
-                      <div className="notice">
-                        <p>Selected stable build: {params.get("build")}</p>
-                        <Link
-                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
+                    {view === "engine" &&
+                      ["build", "source", "channel", "platform", "date"].some(
+                        (key) => params.has(key),
+                      ) && (
+                        <div
+                          className="notice scope-notice"
+                          aria-label="Selected scope"
                         >
-                          Show all engine builds
-                        </Link>
-                      </div>
+                          <p>
+                            Selected scope:{" "}
+                            {[
+                              "engine",
+                              "channel",
+                              "build",
+                              "source",
+                              "platform",
+                              "date",
+                            ]
+                              .filter((key) => params.has(key))
+                              .map((key) => `${key}: ${params.get(key)}`)
+                              .join(" · ")}
+                          </p>
+                          <Link to={`?${resetScope(params)}`}>
+                            Show all engine builds
+                          </Link>
+                        </div>
+                      )}
+                    {view === "build" && (
+                      <Link to={href("engine")}>← Back to engine overview</Link>
                     )}
                     <BuildBrowser
                       session={session}
                       history={
                         history?.session === session
-                          ? (history.builds?.filter(
-                              (build) =>
-                                view !== "engine" ||
-                                !params.get("build") ||
-                                (build.build_id === params.get("build") &&
-                                  (!params.get("source") ||
-                                    build.source_id === params.get("source")) &&
-                                  (!params.get("engine") ||
-                                    build.engine === params.get("engine")) &&
-                                  (!params.get("channel") ||
-                                    build.channel === params.get("channel"))),
-                            ) ?? null)
+                          ? history.builds
+                            ? scopeBuilds(history.builds, params)
+                            : null
                           : null
                       }
                       platform={platform}
@@ -478,6 +491,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                       buildHref={(build) =>
                         href("build", {
                           build: build.build_id,
+                          engine: build.engine,
+                          channel: build.channel,
                           platform: build.os,
                           ...(build.source_id
                             ? { source: build.source_id }
@@ -487,9 +502,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                     />
                   </div>
                 ))}
-              {["performance", "model"].includes(view) && (
+              {["engine", "performance", "model"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView
+                    fetcher={fetcher}
                     session={session}
                     params={params}
                     onNavigate={(next) => setParams(next)}
@@ -511,6 +527,14 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                     }}
                   />
                 </div>
+              )}
+              {["engine", "model", "build"].includes(view) && (
+                <ExecutionEvidence
+                  session={session}
+                  fetcher={fetcher}
+                  params={params}
+                  builds={history?.session === session ? history.builds : null}
+                />
               )}
             </>
           )}

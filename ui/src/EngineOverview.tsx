@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { Tooltip } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
@@ -23,19 +24,32 @@ function platformLabel(os: string) {
   return os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 }
 
-function BuildMark({ build }: { build: Build }) {
+function BuildMark({
+  build,
+  viaOverview = false,
+}: {
+  build: Build;
+  viaOverview?: boolean;
+}) {
+  const destination = new URLSearchParams(exactBuildHref(build).slice(1));
+  if (viaOverview) {
+    destination.set("view", "engine");
+    destination.set("date", buildDate(build));
+  }
   const outcome = qualificationOutcome(build);
   const failureReasons = [
     ...(build.blocked_by ?? []),
     ...(build.blocking_tests ?? []),
     ...Object.entries(build.results ?? {})
-      .filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase()))
+      .filter(([, result]) =>
+        ["fail", "failed", "error"].includes(result.toLowerCase()),
+      )
       .map(([test]) => `${test} failed`),
   ];
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${outcome === null ? "Evidence unavailable" : outcome === "pass" ? "Pass (producer qualified)" : "Fail (producer unqualified)"}`;
   return (
     <Tooltip
-      to={exactBuildHref(build)}
+      to={`?${destination}`}
       label={label}
       triggerClassName={
         outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
@@ -58,7 +72,11 @@ function BuildMark({ build }: { build: Build }) {
             {outcome === "fail" && (
               <>
                 <dt>Failure reason</dt>
-                <dd>{failureReasons.length ? [...new Set(failureReasons)].join("; ") : "Not reported"}</dd>
+                <dd>
+                  {failureReasons.length
+                    ? [...new Set(failureReasons)].join("; ")
+                    : "Not reported"}
+                </dd>
               </>
             )}
             <dt>Reported</dt>
@@ -164,7 +182,15 @@ export function EngineOverview({
             aria-label={engine.label}
           >
             <EngineHeading className="build-engine-heading">
-              {engine.label}
+              {nested ? (
+                <Link
+                  to={`?${new URLSearchParams({ view: "engine", version, engine: engine.id })}`}
+                >
+                  {engine.label}
+                </Link>
+              ) : (
+                engine.label
+              )}
             </EngineHeading>
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
@@ -279,6 +305,7 @@ export function EngineOverview({
                                         .map((build) => (
                                           <BuildMark
                                             key={buildIdentity(build)}
+                                            viaOverview={nested}
                                             build={build}
                                           />
                                         ))}

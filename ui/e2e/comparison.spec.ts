@@ -66,15 +66,15 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
   for (const text of ["Compiled GPU targets", "Checks passed", "Qualified"])
     await expect(page.getByText(text, { exact: true })).toHaveCount(0);
   const href = await failed.getAttribute("href");
-  expect(href).toContain("view=build");
+  expect(href).toContain("view=engine");
   expect(href).toContain("platform=windows");
   expect(href).toContain("source=llamacpp-stable-qualification");
   await failed.click();
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Engine build and model overview", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "b-failed", exact: true }),
+    page.getByRole("heading", { name: "Open build failed from llamacpp-stable-qualification on Windows", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Platform", { exact: true })).toHaveValue(
     "windows",
@@ -86,7 +86,7 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
     const fresh = await clean.newPage();
     await fresh.goto(url);
     await expect(
-      fresh.getByRole("heading", { name: "b-failed", exact: true }),
+      fresh.getByRole("heading", { name: "Open build failed from llamacpp-stable-qualification on Windows", exact: true }),
     ).toBeVisible();
     await expect(fresh.getByLabel("Platform", { exact: true })).toHaveValue(
       "windows",

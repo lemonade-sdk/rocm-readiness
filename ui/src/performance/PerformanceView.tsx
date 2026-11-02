@@ -1,150 +1,80 @@
 import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
 import { loadHistory, loadVersion, resolveDatasetPath } from "../data";
-import type { Build, Session } from "../data";
+import type { Build, Fetcher, Session } from "../data";
 import "./PerformanceView.css";
+import {
+  text,
+  performanceSchema,
+  Measurement,
+  SystemRecord,
+  PerformanceData,
+  metricInfo,
+  missingSystemFilter,
+  sourceSystemKey,
+  errorMessage,
+  isAbort,
+  formatDate,
+  formatNumber,
+  metricName,
+  metricValue,
+  packageLabel,
+  stableMeasurements,
+  comparisonKey,
+  measurementTieBreaker,
+  latestByComparisonKey,
+  systemSummary,
+  plural,
+  fixedReference,
+  isFixedReference,
+} from "./modelData";
+import { ModelHistory } from "./ModelHistory";
+import { VulkanComparison } from "./VulkanComparison";
+export { fixedReference } from "./modelData";
 
-const timestamp = z
-  .string()
-  .refine((value) => Number.isFinite(Date.parse(value)), "Expected an ISO timestamp");
-const text = z.string().min(1);
-const nullableText = text.nullable().optional();
-const nullableCount = z.number().finite().int().nonnegative().nullable().optional();
-
-const measurementSchema = z.object({
-  source_id: text,
-  engine: text,
-  channel: text,
-  backend: text,
-  fork_id: nullableText,
-  engine_repository: nullableText,
-  engine_version: nullableText,
-  model: text,
-  scenario: text,
-  quant: nullableText,
-  system_id: nullableText,
-  context_size: nullableCount,
-  input_tokens: nullableCount,
-  measured_at: timestamp,
-  rocm_version: nullableText,
-  package_os: nullableText,
-  package_url: z.string().url().nullable().optional(),
-  qualification_build_id: nullableText,
-  metrics: z.record(z.string(), z.number().finite()).optional().default({}),
-});
-
-const systemSchema = z
-  .object({
-    id: text,
-    source_id: text,
-    cpu: nullableText,
-    gpu: nullableText,
-    gpu_full: z.array(z.unknown()).nullable().optional(),
-    os: nullableText,
-    memory: nullableText,
-    ram_gb: z.number().finite().nullable().optional(),
-    vram_gb: z.number().finite().nullable().optional(),
-    gfx_target: nullableText,
-  })
-  .passthrough();
-
-const performanceSchema = z.object({
-  schema_version: z.literal(2),
-  measurements: z.array(measurementSchema),
-  systems: z.array(systemSchema),
-});
-
-type Measurement = z.infer<typeof measurementSchema>;
-type SystemRecord = z.infer<typeof systemSchema>;
-type PerformanceData = {
-  measurements: Measurement[];
-  systems: Map<string, SystemRecord>;
-};
 type HistoryState = { builds: Build[] | null; error: string | null };
 type ComparisonState =
   | { kind: "none" }
-  | { kind: "ready"; version: string; data: PerformanceData; history: HistoryState }
+  | {
+      kind: "ready";
+      version: string;
+      data: PerformanceData;
+      history: HistoryState;
+    }
   | { kind: "unmeasured"; version: string }
   | { kind: "error"; version: string; error: string };
 type LoadState =
   | { kind: "loading" }
-  | { kind: "ready"; data: PerformanceData; history: HistoryState; comparison: ComparisonState }
+  | {
+      kind: "ready";
+      data: PerformanceData;
+      history: HistoryState;
+      comparison: ComparisonState;
+    }
   | { kind: "error"; error: string };
-
-const metricInfo: Record<string, { label: string; unit: string }> = {
-  tps_mean: { label: "Mean throughput", unit: "tok/s" },
-  tps_p95: { label: "P95 throughput", unit: "tok/s" },
-  tg_tps: { label: "Token generation throughput", unit: "tok/s" },
-  pp_tps: { label: "Prompt processing throughput", unit: "tok/s" },
-  ttft_ms_mean: { label: "Mean time to first token", unit: "ms" },
-  ttft_ms_best: { label: "Best time to first token", unit: "ms" },
-  vram_peak_gb: { label: "Peak VRAM", unit: "GB" },
-};
-const missingSystemFilter = "__missing_hardware__";
-
-function sourceSystemKey(sourceId: string, systemId: string) {
-  return JSON.stringify([sourceId, systemId]);
-}
-
-function errorMessage(reason: unknown, fallback: string) {
-  return reason instanceof Error ? reason.message : fallback;
-}
-
-function isAbort(reason: unknown) {
-  return reason instanceof DOMException && reason.name === "AbortError";
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(value)) + " UTC";
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(value);
-}
-
-function metricName(name: string) {
-  return metricInfo[name]?.label ?? name.replaceAll("_", " ");
-}
-
-function metricValue(name: string, value: number) {
-  const unit = metricInfo[name]?.unit;
-  return unit ? `${formatNumber(value)} ${unit}` : `${formatNumber(value)} (unit unavailable)`;
-}
-
-function packageLabel(row: Measurement) {
-  return row.engine_version ?? "Engine tag unavailable";
-}
-
-function stableMeasurements(data: PerformanceData) {
-  return data.measurements.filter(
-    (row) =>
-      row.engine === "llamacpp" &&
-      row.channel === "stable" &&
-      row.backend === "rocm",
-  );
-}
 
 function isQualificationCandidate(row: Measurement) {
   return Boolean(row.qualification_build_id);
 }
 
-async function readPerformance(session: Session, signal: AbortSignal): Promise<PerformanceData> {
+async function readPerformance(
+  session: Session,
+  signal: AbortSignal,
+  fetcher: Fetcher,
+): Promise<PerformanceData> {
   const performance = session.overview?.performance;
   if (!performance || performance.status !== "available" || !performance.path) {
     throw new Error("This ROCm version has no published performance file.");
   }
   const url = resolveDatasetPath(session.indexUrl, performance.path);
-  const response = await fetch(url, {
+  const response = await fetcher(url, {
     cache: "no-store",
     signal,
     redirect: "error",
   });
   if (!response.ok) {
-    throw new Error(`${url}: HTTP ${response.status}. Retry or check the published data.`);
+    throw new Error(
+      `${url}: HTTP ${response.status}. Retry or check the published data.`,
+    );
   }
   let raw: unknown;
   try {
@@ -159,13 +89,18 @@ async function readPerformance(session: Session, signal: AbortSignal): Promise<P
       `${url}: invalid ${issue.path.join(".") || "document"} — ${issue.message}`,
     );
   }
-  if (parsed.data.measurements.some((row) => row.rocm_version !== session.version)) {
-    throw new Error(`${url}: measurement ROCm version does not match the selected version.`);
+  if (
+    parsed.data.measurements.some((row) => row.rocm_version !== session.version)
+  ) {
+    throw new Error(
+      `${url}: measurement ROCm version does not match the selected version.`,
+    );
   }
   const systems = new Map<string, SystemRecord>();
   for (const record of parsed.data.systems) {
     const key = sourceSystemKey(record.source_id, record.id);
-    if (systems.has(key)) throw new Error(`${url}: duplicate source-scoped system identity.`);
+    if (systems.has(key))
+      throw new Error(`${url}: duplicate source-scoped system identity.`);
     systems.set(key, record);
   }
   return { measurements: parsed.data.measurements, systems };
@@ -175,13 +110,18 @@ async function loadHistoryIfNeeded(
   session: Session,
   rows: Measurement[],
   signal: AbortSignal,
+  fetcher: Fetcher,
 ): Promise<HistoryState> {
-  if (!rows.some(isQualificationCandidate)) return { builds: null, error: null };
+  if (!rows.some(isQualificationCandidate))
+    return { builds: null, error: null };
   try {
-    return { builds: await loadHistory(session, fetch, signal), error: null };
+    return { builds: await loadHistory(session, fetcher, signal), error: null };
   } catch (reason) {
     if (signal.aborted || isAbort(reason)) throw reason;
-    return { builds: null, error: errorMessage(reason, "Unable to load qualification history.") };
+    return {
+      builds: null,
+      error: errorMessage(reason, "Unable to load qualification history."),
+    };
   }
 }
 
@@ -189,9 +129,19 @@ async function loadViewData(
   session: Session,
   compareVersion: string | null,
   signal: AbortSignal,
-): Promise<{ data: PerformanceData; history: HistoryState; comparison: ComparisonState }> {
-  const data = await readPerformance(session, signal);
-  const history = await loadHistoryIfNeeded(session, stableMeasurements(data), signal);
+  fetcher: Fetcher,
+): Promise<{
+  data: PerformanceData;
+  history: HistoryState;
+  comparison: ComparisonState;
+}> {
+  const data = await readPerformance(session, signal, fetcher);
+  const history = await loadHistoryIfNeeded(
+    session,
+    stableMeasurements(data),
+    signal,
+    fetcher,
+  );
   if (!compareVersion) return { data, history, comparison: { kind: "none" } };
   if (compareVersion === session.version) {
     return {
@@ -205,12 +155,21 @@ async function loadViewData(
     };
   }
   try {
-    const other = await loadVersion(session, compareVersion, fetch, signal);
+    const other = await loadVersion(session, compareVersion, fetcher, signal);
     if (other.overview?.performance.status !== "available") {
-      return { data, history, comparison: { kind: "unmeasured", version: compareVersion } };
+      return {
+        data,
+        history,
+        comparison: { kind: "unmeasured", version: compareVersion },
+      };
     }
-    const otherData = await readPerformance(other, signal);
-    const otherHistory = await loadHistoryIfNeeded(other, stableMeasurements(otherData), signal);
+    const otherData = await readPerformance(other, signal, fetcher);
+    const otherHistory = await loadHistoryIfNeeded(
+      other,
+      stableMeasurements(otherData),
+      signal,
+      fetcher,
+    );
     return {
       data,
       history,
@@ -235,119 +194,12 @@ async function loadViewData(
   }
 }
 
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, canonical(item)]),
-    );
-  }
-  return value;
-}
-
-function hardwareFingerprint(record: SystemRecord) {
-  return JSON.stringify(
-    canonical({
-      source_id: record.source_id,
-      id: record.id,
-      cpu: record.cpu ?? null,
-      gpu: record.gpu ?? null,
-      gpu_full: record.gpu_full ?? null,
-      os: record.os ?? null,
-      memory: record.memory ?? null,
-      ram_gb: record.ram_gb ?? null,
-      vram_gb: record.vram_gb ?? null,
-      gfx_target: record.gfx_target ?? null,
-    }),
-  );
-}
-
-function hasCompleteHardwareIdentity(record: SystemRecord) {
-  return (
-    Boolean(record.cpu && record.gpu && record.os) &&
-    Array.isArray(record.gpu_full) &&
-    record.gpu_full.length > 0 &&
-    typeof record.ram_gb === "number" &&
-    typeof record.vram_gb === "number"
-  );
-}
-
-function recordFor(row: Measurement, systems: Map<string, SystemRecord>) {
-  return row.system_id
-    ? systems.get(sourceSystemKey(row.source_id, row.system_id))
-    : undefined;
-}
-
-function comparisonKey(row: Measurement, systems: Map<string, SystemRecord>) {
-  const system = recordFor(row, systems);
-  if (
-    !system ||
-    !hasCompleteHardwareIdentity(system) ||
-    !row.quant ||
-    !row.scenario ||
-    row.context_size == null ||
-    row.input_tokens == null ||
-    !row.package_os ||
-    !row.fork_id ||
-    !row.engine_repository
-  ) {
-    return null;
-  }
-  return JSON.stringify([
-    row.source_id,
-    hardwareFingerprint(system),
-    row.engine,
-    row.channel,
-    row.backend,
-    row.fork_id,
-    row.engine_repository,
-    row.model,
-    row.quant,
-    row.scenario,
-    row.context_size,
-    row.input_tokens,
-    row.package_os,
-  ]);
-}
-
-function measurementTieBreaker(row: Measurement) {
-  return JSON.stringify([
-    row.measured_at,
-    row.source_id,
-    row.engine_version ?? "",
-    row.package_url ?? "",
-    row.qualification_build_id ?? "",
-    canonical(row.metrics),
-  ]);
-}
-
-function latestByComparisonKey(
-  rows: Measurement[],
-  systems: Map<string, SystemRecord>,
-) {
-  const latest = new Map<string, Measurement>();
-  for (const row of rows) {
-    const key = comparisonKey(row, systems);
-    if (!key) continue;
-    const prior = latest.get(key);
-    if (
-      !prior ||
-      Date.parse(row.measured_at) > Date.parse(prior.measured_at) ||
-      (Date.parse(row.measured_at) === Date.parse(prior.measured_at) &&
-        measurementTieBreaker(row) > measurementTieBreaker(prior))
-    ) {
-      latest.set(key, row);
-    }
-  }
-  return latest;
-}
-
 function packageFileName(url: string | null | undefined) {
   if (!url) return null;
   try {
-    return decodeURIComponent(new URL(url).pathname.split("/").at(-1) ?? "") || null;
+    return (
+      decodeURIComponent(new URL(url).pathname.split("/").at(-1) ?? "") || null
+    );
   } catch {
     return null;
   }
@@ -382,21 +234,13 @@ export function findExactQualificationBuild(
     const packageName = packageFileName(row.package_url);
     if (build.artifact && packageName !== build.artifact) return false;
     const repository = sourceRepository(build.source_url);
-    return !repository || !row.engine_repository || repository === row.engine_repository;
+    return (
+      !repository ||
+      !row.engine_repository ||
+      repository === row.engine_repository
+    );
   });
   return matches.length === 1 ? matches[0] : undefined;
-}
-
-function systemSummary(row: Measurement, systems: Map<string, SystemRecord>) {
-  if (!row.system_id) return "Hardware metadata unavailable";
-  const system = recordFor(row, systems);
-  if (!system) return `Hardware record unavailable (${row.system_id})`;
-  if (!hasCompleteHardwareIdentity(system))
-    return `Hardware record incomplete (${row.system_id})`;
-  const parts = [system.cpu, system.gpu, system.os].filter(
-    (value): value is string => Boolean(value),
-  );
-  return parts.length ? parts.join(" · ") : `Recorded system ${system.id}`;
 }
 
 function filterRows(
@@ -409,19 +253,23 @@ function filterRows(
   return rows.filter((row) => {
     if (model && row.model !== model) return false;
     if (system && system !== "all") {
-      if (system === missingSystemFilter ? row.system_id !== null : row.system_id !== system)
+      if (
+        system === missingSystemFilter
+          ? row.system_id !== null
+          : row.system_id !== system
+      )
         return false;
     }
-    if (workload && workload !== "all" && row.scenario !== workload) return false;
+    if (workload && workload !== "all" && row.scenario !== workload)
+      return false;
     return platform === "all" || row.package_os === platform;
   });
 }
 
-function plural(count: number, singular: string) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
-}
-
-function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord>) {
+function measurementMetadata(
+  row: Measurement,
+  systems: Map<string, SystemRecord>,
+) {
   return (
     <dl className="performance-metadata">
       <div>
@@ -435,9 +283,13 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
       <div>
         <dt>Context / input</dt>
         <dd>
-          {row.context_size == null ? "Context not recorded" : `${formatNumber(row.context_size)} tokens`}
+          {row.context_size == null
+            ? "Context not recorded"
+            : `${formatNumber(row.context_size)} tokens`}
           {" · "}
-          {row.input_tokens == null ? "Input not recorded" : `${formatNumber(row.input_tokens)} input tokens`}
+          {row.input_tokens == null
+            ? "Input not recorded"
+            : `${formatNumber(row.input_tokens)} input tokens`}
         </dd>
       </div>
       <div>
@@ -472,7 +324,8 @@ function Metrics({ row }: { row: Measurement }) {
   const metrics = Object.entries(row.metrics).sort(([left], [right]) =>
     left.localeCompare(right),
   );
-  if (!metrics.length) return <p className="performance-empty-metrics">No reported metrics</p>;
+  if (!metrics.length)
+    return <p className="performance-empty-metrics">No reported metrics</p>;
   return (
     <dl className="performance-metrics">
       {metrics.map(([name, value]) => (
@@ -495,7 +348,11 @@ function Qualification({
   buildHref: (buildId: string, platform: string) => string;
 }) {
   if (!row.qualification_build_id) {
-    return <p className="performance-provenance">No qualification build is identified for this package.</p>;
+    return (
+      <p className="performance-provenance">
+        No qualification build is identified for this package.
+      </p>
+    );
   }
   if (history.error) {
     return (
@@ -506,7 +363,11 @@ function Qualification({
   }
   const build = findExactQualificationBuild(row, history.builds);
   if (!build) {
-    return <p className="performance-provenance">No matching stable qualification history record</p>;
+    return (
+      <p className="performance-provenance">
+        No matching stable qualification history record
+      </p>
+    );
   }
   const outcome =
     build.qualified === true
@@ -517,7 +378,9 @@ function Qualification({
   return (
     <p className="performance-provenance">
       <strong>Package qualification:</strong> {outcome}.{" "}
-      <a href={buildHref(build.build_id, build.os)}>Open matching package record</a>
+      <a href={buildHref(build.build_id, build.os)}>
+        Open matching package record
+      </a>
     </p>
   );
 }
@@ -544,6 +407,36 @@ function MeasurementDetail({
       </div>
       {measurementMetadata(row, systems)}
       <Metrics row={row} />
+      <p className="performance-platform-note">
+        Peak reported VRAM is the producer’s measurement; integrated GPUs may
+        use shared system memory.
+      </p>
+      <p className="performance-provenance">
+        {row.run_url && (
+          <a href={row.run_url} target="_blank" rel="noreferrer">
+            Producing run {row.run_id ?? ""} ↗
+          </a>
+        )}
+        {" · "}
+        {row.source_url && (
+          <a href={row.source_url} target="_blank" rel="noreferrer">
+            Pinned producer source ↗
+          </a>
+        )}
+      </p>
+      <details>
+        <summary>Measurement provenance</summary>
+        <p>
+          {row.engine_repository ?? "Repository unavailable"} ·{" "}
+          {row.engine_version ?? "Revision unavailable"} · {row.backend} ·{" "}
+          {row.fork_id ?? "Fork unavailable"} · Lemonade{" "}
+          {row.lemonade_version ?? "version unavailable"}
+        </p>
+        <p>
+          Output length, sampling and backend arguments are unavailable unless
+          present in the linked producer evidence.
+        </p>
+      </details>
       <Qualification row={row} history={history} buildHref={buildHref} />
     </article>
   );
@@ -553,7 +446,9 @@ function Comparison({
   current,
   comparison,
   filters,
+  referenceOnly = false,
 }: {
+  referenceOnly?: boolean;
   current: PerformanceData;
   comparison: ComparisonState;
   filters: {
@@ -568,7 +463,10 @@ function Comparison({
     return (
       <section className="performance-comparison" aria-live="polite">
         <h2>ROCm {comparison.version} comparison</h2>
-        <p>ROCm {comparison.version} has no recorded stable llama.cpp measurements.</p>
+        <p>
+          ROCm {comparison.version} has no recorded stable llama.cpp
+          measurements.
+        </p>
       </section>
     );
   }
@@ -582,14 +480,18 @@ function Comparison({
   }
 
   const selectedRows = filterRows(
-    stableMeasurements(current),
+    stableMeasurements(current).filter(
+      (row) => !referenceOnly || isFixedReference(row),
+    ),
     filters.model,
     filters.system,
     filters.workload,
     filters.platform,
   );
   const otherRows = filterRows(
-    stableMeasurements(comparison.data),
+    stableMeasurements(comparison.data).filter(
+      (row) => !referenceOnly || isFixedReference(row),
+    ),
     filters.model,
     filters.system,
     filters.workload,
@@ -611,8 +513,9 @@ function Comparison({
     <section className="performance-comparison" aria-live="polite">
       <h2>ROCm {comparison.version} comparison</h2>
       <p>
-        Comparison uses only the latest observation with an exact source-scoped hardware record,
-        model, quantization, workload, context, input, package OS, backend, and fork.
+        Comparison uses only the latest observation with an exact source-scoped
+        hardware record, model, quantization, workload, context, input, package
+        OS, backend, and fork.
       </p>
       {!keys.length ? (
         <p className="performance-empty-comparison">No compatible comparison</p>
@@ -621,7 +524,12 @@ function Comparison({
           {keys.map((key) => {
             const left = selected.get(key)!;
             const right = other.get(key)!;
-            const names = [...new Set([...Object.keys(left.metrics), ...Object.keys(right.metrics)])].sort();
+            const names = [
+              ...new Set([
+                ...Object.keys(left.metrics),
+                ...Object.keys(right.metrics),
+              ]),
+            ].sort();
             return (
               <article className="performance-comparison-row" key={key}>
                 <h3>
@@ -630,7 +538,8 @@ function Comparison({
                 <p>
                   Current: {packageLabel(left)} · {formatDate(left.measured_at)}
                   <br />
-                  ROCm {comparison.version}: {packageLabel(right)} · {formatDate(right.measured_at)}
+                  ROCm {comparison.version}: {packageLabel(right)} ·{" "}
+                  {formatDate(right.measured_at)}
                 </p>
                 {!names.length ? (
                   <p>No reported metrics on either compatible observation.</p>
@@ -648,11 +557,15 @@ function Comparison({
                         <div key={name}>
                           <dt>{metricName(name)}</dt>
                           <dd>
-                            {typeof leftValue === "number" ? metricValue(name, leftValue) : "Not reported"}
+                            {typeof leftValue === "number"
+                              ? metricValue(name, leftValue)
+                              : "Not reported"}
                             {" vs "}
-                            {typeof rightValue === "number" ? metricValue(name, rightValue) : "Not reported"}
+                            {typeof rightValue === "number"
+                              ? metricValue(name, rightValue)
+                              : "Not reported"}
                             {canCompare
-                              ? ` · Δ ${(leftValue - rightValue) >= 0 ? "+" : ""}${metricValue(
+                              ? ` · Δ ${leftValue - rightValue >= 0 ? "+" : ""}${metricValue(
                                   name,
                                   leftValue - rightValue,
                                 )}`
@@ -671,11 +584,13 @@ function Comparison({
       <ul className="performance-unmatched">
         <li>{plural(unmatchedSelected, "selected observation")} unmatched.</li>
         <li>
-          {plural(unmatchedOther, `ROCm ${comparison.version} observation`)} unmatched.
+          {plural(unmatchedOther, `ROCm ${comparison.version} observation`)}{" "}
+          unmatched.
         </li>
         {missingSelected + missingOther > 0 && (
           <li>
-            Missing hardware or workload metadata excluded {plural(missingSelected + missingOther, "observation")}.
+            Missing hardware or workload metadata excluded{" "}
+            {plural(missingSelected + missingOther, "observation")}.
           </li>
         )}
       </ul>
@@ -688,7 +603,9 @@ export function PerformanceView({
   params,
   onNavigate,
   buildHref,
+  fetcher = fetch,
 }: {
+  fetcher?: Fetcher;
   session: Session;
   params: URLSearchParams;
   onNavigate: (params: URLSearchParams) => void;
@@ -699,23 +616,33 @@ export function PerformanceView({
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const performancePath =
-    overview?.performance.status === "available" ? overview.performance.path : undefined;
+    overview?.performance.status === "available"
+      ? overview.performance.path
+      : undefined;
 
   useEffect(() => {
-    if (!overview || overview.performance.status !== "available" || !performancePath) return;
+    if (
+      !overview ||
+      overview.performance.status !== "available" ||
+      !performancePath
+    )
+      return;
     const controller = new AbortController();
     setState({ kind: "loading" });
-    loadViewData(session, compareVersion, controller.signal)
+    loadViewData(session, compareVersion, controller.signal, fetcher)
       .then((loaded) => {
         if (!controller.signal.aborted) setState({ kind: "ready", ...loaded });
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted && !isAbort(reason)) {
-          setState({ kind: "error", error: errorMessage(reason, "Unable to load performance data.") });
+          setState({
+            kind: "error",
+            error: errorMessage(reason, "Unable to load performance data."),
+          });
         }
       });
     return () => controller.abort();
-  }, [session, overview, performancePath, compareVersion, retry]);
+  }, [session, overview, performancePath, compareVersion, retry, fetcher]);
 
   const isModelView = params.get("view") === "model";
   const model = params.get("model");
@@ -727,20 +654,79 @@ export function PerformanceView({
     () => (state.kind === "ready" ? stableMeasurements(state.data) : []),
     [state],
   );
-  const rows = useMemo(
-    () => filterRows(allRows, model, system, workload, platform),
-    [allRows, model, system, workload, platform],
-  );
+  const referenceSelected = params.get("reference") === "gemma-31b-32k";
+  const selectedBuild = params.get("build");
+  const canCompare =
+    !selectedBuild &&
+    params.get("view") !== "engine" &&
+    !params.get("source") &&
+    !params.get("date") &&
+    (!params.get("engine") || params.get("engine") === "llamacpp") &&
+    (!params.get("channel") || params.get("channel") === "stable");
+  const rows = useMemo(() => {
+    let filtered = filterRows(
+      allRows,
+      model,
+      system,
+      workload,
+      platform,
+    ).filter(
+      (row) =>
+        (!params.get("engine") || row.engine === params.get("engine")) &&
+        (!params.get("channel") || row.channel === params.get("channel")),
+    );
+    if (referenceSelected) filtered = filtered.filter(isFixedReference);
+    if (selectedBuild || params.get("source") || params.get("date"))
+      filtered = filtered.filter((row) => {
+        if (
+          (selectedBuild && row.qualification_build_id !== selectedBuild) ||
+          state.kind !== "ready"
+        )
+          return false;
+        const build = findExactQualificationBuild(row, state.history.builds);
+        return (
+          build &&
+          (!params.get("source") || build.source_id === params.get("source")) &&
+          (!params.get("date") ||
+            new Date(build.generated_at).toISOString().slice(0, 10) ===
+              params.get("date"))
+        );
+      });
+    return filtered;
+  }, [
+    allRows,
+    model,
+    system,
+    workload,
+    platform,
+    referenceSelected,
+    selectedBuild,
+    params,
+    state,
+  ]);
   const models = useMemo(
-    () => [...new Set(allRows.map((row) => row.model))].sort((left, right) => left.localeCompare(right)),
+    () =>
+      [...new Set(allRows.map((row) => row.model))].sort((left, right) =>
+        left.localeCompare(right),
+      ),
     [allRows],
   );
   const systems = useMemo(
-    () => [...new Set(allRows.map((row) => row.system_id).filter((id): id is string => Boolean(id)))].sort(),
+    () =>
+      [
+        ...new Set(
+          allRows
+            .map((row) => row.system_id)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ].sort(),
     [allRows],
   );
   const workloads = useMemo(
-    () => [...new Set(allRows.map((row) => row.scenario))].sort((left, right) => left.localeCompare(right)),
+    () =>
+      [...new Set(allRows.map((row) => row.scenario))].sort((left, right) =>
+        left.localeCompare(right),
+      ),
     [allRows],
   );
 
@@ -752,8 +738,10 @@ export function PerformanceView({
     }
     return next;
   };
-  const navigate = (changes: Record<string, string | null>) => onNavigate(nextParams(changes));
-  const modelHref = (modelId: string) => `?${nextParams({ view: "model", model: modelId }).toString()}`;
+  const navigate = (changes: Record<string, string | null>) =>
+    onNavigate(nextParams(changes));
+  const modelHref = (modelId: string) =>
+    `?${nextParams({ view: "model", model: modelId, return_view: params.get("view") === "engine" ? "engine" : null }).toString()}`;
 
   if (!overview || session.version === null) {
     return (
@@ -768,7 +756,10 @@ export function PerformanceView({
       <section className="performance-view">
         <h2>Model performance</h2>
         <p>No recorded model measurements for ROCm {overview.rocm_version}</p>
-        <p>Performance remains unmeasured; no package or qualification conclusion is implied.</p>
+        <p>
+          Performance remains unmeasured; no package or qualification conclusion
+          is implied.
+        </p>
       </section>
     );
   }
@@ -777,17 +768,26 @@ export function PerformanceView({
     <section className="performance-view" aria-labelledby="performance-heading">
       <div className="performance-heading">
         <div>
-          <span className="eyebrow">STABLE LLAMA.CPP · HISTORICAL MEASUREMENTS</span>
+          <span className="eyebrow">
+            STABLE LLAMA.CPP · HISTORICAL MEASUREMENTS
+          </span>
           <h2 id="performance-heading">
             {isModelView && model ? model : "Model performance"}
           </h2>
         </div>
         {isModelView && (
           <a
-            href={`?${nextParams({ view: "performance", model: null }).toString()}`}
+            href={`?${nextParams({ view: params.get("return_view") === "engine" ? "engine" : "performance", model: null, reference: null }).toString()}`}
             onClick={(event) => {
               event.preventDefault();
-              navigate({ view: "performance", model: null });
+              navigate({
+                view:
+                  params.get("return_view") === "engine"
+                    ? "engine"
+                    : "performance",
+                model: null,
+                reference: null,
+              });
             }}
           >
             ← Back to models
@@ -795,38 +795,93 @@ export function PerformanceView({
         )}
       </div>
       <p className="performance-intro">
-        Each row is a recorded historical measurement. Its package tag and date belong to that
-        observation and do not establish the performance of the current build.
+        Each row is a recorded historical measurement. Its package tag and date
+        belong to that observation and do not establish the performance of the
+        current build. The overview metrics describe the most recent recorded
+        configuration for each model.
       </p>
+      {isModelView && (
+        <p className="notice">
+          Answer accuracy: unavailable. No agreed populated evaluation contract
+          is published; qualification and benchmark completion do not establish
+          answer correctness.
+        </p>
+      )}
+      <div className="performance-reference">
+        <strong>Fixed reference:</strong> {fixedReference.model} ordinary
+        variant · {fixedReference.quant} · context-32k (32,768 tokens).{" "}
+        <a
+          href={`?${nextParams({ view: "model", model: fixedReference.model, reference: "gemma-31b-32k", workload: fixedReference.scenario, build: null, source: null, date: null, return_view: params.get("view") === "engine" ? "engine" : params.get("return_view") })}`}
+          onClick={(event) => {
+            event.preventDefault();
+            navigate({
+              view: "model",
+              model: fixedReference.model,
+              reference: "gemma-31b-32k",
+              workload: fixedReference.scenario,
+              build: null,
+              source: null,
+              date: null,
+              return_view:
+                params.get("view") === "engine"
+                  ? "engine"
+                  : params.get("return_view"),
+            });
+          }}
+        >
+          Inspect fixed reference
+        </a>
+        {referenceSelected && (
+          <p>
+            Only this exact model, quantization and context are shown. Missing
+            coverage is unavailable; another variant or workload is never
+            substituted.
+          </p>
+        )}
+      </div>
       <p className="performance-platform-note">
-        Platform filters measurements by their recorded package OS, not by a current qualification
-        list.
+        Platform filters measurements by their recorded package OS, not by a
+        current qualification list.
       </p>
 
       {state.kind === "ready" && (
         <div className="performance-filters" aria-label="Performance filters">
-          <label>
-            Model
-            <select
-              value={model ?? ""}
-              onChange={(event) =>
-                navigate({
-                  model: event.target.value || null,
-                  view: event.target.value ? "model" : "performance",
-                })
-              }
-            >
-              <option value="">All models</option>
-              {models.map((entry) => (
-                <option value={entry} key={entry}>
-                  {entry}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!isModelView && (
+            <label>
+              Model
+              <select
+                value={model ?? ""}
+                onChange={(event) =>
+                  navigate({
+                    reference: null,
+                    model: event.target.value || null,
+                    view: event.target.value
+                      ? "model"
+                      : params.get("view") === "engine"
+                        ? "engine"
+                        : "performance",
+                    return_view:
+                      params.get("view") === "engine" ? "engine" : null,
+                  })
+                }
+              >
+                <option value="">All models</option>
+                {models.map((entry) => (
+                  <option value={entry} key={entry}>
+                    {entry}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             Hardware system
-            <select value={system ?? ""} onChange={(event) => navigate({ system: event.target.value || null })}>
+            <select
+              value={system ?? ""}
+              onChange={(event) =>
+                navigate({ system: event.target.value || null })
+              }
+            >
               <option value="">All systems</option>
               {systems.map((entry) => (
                 <option value={entry} key={entry}>
@@ -834,13 +889,21 @@ export function PerformanceView({
                 </option>
               ))}
               {allRows.some((row) => row.system_id === null) && (
-                <option value={missingSystemFilter}>Hardware metadata unavailable</option>
+                <option value={missingSystemFilter}>
+                  Hardware metadata unavailable
+                </option>
               )}
             </select>
           </label>
           <label>
             Workload
-            <select value={workload ?? ""} onChange={(event) => navigate({ workload: event.target.value || null })}>
+            <select
+              disabled={referenceSelected}
+              value={workload ?? ""}
+              onChange={(event) =>
+                navigate({ workload: event.target.value || null })
+              }
+            >
               <option value="">All workloads</option>
               {workloads.map((entry) => (
                 <option value={entry} key={entry}>
@@ -851,29 +914,41 @@ export function PerformanceView({
           </label>
           <label>
             Measurement platform
-            <select value={platform} onChange={(event) => navigate({ platform: event.target.value })}>
+            <select
+              value={platform}
+              onChange={(event) => navigate({ platform: event.target.value })}
+            >
               <option value="all">All platforms</option>
               <option value="linux">Linux</option>
               <option value="windows">Windows</option>
             </select>
           </label>
-          <label>
-            Compare ROCm version
-            <select value={compareVersion ?? ""} onChange={(event) => navigate({ compare: event.target.value || null })}>
-              <option value="">No comparison</option>
-              {session.index.versions
-                .filter((entry) => entry.rocm_version !== session.version)
-                .map((entry) => (
-                  <option value={entry.rocm_version} key={entry.rocm_version}>
-                    ROCm {entry.rocm_version}
-                  </option>
-                ))}
-            </select>
-          </label>
+          {canCompare && (
+            <label>
+              Compare ROCm version
+              <select
+                value={compareVersion ?? ""}
+                onChange={(event) =>
+                  navigate({ compare: event.target.value || null })
+                }
+              >
+                <option value="">No comparison</option>
+                {session.index.versions
+                  .filter((entry) => entry.rocm_version !== session.version)
+                  .map((entry) => (
+                    <option value={entry.rocm_version} key={entry.rocm_version}>
+                      ROCm {entry.rocm_version}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
         </div>
       )}
 
-      {state.kind === "loading" && <p role="status">Loading historical measurements…</p>}
+      {state.kind === "loading" && (
+        <p role="status">Loading historical measurements…</p>
+      )}
       {state.kind === "error" && (
         <div className="notice error" role="alert">
           <strong>Couldn’t load model measurements</strong>
@@ -886,6 +961,29 @@ export function PerformanceView({
           {isModelView ? (
             model ? (
               <div className="performance-observations">
+                {model === fixedReference.model && (
+                  <VulkanComparison
+                    session={session}
+                    rows={rows}
+                    systems={state.data.systems}
+                    fetcher={fetcher}
+                  />
+                )}
+                <ModelHistory
+                  rows={rows}
+                  systems={state.data.systems}
+                  metric={
+                    [
+                      "tg_tps",
+                      "pp_tps",
+                      "ttft_ms_mean",
+                      "vram_peak_gb",
+                    ].includes(params.get("history_metric") ?? "")
+                      ? params.get("history_metric")!
+                      : "tg_tps"
+                  }
+                  onMetric={(value) => navigate({ history_metric: value })}
+                />
                 {rows.map((row) => (
                   <MeasurementDetail
                     key={measurementTieBreaker(row)}
@@ -895,7 +993,11 @@ export function PerformanceView({
                     buildHref={buildHref}
                   />
                 ))}
-                {!rows.length && <p>No stable measurements match this model and these filters.</p>}
+                {!rows.length && (
+                  <p>
+                    No stable measurements match this model and these filters.
+                  </p>
+                )}
               </div>
             ) : (
               <p>Select a model to inspect its recorded observations.</p>
@@ -908,16 +1010,25 @@ export function PerformanceView({
                     <th>Model</th>
                     <th>Observed configurations</th>
                     <th>Hardware systems</th>
-                    <th>Most recent observation</th>
+                    <th>Measured package / date</th>
+                    <th>Generation</th>
+                    <th>Prompt processing</th>
+                    <th>TTFT</th>
+                    <th>Peak reported VRAM</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...new Set(rows.map((row) => row.model))]
                     .sort((left, right) => left.localeCompare(right))
                     .map((modelId) => {
-                      const observations = rows.filter((row) => row.model === modelId);
+                      const observations = rows.filter(
+                        (row) => row.model === modelId,
+                      );
                       const mostRecent = observations.reduce((latest, row) =>
-                        Date.parse(row.measured_at) > Date.parse(latest.measured_at) ? row : latest,
+                        Date.parse(row.measured_at) >
+                        Date.parse(latest.measured_at)
+                          ? row
+                          : latest,
                       );
                       return (
                         <tr key={modelId}>
@@ -926,7 +1037,14 @@ export function PerformanceView({
                               href={modelHref(modelId)}
                               onClick={(event) => {
                                 event.preventDefault();
-                                navigate({ view: "model", model: modelId });
+                                navigate({
+                                  view: "model",
+                                  model: modelId,
+                                  return_view:
+                                    params.get("view") === "engine"
+                                      ? "engine"
+                                      : null,
+                                });
                               }}
                             >
                               {modelId}
@@ -934,20 +1052,63 @@ export function PerformanceView({
                           </td>
                           <td>{plural(observations.length, "observation")}</td>
                           <td>
-                            {[...new Set(observations.map((row) => row.system_id ?? "Hardware metadata unavailable"))].join(
-                              ", ",
-                            )}
+                            {[
+                              ...new Set(
+                                observations.map(
+                                  (row) =>
+                                    row.system_id ??
+                                    "Hardware metadata unavailable",
+                                ),
+                              ),
+                            ].join(", ")}
                           </td>
-                          <td>{formatDate(mostRecent.measured_at)}</td>
+                          <td>
+                            <strong>{packageLabel(mostRecent)}</strong>
+                            <br />
+                            {formatDate(mostRecent.measured_at)}
+                            <br />
+                            {mostRecent.quant ??
+                              "Quantization unavailable"} ·{" "}
+                            {mostRecent.scenario} ·{" "}
+                            {mostRecent.context_size ?? "Context unavailable"}{" "}
+                            tokens · {mostRecent.package_os ?? "OS unavailable"}
+                            <br />
+                            {mostRecent.system_id ?? "System unavailable"}
+                          </td>
+                          {[
+                            "tg_tps",
+                            "pp_tps",
+                            "ttft_ms_mean",
+                            "vram_peak_gb",
+                          ].map((name) => (
+                            <td key={name}>
+                              {typeof mostRecent.metrics[name] === "number"
+                                ? metricValue(name, mostRecent.metrics[name])
+                                : "Not reported"}
+                            </td>
+                          ))}
                         </tr>
                       );
                     })}
                 </tbody>
               </table>
-              {!rows.length && <p>No stable llama.cpp ROCm measurements match these filters.</p>}
+              {!rows.length && (
+                <p>
+                  {selectedBuild
+                    ? "No exactly associated model measurements are available for this selected build. Clear the build scope to inspect historical measurements."
+                    : "No stable llama.cpp ROCm measurements match these filters."}
+                </p>
+              )}
             </div>
           )}
-          <Comparison current={state.data} comparison={state.comparison} filters={filters} />
+          {canCompare && (
+            <Comparison
+              current={state.data}
+              comparison={state.comparison}
+              filters={filters}
+              referenceOnly={referenceSelected}
+            />
+          )}
         </>
       )}
     </section>

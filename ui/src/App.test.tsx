@@ -121,7 +121,7 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
   ).getByRole("link", { name: /b11972.*linux-build/ });
   const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
   expect(Object.fromEntries(query)).toMatchObject({
-    view: "build",
+    view: "engine",
     engine: "llamacpp",
     version: "10.1",
     platform: "linux",
@@ -130,7 +130,7 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
     source: "llamacpp-stable-qualification",
   });
   fireEvent.click(link);
-  await screen.findByRole("heading", { name: "Build evidence" });
+  await screen.findByRole("heading", { name: "Engine build and model overview" });
   expect(
     screen.queryByRole("link", { name: /Open build history-2 / }),
   ).not.toBeInTheDocument();
@@ -261,23 +261,23 @@ it("does not show the old version under a newly selected version while loading",
       : original(input),
   );
   mount(fetcher, "/?view=engine");
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
+  await screen.findByRole("heading", { name: "Engine build and model overview" });
   fireEvent.change(screen.getByLabelText("ROCm version"), {
     target: { value: "10.2" },
   });
   expect(
-    screen.queryByRole("heading", { name: "llama.cpp builds" }),
+    screen.queryByRole("heading", { name: "Engine build and model overview" }),
   ).not.toBeInTheDocument();
   await waitFor(() => expect(resolve).toBeDefined());
   fireEvent.change(screen.getByLabelText("ROCm version"), {
     target: { value: "10.1" },
   });
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
+  await screen.findByRole("heading", { name: "Engine build and model overview" });
   await act(async () =>
     resolve(new Response(JSON.stringify(overview("10.2")))),
   );
   expect(
-    screen.getByRole("heading", { name: "llama.cpp builds" }),
+    screen.getByRole("heading", { name: "Engine build and model overview" }),
   ).toBeInTheDocument();
 });
 it("reopens shared engine scope and preserves filters in navigation", async () => {
@@ -286,7 +286,7 @@ it("reopens shared engine scope and preserves filters in navigation", async () =
     "/?version=10.2&view=engine&platform=linux&build=linux-build",
   );
   expect(
-    await screen.findByRole("heading", { name: "llama.cpp builds" }),
+    await screen.findByRole("heading", { name: "Engine build and model overview" }),
   ).toBeInTheDocument();
   expect(screen.getByLabelText("Platform")).toHaveValue("linux");
   expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(

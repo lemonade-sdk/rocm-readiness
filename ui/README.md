@@ -151,3 +151,32 @@ VITE_BASE_PATH=/rocm-readiness/ npm run preview
 
 Open `/rocm-readiness/` on the preview server. The default local development path
 remains `/`.
+
+## Combined engine and evidence views
+
+Page 2 (`view=engine`) combines retained build history, a compact model overview,
+and execution attempts. Its default is the engine/version rollup without a selected
+build. Page 1 marks carry exact engine/channel/source/build/OS/UTC-date scope into
+Page 2; “Show all engine builds” clears narrowing. Model rows retain actual measured
+package/date/settings. Missing exact build associations remain unavailable.
+
+Build details (`view=build`) distinguish producer index outcome counts from the
+number of checks actually listed in the full report. Named tier/check buttons open
+focused keyboard-accessible dialogs. Compiled expected/present/missing targets are
+separate from physical GPU validation. Expand the build reference for artifact,
+revision, run and attempt. Qualification/promotion do not establish publication.
+
+Model detail (`view=model`) has compatible history series and accessible point
+tables. The fixed reference is ordinary Gemma-4-31B-it-GGUF, Q4_K_M, context-32k
+(32768), selected explicitly rather than by rank. Vulkan baseline data is a separate
+pinned comparison file with null ROCm/qualification identity. Matching requires
+known hardware/OS, model, quantization, context/input and Lemonade version; package
+dates remain visible and no backend-causal claim is made. Peak reported VRAM on an
+integrated GPU is not a dedicated-memory capacity claim. Accuracy stays unavailable
+until an agreed populated evaluation contract exists.
+
+Generated `data/` is intentionally absent from this implementation branch. The
+optional independent published-snapshot contract test accepts an external directory:
+`READINESS_SNAPSHOT=/absolute/path/to/snapshot npm test`. Fixture-based UI tests and
+fresh pipeline validation do not require committed datasets. CI outputs go to a
+temporary directory and PR validation never publishes.

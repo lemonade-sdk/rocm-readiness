@@ -43,10 +43,10 @@ test("overview build marks open exact Page Two details", async ({ page }) => {
     .getByRole("region", { name: "ROCm 10.1", exact: true })
     .getByRole("link", { name: /b11972.*linux-build/ })
     .click();
-  await expect(page).toHaveURL(/view=build/);
+  await expect(page).toHaveURL(/view=engine/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Engine build and model overview", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByRole("link", { name: "Show all engine builds" }).click();
@@ -79,11 +79,11 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByLabel("ROCm version").selectOption("10.2");
   await expect(
-    page.getByRole("heading", { name: "llama.cpp builds" }),
+    page.getByRole("heading", { name: "Engine build and model overview" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp builds", exact: true }),
+    page.getByRole("heading", { name: "Engine build and model overview", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Platform", { exact: true }).selectOption("linux");
   await expect(page).toHaveURL(/platform=linux/);

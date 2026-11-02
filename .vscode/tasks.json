@@ -1,0 +1,65 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "UI: install dependencies",
+      "type": "shell",
+      "options": {
+        "cwd": "${workspaceFolder}/ui",
+        // Trust the OS certificate store so installs work behind TLS-inspecting proxies.
+        "env": { "NODE_OPTIONS": "--use-system-ca" }
+      },
+      // npm writes node_modules/.package-lock.json only after a complete install.
+      "command": "[ node_modules/.package-lock.json -nt package-lock.json ] || npm ci",
+      "windows": {
+        "command": "$m = 'node_modules/.package-lock.json'; if (-not (Test-Path $m) -or (Get-Item package-lock.json).LastWriteTime -gt (Get-Item $m).LastWriteTime) { npm ci; if ($LASTEXITCODE) { exit $LASTEXITCODE } }"
+      },
+      "presentation": { "reveal": "silent", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "UI: dev server",
+      "type": "shell",
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "command": "npm run dev -- --port 5173 --strictPort",
+      "dependsOn": "UI: install dependencies",
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": { "regexp": "^__never_matches__$" },
+        "background": {
+          "activesBegin": "VITE v",
+          "beginsPattern": "VITE v",
+          "endsPattern": "Local:"
+        }
+      }
+    },
+    {
+      "label": "Start dashboard",
+      "type": "shell",
+      "dependsOn": "UI: dev server",
+      "command": "xdg-open http://127.0.0.1:5173/",
+      "osx": { "command": "open http://127.0.0.1:5173/" },
+      "windows": { "command": "Start-Process http://127.0.0.1:5173/" },
+      "presentation": { "reveal": "silent" },
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Stop dashboard",
+      "type": "shell",
+      "command": "echo ${input:terminateDevServer}",
+      "presentation": { "reveal": "never" },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "terminateDevServer",
+      "type": "command",
+      "command": "workbench.action.tasks.terminate",
+      "args": "UI: dev server"
+    }
+  ]
+}

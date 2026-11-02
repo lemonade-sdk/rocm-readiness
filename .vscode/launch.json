@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start dashboard (debug)",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://127.0.0.1:5173/",
+      "webRoot": "${workspaceFolder}/ui",
+      "preLaunchTask": "UI: dev server",
+      "postDebugTask": "Stop dashboard"
+    }
+  ]
+}

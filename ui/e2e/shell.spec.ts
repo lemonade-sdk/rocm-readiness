@@ -75,7 +75,7 @@ test("pins data, switches versions and restores scope through browser history", 
   ).length;
   await expect(page.getByLabel("ROCm version")).toHaveCount(0);
 
-  await expect(page.locator(".build-legend")).toHaveCount(1);
+  await expect(page.locator(".build-legend")).toHaveCount(0);
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByLabel("ROCm version").selectOption("10.2");
   await expect(

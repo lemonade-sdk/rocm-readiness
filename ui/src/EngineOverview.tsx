@@ -25,6 +25,13 @@ function platformLabel(os: string) {
 
 function BuildMark({ build }: { build: Build }) {
   const outcome = qualificationOutcome(build);
+  const failureReasons = [
+    ...(build.blocked_by ?? []),
+    ...(build.blocking_tests ?? []),
+    ...Object.entries(build.results ?? {})
+      .filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase()))
+      .map(([test]) => `${test} failed`),
+  ];
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${outcome === null ? "Evidence unavailable" : outcome === "pass" ? "Pass (producer qualified)" : "Fail (producer unqualified)"}`;
   return (
     <Tooltip
@@ -35,17 +42,25 @@ function BuildMark({ build }: { build: Build }) {
       }
       content={
         <>
-          <strong className="comparison-title">
-            {build.tag ?? "Build"} · {platformLabel(build.os)}
-          </strong>
-          <span>
-            {outcome === null
-              ? "Qualification evidence unavailable"
-              : outcome === "pass"
-                ? "Passed qualification"
-                : "Not qualified"}
+          <span className="build-tooltip-header">
+            <strong className="comparison-title">
+              {build.tag ?? "Build"} · {platformLabel(build.os)}
+            </strong>
+            <span className={`build-tooltip-status ${outcome ?? "unknown"}`}>
+              {outcome === null
+                ? "Unknown"
+                : outcome === "pass"
+                  ? "Qualified"
+                  : "Failed"}
+            </span>
           </span>
           <dl className="build-tooltip-details">
+            {outcome === "fail" && (
+              <>
+                <dt>Failure reason</dt>
+                <dd>{failureReasons.length ? [...new Set(failureReasons)].join("; ") : "Not reported"}</dd>
+              </>
+            )}
             <dt>Reported</dt>
             <dd>
               {new Intl.DateTimeFormat("en-GB", {
@@ -76,22 +91,6 @@ function BuildMark({ build }: { build: Build }) {
     >
       {outcome === null ? <EvidenceUnavailableIcon /> : null}
     </Tooltip>
-  );
-}
-
-export function BuildLegend() {
-  return (
-    <p className="build-legend">
-      <span>
-        <i className="build-key pass" /> Pass: producer qualified
-      </span>{" "}
-      <span>
-        <i className="build-key fail" /> Fail: producer unqualified
-      </span>{" "}
-      <span>
-        <EvidenceUnavailableIcon /> Evidence unavailable
-      </span>
-    </p>
   );
 }
 
@@ -133,7 +132,6 @@ export function EngineOverview({
 
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
-      {!nested && <BuildLegend />}
       {history === null && (
         <p role="status">
           History loading or unavailable; showing latest recorded builds only.
@@ -165,7 +163,9 @@ export function EngineOverview({
             key={engine.id}
             aria-label={engine.label}
           >
-            <EngineHeading>{engine.label}</EngineHeading>
+            <EngineHeading className="build-engine-heading">
+              {engine.label}
+            </EngineHeading>
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,

@@ -112,6 +112,8 @@ const buildSchema = z.object({
   run_id: z.string().nullable().optional(),
   run_attempt: z.number().int().nonnegative().nullable().optional(),
   source_url: z.string().nullable().optional(),
+  blocked_by: z.array(z.string()).nullable().optional(),
+  blocking_tests: z.array(z.string()).nullable().optional(),
   results: z.record(z.string(), z.string()).nullable().optional(),
   generated_at: time,
   qualified: z.boolean().nullable().optional(),

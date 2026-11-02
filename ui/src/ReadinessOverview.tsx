@@ -6,7 +6,7 @@ import {
   type Fetcher,
   type Session,
 } from "./data";
-import { BuildLegend, EngineOverview } from "./EngineOverview";
+import { EngineOverview } from "./EngineOverview";
 import sources from "../../sources.json";
 
 type VersionEvidence = {
@@ -84,7 +84,6 @@ export function ReadinessOverview({
       {!session.index.readiness && (
         <p>This older dataset does not declare its ROCm track scope.</p>
       )}
-      {!!rows.length && <BuildLegend />}
       {state.rows.some((row) => row.historyError) && (
         <button onClick={onRetry}>Retry history</button>
       )}

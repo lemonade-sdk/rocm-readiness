@@ -5,6 +5,7 @@ import {
   overview,
   pointer,
   historyFixture,
+  executionAttempt,
 } from "../src/fixtures";
 
 test.beforeEach(async ({ page }) => {
@@ -28,6 +29,7 @@ test("overview build marks open exact Page Two details", async ({ page }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
   await expect(
     page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
       .getByRole("region", {
         name: "llama.cpp stable build history",
         exact: true,
@@ -37,7 +39,10 @@ test("overview build marks open exact Page Two details", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Linux", exact: true }),
   ).toHaveCount(0);
-  await page.getByRole("link", { name: /b11972.*linux-build/ }).click();
+  await page
+    .getByRole("region", { name: "ROCm 10.1", exact: true })
+    .getByRole("link", { name: /b11972.*linux-build/ })
+    .click();
   await expect(page).toHaveURL(/view=build/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
@@ -58,17 +63,22 @@ test("pins data, switches versions and restores scope through browser history", 
   });
   await page.goto("./");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp", exact: true }),
+    page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
+      .getByRole("heading", { name: "llama.cpp", exact: true }),
   ).toBeVisible();
   const pointerReads = reads.filter((url) =>
     url.endsWith("/main/data/latest.json"),
   ).length;
+  await expect(page.getByLabel("ROCm version")).toHaveCount(0);
+  await expect(page.locator(".build-legend")).toHaveCount(1);
+  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await page.getByLabel("ROCm version").selectOption("10.0");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.0 readiness" }),
+    page.getByRole("heading", { name: "llama.cpp builds" }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
   await expect(
@@ -144,7 +154,7 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
     page.getByText("Latest ingestion failed", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Retry history" }),
@@ -153,9 +163,11 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
     route.fulfill({ status: 503, body: "{}" }),
   );
   await page.getByRole("button", { name: "Retry history" }).click();
-  await expect(page.getByRole("alert")).toContainText("HTTP 503");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("alert").filter({ hasText: "HTTP 503" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
 });
 
@@ -185,7 +197,7 @@ test("has a keyboard skip link and fits the viewport", async ({
 }, testInfo) => {
   await page.goto("./");
   await expect(
-    page.getByRole("heading", { name: "ROCm 10.1 readiness" }),
+    page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
   await page.keyboard.press(browserName === "webkit" ? "Alt+Tab" : "Tab");
   await expect(
@@ -202,4 +214,75 @@ test("has a keyboard skip link and fits the viewport", async ({
     path: testInfo.outputPath("overview-fixture.png"),
     fullPage: true,
   });
+});
+
+test("shows benchmark failures and incomplete attempts without qualification marks", async ({
+  page,
+}) => {
+  const version = "7.13";
+  const o = overview(version);
+  const attempts = (["passed", "failed", "partial", "unknown"] as const).map(
+    (status) => executionAttempt(version, status),
+  );
+  await page.route(indexUrl, (route) =>
+    route.fulfill({
+      json: {
+        ...index,
+        versions: [
+          ...index.versions,
+          {
+            rocm_version: version,
+            overview: `rocm/${version}/overview.json`,
+            build_count: 0,
+          },
+        ],
+      },
+    }),
+  );
+  await page.route(`**/rocm/${version}/overview.json`, (route) =>
+    route.fulfill({
+      json: {
+        ...o,
+        engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
+        history: [],
+        performance: { status: "not_measured" },
+        execution: {
+          path: `rocm/${version}/executions.json`,
+          attempt_count: 4,
+          summaries: [],
+        },
+      },
+    }),
+  );
+  await page.route(`**/rocm/${version}/executions.json`, (route) =>
+    route.fulfill({
+      json: {
+        schema_version: 1,
+        rocm_version: version,
+        attempts,
+        summaries: [],
+      },
+    }),
+  );
+  await page.goto("./");
+  const section = page.getByRole("region", { name: "ROCm 7.13", exact: true });
+  for (const label of [
+    "Passed: 1",
+    "Failed: 1",
+    "Partial: 1",
+    "Incomplete evidence: 1",
+  ])
+    await expect(section.getByText(label, { exact: true })).toBeVisible();
+  await expect(section.locator(".build-mark")).toHaveCount(0);
+  await section.getByText("Inspect benchmark attempts").click();
+  await expect(
+    section.getByRole("link", { name: "Source report", exact: true }),
+  ).toHaveCount(4);
+  await expect(page.getByLabel("ROCm version")).toHaveCount(0);
+  await expect(page.locator(".build-legend")).toHaveCount(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

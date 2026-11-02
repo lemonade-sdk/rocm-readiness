@@ -135,6 +135,13 @@ const overviewSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   rocm_version: z.string(),
+  execution: z
+    .object({
+      path: z.string(),
+      attempt_count: count,
+      summaries: z.array(z.unknown()),
+    })
+    .optional(),
   engines: z.array(
     z.object({
       id: z.string(),

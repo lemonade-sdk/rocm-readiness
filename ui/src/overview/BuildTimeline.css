@@ -90,3 +90,40 @@
   color: var(--muted);
   font-size: 0.65rem;
 }
+.readiness-version {
+  margin: 2rem 0;
+}
+.benchmark-executions {
+  margin-top: 1.5rem;
+}
+.execution-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+.execution-status {
+  font-size: 0.85rem;
+}
+.execution-status.failed {
+  color: var(--bad);
+  font-weight: 700;
+}
+.execution-status.partial {
+  color: var(--warning);
+  font-weight: 700;
+}
+.execution-status.unknown {
+  color: var(--muted);
+}
+.execution-attempts {
+  padding-left: 1.2rem;
+  overflow-wrap: anywhere;
+}
+.execution-attempts li {
+  margin: 1rem 0;
+}
+.build-timeline h5 {
+  margin: 0;
+  font-size: inherit;
+}

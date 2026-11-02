@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import type { Build, Overview } from "./data";
 import { EvidenceUnavailableIcon } from "./EvidenceUnavailableIcon";
+import { BenchmarkExecutions } from "./overview/BenchmarkExecutions";
+import type { ExecutionAttempt } from "./overview/executions";
 import {
   buildDate,
   buildIdentity,
@@ -16,6 +18,8 @@ type Props = {
   version: string;
   history?: Build[] | null;
   now?: Date;
+  executions?: ExecutionAttempt[];
+  nested?: boolean;
 };
 
 function platformLabel(os: string) {
@@ -39,12 +43,33 @@ function BuildMark({ build }: { build: Build }) {
   );
 }
 
+export function BuildLegend() {
+  return (
+    <p className="build-legend">
+      <span>
+        <i className="build-key pass" /> Pass: producer qualified
+      </span>{" "}
+      <span>
+        <i className="build-key fail" /> Fail: producer unqualified
+      </span>{" "}
+      <span>
+        <EvidenceUnavailableIcon /> Evidence unavailable
+      </span>
+    </p>
+  );
+}
+
 export function EngineOverview({
   engines,
   version,
   history = null,
   now,
+  executions = [],
+  nested = false,
 }: Props) {
+  const EngineHeading = nested ? "h3" : "h2";
+  const TrackHeading = nested ? "h4" : "h3";
+  const OSHeading = nested ? "h5" : "h4";
   const [clock, setClock] = useState(() => new Date());
   useEffect(() => {
     if (now) return;
@@ -55,17 +80,7 @@ export function EngineOverview({
   const today = days.at(-1)!;
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
-      <p className="build-legend">
-        <span>
-          <i className="build-key pass" /> Pass: producer qualified
-        </span>{" "}
-        <span>
-          <i className="build-key fail" /> Fail: producer unqualified
-        </span>{" "}
-        <span>
-          <EvidenceUnavailableIcon /> Evidence unavailable
-        </span>
-      </p>
+      {!nested && <BuildLegend />}
       {history === null && (
         <p role="status">
           History loading or unavailable; showing latest recorded builds only.
@@ -87,7 +102,10 @@ export function EngineOverview({
             Date.parse(a.generated_at) - Date.parse(b.generated_at) ||
             buildIdentity(a).localeCompare(buildIdentity(b)),
         );
-        if (!builds.length) return null;
+        const engineAttempts = executions.filter(
+          (row) => row.engine === engine.id && row.rocm_version === version,
+        );
+        if (!builds.length && !engineAttempts.length) return null;
         const channels = [
           ...new Set(builds.map((build) => build.channel)),
         ].sort((a, b) => Number(b === "stable") - Number(a === "stable"));
@@ -97,7 +115,8 @@ export function EngineOverview({
             key={engine.id}
             aria-label={engine.label}
           >
-            <h2>{engine.label}</h2>
+            <EngineHeading>{engine.label}</EngineHeading>
+            {!builds.length && <p>No qualification build records</p>}
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,
@@ -114,10 +133,10 @@ export function EngineOverview({
                   className="build-tile"
                   aria-label={`${engine.label} ROCm ${version} ${channel}`}
                 >
-                  <h3>
+                  <TrackHeading>
                     ROCm {version}
                     {` · ${channel === "stable" ? "Stable" : "Nightly"}`}
-                  </h3>
+                  </TrackHeading>
                   {platforms.length > 0 && (
                     <div
                       className="build-timeline-scroll"
@@ -151,7 +170,7 @@ export function EngineOverview({
                             return (
                               <tr key={os}>
                                 <th scope="row">
-                                  <h4>{platformLabel(os)}</h4>
+                                  <OSHeading>{platformLabel(os)}</OSHeading>
                                   {!rows.length && (
                                     <small>No qualification evidence</small>
                                   )}
@@ -189,6 +208,7 @@ export function EngineOverview({
                 </section>
               );
             })}
+            <BenchmarkExecutions attempts={engineAttempts} />
           </article>
         );
       })}

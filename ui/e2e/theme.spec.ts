@@ -52,6 +52,7 @@ test("follows the device, preserves overrides and returns to system", async ({
   await expect(themeButton).toHaveAttribute("title", "Theme: Light (Light)");
   await expect(
     page
+      .getByRole("region", { name: "ROCm 10.1", exact: true })
       .getByRole("region", {
         name: "llama.cpp stable build history",
         exact: true,

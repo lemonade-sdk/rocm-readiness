@@ -109,3 +109,31 @@ export function historyFixture(version = "10.1") {
     })),
   };
 }
+
+export function executionAttempt(
+  version = "10.1",
+  status: "passed" | "failed" | "partial" | "unknown" = "failed",
+) {
+  return {
+    source_id: "benchmark-fixture",
+    source_url: `https://raw.githubusercontent.com/example/reports/${commit}/results/${status}.json`,
+    source_pointer: "/models/0/results/0/scenarios/0",
+    engine: "llamacpp",
+    channel: "stable" as const,
+    rocm_version: version,
+    engine_version: "b-fixture",
+    model: `fixture-${status}`,
+    execution_status: status,
+    measured_at: "2026-10-29T12:00:00Z",
+    package_os: "linux",
+    package_url:
+      "https://github.com/example/engine/releases/download/b-fixture/package.tar.gz",
+    scenario: "fixture-workload",
+    context_size: 4096,
+    hardware: {
+      cpu: "Fixture CPU",
+      gpu: [{ name: "Fixture GPU" }],
+      os: "linux",
+    },
+  };
+}

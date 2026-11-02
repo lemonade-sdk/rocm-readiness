@@ -7,7 +7,7 @@ import {
   loadHistory,
   resolveDatasetPath,
 } from "./data";
-import { EngineOverview } from "./EngineOverview";
+import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildBrowser } from "./builds/BuildBrowser";
@@ -15,7 +15,6 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
-import sources from "../../sources.json";
 
 function date(value: string | null) {
   return value
@@ -72,7 +71,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           }
         }
         const selected = version ?? current.index.default_version;
-        if (track === "readiness" && selected && current.version !== selected) {
+        if (
+          track === "readiness" &&
+          view !== "overview" &&
+          selected &&
+          current.version !== selected
+        ) {
           current = await loadVersion(
             current,
             selected,
@@ -101,10 +105,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     };
     void run();
     return () => controller.abort();
-  }, [version, track, refresh, fetcher]);
+  }, [version, track, view, refresh, fetcher]);
 
   useEffect(() => {
-    if (track !== "readiness" || !session?.overview) return;
+    if (track !== "readiness" || view === "overview" || !session?.overview)
+      return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
     loadHistory(session, fetcher, controller.signal)
@@ -131,20 +136,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           });
       });
     return () => controller.abort();
-  }, [session, track, fetcher]);
+  }, [session, track, view, fetcher]);
 
   const selected = version ?? session?.version ?? "";
-  const scopeMatches = session && (!version || session.version === version);
+  const scopeMatches =
+    session && (view === "overview" || !version || session.version === version);
   const overview = scopeMatches ? session.overview : null;
-  const engines = (overview?.engines ?? []).map((evidence) => {
-    const configured = sources.engines.find(
-      (engine) => engine.id === evidence.id,
-    );
-    return {
-      ...evidence,
-      platforms: configured?.platforms ?? evidence.platforms,
-    };
-  });
   const platformValid =
     view === "overview" || ["all", "linux", "windows"].includes(platform);
   const viewValid = [
@@ -229,11 +226,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </Link>
         </nav>
         <div className="header-controls">
-          {track === "readiness" && (
+          {track === "readiness" && view !== "overview" && (
             <label htmlFor="version">ROCm version</label>
           )}
           <select
-            hidden={track !== "readiness"}
+            hidden={track !== "readiness" || view === "overview"}
             id="version"
             value={selected}
             disabled={!session?.index.versions.length}
@@ -336,6 +333,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           session &&
           scopeMatches &&
           !overview &&
+          !session.index.versions.length &&
           !busy &&
           !error && (
             <div className="empty">
@@ -364,7 +362,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           )}
         {track === "readiness" &&
           session &&
-          overview &&
+          (overview ||
+            (view === "overview" && session.index.versions.length > 0)) &&
           viewValid &&
           platformValid && (
             <>
@@ -377,7 +376,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   )}
                   <h1>
                     {view === "overview"
-                      ? `ROCm ${overview.rocm_version} readiness`
+                      ? "ROCm Readiness"
                       : view === "engine"
                         ? "llama.cpp builds"
                         : view === "build"
@@ -392,7 +391,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </div>
                 {view !== "overview" && (
                   <span className="release-pill">
-                    ROCm {overview.rocm_version}
+                    ROCm {overview?.rocm_version ?? selected}
                   </span>
                 )}
               </div>
@@ -421,24 +420,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </Link>
               </nav>
               {view === "overview" && (
-                <>
-                  <EngineOverview
-                    engines={engines}
-                    version={selected}
-                    history={
-                      history?.session === session ? history.builds : null
-                    }
-                  />
-                  {!busy &&
-                    !error &&
-                    history?.session === session &&
-                    history.error && (
-                      <div className="notice error" role="alert">
-                        <p>{history.error}</p>
-                        <button onClick={refreshData}>Retry history</button>
-                      </div>
-                    )}
-                </>
+                <ReadinessOverview
+                  session={session}
+                  fetcher={fetcher}
+                  onRetry={refreshData}
+                />
               )}
               {["engine", "build"].includes(view) &&
                 (history?.session === session && history.error ? (

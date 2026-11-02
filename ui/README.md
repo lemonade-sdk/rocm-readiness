@@ -50,8 +50,24 @@ choosing System restores automatic behavior. Theme selection is applied before
 the app renders. If browser storage is unavailable, switching still works for
 the current visit.
 
-The dashboard provides version selection, readiness summaries, retained build
-history, inline qualification evidence and model-performance details. URLs retain
+Page One groups all versions with recorded evidence into version sections, with
+engines and their recorded stable/nightly channels underneath. The newest numeric
+version with a recorded stable qualification build appears first (latest observed
+stable, not an independent release declaration); the others follow in numeric
+ascending order. There is no version selector on Page One. One shared legend
+describes qualification marks; missing dates remain neutral gaps. Build timelines
+cover the last 14 UTC calendar dates.
+
+When an execution inventory is present, each engine also shows passed, failed,
+partial and incomplete benchmark attempts, including attempts without throughput
+measurements. These are the inventory’s recorded attempts, not a 14-day qualification
+window, accuracy verdict or release claim. Expand the inventory for package,
+hardware, workload and source links. Older datasets without execution inventories
+do not acquire inferred outcomes. A failed version or inventory remains visible
+with an error and retry while other versions remain readable.
+
+Detail views retain version selection, inline qualification evidence and
+model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.
 Internal navigation keeps the active dataset revision; reloading reads the latest
 published pointer.

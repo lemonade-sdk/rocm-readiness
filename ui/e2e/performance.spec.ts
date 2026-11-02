@@ -80,7 +80,7 @@ for (const compatible of [true, false]) {
             const version = url.match(/\/rocm\/([^/]+)\//)![1];
             data = measurements(
               version,
-              !compatible && version === "10.0" ? "Q8_0" : "Q4_K_M",
+              !compatible && version === "10.2" ? "Q8_0" : "Q4_K_M",
             );
           } else return route.fulfill({ status: 404, body: "{}" });
           return route.fulfill({ json: data });
@@ -98,7 +98,7 @@ for (const compatible of [true, false]) {
       ).length;
       await page
         .getByRole("combobox", { name: "Compare ROCm version", exact: true })
-        .selectOption("10.0");
+        .selectOption("10.2");
       if (compatible)
         await expect(page.getByText(/Δ \+2 tok\/s/)).toBeVisible();
       else {
@@ -121,7 +121,7 @@ for (const compatible of [true, false]) {
           name: "Compare ROCm version",
           exact: true,
         }),
-      ).toHaveValue("10.0");
+      ).toHaveValue("10.2");
     },
   );
 }

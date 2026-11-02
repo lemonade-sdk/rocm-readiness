@@ -92,11 +92,19 @@ Use `python scripts/collect.py --sources sources.json` for the full collection,
 upstream-only refresh, and `python scripts/conformance.py --data-dir data
 --sources sources.json` for conformance against the selected readiness feeds.
 
-### Readiness display scope
+### Readiness ingestion scope
 
 `views.readiness.stable_anchor` optionally records the owner-selected current stable
-ROCm version as a numeric version string (the repository sets `10.1`). The UI shows
-this version and newer versions with actual records; historical versions remain
-available in detail views. This is a display policy, not an ingestion filter or a
-release verdict inferred from qualification/build channels. The collector validates
-the optional field but does not remove historical data or rewrite catalog defaults.
+ROCm version as a numeric version string (the repository sets `10.1`). The unified
+loader carries this as `readiness.stable_anchor` into the collector. CI normalizes
+and emits only that track and newer tracks with actual qualification, attributed
+performance or execution records, for every engine. Out-of-scope previous history
+is not retained. No missing track or release verdict is invented.
+
+The generated catalog carries `readiness: {"stable_anchor": "10.1"}` as additive
+schema-v2 metadata, orders its existing `versions` array numerically ascending and
+sets `default_version` to the first supplied track (null if none). This is the only
+catalog; detail views use the same app scope. UI code consumes the catalog without
+release filtering. Original upstream files and external historical datasets are
+untouched. Raw source/provenance artifacts may include historical evidence needed
+to verify package attribution; they are not published app inventories.

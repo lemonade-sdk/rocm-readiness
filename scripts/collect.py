@@ -19,7 +19,12 @@ if __package__:
     from .executions import collect_executions, select_latest
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
-    from .dataset import SYSTEM_FIELDS, _load_previous, write_dataset
+    from .dataset import (
+        SYSTEM_FIELDS,
+        _load_previous,
+        write_dataset,
+        in_readiness_scope,
+    )
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
     from .upstream import collect_upstream, validate_upstream_dataset
@@ -28,7 +33,7 @@ else:
     from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
-    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset
+    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
     from upstream import collect_upstream, validate_upstream_dataset
@@ -76,6 +81,14 @@ def safe_path(value):
 
 def validate_config(config):
     require(config.get("schema_version") == 1, "unsupported sources schema_version")
+    policy = config.get("readiness")
+    if policy is not None:
+        require(
+            isinstance(policy, dict)
+            and isinstance(policy.get("stable_anchor"), str)
+            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"]),
+            "invalid readiness stable_anchor",
+        )
     engines = config["engines"]
     engine_ids = [e["id"] for e in engines]
     require(len(engine_ids) == len(set(engine_ids)), "duplicate engine id")
@@ -147,7 +160,7 @@ def _check(
         raise PipelineValidationError(source["id"], record, field, reason)
 
 
-def normalize_qualification(source, data, url):
+def normalize_qualification(source, data, url, policy=None):
     _check(source, "", "document", isinstance(data, dict), "expected object")
     _check(
         source,
@@ -161,6 +174,14 @@ def normalize_qualification(source, data, url):
     for index, row in enumerate(data["builds"]):
         location = f"/builds/{index}"
         _check(source, location, "record", isinstance(row, dict), "expected object")
+        # A shared producer index may contain old tracks; do not normalize their reports.
+        if (
+            policy is not None
+            and isinstance(row.get("rocm_version"), str)
+            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", row["rocm_version"])
+            and not in_readiness_scope(row, policy)
+        ):
+            continue
         for field in ("build_id", "generated_at", "rocm_version", "run_url", "tag"):
             _check(
                 source,
@@ -702,6 +723,8 @@ def collect(
         "execution_evidence": [],
         "errors": [],
     }
+    if "readiness" in config:
+        output["readiness"] = dict(config["readiness"])
     commits = {}
     for source in config["sources"]:
         sid = source["id"]
@@ -747,7 +770,9 @@ def collect(
             data = fetch(url)
             fetch_url = None
             if source["adapter"] == "qualification-v1":
-                rows = normalize_qualification(source, data, url)
+                rows = normalize_qualification(
+                    source, data, url, config.get("readiness")
+                )
                 target, date_key = "builds", "generated_at"
             else:
                 rows = normalize_performance(source, data)
@@ -859,6 +884,12 @@ def collect(
         attribute_stable(execution_output, output["package_evidence"], resolve_packages)
         output["package_evidence"] = execution_output["package_evidence"]
         output["executions"] = select_latest(output["executions"], per_version=True)
+    for field in ("builds", "measurements", "executions"):
+        output[field] = [
+            row
+            for row in output[field]
+            if in_readiness_scope(row, config.get("readiness"))
+        ]
     if output["execution_evidence"]:
         write_json(
             destination / "provenance/executions.json",

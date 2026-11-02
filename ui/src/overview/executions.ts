@@ -17,6 +17,7 @@ const attemptSchema = z.object({
   channel: z.enum(["stable", "nightly"]),
   rocm_version: z.string(),
   engine_version: z.string().nullable(),
+  qualification_build_id: z.string().nullable().optional(),
   model: z.string(),
   execution_status: z.enum(["passed", "failed", "partial", "unknown"]),
   measured_at: z.string().refine((v) => Number.isFinite(Date.parse(v))),

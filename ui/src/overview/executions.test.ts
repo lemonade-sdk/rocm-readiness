@@ -50,7 +50,7 @@ it("rejects execution files with wrong version identity instead of showing healt
     },
     [new URL("rocm/10.1/executions.json", indexUrl).href]: {
       schema_version: 1,
-      rocm_version: "10.0",
+      rocm_version: "10.2",
       attempts: [executionAttempt()],
       summaries: [],
     },

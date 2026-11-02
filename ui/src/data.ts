@@ -67,6 +67,7 @@ const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
   default_version: z.string().nullable(),
+  readiness: z.object({ stable_anchor: z.string().min(1) }).optional(),
   sources: z
     .array(
       z.object({

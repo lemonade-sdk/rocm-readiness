@@ -96,12 +96,6 @@
 .benchmark-executions {
   margin-top: 1.5rem;
 }
-.execution-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0.75rem 0;
-}
 .execution-status {
   font-size: 0.85rem;
 }
@@ -116,14 +110,29 @@
 .execution-status.unknown {
   color: var(--muted);
 }
-.execution-attempts {
-  padding-left: 1.2rem;
-  overflow-wrap: anywhere;
-}
-.execution-attempts li {
-  margin: 1rem 0;
-}
 .build-timeline h5 {
   margin: 0;
   font-size: inherit;
+}
+.build-evidence {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.build-benchmark-issue {
+  font-size: 0.58rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.build-benchmark-issue.failed {
+  color: var(--bad);
+  font-weight: 700;
+}
+.build-benchmark-issue.partial {
+  color: var(--warning);
+  font-weight: 700;
+}
+.build-benchmark-issue.unknown {
+  color: var(--muted);
 }

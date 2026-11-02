@@ -16,6 +16,7 @@ export const index = {
   schema_version: 2,
   generated_at: sync.attempted_at,
   default_version: "10.1",
+  readiness: { stable_anchor: "10.1" },
   versions: [
     {
       rocm_version: "10.1",
@@ -23,8 +24,8 @@ export const index = {
       build_count: 26,
     },
     {
-      rocm_version: "10.0",
-      overview: "rocm/10.0/overview.json",
+      rocm_version: "10.2",
+      overview: "rocm/10.2/overview.json",
       build_count: 12,
     },
   ],
@@ -80,11 +81,11 @@ export function fixtureFetch(overrides: Record<string, unknown> = {}) {
       pointer,
     [indexUrl]: index,
     [new URL("rocm/10.1/overview.json", indexUrl).href]: overview(),
-    [new URL("rocm/10.0/overview.json", indexUrl).href]: overview("10.0"),
+    [new URL("rocm/10.2/overview.json", indexUrl).href]: overview("10.2"),
     [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]:
       historyFixture(),
-    [new URL("rocm/10.0/history/2026-10.json", indexUrl).href]:
-      historyFixture("10.0"),
+    [new URL("rocm/10.2/history/2026-10.json", indexUrl).href]:
+      historyFixture("10.2"),
     ...overrides,
   };
   return async (input: string | URL | Request): Promise<Response> => {

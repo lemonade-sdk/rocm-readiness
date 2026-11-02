@@ -245,7 +245,7 @@ it('opens upstream on the same pinned index after readiness overview fails', asy
     return base(input);
   };
   mount('/', fetcher);
-  expect(await screen.findAllByRole('alert')).toHaveLength(1);
+  expect(await screen.findAllByRole('alert')).toHaveLength(2);
   fireEvent.click(screen.getByRole('link', { name: 'Upstream health' }));
   expect(await screen.findByRole('heading', { name: 'llama.cpp' })).toBeInTheDocument();
   expect(pointers).toBe(1);

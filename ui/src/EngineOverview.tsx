@@ -43,6 +43,36 @@ function BuildMark({ build }: { build: Build }) {
   );
 }
 
+function BenchmarkIssues({ attempts }: { attempts: ExecutionAttempt[] }) {
+  return (
+    <>
+      {(["failed", "partial", "unknown"] as const).map((status) => {
+        const rows = attempts.filter((row) => row.execution_status === status);
+        if (!rows.length) return null;
+        const label =
+          status === "failed"
+            ? "Bench fail"
+            : status === "partial"
+              ? "Bench partial"
+              : "Bench incomplete";
+        return (
+          <a
+            key={status}
+            href={rows[0].source_url}
+            target="_blank"
+            rel="noreferrer"
+            className={`build-benchmark-issue ${status}`}
+            aria-label={`${label}: ${rows.length} recorded attempt${rows.length === 1 ? "" : "s"}; ${rows[0].engine_version}; ${rows[0].package_os}; separate from qualification`}
+            title={`${label}: ${rows.length} recorded attempts; execution evidence, separate from qualification`}
+          >
+            {label}
+          </a>
+        );
+      })}
+    </>
+  );
+}
+
 export function BuildLegend() {
   return (
     <p className="build-legend">
@@ -190,10 +220,22 @@ export function EngineOverview({
                                           (build) => buildDate(build) === day,
                                         )
                                         .map((build) => (
-                                          <BuildMark
+                                          <div
+                                            className="build-evidence"
                                             key={buildIdentity(build)}
-                                            build={build}
-                                          />
+                                          >
+                                            <BuildMark build={build} />
+                                            <BenchmarkIssues
+                                              attempts={engineAttempts.filter(
+                                                (row) =>
+                                                  row.qualification_build_id ===
+                                                    build.build_id &&
+                                                  row.channel ===
+                                                    build.channel &&
+                                                  row.package_os === build.os,
+                                              )}
+                                            />
+                                          </div>
                                         ))}
                                     </div>
                                   </td>
@@ -208,7 +250,12 @@ export function EngineOverview({
                 </section>
               );
             })}
-            <BenchmarkExecutions attempts={engineAttempts} />
+            <BenchmarkExecutions
+              attempts={engineAttempts}
+              visibleBuilds={builds.filter((build) =>
+                days.includes(buildDate(build) ?? ""),
+              )}
+            />
           </article>
         );
       })}

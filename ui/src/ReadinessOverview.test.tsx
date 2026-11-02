@@ -13,35 +13,7 @@ import {
 } from "./fixtures";
 import type { Session } from "./data";
 
-it("shows real versions together, configured stable first and only newer recorded versions, numeric ascending", async () => {
-  const versions = ["10.10", "7.14", "10.2", "10.1"];
-  const catalog = {
-    ...index,
-    versions: versions.map((v) => ({
-      rocm_version: v,
-      overview: `rocm/${v}/overview.json`,
-      build_count: 1,
-    })),
-  };
-  const fixtures: Record<string, unknown> = {};
-  for (const v of versions) {
-    const o = overview(v);
-    const build = {
-      ...o.engines[0].latest_builds[0],
-      channel: "stable", // A stable engine channel does not declare ROCm GA.
-      build_id: v,
-      tag: v,
-    };
-    fixtures[new URL(`rocm/${v}/overview.json`, indexUrl).href] = {
-      ...o,
-      engines: [{ ...o.engines[0], build_count: 1, latest_builds: [build] }],
-      history: [{ ...o.history[0], build_count: 1 }],
-    };
-    fixtures[new URL(`rocm/${v}/history/2026-10.json`, indexUrl).href] = {
-      ...historyFixture(v),
-      builds: [build],
-    };
-  }
+function mount(catalog: unknown, fixtures: Record<string, unknown> = {}) {
   const session = {
     pointer,
     index: catalog,
@@ -49,7 +21,7 @@ it("shows real versions together, configured stable first and only newer recorde
     version: null,
     overview: null,
   } as Session;
-  render(
+  return render(
     <MemoryRouter>
       <ReadinessOverview
         session={session}
@@ -57,203 +29,158 @@ it("shows real versions together, configured stable first and only newer recorde
         onRetry={() => {}}
       />
     </MemoryRouter>,
+  );
+}
+
+it("renders supplied catalog order without choosing a release anchor or filtering versions", async () => {
+  const versions = ["10.1", "10.2", "10.10"];
+  const fixtures: Record<string, unknown> = {};
+  for (const version of versions) {
+    fixtures[new URL(`rocm/${version}/overview.json`, indexUrl).href] =
+      overview(version);
+    fixtures[new URL(`rocm/${version}/history/2026-10.json`, indexUrl).href] =
+      historyFixture(version);
+  }
+  mount(
+    {
+      ...index,
+      readiness: { stable_anchor: "10.1" },
+      versions: versions.map((v) => ({
+        rocm_version: v,
+        overview: `rocm/${v}/overview.json`,
+        build_count: 1,
+      })),
+    },
+    fixtures,
   );
   await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
   expect(
     screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
   ).toEqual(["ROCm 10.1 · Latest stable", "ROCm 10.2", "ROCm 10.10"]);
-  const track = screen.getByRole("region", { name: "ROCm 10.2" });
   expect(
-    within(track).getByRole("heading", { name: "llama.cpp" }),
+    within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
+      "heading",
+      { name: "llama.cpp" },
+    ),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   expect(screen.getAllByText("Pass: producer qualified")).toHaveLength(1);
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });
 
-it("shows execution-only versions and non-passing attempts without inventing qualification", async () => {
-  const o = overview("10.2");
-  const attempts = ["passed", "failed", "partial", "unknown"].map((status) =>
-    executionAttempt("10.2", status as "passed"),
+it("shows metricless non-passing executions without inventing qualification", async () => {
+  const version = "10.2",
+    o = overview(version);
+  const attempts = (["passed", "failed", "partial", "unknown"] as const).map(
+    (status) => executionAttempt(version, status),
   );
-  const fetcher = fixtureFetch({
-    [new URL("rocm/10.2/overview.json", indexUrl).href]: {
-      ...o,
-      engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
-      history: [],
-      performance: { status: "not_measured" },
-      execution: {
-        path: "rocm/10.2/executions.json",
-        attempt_count: 4,
-        summaries: [],
-      },
-    },
-    [new URL("rocm/10.2/executions.json", indexUrl).href]: {
-      schema_version: 1,
-      rocm_version: "10.2",
-      attempts,
-      summaries: [],
-    },
-  });
-  const session = {
-    pointer,
-    index: {
+  const result = mount(
+    {
       ...index,
       versions: [
         {
-          rocm_version: "10.2",
-          overview: "rocm/10.2/overview.json",
+          rocm_version: version,
+          overview: `rocm/${version}/overview.json`,
           build_count: 0,
         },
       ],
     },
-    indexUrl,
-    version: null,
-    overview: null,
-  } as Session;
-  const result = render(
-    <MemoryRouter>
-      <ReadinessOverview
-        session={session}
-        fetcher={fetcher}
-        onRetry={() => {}}
-      />
-    </MemoryRouter>,
+    {
+      [new URL(`rocm/${version}/overview.json`, indexUrl).href]: {
+        ...o,
+        engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
+        history: [],
+        performance: { status: "not_measured" },
+        execution: {
+          path: `rocm/${version}/executions.json`,
+          attempt_count: 4,
+          summaries: [],
+        },
+      },
+      [new URL(`rocm/${version}/executions.json`, indexUrl).href]: {
+        schema_version: 1,
+        rocm_version: version,
+        attempts,
+        summaries: [],
+      },
+    },
   );
   await screen.findByRole("heading", { name: "ROCm 10.2" });
   for (const label of [
-    "Passed: 1",
-    "Failed: 1",
-    "Partial: 1",
-    "Incomplete evidence: 1",
+    "1 failed",
+    "1 partial",
+    "1 incomplete",
     "No qualification build records",
   ])
     expect(screen.getByText(label)).toBeInTheDocument();
   expect(result.container.querySelectorAll(".build-mark")).toHaveLength(0);
   expect(
-    screen.queryByRole("heading", { name: /Latest stable/ }),
+    screen.queryByText("Inspect benchmark attempts"),
   ).not.toBeInTheDocument();
 });
 
-it("keeps other versions visible when one inventory fails", async () => {
-  const fetcher = fixtureFetch({
-    [new URL("rocm/10.2/overview.json", indexUrl).href]: {},
-  });
-  const session = {
-    pointer,
-    index: {
-      ...index,
-      versions: [
-        ...index.versions,
-        {
-          rocm_version: "10.2",
-          overview: "rocm/10.2/overview.json",
-          build_count: 1,
-        },
-      ],
-    },
-    indexUrl,
-    version: null,
-    overview: null,
-  } as Session;
-  render(
-    <MemoryRouter>
-      <ReadinessOverview
-        session={session}
-        fetcher={fetcher}
-        onRetry={() => {}}
-      />
-    </MemoryRouter>,
-  );
-  expect(
-    await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" }),
-  ).toBeInTheDocument();
+it("keeps other supplied tracks visible when one fails", async () => {
+  mount(index, { [new URL("rocm/10.2/overview.json", indexUrl).href]: {} });
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
   expect(
     within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
       "alert",
     ),
   ).toBeInTheDocument();
+});
+
+it("labels legacy scope honestly and renders its supplied order without inventing an anchor", async () => {
+  mount({ ...index, readiness: undefined });
+  await screen.findByRole("heading", { name: "ROCm 10.1" });
   expect(
-    within(screen.getByRole("region", { name: "ROCm 10.1" })).getByRole(
-      "heading",
-      { name: "llama.cpp" },
-    ),
+    screen.getByText(/older dataset does not declare/),
   ).toBeInTheDocument();
-});
-
-it("shows only the anchor with today's catalog and leaves historical detail data intact", async () => {
-  const requested: string[] = [];
-  const base = fixtureFetch();
-  const fetcher = async (input: string | URL | Request) => {
-    requested.push(String(input));
-    return base(input);
-  };
-  const session = {
-    pointer,
-    index,
-    indexUrl,
-    version: null,
-    overview: null,
-  } as Session;
-  render(
-    <MemoryRouter>
-      <ReadinessOverview
-        session={session}
-        fetcher={fetcher}
-        onRetry={() => {}}
-      />
-    </MemoryRouter>,
-  );
-  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
-  expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(1);
-  expect(requested.some((url) => url.includes("/10.0/"))).toBe(false);
-  expect(index.versions.some((entry) => entry.rocm_version === "10.0")).toBe(
-    true,
-  );
-});
-
-it("uses a changed configured anchor and omits a newer empty catalog entry", async () => {
-  const versions = ["10.1", "10.2", "10.3"];
-  const fixtures: Record<string, unknown> = {};
-  for (const v of versions) {
-    const o = overview(v);
-    fixtures[new URL(`rocm/${v}/overview.json`, indexUrl).href] =
-      v === "10.3"
-        ? {
-            ...o,
-            engines: [],
-            history: [],
-            performance: { status: "not_measured" },
-          }
-        : o;
-    fixtures[new URL(`rocm/${v}/history/2026-10.json`, indexUrl).href] =
-      historyFixture(v);
-  }
-  const session = {
-    pointer,
-    index: {
-      ...index,
-      versions: versions.map((v) => ({
-        rocm_version: v,
-        overview: `rocm/${v}/overview.json`,
-        build_count: v === "10.3" ? 0 : 1,
-      })),
-    },
-    indexUrl,
-    version: null,
-    overview: null,
-  } as Session;
-  render(
-    <MemoryRouter>
-      <ReadinessOverview
-        session={session}
-        stableAnchor="10.2"
-        fetcher={fixtureFetch(fixtures)}
-        onRetry={() => {}}
-      />
-    </MemoryRouter>,
-  );
-  await screen.findByRole("heading", { name: "ROCm 10.2 · Latest stable" });
   expect(
-    screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
-  ).toEqual(["ROCm 10.2 · Latest stable"]);
+    screen.queryByRole("heading", { name: /Latest stable/ }),
+  ).not.toBeInTheDocument();
+});
+
+it("shows linked benchmark issues beside a passing qualification without changing its verdict", async () => {
+  const o = overview();
+  const attempts = (["failed", "partial", "unknown"] as const).map(
+    (status) => ({
+      ...executionAttempt("10.1", status),
+      qualification_build_id: "linux-build",
+    }),
+  );
+  const result = mount(
+    { ...index, versions: [index.versions[0]] },
+    {
+      [new URL("rocm/10.1/overview.json", indexUrl).href]: {
+        ...o,
+        execution: {
+          path: "rocm/10.1/executions.json",
+          attempt_count: 3,
+          summaries: [],
+        },
+      },
+      [new URL("rocm/10.1/executions.json", indexUrl).href]: {
+        schema_version: 1,
+        rocm_version: "10.1",
+        attempts,
+        summaries: [],
+      },
+    },
+  );
+  const failure = await screen.findByRole("link", {
+    name: /Bench fail: 1 recorded attempt/,
+  });
+  expect(failure).toHaveAttribute("href", attempts[0].source_url);
+  expect(
+    failure.parentElement?.querySelector(".build-mark.pass"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /Bench partial: 1/ }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /Bench incomplete: 1/ }),
+  ).toBeInTheDocument();
+  expect(result.container.querySelectorAll(".build-mark.fail")).toHaveLength(0);
+  expect(
+    screen.queryByText("Inspect benchmark attempts"),
+  ).not.toBeInTheDocument();
 });

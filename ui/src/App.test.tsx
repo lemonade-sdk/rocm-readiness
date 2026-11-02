@@ -254,7 +254,7 @@ it("does not show the old version under a newly selected version while loading",
   let resolve!: (response: Response) => void;
   const original = fixtureFetch();
   const fetcher = vi.fn((input: string | URL | Request) =>
-    String(input).includes("10.0/overview")
+    String(input).includes("10.2/overview")
       ? new Promise<Response>((done) => {
           resolve = done;
         })
@@ -263,7 +263,7 @@ it("does not show the old version under a newly selected version while loading",
   mount(fetcher, "/?view=engine");
   await screen.findByRole("heading", { name: "llama.cpp builds" });
   fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.0" },
+    target: { value: "10.2" },
   });
   expect(
     screen.queryByRole("heading", { name: "llama.cpp builds" }),
@@ -274,7 +274,7 @@ it("does not show the old version under a newly selected version while loading",
   });
   await screen.findByRole("heading", { name: "llama.cpp builds" });
   await act(async () =>
-    resolve(new Response(JSON.stringify(overview("10.0")))),
+    resolve(new Response(JSON.stringify(overview("10.2")))),
   );
   expect(
     screen.getByRole("heading", { name: "llama.cpp builds" }),
@@ -283,7 +283,7 @@ it("does not show the old version under a newly selected version while loading",
 it("reopens shared engine scope and preserves filters in navigation", async () => {
   mount(
     fixtureFetch(),
-    "/?version=10.0&view=engine&platform=linux&build=linux-build",
+    "/?version=10.2&view=engine&platform=linux&build=linux-build",
   );
   expect(
     await screen.findByRole("heading", { name: "llama.cpp builds" }),

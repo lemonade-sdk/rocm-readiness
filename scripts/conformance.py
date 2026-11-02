@@ -618,6 +618,26 @@ def validate_dataset(
         raw_execution = read("provenance/executions.json")
         package_execution = read("provenance/packages.json")
     version_names = [row.get("rocm_version") for row in versions]
+    policy = index.get("readiness")
+    configured_policy = config.get("readiness") if config is not None else None
+    if configured_policy is not None:
+        _check(
+            policy == configured_policy,
+            "index.json",
+            "/readiness",
+            "readiness scope must match configured policy",
+        )
+    anchor_key = None
+    if "readiness" in index:
+        _check(
+            isinstance(policy, dict),
+            "index.json",
+            "/readiness",
+            "expected readiness scope",
+        )
+        anchor_key = _version(
+            policy.get("stable_anchor"), "index.json", "/readiness/stable_anchor"
+        )[0]
     if raw_execution is not None:
         try:
             expected_execution_versions = validate_execution_completeness(
@@ -625,6 +645,12 @@ def validate_dataset(
             )
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             _fail("index.json", "/versions", str(error))
+        if anchor_key is not None:
+            expected_execution_versions = {
+                v
+                for v in expected_execution_versions
+                if _version(v, "index.json", "/versions")[0] >= anchor_key
+            }
         _check(
             expected_execution_versions <= set(version_names),
             "index.json",
@@ -637,16 +663,34 @@ def validate_dataset(
     ]
     _check(
         len(set(version_names)) == len(version_names)
-        and order == sorted(order, reverse=True),
+        and order == sorted(order, reverse=policy is None),
         "index.json",
         "/versions",
-        "versions must be unique in numeric descending order",
+        "versions must be unique in configured numeric order",
     )
+    if anchor_key is not None:
+        _check(
+            all(value[0] >= anchor_key for value in order),
+            "index.json",
+            "/versions",
+            "historical ROCm tracks are outside configured app scope",
+        )
+        rocm_root = root / "rocm"
+        if rocm_root.exists():
+            _check(
+                all(
+                    not child.is_dir() or child.name in version_names
+                    for child in rocm_root.iterdir()
+                ),
+                "index.json",
+                "/versions",
+                "unindexed ROCm track directory in generated output",
+            )
     _check(
         index.get("default_version") == (version_names[0] if version_names else None),
         "index.json",
         "/default_version",
-        "default must be the highest indexed ROCm version",
+        "default must be the first supplied ROCm track",
     )
     all_build_ids = set()
     stable_count = 0
@@ -1219,6 +1263,28 @@ def validate_dataset(
             )
             for pos, row in enumerate(attempts):
                 ownership(row, epath, f"/attempts/{pos}", measurement=True)
+                if policy is not None or row.get("qualification_build_id") is not None:
+                    matches = [
+                        build
+                        for build in builds
+                        if build["engine"] == row["engine"]
+                        and build["channel"] == row["channel"]
+                        and RAW.fullmatch(build["source_url"])[1]
+                        == row["engine_repository"]
+                        and build["tag"] == row["engine_version"]
+                        and build["os"] == row["package_os"]
+                        and build.get("artifact")
+                        == row["package_url"].rsplit("/", 1)[-1]
+                    ]
+                    expected_id = matches[0]["build_id"] if len(matches) == 1 else None
+                    _check(
+                        row.get("qualification_build_id") == expected_id,
+                        epath,
+                        f"/attempts/{pos}/qualification_build_id",
+                        "execution link must match a unique exact engine/channel/repository/package/OS build",
+                        row["source_id"],
+                    )
+
         elif raw_execution is not None:
             try:
                 validate_execution_completeness(

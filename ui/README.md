@@ -50,29 +50,34 @@ choosing System restores automatic behavior. Theme selection is applied before
 the app renders. If browser storage is unavailable, switching still works for
 the current visit.
 
-Page One uses `views.readiness.stable_anchor` in [sources.json](../sources.json)
-(currently `10.1`, explicitly selected by the dashboard owner). It shows that
-stable anchor and only **newer** ROCm versions with recorded evidence, in numeric
-ascending order. There is no fixed number of upcoming versions and no invented
-nightly data. Version sections contain engines and recorded stable/nightly build
-channels. A build's channel and the catalog's `default_version` do not establish
-ROCm release status: the catalog default is the highest observed version. Updating
-the stable anchor is an explicit configuration edit when release policy changes.
-Older records remain in the dataset and detail-view selector; Page One does not
-load or display them. If anchor evidence is absent, it reports that absence rather
-than substituting another version or creating marks. There is no Page One version
-selector. One shared legend describes qualification marks; missing dates remain
-neutral gaps. Build timelines cover the last 14 UTC calendar dates.
+The collector uses `views.readiness.stable_anchor` in
+[sources.json](../sources.json) (currently owner-selected `10.1`) to scope the
+**whole app's dataset** to current stable and newer ROCm tracks with actual records.
+CI emits only eligible qualification histories, performance and execution inventories
+across all engines; retained older tracks are not reintroduced. Its catalog is ordered
+numerically ascending, with the configured stable track first when it has records.
+There is no fixed future-track count or invented nightly data. The UI renders this
+supplied catalog and uses `index.readiness.stable_anchor` only to label the anchor;
+it does not import release policy, compare versions or select tracks. Older external
+datasets without scope metadata render their supplied catalog with an explicit
+legacy-scope notice; the UI never guesses a stable release from build channels.
 
-When an execution inventory is present, each engine also shows passed, failed,
-partial and incomplete benchmark attempts, including attempts without throughput
-measurements. These are the inventory’s recorded attempts, not a 14-day qualification
-window, accuracy verdict or release claim. Expand the inventory for package,
-hardware, workload and source links. Older datasets without execution inventories
-do not acquire inferred outcomes. A failed in-scope version or inventory remains
-visible with an error and retry while other in-scope versions remain readable.
+Page One nests engines and recorded channels under each version. There is no
+Page One version selector. One shared legend describes qualification marks; missing
+dates remain neutral gaps. Build timelines cover the last 14 UTC calendar dates.
 
-Detail views retain version selection, inline qualification evidence and
+Benchmark execution is separate from qualification. The collector links attempts to
+a build only when repository, engine, channel, ROCm version, package tag, OS and
+artifact filename identify exactly one qualification build. Ambiguous reruns remain
+unlinked. Page One shows compact failure/partial/incomplete evidence links beside
+that build's qualification mark, without changing its verdict. Issues with no build
+in the displayed 14-day timeline are identified separately with their recorded dates.
+The underlying execution inventory selects latest model/workload attempts and may
+span a different period than qualification history; its totals are not a same-cohort
+build pass rate. There is no attempt inspector on Page One. Legacy data without
+associations remains explicitly unlinked; no tag-only UI joins or inferred passes.
+
+Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
 model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.
 Internal navigation keeps the active dataset revision; reloading reads the latest

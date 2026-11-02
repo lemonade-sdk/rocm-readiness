@@ -141,6 +141,13 @@ def manifest(root, allow_legacy=False):
         or index["attribution_version"] != 2
     ):
         raise ValueError("current attribution version is required for publication")
+    if "readiness" in index:
+        # Current scoped datasets must pass the same app-scope contract at publication.
+        if __package__:
+            from .conformance import validate_dataset
+        else:
+            from conformance import validate_dataset
+        validate_dataset(root, check_live_pointer=False)
     paths = {"index.json"}
     for item in index["versions"]:
         overview_path = item["overview"]

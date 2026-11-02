@@ -104,6 +104,8 @@ def load_config(config):
     }
     if "reference_model" in config:
         readiness["reference_model"] = copy.deepcopy(config["reference_model"])
+    if isinstance(readiness_view, dict) and "stable_anchor" in readiness_view:
+        readiness["readiness"] = {"stable_anchor": readiness_view["stable_anchor"]}
     validate_config(readiness)
     upview = views.get("upstream")
     # Validate every project and job, including entries outside a view.

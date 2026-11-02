@@ -16,8 +16,8 @@ test.beforeEach(async ({ page }) => {
     else if (url === indexUrl) data = index;
     else if (url === new URL("rocm/10.1/overview.json", indexUrl).href)
       data = overview();
-    else if (url === new URL("rocm/10.0/overview.json", indexUrl).href)
-      data = overview("10.0");
+    else if (url === new URL("rocm/10.2/overview.json", indexUrl).href)
+      data = overview("10.2");
     else if (url.endsWith("/history/2026-10.json"))
       data = historyFixture(url.match(/\/rocm\/([^/]+)\//)?.[1]);
     else return route.fulfill({ status: 404, body: "{}" });
@@ -74,10 +74,10 @@ test("pins data, switches versions and restores scope through browser history", 
     url.endsWith("/main/data/latest.json"),
   ).length;
   await expect(page.getByLabel("ROCm version")).toHaveCount(0);
-  await expect(page.getByRole("region", {name:"ROCm 10.0",exact:true})).toHaveCount(0);
+
   await expect(page.locator(".build-legend")).toHaveCount(1);
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await page.getByLabel("ROCm version").selectOption("10.0");
+  await page.getByLabel("ROCm version").selectOption("10.2");
   await expect(
     page.getByRole("heading", { name: "llama.cpp builds" }),
   ).toBeVisible();
@@ -184,7 +184,14 @@ test("recovers from an initial malformed pointer and represents empty data", asy
     route.fulfill({ json: pointer }),
   );
   await page.route(indexUrl, (route) =>
-    route.fulfill({ json: { ...index, default_version: null, versions: [] } }),
+    route.fulfill({
+      json: {
+        ...index,
+        default_version: null,
+        readiness: { stable_anchor: "10.1", versions: [] },
+        versions: [],
+      },
+    }),
   );
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(
@@ -220,7 +227,7 @@ test("has a keyboard skip link and fits the viewport", async ({
 test("shows benchmark failures and incomplete attempts without qualification marks", async ({
   page,
 }) => {
-  const version = "10.2";
+  const version = "10.3";
   const o = overview(version);
   const attempts = (["passed", "failed", "partial", "unknown"] as const).map(
     (status) => executionAttempt(version, status),
@@ -229,6 +236,7 @@ test("shows benchmark failures and incomplete attempts without qualification mar
     route.fulfill({
       json: {
         ...index,
+        readiness: { stable_anchor: "10.1" },
         versions: [
           ...index.versions,
           {
@@ -266,22 +274,76 @@ test("shows benchmark failures and incomplete attempts without qualification mar
     }),
   );
   await page.goto("./");
-  const section = page.getByRole("region", { name: "ROCm 10.2", exact: true });
-  for (const label of [
-    "Passed: 1",
-    "Failed: 1",
-    "Partial: 1",
-    "Incomplete evidence: 1",
-  ])
-    await expect(section.getByText(label, { exact: true })).toBeVisible();
+  const section = page.getByRole("region", { name: "ROCm 10.3", exact: true });
+  for (const label of ["1 failed", "1 partial", "1 incomplete"])
+    await expect(
+      section.getByRole("link", { name: label, exact: true }),
+    ).toBeVisible();
   await expect(section.locator(".build-mark")).toHaveCount(0);
-  await section.getByText("Inspect benchmark attempts").click();
+  await expect(section.getByText("Inspect benchmark attempts")).toHaveCount(0);
   await expect(
-    section.getByRole("link", { name: "Source report", exact: true }),
-  ).toHaveCount(4);
+    section.getByText(/Not linked to a build in this timeline/),
+  ).toBeVisible();
   await expect(page.getByLabel("ROCm version")).toHaveCount(0);
-  await expect(page.getByRole("region", {name:"ROCm 10.0",exact:true})).toHaveCount(0);
+
   await expect(page.locator(".build-legend")).toHaveCount(1);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("keeps qualified builds green while linking their separate benchmark issues", async ({
+  page,
+}) => {
+  const o = overview();
+  const attempts = (["failed", "partial", "unknown"] as const).map(
+    (status) => ({
+      ...executionAttempt("10.1", status),
+      qualification_build_id: "linux-build",
+    }),
+  );
+  await page.route("**/rocm/10.1/overview.json", (route) =>
+    route.fulfill({
+      json: {
+        ...o,
+        execution: {
+          path: "rocm/10.1/executions.json",
+          attempt_count: 3,
+          summaries: [],
+        },
+      },
+    }),
+  );
+  await page.route("**/rocm/10.1/executions.json", (route) =>
+    route.fulfill({
+      json: {
+        schema_version: 1,
+        rocm_version: "10.1",
+        attempts,
+        summaries: [],
+      },
+    }),
+  );
+  await page.goto("./");
+  const failure = page.getByRole("link", {
+    name: /Bench fail: 1 recorded attempt/,
+  });
+  await expect(failure).toHaveAttribute("href", attempts[0].source_url);
+  await expect(
+    page
+      .locator(".build-evidence")
+      .filter({ has: failure })
+      .locator(".build-mark.pass"),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: /Bench partial: 1/ }),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: /Bench incomplete: 1/ }),
+  ).toHaveCount(1);
+  await expect(page.getByText("Inspect benchmark attempts")).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

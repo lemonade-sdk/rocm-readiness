@@ -27,7 +27,7 @@ it("selects the preceding package in the same source/version/platform/channel", 
       {
         ...before,
         build_id: "wrong",
-        rocm_version: "10.0",
+        rocm_version: "10.2",
         generated_at: "2026-10-30T11:00:00Z",
       },
       {

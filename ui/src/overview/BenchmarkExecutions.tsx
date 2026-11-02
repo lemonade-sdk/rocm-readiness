@@ -1,73 +1,58 @@
+import type { Build } from "../data";
 import type { ExecutionAttempt } from "./executions";
 
-const labels = {
-  passed: "Passed",
-  failed: "Failed",
-  partial: "Partial",
-  unknown: "Incomplete evidence",
-};
 export function BenchmarkExecutions({
   attempts,
+  visibleBuilds,
 }: {
   attempts: ExecutionAttempt[];
+  visibleBuilds: Build[];
 }) {
   if (!attempts.length) return null;
+  const unlinked = attempts.filter(
+    (row) =>
+      !visibleBuilds.some(
+        (build) =>
+          row.qualification_build_id === build.build_id &&
+          row.channel === build.channel &&
+          row.package_os === build.os,
+      ),
+  );
+  const issues = (["failed", "partial", "unknown"] as const)
+    .map((status) => ({
+      status,
+      rows: unlinked.filter((row) => row.execution_status === status),
+    }))
+    .filter((group) => group.rows.length);
   return (
-    <section className="benchmark-executions" aria-label="Benchmark executions">
-      <h4>Benchmark executions</h4>
-      <p>
-        Benchmark completion, separate from build qualification and model
-        accuracy.
-      </p>
-      <div className="execution-summary">
-        {(["passed", "failed", "partial", "unknown"] as const).map((status) => (
-          <span key={status} className={`execution-status ${status}`}>
-            {labels[status]}:{" "}
-            {attempts.filter((row) => row.execution_status === status).length}
-          </span>
-        ))}
-      </div>
-      <details>
-        <summary>Inspect benchmark attempts</summary>
-        <ul className="execution-attempts">
-          {attempts.map((row, index) => (
-            <li key={`${row.source_url}:${row.source_pointer}:${index}`}>
-              <strong className={`execution-status ${row.execution_status}`}>
-                {labels[row.execution_status]}
-              </strong>{" "}
-              {row.model} · {row.engine_version ?? "Package tag unavailable"} ·{" "}
-              {row.package_os} · {row.scenario}
-              {row.context_size !== null &&
-                ` · context ${row.context_size}`} ·{" "}
-              {new Date(row.measured_at).toISOString().slice(0, 10)}
-              <div>
-                {typeof row.hardware.cpu === "string"
-                  ? row.hardware.cpu
-                  : "CPU not recorded"}
-                {" · "}
-                {Array.isArray(row.hardware.gpu)
-                  ? row.hardware.gpu
-                      .map((gpu) =>
-                        typeof gpu === "object" && gpu && "name" in gpu
-                          ? String(gpu.name)
-                          : "GPU not recorded",
-                      )
-                      .join(", ")
-                  : "GPU not recorded"}
-              </div>
-              <a href={row.source_url} target="_blank" rel="noreferrer">
-                Source report
-              </a>
-              {" · "}
-              <a href={row.package_url} target="_blank" rel="noreferrer">
-                Engine package
-              </a>
-              {" · "}
-              <span>Record {row.source_pointer || "/"}</span>
-            </li>
+    <p className="benchmark-executions">
+      Benchmark execution is separate from qualification.{" "}
+      {issues.length ? (
+        <>
+          Not linked to a build in this timeline:{" "}
+          {issues.map(({ status, rows }, index) => (
+            <span key={status}>
+              {index > 0 ? ", " : ""}
+              <a
+                className={`execution-status ${status}`}
+                href={rows[0].source_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {rows.length} {status === "unknown" ? "incomplete" : status}
+              </a>{" "}
+              (
+              {[...new Set(rows.map((row) => row.measured_at.slice(0, 10)))]
+                .sort()
+                .join(", ")}
+              )
+            </span>
           ))}
-        </ul>
-      </details>
-    </section>
+          .
+        </>
+      ) : (
+        <>Recorded issues appear beside their builds.</>
+      )}
+    </p>
   );
 }

@@ -78,6 +78,11 @@ calendar header. Dates are grouped internally in UTC. Qualification does not
 establish actual artifact publication. Page 1
 has no test counts or compiled-target panels; those remain in build details.
 
+Datasets can also retain benchmark execution attempts and summaries in
+`rocm/<version>/executions.json`, including failed attempts without throughput
+measurements. The overview timeline currently displays build qualification only;
+it does not turn benchmark execution outcomes into qualification marks.
+
 Reloading the page reads the live pointer again. Readiness retry controls
 replace an existing active dataset only after its requested version loads successfully;
 a failed retry retains the last usable session.

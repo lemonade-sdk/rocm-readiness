@@ -46,10 +46,12 @@ export function ReadinessOverview({
   session,
   fetcher,
   onRetry,
+  stableAnchor = sources.views.readiness.stable_anchor,
 }: {
   session: Session;
   fetcher: Fetcher;
   onRetry: () => void;
+  stableAnchor?: string;
 }) {
   const [state, setState] = useState<{
     revision: string;
@@ -58,41 +60,46 @@ export function ReadinessOverview({
   useEffect(() => {
     const controller = new AbortController();
     void Promise.all(
-      session.index.versions.map(async (entry): Promise<VersionEvidence> => {
-        const row: VersionEvidence = {
-          version: entry.rocm_version,
-          builds: null,
-          attempts: [],
-        };
-        try {
-          row.session =
-            session.version === entry.rocm_version && session.overview
-              ? session
-              : await loadVersion(
-                  session,
-                  entry.rocm_version,
-                  fetcher,
-                  controller.signal,
-                );
-          const [history, execution] = await Promise.allSettled([
-            loadHistory(row.session, fetcher, controller.signal),
-            loadExecutions(row.session, fetcher, controller.signal),
-          ]);
-          if (history.status === "fulfilled") row.builds = history.value;
-          else row.historyError = String(history.reason);
-          if (execution.status === "fulfilled") row.attempts = execution.value;
-          else row.executionError = String(execution.reason);
-        } catch (error) {
-          row.error = String(error);
-        }
-        return row;
-      }),
+      session.index.versions
+        .filter(
+          (entry) => compareVersions(entry.rocm_version, stableAnchor) >= 0,
+        )
+        .map(async (entry): Promise<VersionEvidence> => {
+          const row: VersionEvidence = {
+            version: entry.rocm_version,
+            builds: null,
+            attempts: [],
+          };
+          try {
+            row.session =
+              session.version === entry.rocm_version && session.overview
+                ? session
+                : await loadVersion(
+                    session,
+                    entry.rocm_version,
+                    fetcher,
+                    controller.signal,
+                  );
+            const [history, execution] = await Promise.allSettled([
+              loadHistory(row.session, fetcher, controller.signal),
+              loadExecutions(row.session, fetcher, controller.signal),
+            ]);
+            if (history.status === "fulfilled") row.builds = history.value;
+            else row.historyError = String(history.reason);
+            if (execution.status === "fulfilled")
+              row.attempts = execution.value;
+            else row.executionError = String(execution.reason);
+          } catch (error) {
+            row.error = String(error);
+          }
+          return row;
+        }),
     ).then((rows) => {
       if (!controller.signal.aborted)
         setState({ revision: session.indexUrl, rows });
     });
     return () => controller.abort();
-  }, [session, fetcher]);
+  }, [session, fetcher, stableAnchor]);
   if (state?.revision !== session.indexUrl)
     return <p role="status">Loading recorded ROCm versions…</p>;
   const records = (row: VersionEvidence) =>
@@ -108,21 +115,11 @@ export function ReadinessOverview({
       row.attempts.length ||
       row.session?.overview?.performance.status === "available",
   );
-  const stable = visible
-    .filter(
-      (row) =>
-        /^\d+(?:\.\d+)*$/.test(row.version) &&
-        records(row).some((build) => build.channel === "stable"),
-    )
-    .map((row) => row.version)
-    .sort(compareVersions)
-    .at(-1);
+  // The catalog default is the highest observed version, not a GA declaration.
+  // Release policy is explicitly owned in sources.json, independent of build channel.
+  const stable = stableAnchor;
   const rows = [...visible].sort((a, b) =>
-    a.version === stable
-      ? -1
-      : b.version === stable
-        ? 1
-        : compareVersions(a.version, b.version),
+    compareVersions(a.version, b.version),
   );
   return (
     <div className="readiness-versions">
@@ -183,6 +180,9 @@ export function ReadinessOverview({
             )}
         </section>
       ))}
+      {!rows.some((row) => row.version === stable) && (
+        <p>No recorded evidence for configured stable ROCm {stable}.</p>
+      )}
       {!rows.length && <p>No build or benchmark records are available.</p>}
     </div>
   );

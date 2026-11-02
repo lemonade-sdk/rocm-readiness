@@ -40,6 +40,13 @@ def load_config(config):
         or not isinstance(views, dict)
     ):
         raise ValueError("projects, sources and views are required")
+    readiness_view = views.get("readiness")
+    if isinstance(readiness_view, dict) and "stable_anchor" in readiness_view:
+        anchor = readiness_view["stable_anchor"]
+        if not isinstance(anchor, str) or not re.fullmatch(
+            r"[0-9]+(?:\.[0-9]+)+", anchor
+        ):
+            raise ValueError("readiness stable_anchor must be a numeric ROCm version")
     project_map = {}
     for project in projects:
         if not isinstance(project, dict):

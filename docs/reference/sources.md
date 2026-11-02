@@ -91,3 +91,12 @@ Use `python scripts/collect.py --sources sources.json` for the full collection,
 `python scripts/upstream.py --sources sources.json --output-dir data` for an
 upstream-only refresh, and `python scripts/conformance.py --data-dir data
 --sources sources.json` for conformance against the selected readiness feeds.
+
+### Readiness display scope
+
+`views.readiness.stable_anchor` optionally records the owner-selected current stable
+ROCm version as a numeric version string (the repository sets `10.1`). The UI shows
+this version and newer versions with actual records; historical versions remain
+available in detail views. This is a display policy, not an ingestion filter or a
+release verdict inferred from qualification/build channels. The collector validates
+the optional field but does not remove historical data or rewrite catalog defaults.

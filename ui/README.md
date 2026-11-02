@@ -50,21 +50,27 @@ choosing System restores automatic behavior. Theme selection is applied before
 the app renders. If browser storage is unavailable, switching still works for
 the current visit.
 
-Page One groups all versions with recorded evidence into version sections, with
-engines and their recorded stable/nightly channels underneath. The newest numeric
-version with a recorded stable qualification build appears first (latest observed
-stable, not an independent release declaration); the others follow in numeric
-ascending order. There is no version selector on Page One. One shared legend
-describes qualification marks; missing dates remain neutral gaps. Build timelines
-cover the last 14 UTC calendar dates.
+Page One uses `views.readiness.stable_anchor` in [sources.json](../sources.json)
+(currently `10.1`, explicitly selected by the dashboard owner). It shows that
+stable anchor and only **newer** ROCm versions with recorded evidence, in numeric
+ascending order. There is no fixed number of upcoming versions and no invented
+nightly data. Version sections contain engines and recorded stable/nightly build
+channels. A build's channel and the catalog's `default_version` do not establish
+ROCm release status: the catalog default is the highest observed version. Updating
+the stable anchor is an explicit configuration edit when release policy changes.
+Older records remain in the dataset and detail-view selector; Page One does not
+load or display them. If anchor evidence is absent, it reports that absence rather
+than substituting another version or creating marks. There is no Page One version
+selector. One shared legend describes qualification marks; missing dates remain
+neutral gaps. Build timelines cover the last 14 UTC calendar dates.
 
 When an execution inventory is present, each engine also shows passed, failed,
 partial and incomplete benchmark attempts, including attempts without throughput
 measurements. These are the inventory’s recorded attempts, not a 14-day qualification
 window, accuracy verdict or release claim. Expand the inventory for package,
 hardware, workload and source links. Older datasets without execution inventories
-do not acquire inferred outcomes. A failed version or inventory remains visible
-with an error and retry while other versions remain readable.
+do not acquire inferred outcomes. A failed in-scope version or inventory remains
+visible with an error and retry while other in-scope versions remain readable.
 
 Detail views retain version selection, inline qualification evidence and
 model-performance details. URLs retain

@@ -13,7 +13,7 @@ import {
 } from "./fixtures";
 import type { Session } from "./data";
 
-it("shows real versions together, latest observed stable first, then numeric ascending", async () => {
+it("shows real versions together, configured stable first and only newer recorded versions, numeric ascending", async () => {
   const versions = ["10.10", "7.14", "10.2", "10.1"];
   const catalog = {
     ...index,
@@ -28,7 +28,7 @@ it("shows real versions together, latest observed stable first, then numeric asc
     const o = overview(v);
     const build = {
       ...o.engines[0].latest_builds[0],
-      channel: v === "10.2" || v === "10.10" ? "nightly" : "stable",
+      channel: "stable", // A stable engine channel does not declare ROCm GA.
       build_id: v,
       tag: v,
     };
@@ -61,12 +61,7 @@ it("shows real versions together, latest observed stable first, then numeric asc
   await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
   expect(
     screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
-  ).toEqual([
-    "ROCm 10.1 · Latest stable",
-    "ROCm 7.14",
-    "ROCm 10.2",
-    "ROCm 10.10",
-  ]);
+  ).toEqual(["ROCm 10.1 · Latest stable", "ROCm 10.2", "ROCm 10.10"]);
   const track = screen.getByRole("region", { name: "ROCm 10.2" });
   expect(
     within(track).getByRole("heading", { name: "llama.cpp" }),
@@ -76,25 +71,25 @@ it("shows real versions together, latest observed stable first, then numeric asc
 });
 
 it("shows execution-only versions and non-passing attempts without inventing qualification", async () => {
-  const o = overview("7.13");
+  const o = overview("10.2");
   const attempts = ["passed", "failed", "partial", "unknown"].map((status) =>
-    executionAttempt("7.13", status as "passed"),
+    executionAttempt("10.2", status as "passed"),
   );
   const fetcher = fixtureFetch({
-    [new URL("rocm/7.13/overview.json", indexUrl).href]: {
+    [new URL("rocm/10.2/overview.json", indexUrl).href]: {
       ...o,
       engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
       history: [],
       performance: { status: "not_measured" },
       execution: {
-        path: "rocm/7.13/executions.json",
+        path: "rocm/10.2/executions.json",
         attempt_count: 4,
         summaries: [],
       },
     },
-    [new URL("rocm/7.13/executions.json", indexUrl).href]: {
+    [new URL("rocm/10.2/executions.json", indexUrl).href]: {
       schema_version: 1,
-      rocm_version: "7.13",
+      rocm_version: "10.2",
       attempts,
       summaries: [],
     },
@@ -105,8 +100,8 @@ it("shows execution-only versions and non-passing attempts without inventing qua
       ...index,
       versions: [
         {
-          rocm_version: "7.13",
-          overview: "rocm/7.13/overview.json",
+          rocm_version: "10.2",
+          overview: "rocm/10.2/overview.json",
           build_count: 0,
         },
       ],
@@ -124,7 +119,7 @@ it("shows execution-only versions and non-passing attempts without inventing qua
       />
     </MemoryRouter>,
   );
-  await screen.findByRole("heading", { name: "ROCm 7.13" });
+  await screen.findByRole("heading", { name: "ROCm 10.2" });
   for (const label of [
     "Passed: 1",
     "Failed: 1",
@@ -141,11 +136,21 @@ it("shows execution-only versions and non-passing attempts without inventing qua
 
 it("keeps other versions visible when one inventory fails", async () => {
   const fetcher = fixtureFetch({
-    [new URL("rocm/10.0/overview.json", indexUrl).href]: {},
+    [new URL("rocm/10.2/overview.json", indexUrl).href]: {},
   });
   const session = {
     pointer,
-    index,
+    index: {
+      ...index,
+      versions: [
+        ...index.versions,
+        {
+          rocm_version: "10.2",
+          overview: "rocm/10.2/overview.json",
+          build_count: 1,
+        },
+      ],
+    },
     indexUrl,
     version: null,
     overview: null,
@@ -163,7 +168,7 @@ it("keeps other versions visible when one inventory fails", async () => {
     await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" }),
   ).toBeInTheDocument();
   expect(
-    within(screen.getByRole("region", { name: "ROCm 10.0" })).getByRole(
+    within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
       "alert",
     ),
   ).toBeInTheDocument();
@@ -173,4 +178,82 @@ it("keeps other versions visible when one inventory fails", async () => {
       { name: "llama.cpp" },
     ),
   ).toBeInTheDocument();
+});
+
+it("shows only the anchor with today's catalog and leaves historical detail data intact", async () => {
+  const requested: string[] = [];
+  const base = fixtureFetch();
+  const fetcher = async (input: string | URL | Request) => {
+    requested.push(String(input));
+    return base(input);
+  };
+  const session = {
+    pointer,
+    index,
+    indexUrl,
+    version: null,
+    overview: null,
+  } as Session;
+  render(
+    <MemoryRouter>
+      <ReadinessOverview
+        session={session}
+        fetcher={fetcher}
+        onRetry={() => {}}
+      />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
+  expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(1);
+  expect(requested.some((url) => url.includes("/10.0/"))).toBe(false);
+  expect(index.versions.some((entry) => entry.rocm_version === "10.0")).toBe(
+    true,
+  );
+});
+
+it("uses a changed configured anchor and omits a newer empty catalog entry", async () => {
+  const versions = ["10.1", "10.2", "10.3"];
+  const fixtures: Record<string, unknown> = {};
+  for (const v of versions) {
+    const o = overview(v);
+    fixtures[new URL(`rocm/${v}/overview.json`, indexUrl).href] =
+      v === "10.3"
+        ? {
+            ...o,
+            engines: [],
+            history: [],
+            performance: { status: "not_measured" },
+          }
+        : o;
+    fixtures[new URL(`rocm/${v}/history/2026-10.json`, indexUrl).href] =
+      historyFixture(v);
+  }
+  const session = {
+    pointer,
+    index: {
+      ...index,
+      versions: versions.map((v) => ({
+        rocm_version: v,
+        overview: `rocm/${v}/overview.json`,
+        build_count: v === "10.3" ? 0 : 1,
+      })),
+    },
+    indexUrl,
+    version: null,
+    overview: null,
+  } as Session;
+  render(
+    <MemoryRouter>
+      <ReadinessOverview
+        session={session}
+        stableAnchor="10.2"
+        fetcher={fixtureFetch(fixtures)}
+        onRetry={() => {}}
+      />
+    </MemoryRouter>,
+  );
+  await screen.findByRole("heading", { name: "ROCm 10.2 · Latest stable" });
+  expect(
+    screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
+  ).toEqual(["ROCm 10.2 · Latest stable"]);
 });

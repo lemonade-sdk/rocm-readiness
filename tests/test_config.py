@@ -23,6 +23,17 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(len(upstream["projects"]), 6)
         self.assertEqual(upstream["projects"][0]["id"], "llamacpp")
 
+    def test_readiness_stable_anchor_is_explicit_and_validated(self):
+        config = json.loads((ROOT / "sources.json").read_text())
+        self.assertEqual(config["views"]["readiness"]["stable_anchor"], "10.1")
+        config["views"]["readiness"]["stable_anchor"] = "10.2"
+        self.load(config)
+        for invalid in (None, 10.1, "", "10.2a-2026-11-02"):
+            with self.subTest(anchor=invalid):
+                config["views"]["readiness"]["stable_anchor"] = invalid
+                with self.assertRaisesRegex(ValueError, "stable_anchor"):
+                    self.load(config)
+
     def test_v1_has_no_implicit_upstream(self):
         config = {"schema_version": 1, "engines": [], "sources": []}
         self.assertIsNone(self.load(config)[1])

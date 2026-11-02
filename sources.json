@@ -448,6 +448,7 @@
   ],
   "views": {
     "readiness": {
+      "stable_anchor": "10.1",
       "sources": [
         "llamacpp-stable-qualification",
         "llamacpp-nightly-qualification",

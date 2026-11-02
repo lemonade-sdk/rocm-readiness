@@ -8,6 +8,7 @@ import {
 } from "../src/fixtures";
 
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
     const url = route.request().url();
     let data: unknown;

@@ -759,6 +759,28 @@ class DatasetTests(unittest.TestCase):
         self.assertIn("upstream/demo/ci/2026-10.json", paths)
         self.assertIn("upstream/demo/ci/2026-10.json", publish.manifest(self.root))
 
+    def test_execution_and_upstream_views_share_the_publication_manifest(self):
+        from tests.test_execution_dataset import attempt
+
+        output = normalized([build(rocm_version="10.1")])
+        output["executions"] = [attempt()]
+        output["sources"].append(
+            {
+                "id": "performance",
+                "engine": "llamacpp",
+                "status": "fresh",
+                "record_count": 1,
+                "url": output["executions"][0]["source_url"],
+            }
+        )
+        index = write_dataset(output, self.root)
+        index["upstream"] = collect(fake_github(), self.root)
+        (self.root / "index.json").write_text(json.dumps(index))
+        for paths in (validate_dataset(self.root), publish.manifest(self.root)):
+            self.assertIn("rocm/10.1/executions.json", paths)
+            self.assertIn("upstream/demo/ci/2026-10.json", paths)
+            self.assertNotIn("provenance/executions.json", paths)
+
     def mutate(self, relative, change):
         target = self.root / relative
         data = json.loads(target.read_text())

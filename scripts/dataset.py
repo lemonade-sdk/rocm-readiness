@@ -11,9 +11,11 @@ from typing import Dict, Optional
 from urllib.parse import urlparse
 
 if __package__:
+    from .execution_dataset import summarize, validate_execution_file
     from .attribution import RUN, validate_measurement_package
     from .validation import PipelineValidationError
 else:
+    from execution_dataset import summarize, validate_execution_file
     from attribution import RUN, validate_measurement_package
     from validation import PipelineValidationError
 
@@ -564,6 +566,7 @@ def _write_version(
     generated_at,
     measurements,
     systems,
+    executions=(),
 ):
     by_engine = {engine["id"]: [] for engine in engines}
     by_month = {}
@@ -590,8 +593,10 @@ def _write_version(
 
     cards = []
     for engine in engines:
-        if not by_engine[engine["id"]] and not any(
-            row["engine"] == engine["id"] for row in measurements
+        if (
+            not by_engine[engine["id"]]
+            and not any(row["engine"] == engine["id"] for row in measurements)
+            and not any(row["engine"] == engine["id"] for row in executions)
         ):
             continue
         latest = {}
@@ -637,6 +642,21 @@ def _write_version(
         "history": history,
         "performance": performance,
     }
+    if executions:
+        path = f"rocm/{version}/executions.json"
+        data = {
+            "schema_version": 1,
+            "rocm_version": version,
+            "attempts": list(executions),
+            "summaries": summarize(executions),
+        }
+        validate_execution_file(data, version)
+        _write_json(destination / path, data)
+        overview["execution"] = {
+            "path": path,
+            "attempt_count": len(executions),
+            "summaries": data["summaries"],
+        }
     _write_json(destination / f"rocm/{version}/overview.json", overview)
     return len(rows)
 
@@ -840,7 +860,14 @@ def write_dataset(
         grouped.setdefault(row["rocm_version"], []).append(row)
 
     versions = []
-    for version in sorted(set(grouped) | set(assigned), key=_version_key, reverse=True):
+    execution_versions = {}
+    for row in output.get("executions", []):
+        execution_versions.setdefault(row["rocm_version"], []).append(row)
+    for version in sorted(
+        set(grouped) | set(assigned) | set(execution_versions),
+        key=_version_key,
+        reverse=True,
+    ):
         version_systems = version_systems_map.get(version, {})
         count = _write_version(
             destination,
@@ -850,6 +877,7 @@ def write_dataset(
             output["generated_at"],
             assigned.get(version, []),
             version_systems,
+            execution_versions.get(version, []),
         )
         versions.append(
             {

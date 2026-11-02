@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 /data/
+/.execution-cache/
 
 # Local planning artifacts
 /docs/superpowers/

@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 if __package__:
+    from .execution_dataset import validate_execution_file
     from .dataset import (
         _load_previous,
         _read_previous,
@@ -20,6 +21,7 @@ if __package__:
     from .sync import load_last_success
     from .upstream import validate_upstream_dataset
 else:
+    from execution_dataset import validate_execution_file
     from dataset import (
         _load_previous,
         _read_previous,
@@ -148,6 +150,18 @@ def manifest(root, allow_legacy=False):
         paths.update(entry["path"] for entry in overview["history"])
         if overview.get("performance", {}).get("path"):
             paths.add(overview["performance"]["path"])
+        if overview.get("execution", {}).get("path"):
+            execution = overview["execution"]
+            expected = f"rocm/{item['rocm_version']}/executions.json"
+            if execution["path"] != expected:
+                raise ValueError("invalid execution path")
+            detail = read_json(checked(root, expected))
+            attempts = validate_execution_file(detail, item["rocm_version"])
+            if execution.get("summaries") != detail["summaries"] or execution.get(
+                "attempt_count"
+            ) != len(attempts):
+                raise ValueError("execution summary mismatch")
+            paths.add(expected)
     if "upstream" in index:
         # The Upstream health view: its overview and every monthly run file
         # it references are part of the published dataset.

@@ -56,7 +56,8 @@
         "llamacpp-rocm-stable"
       ],
       "type": "readiness",
-      "project": "lemonade"
+      "project": "lemonade",
+      "execution_details": true
     },
     {
       "id": "llamacpp-upstream",

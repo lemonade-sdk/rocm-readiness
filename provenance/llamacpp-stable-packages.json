@@ -19,7 +19,8 @@
           "job_id": "122039903208",
           "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11913/llama-b11913-bin-ubuntu-rocm-10.1-x64.tar.gz",
           "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40459300755/job/122039903208",
-          "log_sha256": "664db03701105c1f5b1bf6375150347ed670aa0f81dd7de7c85cb87d79a398a9"
+          "log_sha256": "664db03701105c1f5b1bf6375150347ed670aa0f81dd7de7c85cb87d79a398a9",
+          "method": "download_log"
         }
       ],
       "measurement_times": [
@@ -37,7 +38,8 @@
         "2026-10-27T11:19:23Z",
         "2026-10-27T11:36:27Z",
         "2026-10-27T11:44:32Z",
-        "2026-10-27T12:08:28Z"
+        "2026-10-27T12:08:28Z",
+        "2026-10-27T12:19:51Z"
       ]
     },
     {
@@ -58,7 +60,8 @@
           "job_id": "117912954535",
           "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11723/llama-b11723-bin-ubuntu-rocm-10.0-x64.tar.gz",
           "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/39207331169/job/117912954535",
-          "log_sha256": "1737c86e8911633accc5d3db1593e5ee53d0db5594ea267c983c5c86f05f0ba7"
+          "log_sha256": "1737c86e8911633accc5d3db1593e5ee53d0db5594ea267c983c5c86f05f0ba7",
+          "method": "download_log"
         }
       ],
       "measurement_times": [
@@ -74,7 +77,8 @@
         "2026-10-19T01:11:33Z",
         "2026-10-19T01:13:15Z",
         "2026-10-19T01:21:59Z",
-        "2026-10-19T01:27:07Z"
+        "2026-10-19T01:27:07Z",
+        "2026-10-19T01:36:03Z"
       ]
     },
     {
@@ -95,7 +99,8 @@
           "job_id": "120749167693",
           "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11836/llama-b11836-bin-ubuntu-rocm-10.1-x64.tar.gz",
           "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40052857545/job/120749167693",
-          "log_sha256": "5964ee723bdc3b29332c985c7790809757e3af76b68b4fc6bd194c28852da6c2"
+          "log_sha256": "5964ee723bdc3b29332c985c7790809757e3af76b68b4fc6bd194c28852da6c2",
+          "method": "download_log"
         }
       ],
       "measurement_times": [
@@ -107,7 +112,8 @@
         "2026-10-23T21:02:22Z",
         "2026-10-23T21:07:36Z",
         "2026-10-23T21:12:24Z",
-        "2026-10-23T21:14:06Z"
+        "2026-10-23T21:14:06Z",
+        "2026-10-23T21:35:42Z"
       ]
     },
     {
@@ -128,7 +134,8 @@
           "job_id": "121464110613",
           "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11889/llama-b11889-bin-ubuntu-rocm-10.1-x64.tar.gz",
           "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40290464171/job/121464110613",
-          "log_sha256": "f0fc3c64c645ab9482fc81b07ed6c95f04aab493dac4dd9d5dcf7aedd4fee772"
+          "log_sha256": "f0fc3c64c645ab9482fc81b07ed6c95f04aab493dac4dd9d5dcf7aedd4fee772",
+          "method": "download_log"
         }
       ],
       "measurement_times": [
@@ -146,7 +153,8 @@
         "2026-10-26T12:33:19Z",
         "2026-10-26T12:44:47Z",
         "2026-10-26T12:51:32Z",
-        "2026-10-26T13:09:59Z"
+        "2026-10-26T13:09:59Z",
+        "2026-10-26T13:18:51Z"
       ]
     },
     {
@@ -250,7 +258,8 @@
           "job_id": "122306719689",
           "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11932/llama-b11932-bin-ubuntu-rocm-10.1-x64.tar.gz",
           "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40537509555/job/122306719689",
-          "log_sha256": "2d56942e7d1850c4dcf16a576f159187675a8a2c66470709e375a5f28d7e9f9c"
+          "log_sha256": "2d56942e7d1850c4dcf16a576f159187675a8a2c66470709e375a5f28d7e9f9c",
+          "method": "download_log"
         }
       ],
       "measurement_times": [
@@ -259,6 +268,7 @@
         "2026-10-27T19:26:37Z",
         "2026-10-27T19:46:19Z",
         "2026-10-27T20:03:21Z",
+        "2026-10-27T20:05:04Z",
         "2026-10-27T20:10:09Z",
         "2026-10-27T20:29:43Z",
         "2026-10-27T20:37:24Z",
@@ -266,9 +276,9 @@
         "2026-10-27T20:58:06Z",
         "2026-10-27T21:05:26Z",
         "2026-10-27T21:22:23Z",
+        "2026-10-27T21:30:23Z",
         "2026-10-27T22:09:43Z",
-        "2026-10-27T20:05:04Z",
-        "2026-10-27T21:30:23Z"
+        "2026-10-27T22:29:04Z"
       ]
     },
     {
@@ -301,6 +311,2717 @@
       "measurement_times": [
         "2026-10-27T23:53:15Z",
         "2026-10-27T23:59:53Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "40923551108",
+      "job_id": "123622999610",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11997",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11997/llama-b11997-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-29T17:42:37Z",
+      "completed_at": "2026-10-29T18:34:42Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40923551108/job/123622999610",
+      "log_sha256": "3e5cde0e0c7e35c231dea6c7bae12f30bd8cbbcc5fff4919d7f3a7bea3e0b55c",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "123622999610",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11997/llama-b11997-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40923551108/job/123622999610",
+          "log_sha256": "3e5cde0e0c7e35c231dea6c7bae12f30bd8cbbcc5fff4919d7f3a7bea3e0b55c"
+        },
+        {
+          "job_id": "123622999822",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11997/llama-b11997-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/40923551108/job/123622999822",
+          "log_sha256": "ddca74e42930ad4e07fb0e810bffde21bd4d9b18b3093f97325e82e22ee92240"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-29T17:46:02Z",
+        "2026-10-29T17:54:14Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36665739260",
+      "job_id": "109729929767",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11271",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11271/llama-b11271-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-09-30T04:36:41Z",
+      "completed_at": "2026-09-30T05:21:11Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36665739260/job/109729929767",
+      "log_sha256": "8dafa6c6ec81272f7c9c129c20ea9818dbcc4f729cb9581b5d021b4de9bfddbb",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "109729929767",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11271/llama-b11271-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36665739260/job/109729929767",
+          "log_sha256": "8dafa6c6ec81272f7c9c129c20ea9818dbcc4f729cb9581b5d021b4de9bfddbb"
+        },
+        {
+          "job_id": "109985500852",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11271/llama-b11271-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36665739260/job/109985500852",
+          "log_sha256": "8dafa6c6ec81272f7c9c129c20ea9818dbcc4f729cb9581b5d021b4de9bfddbb"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-29T22:01:50Z",
+        "2026-09-29T22:18:30Z",
+        "2026-09-29T22:19:22Z",
+        "2026-09-29T22:03:46Z",
+        "2026-09-29T21:59:50Z",
+        "2026-09-29T22:00:28Z",
+        "2026-09-29T22:06:36Z",
+        "2026-09-29T22:11:10Z",
+        "2026-09-29T22:09:34Z",
+        "2026-09-29T22:14:48Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "31448414661",
+      "job_id": "93647521580",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10355",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10355/llama-b10355-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-11T03:31:24Z",
+      "completed_at": "2026-08-11T05:11:41Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31448414661/job/93647521580",
+      "log_sha256": "2db3caaacaeb86530dd2d9746c08a7e142102a5b6b4c914edb32cdbfda0959a9",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "93647521580",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10355/llama-b10355-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31448414661/job/93647521580",
+          "log_sha256": "2db3caaacaeb86530dd2d9746c08a7e142102a5b6b4c914edb32cdbfda0959a9"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-10T20:32:21Z",
+        "2026-08-10T20:40:50Z",
+        "2026-08-10T21:02:20Z",
+        "2026-08-10T21:09:21Z",
+        "2026-08-10T21:20:08Z",
+        "2026-08-10T21:22:57Z",
+        "2026-08-10T21:49:19Z",
+        "2026-08-10T21:54:00Z",
+        "2026-08-10T22:01:19Z",
+        "2026-08-10T22:05:01Z",
+        "2026-08-10T22:10:43Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "31670403570",
+      "job_id": "94361272401",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10400",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10400/llama-b10400-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-13T06:48:44Z",
+      "completed_at": "2026-08-13T07:23:13Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31670403570/job/94361272401",
+      "log_sha256": "5b1403aaf42dd975537338d1becb8b1e15ddd2b23d3acb7fc1e20d2501e22e95",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "94361272401",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10400/llama-b10400-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31670403570/job/94361272401",
+          "log_sha256": "5b1403aaf42dd975537338d1becb8b1e15ddd2b23d3acb7fc1e20d2501e22e95"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-12T23:49:25Z",
+        "2026-08-12T23:51:07Z",
+        "2026-08-12T23:52:35Z",
+        "2026-08-12T23:58:29Z",
+        "2026-08-13T00:04:07Z",
+        "2026-08-13T00:05:01Z",
+        "2026-08-13T00:05:45Z",
+        "2026-08-13T00:10:09Z",
+        "2026-08-13T00:11:15Z",
+        "2026-08-13T00:16:31Z",
+        "2026-08-13T00:22:17Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "31823388430",
+      "job_id": "94847765579",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10431",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10431/llama-b10431-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-14T18:38:04Z",
+      "completed_at": "2026-08-14T19:18:41Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31823388430/job/94847765579",
+      "log_sha256": "1546d7c2fb1109e305d89bc6e42c2556edb1b3c93710e4a79f391c8367c017ff",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "94847765579",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10431/llama-b10431-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31823388430/job/94847765579",
+          "log_sha256": "1546d7c2fb1109e305d89bc6e42c2556edb1b3c93710e4a79f391c8367c017ff"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-14T11:38:56Z",
+        "2026-08-14T11:42:26Z",
+        "2026-08-14T11:43:56Z",
+        "2026-08-14T11:49:53Z",
+        "2026-08-14T11:55:37Z",
+        "2026-08-14T11:56:31Z",
+        "2026-08-14T11:57:17Z",
+        "2026-08-14T12:02:55Z",
+        "2026-08-14T12:05:55Z",
+        "2026-08-14T12:07:03Z",
+        "2026-08-14T12:12:07Z",
+        "2026-08-14T12:17:45Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "31921892083",
+      "job_id": "95102955109",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10448",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10448/llama-b10448-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-16T03:06:09Z",
+      "completed_at": "2026-08-16T04:07:56Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31921892083/job/95102955109",
+      "log_sha256": "4259f5caded34a332fdc8c7d05d3908fc8aa0b6e2f6a20bd5b804d0517e3f6a1",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "95102955109",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10448/llama-b10448-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31921892083/job/95102955109",
+          "log_sha256": "4259f5caded34a332fdc8c7d05d3908fc8aa0b6e2f6a20bd5b804d0517e3f6a1"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-15T20:07:00Z",
+        "2026-08-15T20:14:36Z",
+        "2026-08-15T20:20:48Z",
+        "2026-08-15T20:28:06Z",
+        "2026-08-15T20:35:26Z",
+        "2026-08-15T20:36:22Z",
+        "2026-08-15T20:42:19Z",
+        "2026-08-15T20:46:16Z",
+        "2026-08-15T20:52:08Z",
+        "2026-08-15T20:53:16Z",
+        "2026-08-15T20:59:59Z",
+        "2026-08-15T21:06:59Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "31987963860",
+      "job_id": "95266157130",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10454",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10454/llama-b10454-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-17T03:13:08Z",
+      "completed_at": "2026-08-17T04:00:21Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31987963860/job/95266157130",
+      "log_sha256": "529d6a0cd0d583322f4184372419a55765bec80a6b9ed504809aa39c1a6e6cf8",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "95266157130",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10454/llama-b10454-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/31987963860/job/95266157130",
+          "log_sha256": "529d6a0cd0d583322f4184372419a55765bec80a6b9ed504809aa39c1a6e6cf8"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-16T20:13:57Z",
+        "2026-08-16T20:20:29Z",
+        "2026-08-16T20:25:09Z",
+        "2026-08-16T20:30:39Z",
+        "2026-08-16T20:36:01Z",
+        "2026-08-16T20:36:55Z",
+        "2026-08-16T20:37:43Z",
+        "2026-08-16T20:43:23Z",
+        "2026-08-16T20:47:41Z",
+        "2026-08-16T20:48:47Z",
+        "2026-08-16T20:53:51Z",
+        "2026-08-16T20:59:25Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32093130923",
+      "job_id": "95579187936",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10470",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10470/llama-b10470-bin-ubuntu-rocm-7.13-x64.tar.gz",
+      "started_at": "2026-08-18T03:40:59Z",
+      "completed_at": "2026-08-18T04:27:33Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32093130923/job/95579187936",
+      "log_sha256": "76e7fea35db97d9d5833d7faf7996999d6320f02f6d58944a493d9fa6178ac40",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "95579187936",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10470/llama-b10470-bin-ubuntu-rocm-7.13-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32093130923/job/95579187936",
+          "log_sha256": "76e7fea35db97d9d5833d7faf7996999d6320f02f6d58944a493d9fa6178ac40"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-17T20:41:20Z",
+        "2026-08-17T20:46:06Z",
+        "2026-08-17T20:51:08Z",
+        "2026-08-17T20:56:56Z",
+        "2026-08-17T21:02:42Z",
+        "2026-08-17T21:03:36Z",
+        "2026-08-17T21:04:24Z",
+        "2026-08-17T21:10:19Z",
+        "2026-08-17T21:14:43Z",
+        "2026-08-17T21:15:49Z",
+        "2026-08-17T21:20:59Z",
+        "2026-08-17T21:26:39Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32441469152",
+      "job_id": "96652879597",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10540",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10540/llama-b10540-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-21T03:46:32Z",
+      "completed_at": "2026-08-21T04:51:41Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32441469152/job/96652879597",
+      "log_sha256": "56806df82b796056ee7323ccff726f897904e32c833dbc8dd0571a11927679f5",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "96652879597",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10540/llama-b10540-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32441469152/job/96652879597",
+          "log_sha256": "56806df82b796056ee7323ccff726f897904e32c833dbc8dd0571a11927679f5"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-20T20:47:15Z",
+        "2026-08-20T20:51:25Z",
+        "2026-08-20T20:55:53Z",
+        "2026-08-20T21:03:05Z",
+        "2026-08-20T21:10:07Z",
+        "2026-08-20T21:10:57Z",
+        "2026-08-20T21:11:37Z",
+        "2026-08-20T21:19:09Z",
+        "2026-08-20T21:26:58Z",
+        "2026-08-20T21:32:38Z",
+        "2026-08-20T21:33:40Z",
+        "2026-08-20T21:38:56Z",
+        "2026-08-20T21:46:00Z",
+        "2026-08-20T21:50:54Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32546057727",
+      "job_id": "96964569846",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10573",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10573/llama-b10573-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-22T03:17:55Z",
+      "completed_at": "2026-08-22T04:20:51Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32546057727/job/96964569846",
+      "log_sha256": "c37ced3cf69bcc0ba3779cd7aee851474c434c29829d76420d83cb7bacade654",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "96964569846",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10573/llama-b10573-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32546057727/job/96964569846",
+          "log_sha256": "c37ced3cf69bcc0ba3779cd7aee851474c434c29829d76420d83cb7bacade654"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-21T20:18:33Z",
+        "2026-08-21T20:20:17Z",
+        "2026-08-21T20:21:43Z",
+        "2026-08-21T20:27:13Z",
+        "2026-08-21T20:32:31Z",
+        "2026-08-21T20:33:35Z",
+        "2026-08-21T20:34:17Z",
+        "2026-08-21T20:53:02Z",
+        "2026-08-21T20:58:37Z",
+        "2026-08-21T21:03:04Z",
+        "2026-08-21T21:04:04Z",
+        "2026-08-21T21:09:02Z",
+        "2026-08-21T21:18:01Z",
+        "2026-08-21T21:20:06Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32612911799",
+      "job_id": "97128658392",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10588",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10588/llama-b10588-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-23T03:13:28Z",
+      "completed_at": "2026-08-23T04:01:24Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32612911799/job/97128658392",
+      "log_sha256": "76486bc4abb45d737a977a2b664fa5898de4f50c1b4313021c5f8914041906e9",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "97128658392",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10588/llama-b10588-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32612911799/job/97128658392",
+          "log_sha256": "76486bc4abb45d737a977a2b664fa5898de4f50c1b4313021c5f8914041906e9"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-22T20:14:10Z",
+        "2026-08-22T20:16:08Z",
+        "2026-08-22T20:17:46Z",
+        "2026-08-22T20:23:22Z",
+        "2026-08-22T20:28:46Z",
+        "2026-08-22T20:29:32Z",
+        "2026-08-22T20:30:14Z",
+        "2026-08-22T20:35:56Z",
+        "2026-08-22T20:41:44Z",
+        "2026-08-22T20:44:52Z",
+        "2026-08-22T20:46:34Z",
+        "2026-08-22T20:51:26Z",
+        "2026-08-22T20:56:52Z",
+        "2026-08-22T21:00:38Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32683105846",
+      "job_id": "97303105921",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10603",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10603/llama-b10603-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-24T03:15:33Z",
+      "completed_at": "2026-08-24T04:27:19Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32683105846/job/97303105921",
+      "log_sha256": "f19673c4a710d5dac06efe24d27ccfb6e88db9b490df2c234b95d2e5685180d0",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "97303105921",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10603/llama-b10603-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32683105846/job/97303105921",
+          "log_sha256": "f19673c4a710d5dac06efe24d27ccfb6e88db9b490df2c234b95d2e5685180d0"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-23T20:15:57Z",
+        "2026-08-23T20:22:05Z",
+        "2026-08-23T20:28:28Z",
+        "2026-08-23T20:35:28Z",
+        "2026-08-23T20:42:30Z",
+        "2026-08-23T20:43:20Z",
+        "2026-08-23T20:44:02Z",
+        "2026-08-23T20:51:32Z",
+        "2026-08-23T20:59:20Z",
+        "2026-08-23T21:05:00Z",
+        "2026-08-23T21:06:06Z",
+        "2026-08-23T21:12:42Z",
+        "2026-08-23T21:19:58Z",
+        "2026-08-23T21:26:32Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32801269612",
+      "job_id": "97662415584",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10613",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10613/llama-b10613-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-25T03:10:59Z",
+      "completed_at": "2026-08-25T04:06:30Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32801269612/job/97662415584",
+      "log_sha256": "a0ccce5e57da44c04afb1b938e65d63e682d8149b9e78af0761e5dbe9ef4e436",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "97662415584",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10613/llama-b10613-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32801269612/job/97662415584",
+          "log_sha256": "a0ccce5e57da44c04afb1b938e65d63e682d8149b9e78af0761e5dbe9ef4e436"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-24T20:11:23Z",
+        "2026-08-24T20:15:55Z",
+        "2026-08-24T20:20:37Z",
+        "2026-08-24T20:26:03Z",
+        "2026-08-24T20:31:25Z",
+        "2026-08-24T20:32:17Z",
+        "2026-08-24T20:32:59Z",
+        "2026-08-24T20:38:49Z",
+        "2026-08-24T20:44:37Z",
+        "2026-08-24T20:48:57Z",
+        "2026-08-24T20:50:01Z",
+        "2026-08-24T20:55:09Z",
+        "2026-08-24T21:00:43Z",
+        "2026-08-24T21:05:43Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "32922855483",
+      "job_id": "98039716541",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10623",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10623/llama-b10623-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-26T03:28:21Z",
+      "completed_at": "2026-08-26T04:16:38Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32922855483/job/98039716541",
+      "log_sha256": "85f7ce83ea9c041126e745e034bcbd9129e3e674266ae8ef023ba3132ec6137f",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "98039716541",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10623/llama-b10623-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/32922855483/job/98039716541",
+          "log_sha256": "85f7ce83ea9c041126e745e034bcbd9129e3e674266ae8ef023ba3132ec6137f"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-25T20:28:44Z",
+        "2026-08-25T20:30:26Z",
+        "2026-08-25T20:31:56Z",
+        "2026-08-25T20:37:36Z",
+        "2026-08-25T20:41:52Z",
+        "2026-08-25T20:42:40Z",
+        "2026-08-25T20:43:22Z",
+        "2026-08-25T20:49:04Z",
+        "2026-08-25T20:54:52Z",
+        "2026-08-25T20:59:10Z",
+        "2026-08-25T21:00:08Z",
+        "2026-08-25T21:05:16Z",
+        "2026-08-25T21:10:50Z",
+        "2026-08-25T21:15:54Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33036950094",
+      "job_id": "98401617965",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10636",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10636/llama-b10636-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-27T04:31:40Z",
+      "completed_at": "2026-08-27T05:16:52Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33036950094/job/98401617965",
+      "log_sha256": "c64f8a7a3358680414b9c0fbc275ac7fff4846d7a0c7b099a3fbb3f5b80ca345",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "98401617965",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10636/llama-b10636-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33036950094/job/98401617965",
+          "log_sha256": "c64f8a7a3358680414b9c0fbc275ac7fff4846d7a0c7b099a3fbb3f5b80ca345"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-26T21:32:20Z",
+        "2026-08-26T21:33:44Z",
+        "2026-08-26T21:35:00Z",
+        "2026-08-26T21:40:30Z",
+        "2026-08-26T21:45:16Z",
+        "2026-08-26T21:46:04Z",
+        "2026-08-26T21:46:44Z",
+        "2026-08-26T21:52:14Z",
+        "2026-08-26T21:57:52Z",
+        "2026-08-26T21:59:34Z",
+        "2026-08-26T22:01:14Z",
+        "2026-08-26T22:05:54Z",
+        "2026-08-26T22:11:16Z",
+        "2026-08-26T22:16:08Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33142243456",
+      "job_id": "98755422713",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10665",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10665/llama-b10665-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-28T05:25:24Z",
+      "completed_at": "2026-08-28T06:07:40Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33142243456/job/98755422713",
+      "log_sha256": "368c9cc1e80bbd4a4be979eed0d3e129e819c70ea7f1107053ac1d219256319b",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "98755422713",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10665/llama-b10665-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33142243456/job/98755422713",
+          "log_sha256": "368c9cc1e80bbd4a4be979eed0d3e129e819c70ea7f1107053ac1d219256319b"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-27T22:25:46Z",
+        "2026-08-27T22:26:58Z",
+        "2026-08-27T22:28:20Z",
+        "2026-08-27T22:33:58Z",
+        "2026-08-27T22:36:04Z",
+        "2026-08-27T22:36:52Z",
+        "2026-08-27T22:37:30Z",
+        "2026-08-27T22:43:00Z",
+        "2026-08-27T22:48:40Z",
+        "2026-08-27T22:53:06Z",
+        "2026-08-27T22:54:46Z",
+        "2026-08-27T22:59:40Z",
+        "2026-08-27T23:04:50Z",
+        "2026-08-27T23:06:46Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33228028265",
+      "job_id": "99035456617",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10680",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10680/llama-b10680-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-29T02:58:45Z",
+      "completed_at": "2026-08-29T04:06:26Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33228028265/job/99035456617",
+      "log_sha256": "99c7e03238ad5496b9ad24791d9266048354dc9416b0ceca860eed5367bdce9a",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "99035456617",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10680/llama-b10680-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33228028265/job/99035456617",
+          "log_sha256": "99c7e03238ad5496b9ad24791d9266048354dc9416b0ceca860eed5367bdce9a"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-28T19:59:08Z",
+        "2026-08-28T20:05:02Z",
+        "2026-08-28T20:11:10Z",
+        "2026-08-28T20:18:30Z",
+        "2026-08-28T20:25:38Z",
+        "2026-08-28T20:26:28Z",
+        "2026-08-28T20:27:12Z",
+        "2026-08-28T20:34:40Z",
+        "2026-08-28T20:42:33Z",
+        "2026-08-28T20:48:25Z",
+        "2026-08-28T20:49:31Z",
+        "2026-08-28T20:55:59Z",
+        "2026-08-28T20:59:09Z",
+        "2026-08-28T21:05:29Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33287140719",
+      "job_id": "99192208110",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10686",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10686/llama-b10686-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-30T03:02:09Z",
+      "completed_at": "2026-08-30T03:53:10Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33287140719/job/99192208110",
+      "log_sha256": "d7c5cde15d1b0b92e340effec4c954fa7f168b9d19da2050e2064e16ccb620a4",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "99192208110",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10686/llama-b10686-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33287140719/job/99192208110",
+          "log_sha256": "d7c5cde15d1b0b92e340effec4c954fa7f168b9d19da2050e2064e16ccb620a4"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-29T20:02:29Z",
+        "2026-08-29T20:07:03Z",
+        "2026-08-29T20:11:57Z",
+        "2026-08-29T20:17:29Z",
+        "2026-08-29T20:20:53Z",
+        "2026-08-29T20:21:41Z",
+        "2026-08-29T20:22:21Z",
+        "2026-08-29T20:27:51Z",
+        "2026-08-29T20:33:39Z",
+        "2026-08-29T20:38:08Z",
+        "2026-08-29T20:39:56Z",
+        "2026-08-29T20:41:50Z",
+        "2026-08-29T20:47:26Z",
+        "2026-08-29T20:52:26Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33349600088",
+      "job_id": "99360238929",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10711",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10711/llama-b10711-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-08-31T02:57:42Z",
+      "completed_at": "2026-08-31T03:47:43Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33349600088/job/99360238929",
+      "log_sha256": "c8616d5809cb6c27ab20fbaae9a7c66335e3625a195bf3ccd81aced2d3f1bbda",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "99360238929",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10711/llama-b10711-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33349600088/job/99360238929",
+          "log_sha256": "c8616d5809cb6c27ab20fbaae9a7c66335e3625a195bf3ccd81aced2d3f1bbda"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-30T19:58:04Z",
+        "2026-08-30T20:01:14Z",
+        "2026-08-30T20:04:22Z",
+        "2026-08-30T20:09:54Z",
+        "2026-08-30T20:15:13Z",
+        "2026-08-30T20:15:59Z",
+        "2026-08-30T20:16:43Z",
+        "2026-08-30T20:22:27Z",
+        "2026-08-30T20:28:13Z",
+        "2026-08-30T20:32:35Z",
+        "2026-08-30T20:33:37Z",
+        "2026-08-30T20:36:27Z",
+        "2026-08-30T20:41:51Z",
+        "2026-08-30T20:46:55Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33461357285",
+      "job_id": "99711986787",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10726",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10726/llama-b10726-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-01T03:04:06Z",
+      "completed_at": "2026-09-01T03:50:51Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33461357285/job/99711986787",
+      "log_sha256": "f0b9502ea8cb839347c5a922c799a068cadf396a99ddfefd262277e8246c6439",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "99711986787",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10726/llama-b10726-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33461357285/job/99711986787",
+          "log_sha256": "f0b9502ea8cb839347c5a922c799a068cadf396a99ddfefd262277e8246c6439"
+        }
+      ],
+      "measurement_times": [
+        "2026-08-31T20:04:29Z",
+        "2026-08-31T20:05:59Z",
+        "2026-08-31T20:07:23Z",
+        "2026-08-31T20:13:01Z",
+        "2026-08-31T20:18:33Z",
+        "2026-08-31T20:19:27Z",
+        "2026-08-31T20:20:07Z",
+        "2026-08-31T20:23:49Z",
+        "2026-08-31T20:29:35Z",
+        "2026-08-31T20:34:05Z",
+        "2026-08-31T20:35:05Z",
+        "2026-08-31T20:39:47Z",
+        "2026-08-31T20:45:13Z",
+        "2026-08-31T20:50:01Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33582573334",
+      "job_id": "100099800384",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10745",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10745/llama-b10745-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-02T03:11:12Z",
+      "completed_at": "2026-09-02T03:43:25Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33582573334/job/100099800384",
+      "log_sha256": "764349c1e8bdf614e14eb749435812d6167d2ab876ca92a592c5d6f9e714d04b",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "100099800384",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10745/llama-b10745-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33582573334/job/100099800384",
+          "log_sha256": "764349c1e8bdf614e14eb749435812d6167d2ab876ca92a592c5d6f9e714d04b"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-01T20:11:34Z",
+        "2026-09-01T20:13:08Z",
+        "2026-09-01T20:14:14Z",
+        "2026-09-01T20:19:56Z",
+        "2026-09-01T20:21:02Z",
+        "2026-09-01T20:21:50Z",
+        "2026-09-01T20:22:32Z",
+        "2026-09-01T20:28:06Z",
+        "2026-09-01T20:28:22Z",
+        "2026-09-01T20:32:50Z",
+        "2026-09-01T20:34:32Z",
+        "2026-09-01T20:35:40Z",
+        "2026-09-01T20:41:04Z",
+        "2026-09-01T20:42:12Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33706662311",
+      "job_id": "100497163032",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10770",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10770/llama-b10770-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-03T03:05:57Z",
+      "completed_at": "2026-09-03T04:16:52Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33706662311/job/100497163032",
+      "log_sha256": "9110b319021d38410ac179a4d677553815d868c27004872289bf4156cf6f36f2",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "100497163032",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10770/llama-b10770-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33706662311/job/100497163032",
+          "log_sha256": "9110b319021d38410ac179a4d677553815d868c27004872289bf4156cf6f36f2"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-02T20:06:19Z",
+        "2026-09-02T20:12:15Z",
+        "2026-09-02T20:18:27Z",
+        "2026-09-02T20:25:43Z",
+        "2026-09-02T20:32:53Z",
+        "2026-09-02T20:33:42Z",
+        "2026-09-02T20:34:24Z",
+        "2026-09-02T20:41:46Z",
+        "2026-09-02T20:49:36Z",
+        "2026-09-02T20:55:26Z",
+        "2026-09-02T20:56:30Z",
+        "2026-09-02T21:02:50Z",
+        "2026-09-02T21:09:58Z",
+        "2026-09-02T21:16:06Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33828202680",
+      "job_id": "100885316094",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10789",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10789/llama-b10789-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-04T03:01:30Z",
+      "completed_at": "2026-09-04T03:56:35Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33828202680/job/100885316094",
+      "log_sha256": "5474527c3e33d1c2c419428c7598ebd341571742e5be9fae6c48b395e0576416",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "100885316094",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10789/llama-b10789-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33828202680/job/100885316094",
+          "log_sha256": "5474527c3e33d1c2c419428c7598ebd341571742e5be9fae6c48b395e0576416"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-03T20:01:51Z",
+        "2026-09-03T20:06:19Z",
+        "2026-09-03T20:11:07Z",
+        "2026-09-03T20:16:37Z",
+        "2026-09-03T20:21:53Z",
+        "2026-09-03T20:22:41Z",
+        "2026-09-03T20:23:23Z",
+        "2026-09-03T20:29:13Z",
+        "2026-09-03T20:35:05Z",
+        "2026-09-03T20:39:23Z",
+        "2026-09-03T20:40:23Z",
+        "2026-09-03T20:45:26Z",
+        "2026-09-03T20:50:56Z",
+        "2026-09-03T20:55:52Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33931397154",
+      "job_id": "101210576892",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10816",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10816/llama-b10816-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-05T00:45:30Z",
+      "completed_at": "2026-09-05T01:40:18Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33931397154/job/101210576892",
+      "log_sha256": "352f3007dfe96f7d7237f53b7409b226c4343139d7081a9ec2c3941ce79589fc",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101210576892",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10816/llama-b10816-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33931397154/job/101210576892",
+          "log_sha256": "352f3007dfe96f7d7237f53b7409b226c4343139d7081a9ec2c3941ce79589fc"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-04T17:45:54Z",
+        "2026-09-04T17:50:28Z",
+        "2026-09-04T17:55:10Z",
+        "2026-09-04T18:00:34Z",
+        "2026-09-04T18:05:52Z",
+        "2026-09-04T18:06:38Z",
+        "2026-09-04T18:07:18Z",
+        "2026-09-04T18:13:00Z",
+        "2026-09-04T18:18:50Z",
+        "2026-09-04T18:23:09Z",
+        "2026-09-04T18:24:09Z",
+        "2026-09-04T18:29:05Z",
+        "2026-09-04T18:34:37Z",
+        "2026-09-04T18:39:35Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "33938056418",
+      "job_id": "101236301372",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10816",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10816/llama-b10816-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-05T03:47:39Z",
+      "completed_at": "2026-09-05T04:39:28Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33938056418/job/101236301372",
+      "log_sha256": "ec4f91a01798ae20aebf4211ed5cacf64aa610c2f193a1bcf15770ffea4d86ef",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101236301372",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10816/llama-b10816-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/33938056418/job/101236301372",
+          "log_sha256": "ec4f91a01798ae20aebf4211ed5cacf64aa610c2f193a1bcf15770ffea4d86ef"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-04T20:47:59Z",
+        "2026-09-04T20:51:27Z",
+        "2026-09-04T20:54:19Z",
+        "2026-09-04T20:59:35Z",
+        "2026-09-04T21:04:47Z",
+        "2026-09-04T21:05:33Z",
+        "2026-09-04T21:06:13Z",
+        "2026-09-04T21:11:55Z",
+        "2026-09-04T21:17:41Z",
+        "2026-09-04T21:22:09Z",
+        "2026-09-04T21:23:09Z",
+        "2026-09-04T21:28:09Z",
+        "2026-09-04T21:33:43Z",
+        "2026-09-04T21:38:43Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34005566926",
+      "job_id": "101411996701",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10819",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10819/llama-b10819-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-06T02:56:58Z",
+      "completed_at": "2026-09-06T03:43:34Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34005566926/job/101411996701",
+      "log_sha256": "345ad1d2a8abc849e7625912fe99d59a4aa2827c048f9b463eea0f79f6ae9fab",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101411996701",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10819/llama-b10819-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34005566926/job/101411996701",
+          "log_sha256": "345ad1d2a8abc849e7625912fe99d59a4aa2827c048f9b463eea0f79f6ae9fab"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-05T19:57:20Z",
+        "2026-09-05T19:59:16Z",
+        "2026-09-05T20:00:40Z",
+        "2026-09-05T20:05:52Z",
+        "2026-09-05T20:11:06Z",
+        "2026-09-05T20:11:54Z",
+        "2026-09-05T20:12:34Z",
+        "2026-09-05T20:16:08Z",
+        "2026-09-05T20:21:54Z",
+        "2026-09-05T20:26:16Z",
+        "2026-09-05T20:27:14Z",
+        "2026-09-05T20:32:14Z",
+        "2026-09-05T20:37:48Z",
+        "2026-09-05T20:42:50Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34075164509",
+      "job_id": "101599761721",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10830",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10830/llama-b10830-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-07T02:59:48Z",
+      "completed_at": "2026-09-07T03:51:10Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34075164509/job/101599761721",
+      "log_sha256": "98727dc13e1cf02268cfa4e8caa34c13021e0318108757dc358554b408d65733",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101599761721",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10830/llama-b10830-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34075164509/job/101599761721",
+          "log_sha256": "98727dc13e1cf02268cfa4e8caa34c13021e0318108757dc358554b408d65733"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-06T20:00:09Z",
+        "2026-09-06T20:03:43Z",
+        "2026-09-06T20:06:15Z",
+        "2026-09-06T20:11:39Z",
+        "2026-09-06T20:17:03Z",
+        "2026-09-06T20:17:49Z",
+        "2026-09-06T20:18:31Z",
+        "2026-09-06T20:23:29Z",
+        "2026-09-06T20:29:19Z",
+        "2026-09-06T20:33:43Z",
+        "2026-09-06T20:34:47Z",
+        "2026-09-06T20:39:46Z",
+        "2026-09-06T20:45:22Z",
+        "2026-09-06T20:50:24Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34178833603",
+      "job_id": "101913570842",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10851",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10851/llama-b10851-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-08T02:59:39Z",
+      "completed_at": "2026-09-08T03:54:16Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34178833603/job/101913570842",
+      "log_sha256": "db3002bf0bad4775d53d0e43066f821f37122298e5fc95b8a1daa159b83eefbc",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101913570842",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10851/llama-b10851-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34178833603/job/101913570842",
+          "log_sha256": "db3002bf0bad4775d53d0e43066f821f37122298e5fc95b8a1daa159b83eefbc"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-07T20:00:05Z",
+        "2026-09-07T20:04:29Z",
+        "2026-09-07T20:09:05Z",
+        "2026-09-07T20:14:41Z",
+        "2026-09-07T20:20:05Z",
+        "2026-09-07T20:20:51Z",
+        "2026-09-07T20:21:31Z",
+        "2026-09-07T20:27:13Z",
+        "2026-09-07T20:33:03Z",
+        "2026-09-07T20:37:23Z",
+        "2026-09-07T20:38:21Z",
+        "2026-09-07T20:43:08Z",
+        "2026-09-07T20:48:38Z",
+        "2026-09-07T20:53:34Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34201259700",
+      "job_id": "101980376357",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10853",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10853/llama-b10853-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-08T09:01:09Z",
+      "completed_at": "2026-09-08T09:56:02Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34201259700/job/101980376357",
+      "log_sha256": "cb06d0565fdd54c6ba9c39ae202e79e1bf10069360b8267ea790298f58a4b111",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "101980376357",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10853/llama-b10853-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34201259700/job/101980376357",
+          "log_sha256": "cb06d0565fdd54c6ba9c39ae202e79e1bf10069360b8267ea790298f58a4b111"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-08T02:01:30Z",
+        "2026-09-08T02:06:06Z",
+        "2026-09-08T02:10:56Z",
+        "2026-09-08T02:16:22Z",
+        "2026-09-08T02:21:36Z",
+        "2026-09-08T02:22:22Z",
+        "2026-09-08T02:23:02Z",
+        "2026-09-08T02:28:38Z",
+        "2026-09-08T02:34:28Z",
+        "2026-09-08T02:38:48Z",
+        "2026-09-08T02:39:48Z",
+        "2026-09-08T02:44:46Z",
+        "2026-09-08T02:50:18Z",
+        "2026-09-08T02:55:19Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34301809008",
+      "job_id": "102310121501",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10867",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10867/llama-b10867-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-09T03:12:34Z",
+      "completed_at": "2026-09-09T04:20:50Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34301809008/job/102310121501",
+      "log_sha256": "1119e54594c222a43b7bc4a0304340c5214b77efc5299b720f88cd6125ea5e1d",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "102310121501",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10867/llama-b10867-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34301809008/job/102310121501",
+          "log_sha256": "1119e54594c222a43b7bc4a0304340c5214b77efc5299b720f88cd6125ea5e1d"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-08T20:13:00Z",
+        "2026-09-08T20:18:54Z",
+        "2026-09-08T20:24:03Z",
+        "2026-09-08T20:30:47Z",
+        "2026-09-08T20:37:05Z",
+        "2026-09-08T20:37:53Z",
+        "2026-09-08T20:38:33Z",
+        "2026-09-08T20:45:33Z",
+        "2026-09-08T20:53:23Z",
+        "2026-09-08T20:58:55Z",
+        "2026-09-08T20:59:55Z",
+        "2026-09-08T21:06:15Z",
+        "2026-09-08T21:13:31Z",
+        "2026-09-08T21:19:59Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34384978412",
+      "job_id": "102578906300",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10883",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10883/llama-b10883-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-09T18:57:49Z",
+      "completed_at": "2026-09-09T20:00:24Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34384978412/job/102578906300",
+      "log_sha256": "2687c107d47195a89a09096ff4c4f58452e395af4e8064934bfe1c7f76256f8a",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "102578906300",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10883/llama-b10883-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34384978412/job/102578906300",
+          "log_sha256": "2687c107d47195a89a09096ff4c4f58452e395af4e8064934bfe1c7f76256f8a"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-09T11:58:14Z",
+        "2026-09-09T12:04:24Z",
+        "2026-09-09T12:10:44Z",
+        "2026-09-09T12:18:00Z",
+        "2026-09-09T12:25:06Z",
+        "2026-09-09T12:25:54Z",
+        "2026-09-09T12:26:34Z",
+        "2026-09-09T12:33:26Z",
+        "2026-09-09T12:40:31Z",
+        "2026-09-09T12:41:59Z",
+        "2026-09-09T12:42:59Z",
+        "2026-09-09T12:45:47Z",
+        "2026-09-09T12:53:03Z",
+        "2026-09-09T12:59:19Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34428064394",
+      "job_id": "102717449711",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10883",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10883/llama-b10883-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-10T02:54:26Z",
+      "completed_at": "2026-09-10T03:58:33Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34428064394/job/102717449711",
+      "log_sha256": "3e565f7eb00adc964e1cf31bd96276db35490b7b78c2dad07da3951f043b2b51",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "102717449711",
+          "method": "cached_binary_registry_match",
+          "registry_evidence": {
+            "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/a5dbbb1e976723d642aa7c57bffd6fd609b719c0/src/cpp/resources/benchmark_forks.json",
+            "body": "{\n  \"schema_version\": 1,\n  \"comment\": \"Registry of AMD-maintained and community llama.cpp forks for nightly perf regression tracking. Add new forks by appending entries — no code changes needed. binary_url uses {version} as a placeholder substituted at runtime from the latest GitHub release tag.\",\n  \"forks\": [\n    {\n      \"fork_id\": \"llamacpp-rocm-nightly\",\n      \"label\": \"llama.cpp ROCm Nightly (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-nightly\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"lemonade-sdk/llamacpp-rocm\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-windows-rocm-{arch}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-ubuntu-rocm-{arch}-x64.zip\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade nightly ROCm channel. Built via TheRock SDK. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-rocm-stable\",\n      \"label\": \"llama.cpp ROCm Stable (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-stable\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"stable\",\n      \"repo\": \"lemonade-sdk/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-win-rocm-{therock_ver}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-rocm-{therock_ver}-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade stable ROCm channel. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-amd-ecosystem-gfx11\",\n      \"label\": \"llama.cpp gfx11 (AMD-Ecosystem)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-gfx11\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"AMD-Ecosystem/llama.cpp\",\n      \"branch\": \"gfx11\",\n      \"version_source\": \"github_latest\",\n      \"version_tag_prefix\": \"gfx11-rocm-nightly-\",\n      \"binary_url_windows\": \"\",\n      \"binary_url_linux\": \"https://github.com/AMD-Ecosystem/llama.cpp/releases/download/{version}/llama-{version}-ubuntu-rocm-multiarch-x64.tar.gz\",\n      \"binary_exe_windows\": \"\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"runner_os\": \"linux\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Nightly dated builds. Tag format: gfx11-rocm-nightly-YYYYMMDD. Single multiarch binary — covers all RDNA3/3.5 targets. Linux only, no Windows binary. Runs on Linux ROCm self-hosted runner.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-upstream-vulkan\",\n      \"label\": \"llama.cpp Vulkan (upstream reference)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"vulkan\",\n      \"repo\": \"ggml-org/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-win-vulkan-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-vulkan-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Upstream ggml-org baseline. Used as performance reference for fork comparisons.\"\n    }\n  ]\n}\n",
+            "sha256": "a2bf34f9213ac578db746c1b6e0fd35c27750226e2b787bc0fa4ca6be698c777",
+            "backend_versions": {
+              "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/a5dbbb1e976723d642aa7c57bffd6fd609b719c0/src/cpp/resources/backend_versions.json",
+              "body": "{\n  \"comment\": \"This configuration file controls which llama.cpp, whisper.cpp, sd.cpp, ryzenai-llm, and FLM versions are downloaded for each backend. You can modify these values to pin specific versions without rebuilding the application.\",\n  \"checksums\": {\n    \"comment\": \"Expected SHA-256 of downloaded GitHub release assets, verified after download (see BackendUtils::lookup_expected_asset_hash). Keyed by checksums.github.<owner/repo>.<tag>.<asset>. Values are the sha256:<hex> digests GitHub publishes for each asset. Update alongside the matching version pin below.\",\n    \"github\": {\n      \"pwilkin/openmoss\": {\n        \"v0.3.0\": {\n          \"moss-tts-vulkan-linux-x64.tar.gz\": \"sha256:1288a22295451d0e5d8bd707ef79ea324e1c7b5f1cd9bfbdab2167a388fe3af7\",\n          \"moss-tts-vulkan-windows-x64.zip\": \"sha256:709c5c67e76c4180a38c6516cf908665fa2df6613900298a7d2c58eba5914733\",\n          \"moss-tts-rocm-linux-x64.tar.gz\": \"sha256:0126df034ea8d18cb895ef39e639bf36a29c7a024a87ab9eaeadf1126ccfe80d\",\n          \"moss-tts-rocm-windows-x64.zip\": \"sha256:5b4f32862b6c52a52b01e937af11cf9f60f887da079bb0354cbb6ecc46e7fe72\",\n          \"moss-tts-cuda-linux-x64.tar.gz\": \"sha256:3a7a61852bd9fe16a14f262ff99e055739e7bc52c2727749d05f0b4664facb37\",\n          \"moss-tts-cuda-windows-x64.zip\": \"sha256:def68a7f35e6bd111ec4118f4e88835547f3af87efd5f3812ab1e505d1f38229\"\n        }\n      },\n      \"pwilkin/acestep.cpp\": {\n        \"v0.1.1\": {\n          \"acestep-vulkan-linux-x64.tar.gz\": \"sha256:398520b322058c1a6d7303849354b9d0afffc99b33870a94b50680932e6b2e41\",\n          \"acestep-vulkan-windows-x64.zip\": \"sha256:a20f11af4d0eca8c906019c62db5074d30132860735404d84cec3cecddc00d4c\",\n          \"acestep-rocm-linux-x64.tar.gz\": \"sha256:476ac942746b49edf50c5d57e705618fa8d242aca1e88c14e4ce6c791b0a5d0a\",\n          \"acestep-rocm-windows-x64.zip\": \"sha256:2bf8e02b337d760bc538df2d5118ded7f068a9adccd3c5b48ede30a3a26149dd\",\n          \"acestep-cuda-linux-x64.tar.gz\": \"sha256:1b94e862a09b76583ba314a6f49c7cb599a234d6fbf3950adf67c3965af5e1a8\",\n          \"acestep-cuda-windows-x64.zip\": \"sha256:f278b148eaff7f3fc3fee9a2f4503dbc94759356e0c48074310538026c3fc059\"\n        }\n      },\n      \"pwilkin/thinksound.cpp\": {\n        \"v0.1.2\": {\n          \"thinksound-vulkan-linux-x64.tar.gz\": \"sha256:913cb141ff0bcde488474fbba9e911437e2cbf58dd12a0a41251dbe4fa69e61f\",\n          \"thinksound-vulkan-windows-x64.zip\": \"sha256:e0af57c3cd2f4605cd0062939e8134f2ac60e197f95bbab347ed274002ffbfd2\",\n          \"thinksound-rocm-linux-x64.tar.gz\": \"sha256:46379f969b4c097a357a0717077c41272eb3290494bd2acec08ce6591a2d778a\",\n          \"thinksound-rocm-windows-x64.zip\": \"sha256:3e27483cc88c4e10c68f485a9b1bae02381dd3a16a64cf5c44bae53f4fbb0d68\",\n          \"thinksound-cuda-linux-x64.tar.gz\": \"sha256:ac3875c6bba8cf0753708e749bdb606006ac6e001f7d78649ede78c5e96bd36a\",\n          \"thinksound-cuda-windows-x64.zip\": \"sha256:1261c1eadd91b8a4a62dd20e9e8d7e5320db671896337ea84ac23251df54b0d9\"\n        }\n      },\n      \"pwilkin/trellis.cpp\": {\n        \"v0.4.3\": {\n          \"trellis-vulkan-linux-x64.tar.gz\": \"sha256:a614549056da47950d7506d73ba923298a85859024b6a2ca782a0f7c9604f602\",\n          \"trellis-vulkan-windows-x64.zip\": \"sha256:a9566a1eed92c3ced893bb6e65b8a6d6d1b3a68c11724b8b1a2d8d6b5a0f8525\",\n          \"trellis-rocm-linux-x64.tar.gz\": \"sha256:e8c2fb16cd3ac5e620af1e07a3c002f845c189485dc988b316f469734fbfbc17\",\n          \"trellis-rocm-windows-x64.zip\": \"sha256:147e2713b328f342afd959147f6e0b4d2fc87cbcd18a5ef5d28edd9a80233d5a\",\n          \"trellis-cuda-linux-x64.tar.gz\": \"sha256:454c161b2179551db5e80786bba16ae81eaf28ab8fdb685d371b30d58769fbaa\",\n          \"trellis-cuda-windows-x64.zip\": \"sha256:47b87271f8b644a8e50767f6d58d5baf597e1aa6bb46b809a5e5d5b0ac741b29\"\n        }\n      },\n      \"lemonade-sdk/ds4-rocm\": {\n        \"b0001\": {\n          \"ds4-b0001-linux-rocm-gfx1151-x64.tar.gz\": \"sha256:e63b7c9428fd10de75b3f69164eccd564a8e7261c2f9087cd8bec2b4b19a8ad1\"\n        }\n      },\n      \"ROCm/ggml-staging-automation\": {\n        \"hrx-b69\": {\n          \"llama-hrx-b69-bin-manylinux-hrx-x64.tar.gz\": \"sha256:e82b6bc6ec896afcf32dfa99e75ecaffa9b0470ac35c3ae8939f05c5cfb8a87c\"\n        }\n      }\n    }\n  },\n  \"llamacpp\": {\n    \"vulkan\": \"b10723\",\n    \"rocm-stable\": \"b10711\",\n    \"rocm-nightly\": \"b1319\",\n    \"cuda\": \"b10711\",\n    \"metal\": \"b10723\",\n    \"cpu\": \"b10723\"\n  },\n  \"llamacpp-hrx\": {\n    \"hrx\": \"hrx-b69\"\n  },\n  \"whispercpp\": {\n    \"cpu\": \"v1.8.4\",\n    \"vulkan\": \"v1.8.4\",\n    \"rocm\": \"v1.8.4\",\n    \"npu\": \"v1.8.4\",\n    \"metal\": \"v1.8.4\"\n  },\n  \"sd-cpp\": {\n    \"cpu\": \"master-827-97d2990\",\n    \"rocm-stable\": \"master-827-97d2990\",\n    \"vulkan\": \"master-827-97d2990\",\n    \"cuda\": \"master-827-e2329c3\",\n    \"metal\": \"master-827-97d2990\"\n  },\n  \"ds4\": {\n    \"rocm\": \"b0001\"\n  },\n  \"therock\": {\n    \"version\": \"7.14.0\",\n    \"architectures\": [\n      \"gfx908\",\n      \"gfx90a\",\n      \"gfx942\",\n      \"gfx950\",\n      \"gfx1100\",\n      \"gfx1101\",\n      \"gfx1102\",\n      \"gfx1103\",\n      \"gfx1150\",\n      \"gfx1151\",\n      \"gfx1152\",\n      \"gfx1153\",\n      \"gfx1200\",\n      \"gfx1201\",\n      \"gfx1010\",\n      \"gfx1011\",\n      \"gfx1012\",\n      \"gfx1030\",\n      \"gfx1031\",\n      \"gfx1032\",\n      \"gfx1033\",\n      \"gfx1034\",\n      \"gfx1035\",\n      \"gfx1036\",\n      \"gfx103X\",\n      \"gfx110X\",\n      \"gfx120X\"\n    ],\n    \"url_mapping\": {\n      \"gfx942\": \"gfx94X-dcgpu\",\n      \"gfx950\": \"gfx950-dcgpu\",\n      \"gfx103X\": \"gfx103X-all\",\n      \"gfx110X\": \"gfx110X-all\",\n      \"gfx120X\": \"gfx120X-all\",\n      \"gfx1100\": \"gfx110X-all\",\n      \"gfx1101\": \"gfx110X-all\",\n      \"gfx1102\": \"gfx110X-all\",\n      \"gfx1103\": \"gfx110X-all\",\n      \"gfx1150\": \"gfx1150\",\n      \"gfx1151\": \"gfx1151\",\n      \"gfx1152\": \"gfx1152\",\n      \"gfx1153\": \"gfx1153\",\n      \"gfx1200\": \"gfx120X-all\",\n      \"gfx1201\": \"gfx120X-all\",\n      \"gfx1010\": \"gfx101X-dgpu\",\n      \"gfx1011\": \"gfx101X-dgpu\",\n      \"gfx1012\": \"gfx101X-dgpu\",\n      \"gfx1030\": \"gfx103X-all\",\n      \"gfx1031\": \"gfx103X-all\",\n      \"gfx1032\": \"gfx103X-all\",\n      \"gfx1033\": \"gfx103X-all\",\n      \"gfx1034\": \"gfx103X-all\",\n      \"gfx1035\": \"gfx103X-all\",\n      \"gfx1036\": \"gfx103X-all\"\n    }\n  },\n  \"ryzenai-llm\": {\n    \"npu\": \"v1.7.0\"\n  },\n  \"flm\": {\n    \"npu\": \"v1.0.4\"\n  },\n  \"kokoro\": {\n    \"cpu\": \"b17\",\n    \"metal\": \"b17\"\n  },\n  \"vllm\": {\n    \"comment\": \"'rocm' is the default (RDNA) pin. 'rocm_arch_overrides' pins per detected asset family (rocm_asset_family output) where AMD's vLLM/ROCm wheel cadence diverges: CDNA-dcgpu (gfx942, gfx950) shares no release tag with the RDNA line, so it pins its own version. gfx950 (CDNA4) rides the same CDNA vLLM/ROCm line as gfx942 (CDNA3). Review each override at release time - feature/fix parity across arch lines lags until bumped.\",\n    \"rocm\": \"vllm0.20.1-rocm7.12.0\",\n    \"rocm_arch_overrides\": {\n      \"gfx942\": \"vllm0.19.1-rocm7.13.0\",\n      \"gfx950\": \"vllm0.19.1-rocm7.13.0\"\n    }\n  },\n  \"thenoise\": {\n    \"comment\": \"TheNoise release tag. The portable bundle publishes per-GPU-target archives (<tag>-gfxNNNN-x64.tar.gz) under this tag; the host arch picks the matching archive.\",\n    \"rocm\": \"thenoise-0.4.1-rocm7.14.0\"\n  },\n  \"rocm_asset_families\": {\n    \"comment\": \"Maps a concrete ROCm ISA (as detected on the device) to the family target name the GitHub release repos publish assets under. ISAs not listed here (e.g. gfx908, gfx90a, which ship as individual assets) are used verbatim. Add a new GPU's ISA here when its release asset is published under a family name.\",\n    \"gfx1200\": \"gfx120X\",\n    \"gfx1201\": \"gfx120X\",\n    \"gfx1100\": \"gfx110X\",\n    \"gfx1101\": \"gfx110X\",\n    \"gfx1102\": \"gfx110X\",\n    \"gfx1103\": \"gfx110X\",\n    \"gfx1030\": \"gfx103X\",\n    \"gfx1031\": \"gfx103X\",\n    \"gfx1032\": \"gfx103X\",\n    \"gfx1033\": \"gfx103X\",\n    \"gfx1034\": \"gfx103X\",\n    \"gfx1035\": \"gfx103X\",\n    \"gfx1036\": \"gfx103X\"\n  },\n  \"moonshine\": {\n    \"cpu\": \"moonshine0.0.62\"\n  },\n  \"onnxruntime\": {\n    \"cpu\": \"0.3.7\"\n  },\n  \"thinksound\": {\n    \"vulkan\": \"v0.1.2\",\n    \"rocm-stable\": \"v0.1.2\",\n    \"cuda\": \"v0.1.2\"\n  },\n  \"acestep\": {\n    \"vulkan\": \"v0.1.1\",\n    \"rocm-stable\": \"v0.1.1\",\n    \"cuda\": \"v0.1.1\"\n  },\n  \"trellis\": {\n    \"vulkan\": \"v0.4.3\",\n    \"rocm-stable\": \"v0.4.3\",\n    \"cuda\": \"v0.4.3\"\n  },\n  \"openmoss\": {\n    \"vulkan\": \"v0.3.0\",\n    \"rocm-stable\": \"v0.3.0\",\n    \"cuda\": \"v0.3.0\"\n  },\n  \"clear_bin_if_lemonade_below\": \"9.4.0\"\n}\n",
+              "sha256": "254bc1f731abc8806962cfd3f4709700b775da9a01acffa44a222820ed5ee674"
+            }
+          },
+          "cache_binary_path": "/home/user/actions-runner/_work/lemonade/lemonade/../bench-binaries/llamacpp-rocm-stable/llama-b10882/llama-server",
+          "cache_marker_version": "b10883",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10883/llama-b10883-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34428064394/job/102717449711",
+          "log_sha256": "3e565f7eb00adc964e1cf31bd96276db35490b7b78c2dad07da3951f043b2b51"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-09T19:54:39Z",
+        "2026-09-09T20:00:45Z",
+        "2026-09-09T20:04:56Z",
+        "2026-09-09T20:12:08Z",
+        "2026-09-09T20:18:56Z",
+        "2026-09-09T20:19:44Z",
+        "2026-09-09T20:20:24Z",
+        "2026-09-09T20:22:38Z",
+        "2026-09-09T20:30:30Z",
+        "2026-09-09T20:36:20Z",
+        "2026-09-09T20:37:32Z",
+        "2026-09-09T20:43:50Z",
+        "2026-09-09T20:50:50Z",
+        "2026-09-09T20:57:04Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34553259568",
+      "job_id": "103120395802",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10898",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10898/llama-b10898-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-11T02:53:33Z",
+      "completed_at": "2026-09-11T03:47:30Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34553259568/job/103120395802",
+      "log_sha256": "7ba911ee44c59a2ae3b21c891f499090a998620a6b44f33f72c98f4928e9bb64",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "103120395802",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10898/llama-b10898-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34553259568/job/103120395802",
+          "log_sha256": "7ba911ee44c59a2ae3b21c891f499090a998620a6b44f33f72c98f4928e9bb64"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-10T19:53:57Z",
+        "2026-09-10T19:58:27Z",
+        "2026-09-10T20:02:59Z",
+        "2026-09-10T20:08:25Z",
+        "2026-09-10T20:13:39Z",
+        "2026-09-10T20:14:27Z",
+        "2026-09-10T20:15:07Z",
+        "2026-09-10T20:20:47Z",
+        "2026-09-10T20:26:35Z",
+        "2026-09-10T20:30:53Z",
+        "2026-09-10T20:31:55Z",
+        "2026-09-10T20:36:45Z",
+        "2026-09-10T20:42:05Z",
+        "2026-09-10T20:46:45Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34666685499",
+      "job_id": "103479890817",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10914",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10914/llama-b10914-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-12T02:54:07Z",
+      "completed_at": "2026-09-12T04:01:08Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34666685499/job/103479890817",
+      "log_sha256": "2777acc9751e3cf0a93ebd2420de768d5fae3a30deb7c9c59d016f4c06794160",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "103479890817",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10914/llama-b10914-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34666685499/job/103479890817",
+          "log_sha256": "2777acc9751e3cf0a93ebd2420de768d5fae3a30deb7c9c59d016f4c06794160"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-11T19:54:32Z",
+        "2026-09-11T20:00:02Z",
+        "2026-09-11T20:02:04Z",
+        "2026-09-11T20:09:12Z",
+        "2026-09-11T20:16:16Z",
+        "2026-09-11T20:17:04Z",
+        "2026-09-11T20:17:46Z",
+        "2026-09-11T20:24:52Z",
+        "2026-09-11T20:32:44Z",
+        "2026-09-11T20:38:32Z",
+        "2026-09-11T20:40:26Z",
+        "2026-09-11T20:46:50Z",
+        "2026-09-11T20:54:06Z",
+        "2026-09-11T21:00:20Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34732159359",
+      "job_id": "103656832705",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10931",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10931/llama-b10931-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-13T03:07:27Z",
+      "completed_at": "2026-09-13T04:09:20Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34732159359/job/103656832705",
+      "log_sha256": "3c355b8a3d18dff9d01ec28b1bf9ecebe85ee7d347c91d5311a14c8aa0c3c0de",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "103656832705",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10931/llama-b10931-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34732159359/job/103656832705",
+          "log_sha256": "3c355b8a3d18dff9d01ec28b1bf9ecebe85ee7d347c91d5311a14c8aa0c3c0de"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-12T20:07:52Z",
+        "2026-09-12T20:09:36Z",
+        "2026-09-12T20:10:58Z",
+        "2026-09-12T20:18:06Z",
+        "2026-09-12T20:25:04Z",
+        "2026-09-12T20:25:54Z",
+        "2026-09-12T20:26:36Z",
+        "2026-09-12T20:33:50Z",
+        "2026-09-12T20:41:41Z",
+        "2026-09-12T20:47:31Z",
+        "2026-09-12T20:48:33Z",
+        "2026-09-12T20:55:03Z",
+        "2026-09-12T21:02:13Z",
+        "2026-09-12T21:08:33Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34798188040",
+      "job_id": "103835326895",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10944",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10944/llama-b10944-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-14T03:07:07Z",
+      "completed_at": "2026-09-14T04:00:31Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34798188040/job/103835326895",
+      "log_sha256": "2b5de85404d3fbc18d11301b3c784977fde74bc59dfba79dbc60acd76a686f36",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "103835326895",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10944/llama-b10944-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34798188040/job/103835326895",
+          "log_sha256": "2b5de85404d3fbc18d11301b3c784977fde74bc59dfba79dbc60acd76a686f36"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-13T20:07:29Z",
+        "2026-09-13T20:12:05Z",
+        "2026-09-13T20:16:57Z",
+        "2026-09-13T20:22:29Z",
+        "2026-09-13T20:27:51Z",
+        "2026-09-13T20:28:39Z",
+        "2026-09-13T20:29:21Z",
+        "2026-09-13T20:35:00Z",
+        "2026-09-13T20:40:50Z",
+        "2026-09-13T20:45:18Z",
+        "2026-09-13T20:46:16Z",
+        "2026-09-13T20:50:32Z",
+        "2026-09-13T20:55:52Z",
+        "2026-09-13T20:59:46Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "34919903205",
+      "job_id": "104225482072",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10969",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10969/llama-b10969-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-15T03:02:36Z",
+      "completed_at": "2026-09-15T04:13:49Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34919903205/job/104225482072",
+      "log_sha256": "fc4736b85b25f97f249425013e321838fcceb93bb11f82d44b66ba0a3bf71af5",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "104225482072",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10969/llama-b10969-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/34919903205/job/104225482072",
+          "log_sha256": "fc4736b85b25f97f249425013e321838fcceb93bb11f82d44b66ba0a3bf71af5"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-14T20:03:02Z",
+        "2026-09-14T20:09:08Z",
+        "2026-09-14T20:15:30Z",
+        "2026-09-14T20:22:40Z",
+        "2026-09-14T20:29:50Z",
+        "2026-09-14T20:30:40Z",
+        "2026-09-14T20:31:22Z",
+        "2026-09-14T20:38:37Z",
+        "2026-09-14T20:46:27Z",
+        "2026-09-14T20:52:17Z",
+        "2026-09-14T20:53:19Z",
+        "2026-09-14T20:59:33Z",
+        "2026-09-14T21:06:45Z",
+        "2026-09-14T21:13:01Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35046622607",
+      "job_id": "104637750584",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b10987",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10987/llama-b10987-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-16T03:00:30Z",
+      "completed_at": "2026-09-16T04:12:13Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35046622607/job/104637750584",
+      "log_sha256": "a83a94a8c90fd23d4d87f18a9c9a1bc0a39ea2f35a720b2cbc067b28fea50afe",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "104637750584",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b10987/llama-b10987-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35046622607/job/104637750584",
+          "log_sha256": "a83a94a8c90fd23d4d87f18a9c9a1bc0a39ea2f35a720b2cbc067b28fea50afe"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-15T20:00:56Z",
+        "2026-09-15T20:07:08Z",
+        "2026-09-15T20:13:26Z",
+        "2026-09-15T20:20:40Z",
+        "2026-09-15T20:27:48Z",
+        "2026-09-15T20:28:36Z",
+        "2026-09-15T20:29:16Z",
+        "2026-09-15T20:36:31Z",
+        "2026-09-15T20:44:21Z",
+        "2026-09-15T20:50:11Z",
+        "2026-09-15T20:51:13Z",
+        "2026-09-15T20:57:29Z",
+        "2026-09-15T21:04:43Z",
+        "2026-09-15T21:10:59Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35173104619",
+      "job_id": "105048825413",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11009",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11009/llama-b11009-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-17T02:58:36Z",
+      "completed_at": "2026-09-17T03:48:43Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35173104619/job/105048825413",
+      "log_sha256": "c396ea6dc9cdcbb30b914b681e0980a20c50dee5a0148e89a58ba81b331b21f0",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "105048825413",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11009/llama-b11009-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35173104619/job/105048825413",
+          "log_sha256": "c396ea6dc9cdcbb30b914b681e0980a20c50dee5a0148e89a58ba81b331b21f0"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-16T19:58:58Z",
+        "2026-09-16T20:01:58Z",
+        "2026-09-16T20:03:52Z",
+        "2026-09-16T20:09:26Z",
+        "2026-09-16T20:14:54Z",
+        "2026-09-16T20:15:42Z",
+        "2026-09-16T20:16:22Z",
+        "2026-09-16T20:21:40Z",
+        "2026-09-16T20:27:24Z",
+        "2026-09-16T20:31:50Z",
+        "2026-09-16T20:32:52Z",
+        "2026-09-16T20:37:44Z",
+        "2026-09-16T20:43:06Z",
+        "2026-09-16T20:47:59Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35414607544",
+      "job_id": "105820664007",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11041",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11041/llama-b11041-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-19T02:50:45Z",
+      "completed_at": "2026-09-19T03:36:22Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35414607544/job/105820664007",
+      "log_sha256": "67b4488600ec5b2ecd2784fbd5687af8c56446a5a5f37014fd269e282f8f5dee",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "105820664007",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11041/llama-b11041-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35414607544/job/105820664007",
+          "log_sha256": "67b4488600ec5b2ecd2784fbd5687af8c56446a5a5f37014fd269e282f8f5dee"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-18T19:51:10Z",
+        "2026-09-18T19:52:32Z",
+        "2026-09-18T19:53:44Z",
+        "2026-09-18T19:58:44Z",
+        "2026-09-18T20:03:30Z",
+        "2026-09-18T20:04:16Z",
+        "2026-09-18T20:04:54Z",
+        "2026-09-18T20:10:10Z",
+        "2026-09-18T20:15:46Z",
+        "2026-09-18T20:20:04Z",
+        "2026-09-18T20:21:00Z",
+        "2026-09-18T20:25:42Z",
+        "2026-09-18T20:30:57Z",
+        "2026-09-18T20:35:37Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35483066600",
+      "job_id": "106004260573",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11053",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11053/llama-b11053-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-20T02:53:10Z",
+      "completed_at": "2026-09-20T03:37:21Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35483066600/job/106004260573",
+      "log_sha256": "37483a6de5d01cbbc2c7d07443c43780a9cc22a1757ce422678b469314c0c9aa",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "106004260573",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11053/llama-b11053-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35483066600/job/106004260573",
+          "log_sha256": "37483a6de5d01cbbc2c7d07443c43780a9cc22a1757ce422678b469314c0c9aa"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-19T19:53:31Z",
+        "2026-09-19T19:54:39Z",
+        "2026-09-19T19:55:51Z",
+        "2026-09-19T20:01:15Z",
+        "2026-09-19T20:06:23Z",
+        "2026-09-19T20:07:07Z",
+        "2026-09-19T20:07:45Z",
+        "2026-09-19T20:13:03Z",
+        "2026-09-19T20:18:31Z",
+        "2026-09-19T20:22:49Z",
+        "2026-09-19T20:23:45Z",
+        "2026-09-19T20:28:24Z",
+        "2026-09-19T20:33:38Z",
+        "2026-09-19T20:36:38Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35553182839",
+      "job_id": "106191659981",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11064",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11064/llama-b11064-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-21T03:02:21Z",
+      "completed_at": "2026-09-21T03:49:17Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35553182839/job/106191659981",
+      "log_sha256": "d0ea6b7197fdc46d7b0328052a7a7a258d9741044bc7df0149b2b2730c257ab4",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "106191659981",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11064/llama-b11064-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35553182839/job/106191659981",
+          "log_sha256": "d0ea6b7197fdc46d7b0328052a7a7a258d9741044bc7df0149b2b2730c257ab4"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-20T20:02:43Z",
+        "2026-09-20T20:04:07Z",
+        "2026-09-20T20:05:21Z",
+        "2026-09-20T20:10:39Z",
+        "2026-09-20T20:15:45Z",
+        "2026-09-20T20:16:31Z",
+        "2026-09-20T20:17:09Z",
+        "2026-09-20T20:22:31Z",
+        "2026-09-20T20:28:07Z",
+        "2026-09-20T20:32:25Z",
+        "2026-09-20T20:33:57Z",
+        "2026-09-20T20:38:36Z",
+        "2026-09-20T20:43:52Z",
+        "2026-09-20T20:48:34Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35678170731",
+      "job_id": "106589027844",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11093",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11093/llama-b11093-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-22T02:58:54Z",
+      "completed_at": "2026-09-22T03:51:48Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35678170731/job/106589027844",
+      "log_sha256": "866d3bdb3c3064947f3b17acda30deacf47eb09222744029126f78dc9e9a3f9c",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "106589027844",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11093/llama-b11093-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35678170731/job/106589027844",
+          "log_sha256": "866d3bdb3c3064947f3b17acda30deacf47eb09222744029126f78dc9e9a3f9c"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-21T19:59:16Z",
+        "2026-09-21T20:03:41Z",
+        "2026-09-21T20:08:15Z",
+        "2026-09-21T20:13:33Z",
+        "2026-09-21T20:18:39Z",
+        "2026-09-21T20:19:25Z",
+        "2026-09-21T20:20:07Z",
+        "2026-09-21T20:25:29Z",
+        "2026-09-21T20:31:07Z",
+        "2026-09-21T20:35:27Z",
+        "2026-09-21T20:36:23Z",
+        "2026-09-21T20:41:07Z",
+        "2026-09-21T20:46:23Z",
+        "2026-09-21T20:51:05Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35808980228",
+      "job_id": "107016025354",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11116",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11116/llama-b11116-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-23T02:58:49Z",
+      "completed_at": "2026-09-23T03:52:02Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35808980228/job/107016025354",
+      "log_sha256": "94b122605a747ccf221ca9fc4496d39efd0d0e18dd44fea5924971cd173c8004",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "107016025354",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11116/llama-b11116-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35808980228/job/107016025354",
+          "log_sha256": "94b122605a747ccf221ca9fc4496d39efd0d0e18dd44fea5924971cd173c8004"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-22T19:59:14Z",
+        "2026-09-22T20:03:36Z",
+        "2026-09-22T20:08:10Z",
+        "2026-09-22T20:13:30Z",
+        "2026-09-22T20:18:38Z",
+        "2026-09-22T20:19:24Z",
+        "2026-09-22T20:20:04Z",
+        "2026-09-22T20:25:28Z",
+        "2026-09-22T20:31:13Z",
+        "2026-09-22T20:35:35Z",
+        "2026-09-22T20:36:31Z",
+        "2026-09-22T20:41:15Z",
+        "2026-09-22T20:46:33Z",
+        "2026-09-22T20:51:17Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "35945823745",
+      "job_id": "107463416911",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11143",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11143/llama-b11143-bin-ubuntu-rocm-7.14-x64.tar.gz",
+      "started_at": "2026-09-24T02:59:36Z",
+      "completed_at": "2026-09-24T03:52:19Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35945823745/job/107463416911",
+      "log_sha256": "d934b2312ac689cf4dadc1a89783675853179f105f3811020e60b981679cd283",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "107463416911",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11143/llama-b11143-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/35945823745/job/107463416911",
+          "log_sha256": "d934b2312ac689cf4dadc1a89783675853179f105f3811020e60b981679cd283"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-23T20:00:00Z",
+        "2026-09-23T20:04:08Z",
+        "2026-09-23T20:08:28Z",
+        "2026-09-23T20:13:50Z",
+        "2026-09-23T20:19:00Z",
+        "2026-09-23T20:19:46Z",
+        "2026-09-23T20:20:24Z",
+        "2026-09-23T20:25:50Z",
+        "2026-09-23T20:31:30Z",
+        "2026-09-23T20:35:52Z",
+        "2026-09-23T20:36:46Z",
+        "2026-09-23T20:41:32Z",
+        "2026-09-23T20:46:48Z",
+        "2026-09-23T20:51:36Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36210565516",
+      "job_id": "108316016028",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11191",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11191/llama-b11191-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-09-26T03:16:21Z",
+      "completed_at": "2026-09-26T04:09:41Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36210565516/job/108316016028",
+      "log_sha256": "285b3c90a7a6a0760c1d75e8a5c94cb528cd5cdb6496120618b9a936daf66cac",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "108316016028",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11191/llama-b11191-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36210565516/job/108316016028",
+          "log_sha256": "285b3c90a7a6a0760c1d75e8a5c94cb528cd5cdb6496120618b9a936daf66cac"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-25T20:16:46Z",
+        "2026-09-25T20:21:17Z",
+        "2026-09-25T20:25:55Z",
+        "2026-09-25T20:31:15Z",
+        "2026-09-25T20:36:23Z",
+        "2026-09-25T20:37:09Z",
+        "2026-09-25T20:37:47Z",
+        "2026-09-25T20:43:11Z",
+        "2026-09-25T20:48:49Z",
+        "2026-09-25T20:53:07Z",
+        "2026-09-25T20:54:05Z",
+        "2026-09-25T20:58:45Z",
+        "2026-09-25T21:04:07Z",
+        "2026-09-25T21:08:55Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36287680258",
+      "job_id": "108531459660",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11201",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11201/llama-b11201-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-09-27T02:55:46Z",
+      "completed_at": "2026-09-27T04:05:01Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36287680258/job/108531459660",
+      "log_sha256": "38625dd975b9dc5b1b711e6c707e625b2540efdc7bf905991c0f19232d23870d",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "108531459660",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11201/llama-b11201-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36287680258/job/108531459660",
+          "log_sha256": "38625dd975b9dc5b1b711e6c707e625b2540efdc7bf905991c0f19232d23870d"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-26T19:56:13Z",
+        "2026-09-26T20:02:07Z",
+        "2026-09-26T20:08:15Z",
+        "2026-09-26T20:15:14Z",
+        "2026-09-26T20:22:00Z",
+        "2026-09-26T20:22:48Z",
+        "2026-09-26T20:23:28Z",
+        "2026-09-26T20:30:28Z",
+        "2026-09-26T20:38:06Z",
+        "2026-09-26T20:43:48Z",
+        "2026-09-26T20:44:46Z",
+        "2026-09-26T20:50:58Z",
+        "2026-09-26T20:58:06Z",
+        "2026-09-26T21:04:16Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36368975417",
+      "job_id": "108761056297",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11222",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11222/llama-b11222-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-09-28T03:19:35Z",
+      "completed_at": "2026-09-28T04:03:12Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36368975417/job/108761056297",
+      "log_sha256": "eb40136b888fb40da7a97896c703d391431880d1afcfcf92f59b428148c78788",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "108761056297",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11222/llama-b11222-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36368975417/job/108761056297",
+          "log_sha256": "eb40136b888fb40da7a97896c703d391431880d1afcfcf92f59b428148c78788"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-27T20:20:03Z",
+        "2026-09-27T20:21:29Z",
+        "2026-09-27T20:22:45Z",
+        "2026-09-27T20:28:11Z",
+        "2026-09-27T20:33:19Z",
+        "2026-09-27T20:34:05Z",
+        "2026-09-27T20:34:45Z",
+        "2026-09-27T20:40:07Z",
+        "2026-09-27T20:45:43Z",
+        "2026-09-27T20:49:59Z",
+        "2026-09-27T20:50:57Z",
+        "2026-09-27T20:55:33Z",
+        "2026-09-27T21:00:49Z",
+        "2026-09-27T21:02:27Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36511278507",
+      "job_id": "109223774307",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11240",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11240/llama-b11240-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-09-29T03:03:44Z",
+      "completed_at": "2026-09-29T04:09:26Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36511278507/job/109223774307",
+      "log_sha256": "7f90406cb63eca39ac730092d364487ff45a4e280ba062505ce035769b2a9ff9",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "109223774307",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11240/llama-b11240-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36511278507/job/109223774307",
+          "log_sha256": "7f90406cb63eca39ac730092d364487ff45a4e280ba062505ce035769b2a9ff9"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-28T20:04:12Z",
+        "2026-09-28T20:10:04Z",
+        "2026-09-28T20:16:08Z",
+        "2026-09-28T20:23:02Z",
+        "2026-09-28T20:29:52Z",
+        "2026-09-28T20:30:40Z",
+        "2026-09-28T20:31:20Z",
+        "2026-09-28T20:38:22Z",
+        "2026-09-28T20:45:58Z",
+        "2026-09-28T20:51:40Z",
+        "2026-09-28T20:53:32Z",
+        "2026-09-28T20:59:44Z",
+        "2026-09-28T21:06:49Z",
+        "2026-09-28T21:08:41Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36805108133",
+      "job_id": "110187632272",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11310",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11310/llama-b11310-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-01T03:27:08Z",
+      "completed_at": "2026-10-01T04:20:17Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36805108133/job/110187632272",
+      "log_sha256": "a93545226a181033c62fb6338594d87857e96cdc09ab3de2710319d8e59a9751",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "110187632272",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11310/llama-b11310-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36805108133/job/110187632272",
+          "log_sha256": "a93545226a181033c62fb6338594d87857e96cdc09ab3de2710319d8e59a9751"
+        }
+      ],
+      "measurement_times": [
+        "2026-09-30T20:27:36Z",
+        "2026-09-30T20:32:00Z",
+        "2026-09-30T20:36:34Z",
+        "2026-09-30T20:41:54Z",
+        "2026-09-30T20:47:00Z",
+        "2026-09-30T20:47:48Z",
+        "2026-09-30T20:48:28Z",
+        "2026-09-30T20:53:52Z",
+        "2026-09-30T20:59:32Z",
+        "2026-09-30T21:03:54Z",
+        "2026-09-30T21:04:50Z",
+        "2026-09-30T21:09:24Z",
+        "2026-09-30T21:14:42Z",
+        "2026-09-30T21:19:28Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "36954455170",
+      "job_id": "110674252357",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11342",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11342/llama-b11342-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-02T03:21:27Z",
+      "completed_at": "2026-10-02T04:30:10Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36954455170/job/110674252357",
+      "log_sha256": "456b0fae9bc0975140def6b27b8fa383f9793abb047b6b2c381e3289975d343c",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "110674252357",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11342/llama-b11342-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/36954455170/job/110674252357",
+          "log_sha256": "456b0fae9bc0975140def6b27b8fa383f9793abb047b6b2c381e3289975d343c"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-01T20:21:54Z",
+        "2026-10-01T20:27:54Z",
+        "2026-10-01T20:34:06Z",
+        "2026-10-01T20:40:50Z",
+        "2026-10-01T20:47:28Z",
+        "2026-10-01T20:48:16Z",
+        "2026-10-01T20:48:56Z",
+        "2026-10-01T20:55:54Z",
+        "2026-10-01T21:03:24Z",
+        "2026-10-01T21:09:04Z",
+        "2026-10-01T21:10:02Z",
+        "2026-10-01T21:16:12Z",
+        "2026-10-01T21:23:22Z",
+        "2026-10-01T21:29:26Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37088559168",
+      "job_id": "111103792768",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11370",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11370/llama-b11370-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-03T03:14:58Z",
+      "completed_at": "2026-10-03T04:08:50Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37088559168/job/111103792768",
+      "log_sha256": "ee9ca64e0f83f97fe4a4b31bab09cb113c5b44fd0b6a504a77a4d209a44e6162",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "111103792768",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11370/llama-b11370-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37088559168/job/111103792768",
+          "log_sha256": "ee9ca64e0f83f97fe4a4b31bab09cb113c5b44fd0b6a504a77a4d209a44e6162"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-02T20:15:27Z",
+        "2026-10-02T20:19:57Z",
+        "2026-10-02T20:24:37Z",
+        "2026-10-02T20:30:01Z",
+        "2026-10-02T20:35:11Z",
+        "2026-10-02T20:35:57Z",
+        "2026-10-02T20:36:35Z",
+        "2026-10-02T20:42:03Z",
+        "2026-10-02T20:47:43Z",
+        "2026-10-02T20:52:01Z",
+        "2026-10-02T20:52:59Z",
+        "2026-10-02T20:57:37Z",
+        "2026-10-02T21:02:59Z",
+        "2026-10-02T21:07:49Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37171660197",
+      "job_id": "111345678673",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11381",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11381/llama-b11381-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-04T03:32:20Z",
+      "completed_at": "2026-10-04T04:20:28Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37171660197/job/111345678673",
+      "log_sha256": "0172131ba7513f3ebcd72ec3cbf5176b81a90ed2c270470085a77e219905c05a",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "111345678673",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11381/llama-b11381-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37171660197/job/111345678673",
+          "log_sha256": "0172131ba7513f3ebcd72ec3cbf5176b81a90ed2c270470085a77e219905c05a"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-03T20:32:49Z",
+        "2026-10-03T20:34:17Z",
+        "2026-10-03T20:35:33Z",
+        "2026-10-03T20:40:57Z",
+        "2026-10-03T20:46:11Z",
+        "2026-10-03T20:46:57Z",
+        "2026-10-03T20:47:35Z",
+        "2026-10-03T20:53:03Z",
+        "2026-10-03T20:58:43Z",
+        "2026-10-03T21:03:01Z",
+        "2026-10-03T21:04:33Z",
+        "2026-10-03T21:09:13Z",
+        "2026-10-03T21:14:39Z",
+        "2026-10-03T21:19:35Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37254774524",
+      "job_id": "111589426909",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11395",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11395/llama-b11395-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-05T03:26:36Z",
+      "completed_at": "2026-10-05T04:20:39Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37254774524/job/111589426909",
+      "log_sha256": "d86eb3d43e8e26f1c687a557d0e136fd6739da73f51753c517742c0af8636831",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "111589426909",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11395/llama-b11395-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37254774524/job/111589426909",
+          "log_sha256": "d86eb3d43e8e26f1c687a557d0e136fd6739da73f51753c517742c0af8636831"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-04T20:27:02Z",
+        "2026-10-04T20:31:30Z",
+        "2026-10-04T20:36:10Z",
+        "2026-10-04T20:41:36Z",
+        "2026-10-04T20:46:48Z",
+        "2026-10-04T20:47:34Z",
+        "2026-10-04T20:48:14Z",
+        "2026-10-04T20:53:40Z",
+        "2026-10-04T20:59:22Z",
+        "2026-10-04T21:03:38Z",
+        "2026-10-04T21:04:34Z",
+        "2026-10-04T21:09:14Z",
+        "2026-10-04T21:14:38Z",
+        "2026-10-04T21:19:31Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37561076158",
+      "job_id": "112598276484",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11457",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11457/llama-b11457-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-07T03:06:24Z",
+      "completed_at": "2026-10-07T04:00:49Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37561076158/job/112598276484",
+      "log_sha256": "0fd61a7720d050731ae89271f8b40f7d199272c9396b0e7a66cd7594724b8952",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "112598276484",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11457/llama-b11457-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37561076158/job/112598276484",
+          "log_sha256": "0fd61a7720d050731ae89271f8b40f7d199272c9396b0e7a66cd7594724b8952"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-06T20:06:51Z",
+        "2026-10-06T20:11:31Z",
+        "2026-10-06T20:16:19Z",
+        "2026-10-06T20:21:45Z",
+        "2026-10-06T20:26:59Z",
+        "2026-10-06T20:27:45Z",
+        "2026-10-06T20:28:25Z",
+        "2026-10-06T20:33:57Z",
+        "2026-10-06T20:39:35Z",
+        "2026-10-06T20:43:59Z",
+        "2026-10-06T20:44:55Z",
+        "2026-10-06T20:49:47Z",
+        "2026-10-06T20:55:09Z",
+        "2026-10-06T20:59:58Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37716916489",
+      "job_id": "113115421671",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11489",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11489/llama-b11489-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-08T03:09:47Z",
+      "completed_at": "2026-10-08T04:11:50Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37716916489/job/113115421671",
+      "log_sha256": "5003c0d7c3553d20046eb2c92453eb21f151ca2d28f8c80545d481a27c8f87ee",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "113115421671",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11489/llama-b11489-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37716916489/job/113115421671",
+          "log_sha256": "5003c0d7c3553d20046eb2c92453eb21f151ca2d28f8c80545d481a27c8f87ee"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-07T20:10:35Z",
+        "2026-10-07T20:13:01Z",
+        "2026-10-07T20:14:21Z",
+        "2026-10-07T20:21:19Z",
+        "2026-10-07T20:28:06Z",
+        "2026-10-07T20:29:16Z",
+        "2026-10-07T20:29:56Z",
+        "2026-10-07T20:36:54Z",
+        "2026-10-07T20:44:28Z",
+        "2026-10-07T20:50:14Z",
+        "2026-10-07T20:51:14Z",
+        "2026-10-07T20:57:32Z",
+        "2026-10-07T21:04:48Z",
+        "2026-10-07T21:11:04Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "37873739882",
+      "job_id": "113637434552",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11513",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11513/llama-b11513-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-09T03:11:09Z",
+      "completed_at": "2026-10-09T04:05:29Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37873739882/job/113637434552",
+      "log_sha256": "0ad12e146042068db187d33c61ee7e981f5494b1b1ebbcedbc1eacb40d8b186f",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "113637434552",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11513/llama-b11513-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/37873739882/job/113637434552",
+          "log_sha256": "0ad12e146042068db187d33c61ee7e981f5494b1b1ebbcedbc1eacb40d8b186f"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-08T20:11:52Z",
+        "2026-10-08T20:16:28Z",
+        "2026-10-08T20:21:10Z",
+        "2026-10-08T20:26:40Z",
+        "2026-10-08T20:31:56Z",
+        "2026-10-08T20:32:42Z",
+        "2026-10-08T20:33:22Z",
+        "2026-10-08T20:39:00Z",
+        "2026-10-08T20:44:36Z",
+        "2026-10-08T20:48:54Z",
+        "2026-10-08T20:49:52Z",
+        "2026-10-08T20:54:40Z",
+        "2026-10-08T21:00:00Z",
+        "2026-10-08T21:04:46Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38016207477",
+      "job_id": "114106943644",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11513",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11513/llama-b11513-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-10T03:02:22Z",
+      "completed_at": "2026-10-10T03:54:01Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38016207477/job/114106943644",
+      "log_sha256": "ac14e00f23e8e52c432759292bf69780cf2b1bc0f0e6746e4ab10d8bb0e10150",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "114106943644",
+          "method": "cached_binary_registry_match",
+          "registry_evidence": {
+            "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/0c8169f5bf869314051897d43e9c2aa8017f46b5/src/cpp/resources/benchmark_forks.json",
+            "body": "{\n  \"schema_version\": 1,\n  \"comment\": \"Registry of AMD-maintained and community llama.cpp forks for nightly perf regression tracking. Add new forks by appending entries — no code changes needed. binary_url uses {version} as a placeholder substituted at runtime from the latest GitHub release tag.\",\n  \"forks\": [\n    {\n      \"fork_id\": \"llamacpp-rocm-nightly\",\n      \"label\": \"llama.cpp ROCm Nightly (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-nightly\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"lemonade-sdk/llamacpp-rocm\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-windows-rocm-{arch}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-ubuntu-rocm-{arch}-x64.zip\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade nightly ROCm channel. Built via TheRock SDK. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-rocm-stable\",\n      \"label\": \"llama.cpp ROCm Stable (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-stable\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"stable\",\n      \"repo\": \"lemonade-sdk/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-win-rocm-{therock_ver}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-rocm-{therock_ver}-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade stable ROCm channel. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-amd-ecosystem-gfx11\",\n      \"label\": \"llama.cpp gfx11 (AMD-Ecosystem)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-gfx11\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"AMD-Ecosystem/llama.cpp\",\n      \"branch\": \"gfx11\",\n      \"version_source\": \"github_latest\",\n      \"version_tag_prefix\": \"gfx11-rocm-nightly-\",\n      \"binary_url_windows\": \"\",\n      \"binary_url_linux\": \"https://github.com/AMD-Ecosystem/llama.cpp/releases/download/{version}/llama-{version}-ubuntu-rocm-multiarch-x64.tar.gz\",\n      \"binary_exe_windows\": \"\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"runner_os\": \"linux\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Nightly dated builds. Tag format: gfx11-rocm-nightly-YYYYMMDD. Single multiarch binary — covers all RDNA3/3.5 targets. Linux only, no Windows binary. Runs on Linux ROCm self-hosted runner.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-upstream-vulkan\",\n      \"label\": \"llama.cpp Vulkan (upstream reference)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"vulkan\",\n      \"repo\": \"ggml-org/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-win-vulkan-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-vulkan-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Upstream ggml-org baseline. Used as performance reference for fork comparisons.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-hrx\",\n      \"label\": \"llama.cpp HRX (ROCm/ggml-staging-automation)\",\n      \"recipe\": \"llamacpp-hrx\",\n      \"config_section\": \"hrx\",\n      \"backend\": \"hrx\",\n      \"install_as\": \"hrx\",\n      \"repo\": \"ROCm/ggml-staging-automation\",\n      \"version_source\": \"github_latest\",\n      \"version_fallback\": \"hrx-b59\",\n      \"binary_url_windows\": \"\",\n      \"binary_url_linux\": \"https://github.com/ROCm/ggml-staging-automation/releases/download/{version}/llama-{version}-bin-manylinux-hrx-x64.tar.gz\",\n      \"binary_exe_windows\": \"\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"runner_os\": \"linux\",\n      \"arch\": \"gfx1151\",\n      \"experimental\": true,\n      \"tracked\": true,\n      \"notes\": \"Experimental HRX backend. Linux gfx1151 only. Auto-discovers all 'llamacpp-hrx' models from server_models.json; add an optional model_filter to pin a subset.\"\n    }\n  ]\n}\n",
+            "sha256": "9998d7b115d115a9552bd3918731ee50c110fe09f279095a9ad3653379416054",
+            "backend_versions": {
+              "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/0c8169f5bf869314051897d43e9c2aa8017f46b5/src/cpp/resources/backend_versions.json",
+              "body": "{\n  \"comment\": \"This configuration file controls which llama.cpp, whisper.cpp, sd.cpp, ryzenai-llm, and FLM versions are downloaded for each backend. You can modify these values to pin specific versions without rebuilding the application.\",\n  \"checksums\": {\n    \"comment\": \"Expected SHA-256 of downloaded GitHub release assets, verified after download (see BackendUtils::lookup_expected_asset_hash). Keyed by checksums.github.<owner/repo>.<tag>.<asset>. Values are the sha256:<hex> digests GitHub publishes for each asset. Update alongside the matching version pin below.\",\n    \"github\": {\n      \"pwilkin/openmoss\": {\n        \"v0.3.0\": {\n          \"moss-tts-vulkan-linux-x64.tar.gz\": \"sha256:1288a22295451d0e5d8bd707ef79ea324e1c7b5f1cd9bfbdab2167a388fe3af7\",\n          \"moss-tts-vulkan-windows-x64.zip\": \"sha256:709c5c67e76c4180a38c6516cf908665fa2df6613900298a7d2c58eba5914733\",\n          \"moss-tts-cuda-linux-x64.tar.gz\": \"sha256:3a7a61852bd9fe16a14f262ff99e055739e7bc52c2727749d05f0b4664facb37\",\n          \"moss-tts-cuda-windows-x64.zip\": \"sha256:def68a7f35e6bd111ec4118f4e88835547f3af87efd5f3812ab1e505d1f38229\"\n        }\n      },\n      \"pwilkin/acestep.cpp\": {\n        \"v0.1.1\": {\n          \"acestep-vulkan-linux-x64.tar.gz\": \"sha256:398520b322058c1a6d7303849354b9d0afffc99b33870a94b50680932e6b2e41\",\n          \"acestep-vulkan-windows-x64.zip\": \"sha256:a20f11af4d0eca8c906019c62db5074d30132860735404d84cec3cecddc00d4c\",\n          \"acestep-rocm-linux-x64.tar.gz\": \"sha256:476ac942746b49edf50c5d57e705618fa8d242aca1e88c14e4ce6c791b0a5d0a\",\n          \"acestep-rocm-windows-x64.zip\": \"sha256:2bf8e02b337d760bc538df2d5118ded7f068a9adccd3c5b48ede30a3a26149dd\",\n          \"acestep-cuda-linux-x64.tar.gz\": \"sha256:1b94e862a09b76583ba314a6f49c7cb599a234d6fbf3950adf67c3965af5e1a8\",\n          \"acestep-cuda-windows-x64.zip\": \"sha256:f278b148eaff7f3fc3fee9a2f4503dbc94759356e0c48074310538026c3fc059\"\n        }\n      },\n      \"pwilkin/thinksound.cpp\": {\n        \"v0.1.2\": {\n          \"thinksound-vulkan-linux-x64.tar.gz\": \"sha256:913cb141ff0bcde488474fbba9e911437e2cbf58dd12a0a41251dbe4fa69e61f\",\n          \"thinksound-vulkan-windows-x64.zip\": \"sha256:e0af57c3cd2f4605cd0062939e8134f2ac60e197f95bbab347ed274002ffbfd2\",\n          \"thinksound-rocm-linux-x64.tar.gz\": \"sha256:46379f969b4c097a357a0717077c41272eb3290494bd2acec08ce6591a2d778a\",\n          \"thinksound-rocm-windows-x64.zip\": \"sha256:3e27483cc88c4e10c68f485a9b1bae02381dd3a16a64cf5c44bae53f4fbb0d68\",\n          \"thinksound-cuda-linux-x64.tar.gz\": \"sha256:ac3875c6bba8cf0753708e749bdb606006ac6e001f7d78649ede78c5e96bd36a\",\n          \"thinksound-cuda-windows-x64.zip\": \"sha256:1261c1eadd91b8a4a62dd20e9e8d7e5320db671896337ea84ac23251df54b0d9\"\n        }\n      },\n      \"pwilkin/trellis.cpp\": {\n        \"v0.4.3\": {\n          \"trellis-vulkan-linux-x64.tar.gz\": \"sha256:a614549056da47950d7506d73ba923298a85859024b6a2ca782a0f7c9604f602\",\n          \"trellis-vulkan-windows-x64.zip\": \"sha256:a9566a1eed92c3ced893bb6e65b8a6d6d1b3a68c11724b8b1a2d8d6b5a0f8525\",\n          \"trellis-rocm-linux-x64.tar.gz\": \"sha256:e8c2fb16cd3ac5e620af1e07a3c002f845c189485dc988b316f469734fbfbc17\",\n          \"trellis-rocm-windows-x64.zip\": \"sha256:147e2713b328f342afd959147f6e0b4d2fc87cbcd18a5ef5d28edd9a80233d5a\",\n          \"trellis-cuda-linux-x64.tar.gz\": \"sha256:454c161b2179551db5e80786bba16ae81eaf28ab8fdb685d371b30d58769fbaa\",\n          \"trellis-cuda-windows-x64.zip\": \"sha256:47b87271f8b644a8e50767f6d58d5baf597e1aa6bb46b809a5e5d5b0ac741b29\"\n        }\n      },\n      \"lemonade-sdk/ds4-rocm\": {\n        \"b0001\": {\n          \"ds4-b0001-linux-rocm-gfx1151-x64.tar.gz\": \"sha256:e63b7c9428fd10de75b3f69164eccd564a8e7261c2f9087cd8bec2b4b19a8ad1\"\n        }\n      },\n      \"ROCm/ggml-staging-automation\": {\n        \"hrx-b99\": {\n          \"llama-hrx-b99-bin-manylinux-hrx-x64.tar.gz\": \"sha256:02c88d96d39c607aefbb982e8b4f630785ec43c4416583834912ceaa63fd7624\"\n        }\n      }\n    }\n  },\n  \"llamacpp\": {\n    \"vulkan\": \"b11393\",\n    \"rocm-stable\": \"b11395\",\n    \"rocm-nightly\": \"b1338\",\n    \"cuda\": \"b11395\",\n    \"metal\": \"b11393\",\n    \"cpu\": \"b11393\"\n  },\n  \"llamacpp-hrx\": {\n    \"hrx\": \"hrx-b99\"\n  },\n  \"whispercpp\": {\n    \"cpu\": \"v1.8.4\",\n    \"vulkan\": \"v1.8.4\",\n    \"rocm\": \"v1.8.4\",\n    \"npu\": \"v1.8.4\",\n    \"metal\": \"v1.8.4\"\n  },\n  \"sd-cpp\": {\n    \"cpu\": \"master-894-017cc8e\",\n    \"rocm-stable\": \"master-894-017cc8e\",\n    \"vulkan\": \"master-894-017cc8e\",\n    \"cuda\": \"master-894-017cc8e\",\n    \"metal\": \"master-894-017cc8e\"\n  },\n  \"ds4\": {\n    \"rocm\": \"b0001\"\n  },\n  \"therock\": {\n    \"version\": \"10.0.0\",\n    \"architectures\": [\n      \"gfx908\",\n      \"gfx90a\",\n      \"gfx942\",\n      \"gfx950\",\n      \"gfx1100\",\n      \"gfx1101\",\n      \"gfx1102\",\n      \"gfx1103\",\n      \"gfx1150\",\n      \"gfx1151\",\n      \"gfx1152\",\n      \"gfx1153\",\n      \"gfx1200\",\n      \"gfx1201\",\n      \"gfx1010\",\n      \"gfx1011\",\n      \"gfx1012\",\n      \"gfx1030\",\n      \"gfx1031\",\n      \"gfx1032\",\n      \"gfx1033\",\n      \"gfx1034\",\n      \"gfx1035\",\n      \"gfx1036\",\n      \"gfx103X\",\n      \"gfx110X\",\n      \"gfx120X\"\n    ],\n    \"url_mapping\": {\n      \"gfx942\": \"gfx94X-dcgpu\",\n      \"gfx950\": \"gfx950-dcgpu\",\n      \"gfx103X\": \"gfx103X-all\",\n      \"gfx110X\": \"gfx110X-all\",\n      \"gfx120X\": \"gfx120X-all\",\n      \"gfx1100\": \"gfx110X-all\",\n      \"gfx1101\": \"gfx110X-all\",\n      \"gfx1102\": \"gfx110X-all\",\n      \"gfx1103\": \"gfx110X-all\",\n      \"gfx1150\": \"gfx1150\",\n      \"gfx1151\": \"gfx1151\",\n      \"gfx1152\": \"gfx1152\",\n      \"gfx1153\": \"gfx1153\",\n      \"gfx1200\": \"gfx120X-all\",\n      \"gfx1201\": \"gfx120X-all\",\n      \"gfx1010\": \"gfx101X-dgpu\",\n      \"gfx1011\": \"gfx101X-dgpu\",\n      \"gfx1012\": \"gfx101X-dgpu\",\n      \"gfx1030\": \"gfx103X-all\",\n      \"gfx1031\": \"gfx103X-all\",\n      \"gfx1032\": \"gfx103X-all\",\n      \"gfx1033\": \"gfx103X-all\",\n      \"gfx1034\": \"gfx103X-all\",\n      \"gfx1035\": \"gfx103X-all\",\n      \"gfx1036\": \"gfx103X-all\"\n    }\n  },\n  \"ryzenai-llm\": {\n    \"npu\": \"v1.7.0\"\n  },\n  \"flm\": {\n    \"npu\": \"v1.0.7\"\n  },\n  \"kokoro\": {\n    \"cpu\": \"b21\",\n    \"metal\": \"b21\"\n  },\n  \"vllm\": {\n    \"comment\": \"'rocm' is the default (RDNA) pin. 'rocm_arch_overrides' pins per detected asset family (rocm_asset_family output) where AMD's vLLM/ROCm wheel cadence diverges: CDNA-dcgpu (gfx942, gfx950) shares no release tag with the RDNA line, so it pins its own version. gfx950 (CDNA4) rides the same CDNA vLLM/ROCm line as gfx942 (CDNA3). Review each override at release time - feature/fix parity across arch lines lags until bumped.\",\n    \"rocm\": \"vllm0.20.1-rocm7.12.0\",\n    \"rocm_arch_overrides\": {\n      \"gfx942\": \"vllm0.19.1-rocm7.13.0\",\n      \"gfx950\": \"vllm0.19.1-rocm7.13.0\"\n    }\n  },\n  \"thenoise\": {\n    \"comment\": \"TheNoise release tag. The portable bundle publishes per-GPU-target archives (<tag>-gfxNNNN-x64.tar.gz) under this tag; the host arch picks the matching archive.\",\n    \"rocm\": \"thenoise-0.10.0-rocm10.1.0\"\n  },\n  \"rocm_asset_families\": {\n    \"comment\": \"Maps a concrete ROCm ISA (as detected on the device) to the family target name the GitHub release repos publish assets under. ISAs not listed here (e.g. gfx908, gfx90a, which ship as individual assets) are used verbatim. Add a new GPU's ISA here when its release asset is published under a family name.\",\n    \"gfx1200\": \"gfx120X\",\n    \"gfx1201\": \"gfx120X\",\n    \"gfx1100\": \"gfx110X\",\n    \"gfx1101\": \"gfx110X\",\n    \"gfx1102\": \"gfx110X\",\n    \"gfx1103\": \"gfx110X\",\n    \"gfx1030\": \"gfx103X\",\n    \"gfx1031\": \"gfx103X\",\n    \"gfx1032\": \"gfx103X\",\n    \"gfx1033\": \"gfx103X\",\n    \"gfx1034\": \"gfx103X\",\n    \"gfx1035\": \"gfx103X\",\n    \"gfx1036\": \"gfx103X\"\n  },\n  \"moonshine\": {\n    \"cpu\": \"moonshine0.0.62\"\n  },\n  \"onnxruntime\": {\n    \"cpu\": \"0.3.7\"\n  },\n  \"thinksound\": {\n    \"vulkan\": \"v0.1.2\",\n    \"rocm-stable\": \"v0.1.2\",\n    \"cuda\": \"v0.1.2\"\n  },\n  \"acestep\": {\n    \"vulkan\": \"v0.1.1\",\n    \"rocm-stable\": \"v0.1.1\",\n    \"cuda\": \"v0.1.1\"\n  },\n  \"trellis\": {\n    \"vulkan\": \"v0.4.3\",\n    \"rocm-stable\": \"v0.4.3\",\n    \"cuda\": \"v0.4.3\"\n  },\n  \"openmoss\": {\n    \"vulkan\": \"v0.3.0\",\n    \"cuda\": \"v0.3.0\"\n  },\n  \"clear_bin_if_lemonade_below\": \"9.4.0\"\n}\n",
+              "sha256": "7799b2e1d48252b5a82e127b22f112a998b6bfa0b5ece5691aa6b6614f2d40e6"
+            }
+          },
+          "cache_binary_path": "/home/user/actions-runner/_work/lemonade/lemonade/../bench-binaries/llamacpp-rocm-stable/llama-b11513/llama-server",
+          "cache_marker_version": "b11513",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11513/llama-b11513-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38016207477/job/114106943644",
+          "log_sha256": "ac14e00f23e8e52c432759292bf69780cf2b1bc0f0e6746e4ab10d8bb0e10150"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-09T20:02:36Z",
+        "2026-10-09T20:07:16Z",
+        "2026-10-09T20:12:06Z",
+        "2026-10-09T20:17:34Z",
+        "2026-10-09T20:22:52Z",
+        "2026-10-09T20:23:38Z",
+        "2026-10-09T20:24:18Z",
+        "2026-10-09T20:29:52Z",
+        "2026-10-09T20:35:32Z",
+        "2026-10-09T20:39:56Z",
+        "2026-10-09T20:40:56Z",
+        "2026-10-09T20:43:00Z",
+        "2026-10-09T20:48:22Z",
+        "2026-10-09T20:53:05Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38104564924",
+      "job_id": "114367216511",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11552",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-11T03:10:40Z",
+      "completed_at": "2026-10-11T03:57:33Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38104564924/job/114367216511",
+      "log_sha256": "56ae7fb975561e25ee6b85ae0100e288007f1f05e7d6cbc6079bb8fb37a7d5a2",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "114367216511",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38104564924/job/114367216511",
+          "log_sha256": "56ae7fb975561e25ee6b85ae0100e288007f1f05e7d6cbc6079bb8fb37a7d5a2"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-10T20:11:26Z",
+        "2026-10-10T20:12:57Z",
+        "2026-10-10T20:14:15Z",
+        "2026-10-10T20:19:43Z",
+        "2026-10-10T20:24:59Z",
+        "2026-10-10T20:25:47Z",
+        "2026-10-10T20:26:25Z",
+        "2026-10-10T20:30:19Z",
+        "2026-10-10T20:35:59Z",
+        "2026-10-10T20:40:21Z",
+        "2026-10-10T20:41:35Z",
+        "2026-10-10T20:46:17Z",
+        "2026-10-10T20:51:45Z",
+        "2026-10-10T20:56:41Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38105187684",
+      "job_id": "114400428188",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11552",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-11T06:21:37Z",
+      "completed_at": "2026-10-11T07:01:06Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38105187684/job/114400428188",
+      "log_sha256": "563ea16995e960128b4f60bf93f167162f52de3d929504cdd85c79b01b8fe6f1",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "114400428188",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38105187684/job/114400428188",
+          "log_sha256": "563ea16995e960128b4f60bf93f167162f52de3d929504cdd85c79b01b8fe6f1"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-10T23:22:02Z",
+        "2026-10-10T23:25:16Z",
+        "2026-10-10T23:28:36Z",
+        "2026-10-10T23:32:42Z",
+        "2026-10-10T23:36:52Z",
+        "2026-10-10T23:37:24Z",
+        "2026-10-10T23:37:52Z",
+        "2026-10-10T23:42:04Z",
+        "2026-10-10T23:45:58Z",
+        "2026-10-10T23:49:00Z",
+        "2026-10-10T23:49:44Z",
+        "2026-10-10T23:53:08Z",
+        "2026-10-10T23:56:46Z",
+        "2026-10-11T00:00:20Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38195529429",
+      "job_id": "114637215566",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11552",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-12T03:16:56Z",
+      "completed_at": "2026-10-12T04:04:45Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38195529429/job/114637215566",
+      "log_sha256": "a9788680e50f3a1d9e5274872b1ea0616d640b66c477c76689f6ede1bd55c839",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "114637215566",
+          "method": "cached_binary_registry_match",
+          "registry_evidence": {
+            "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/0c8169f5bf869314051897d43e9c2aa8017f46b5/src/cpp/resources/benchmark_forks.json",
+            "body": "{\n  \"schema_version\": 1,\n  \"comment\": \"Registry of AMD-maintained and community llama.cpp forks for nightly perf regression tracking. Add new forks by appending entries — no code changes needed. binary_url uses {version} as a placeholder substituted at runtime from the latest GitHub release tag.\",\n  \"forks\": [\n    {\n      \"fork_id\": \"llamacpp-rocm-nightly\",\n      \"label\": \"llama.cpp ROCm Nightly (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-nightly\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"lemonade-sdk/llamacpp-rocm\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-windows-rocm-{arch}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/{version}/llama-{version}-ubuntu-rocm-{arch}-x64.zip\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade nightly ROCm channel. Built via TheRock SDK. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-rocm-stable\",\n      \"label\": \"llama.cpp ROCm Stable (lemonade-sdk)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-stable\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"stable\",\n      \"repo\": \"lemonade-sdk/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-win-rocm-{therock_ver}-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/lemonade-sdk/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-rocm-{therock_ver}-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Lemonade stable ROCm channel. Not upstreamed.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-amd-ecosystem-gfx11\",\n      \"label\": \"llama.cpp gfx11 (AMD-Ecosystem)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"rocm-gfx11\",\n      \"install_as\": \"rocm\",\n      \"rocm_channel\": \"nightly\",\n      \"repo\": \"AMD-Ecosystem/llama.cpp\",\n      \"branch\": \"gfx11\",\n      \"version_source\": \"github_latest\",\n      \"version_tag_prefix\": \"gfx11-rocm-nightly-\",\n      \"binary_url_windows\": \"\",\n      \"binary_url_linux\": \"https://github.com/AMD-Ecosystem/llama.cpp/releases/download/{version}/llama-{version}-ubuntu-rocm-multiarch-x64.tar.gz\",\n      \"binary_exe_windows\": \"\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"runner_os\": \"linux\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Nightly dated builds. Tag format: gfx11-rocm-nightly-YYYYMMDD. Single multiarch binary — covers all RDNA3/3.5 targets. Linux only, no Windows binary. Runs on Linux ROCm self-hosted runner.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-upstream-vulkan\",\n      \"label\": \"llama.cpp Vulkan (upstream reference)\",\n      \"recipe\": \"llamacpp\",\n      \"backend\": \"vulkan\",\n      \"repo\": \"ggml-org/llama.cpp\",\n      \"version_source\": \"github_latest\",\n      \"binary_url_windows\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-win-vulkan-x64.zip\",\n      \"binary_url_linux\": \"https://github.com/ggml-org/llama.cpp/releases/download/{version}/llama-{version}-bin-ubuntu-vulkan-x64.tar.gz\",\n      \"binary_exe_windows\": \"llama-server.exe\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"arch\": \"gfx1151\",\n      \"tracked\": true,\n      \"notes\": \"Upstream ggml-org baseline. Used as performance reference for fork comparisons.\"\n    },\n    {\n      \"fork_id\": \"llamacpp-hrx\",\n      \"label\": \"llama.cpp HRX (ROCm/ggml-staging-automation)\",\n      \"recipe\": \"llamacpp-hrx\",\n      \"config_section\": \"hrx\",\n      \"backend\": \"hrx\",\n      \"install_as\": \"hrx\",\n      \"repo\": \"ROCm/ggml-staging-automation\",\n      \"version_source\": \"github_latest\",\n      \"version_fallback\": \"hrx-b59\",\n      \"binary_url_windows\": \"\",\n      \"binary_url_linux\": \"https://github.com/ROCm/ggml-staging-automation/releases/download/{version}/llama-{version}-bin-manylinux-hrx-x64.tar.gz\",\n      \"binary_exe_windows\": \"\",\n      \"binary_exe_linux\": \"llama-server\",\n      \"runner_os\": \"linux\",\n      \"arch\": \"gfx1151\",\n      \"experimental\": true,\n      \"tracked\": true,\n      \"notes\": \"Experimental HRX backend. Linux gfx1151 only. Auto-discovers all 'llamacpp-hrx' models from server_models.json; add an optional model_filter to pin a subset.\"\n    }\n  ]\n}\n",
+            "sha256": "9998d7b115d115a9552bd3918731ee50c110fe09f279095a9ad3653379416054",
+            "backend_versions": {
+              "url": "https://raw.githubusercontent.com/lemonade-sdk/lemonade/0c8169f5bf869314051897d43e9c2aa8017f46b5/src/cpp/resources/backend_versions.json",
+              "body": "{\n  \"comment\": \"This configuration file controls which llama.cpp, whisper.cpp, sd.cpp, ryzenai-llm, and FLM versions are downloaded for each backend. You can modify these values to pin specific versions without rebuilding the application.\",\n  \"checksums\": {\n    \"comment\": \"Expected SHA-256 of downloaded GitHub release assets, verified after download (see BackendUtils::lookup_expected_asset_hash). Keyed by checksums.github.<owner/repo>.<tag>.<asset>. Values are the sha256:<hex> digests GitHub publishes for each asset. Update alongside the matching version pin below.\",\n    \"github\": {\n      \"pwilkin/openmoss\": {\n        \"v0.3.0\": {\n          \"moss-tts-vulkan-linux-x64.tar.gz\": \"sha256:1288a22295451d0e5d8bd707ef79ea324e1c7b5f1cd9bfbdab2167a388fe3af7\",\n          \"moss-tts-vulkan-windows-x64.zip\": \"sha256:709c5c67e76c4180a38c6516cf908665fa2df6613900298a7d2c58eba5914733\",\n          \"moss-tts-cuda-linux-x64.tar.gz\": \"sha256:3a7a61852bd9fe16a14f262ff99e055739e7bc52c2727749d05f0b4664facb37\",\n          \"moss-tts-cuda-windows-x64.zip\": \"sha256:def68a7f35e6bd111ec4118f4e88835547f3af87efd5f3812ab1e505d1f38229\"\n        }\n      },\n      \"pwilkin/acestep.cpp\": {\n        \"v0.1.1\": {\n          \"acestep-vulkan-linux-x64.tar.gz\": \"sha256:398520b322058c1a6d7303849354b9d0afffc99b33870a94b50680932e6b2e41\",\n          \"acestep-vulkan-windows-x64.zip\": \"sha256:a20f11af4d0eca8c906019c62db5074d30132860735404d84cec3cecddc00d4c\",\n          \"acestep-rocm-linux-x64.tar.gz\": \"sha256:476ac942746b49edf50c5d57e705618fa8d242aca1e88c14e4ce6c791b0a5d0a\",\n          \"acestep-rocm-windows-x64.zip\": \"sha256:2bf8e02b337d760bc538df2d5118ded7f068a9adccd3c5b48ede30a3a26149dd\",\n          \"acestep-cuda-linux-x64.tar.gz\": \"sha256:1b94e862a09b76583ba314a6f49c7cb599a234d6fbf3950adf67c3965af5e1a8\",\n          \"acestep-cuda-windows-x64.zip\": \"sha256:f278b148eaff7f3fc3fee9a2f4503dbc94759356e0c48074310538026c3fc059\"\n        }\n      },\n      \"pwilkin/thinksound.cpp\": {\n        \"v0.1.2\": {\n          \"thinksound-vulkan-linux-x64.tar.gz\": \"sha256:913cb141ff0bcde488474fbba9e911437e2cbf58dd12a0a41251dbe4fa69e61f\",\n          \"thinksound-vulkan-windows-x64.zip\": \"sha256:e0af57c3cd2f4605cd0062939e8134f2ac60e197f95bbab347ed274002ffbfd2\",\n          \"thinksound-rocm-linux-x64.tar.gz\": \"sha256:46379f969b4c097a357a0717077c41272eb3290494bd2acec08ce6591a2d778a\",\n          \"thinksound-rocm-windows-x64.zip\": \"sha256:3e27483cc88c4e10c68f485a9b1bae02381dd3a16a64cf5c44bae53f4fbb0d68\",\n          \"thinksound-cuda-linux-x64.tar.gz\": \"sha256:ac3875c6bba8cf0753708e749bdb606006ac6e001f7d78649ede78c5e96bd36a\",\n          \"thinksound-cuda-windows-x64.zip\": \"sha256:1261c1eadd91b8a4a62dd20e9e8d7e5320db671896337ea84ac23251df54b0d9\"\n        }\n      },\n      \"pwilkin/trellis.cpp\": {\n        \"v0.4.3\": {\n          \"trellis-vulkan-linux-x64.tar.gz\": \"sha256:a614549056da47950d7506d73ba923298a85859024b6a2ca782a0f7c9604f602\",\n          \"trellis-vulkan-windows-x64.zip\": \"sha256:a9566a1eed92c3ced893bb6e65b8a6d6d1b3a68c11724b8b1a2d8d6b5a0f8525\",\n          \"trellis-rocm-linux-x64.tar.gz\": \"sha256:e8c2fb16cd3ac5e620af1e07a3c002f845c189485dc988b316f469734fbfbc17\",\n          \"trellis-rocm-windows-x64.zip\": \"sha256:147e2713b328f342afd959147f6e0b4d2fc87cbcd18a5ef5d28edd9a80233d5a\",\n          \"trellis-cuda-linux-x64.tar.gz\": \"sha256:454c161b2179551db5e80786bba16ae81eaf28ab8fdb685d371b30d58769fbaa\",\n          \"trellis-cuda-windows-x64.zip\": \"sha256:47b87271f8b644a8e50767f6d58d5baf597e1aa6bb46b809a5e5d5b0ac741b29\"\n        }\n      },\n      \"lemonade-sdk/ds4-rocm\": {\n        \"b0001\": {\n          \"ds4-b0001-linux-rocm-gfx1151-x64.tar.gz\": \"sha256:e63b7c9428fd10de75b3f69164eccd564a8e7261c2f9087cd8bec2b4b19a8ad1\"\n        }\n      },\n      \"ROCm/ggml-staging-automation\": {\n        \"hrx-b99\": {\n          \"llama-hrx-b99-bin-manylinux-hrx-x64.tar.gz\": \"sha256:02c88d96d39c607aefbb982e8b4f630785ec43c4416583834912ceaa63fd7624\"\n        }\n      }\n    }\n  },\n  \"llamacpp\": {\n    \"vulkan\": \"b11393\",\n    \"rocm-stable\": \"b11395\",\n    \"rocm-nightly\": \"b1338\",\n    \"cuda\": \"b11395\",\n    \"metal\": \"b11393\",\n    \"cpu\": \"b11393\"\n  },\n  \"llamacpp-hrx\": {\n    \"hrx\": \"hrx-b99\"\n  },\n  \"whispercpp\": {\n    \"cpu\": \"v1.8.4\",\n    \"vulkan\": \"v1.8.4\",\n    \"rocm\": \"v1.8.4\",\n    \"npu\": \"v1.8.4\",\n    \"metal\": \"v1.8.4\"\n  },\n  \"sd-cpp\": {\n    \"cpu\": \"master-894-017cc8e\",\n    \"rocm-stable\": \"master-894-017cc8e\",\n    \"vulkan\": \"master-894-017cc8e\",\n    \"cuda\": \"master-894-017cc8e\",\n    \"metal\": \"master-894-017cc8e\"\n  },\n  \"ds4\": {\n    \"rocm\": \"b0001\"\n  },\n  \"therock\": {\n    \"version\": \"10.0.0\",\n    \"architectures\": [\n      \"gfx908\",\n      \"gfx90a\",\n      \"gfx942\",\n      \"gfx950\",\n      \"gfx1100\",\n      \"gfx1101\",\n      \"gfx1102\",\n      \"gfx1103\",\n      \"gfx1150\",\n      \"gfx1151\",\n      \"gfx1152\",\n      \"gfx1153\",\n      \"gfx1200\",\n      \"gfx1201\",\n      \"gfx1010\",\n      \"gfx1011\",\n      \"gfx1012\",\n      \"gfx1030\",\n      \"gfx1031\",\n      \"gfx1032\",\n      \"gfx1033\",\n      \"gfx1034\",\n      \"gfx1035\",\n      \"gfx1036\",\n      \"gfx103X\",\n      \"gfx110X\",\n      \"gfx120X\"\n    ],\n    \"url_mapping\": {\n      \"gfx942\": \"gfx94X-dcgpu\",\n      \"gfx950\": \"gfx950-dcgpu\",\n      \"gfx103X\": \"gfx103X-all\",\n      \"gfx110X\": \"gfx110X-all\",\n      \"gfx120X\": \"gfx120X-all\",\n      \"gfx1100\": \"gfx110X-all\",\n      \"gfx1101\": \"gfx110X-all\",\n      \"gfx1102\": \"gfx110X-all\",\n      \"gfx1103\": \"gfx110X-all\",\n      \"gfx1150\": \"gfx1150\",\n      \"gfx1151\": \"gfx1151\",\n      \"gfx1152\": \"gfx1152\",\n      \"gfx1153\": \"gfx1153\",\n      \"gfx1200\": \"gfx120X-all\",\n      \"gfx1201\": \"gfx120X-all\",\n      \"gfx1010\": \"gfx101X-dgpu\",\n      \"gfx1011\": \"gfx101X-dgpu\",\n      \"gfx1012\": \"gfx101X-dgpu\",\n      \"gfx1030\": \"gfx103X-all\",\n      \"gfx1031\": \"gfx103X-all\",\n      \"gfx1032\": \"gfx103X-all\",\n      \"gfx1033\": \"gfx103X-all\",\n      \"gfx1034\": \"gfx103X-all\",\n      \"gfx1035\": \"gfx103X-all\",\n      \"gfx1036\": \"gfx103X-all\"\n    }\n  },\n  \"ryzenai-llm\": {\n    \"npu\": \"v1.7.0\"\n  },\n  \"flm\": {\n    \"npu\": \"v1.0.7\"\n  },\n  \"kokoro\": {\n    \"cpu\": \"b21\",\n    \"metal\": \"b21\"\n  },\n  \"vllm\": {\n    \"comment\": \"'rocm' is the default (RDNA) pin. 'rocm_arch_overrides' pins per detected asset family (rocm_asset_family output) where AMD's vLLM/ROCm wheel cadence diverges: CDNA-dcgpu (gfx942, gfx950) shares no release tag with the RDNA line, so it pins its own version. gfx950 (CDNA4) rides the same CDNA vLLM/ROCm line as gfx942 (CDNA3). Review each override at release time - feature/fix parity across arch lines lags until bumped.\",\n    \"rocm\": \"vllm0.20.1-rocm7.12.0\",\n    \"rocm_arch_overrides\": {\n      \"gfx942\": \"vllm0.19.1-rocm7.13.0\",\n      \"gfx950\": \"vllm0.19.1-rocm7.13.0\"\n    }\n  },\n  \"thenoise\": {\n    \"comment\": \"TheNoise release tag. The portable bundle publishes per-GPU-target archives (<tag>-gfxNNNN-x64.tar.gz) under this tag; the host arch picks the matching archive.\",\n    \"rocm\": \"thenoise-0.10.0-rocm10.1.0\"\n  },\n  \"rocm_asset_families\": {\n    \"comment\": \"Maps a concrete ROCm ISA (as detected on the device) to the family target name the GitHub release repos publish assets under. ISAs not listed here (e.g. gfx908, gfx90a, which ship as individual assets) are used verbatim. Add a new GPU's ISA here when its release asset is published under a family name.\",\n    \"gfx1200\": \"gfx120X\",\n    \"gfx1201\": \"gfx120X\",\n    \"gfx1100\": \"gfx110X\",\n    \"gfx1101\": \"gfx110X\",\n    \"gfx1102\": \"gfx110X\",\n    \"gfx1103\": \"gfx110X\",\n    \"gfx1030\": \"gfx103X\",\n    \"gfx1031\": \"gfx103X\",\n    \"gfx1032\": \"gfx103X\",\n    \"gfx1033\": \"gfx103X\",\n    \"gfx1034\": \"gfx103X\",\n    \"gfx1035\": \"gfx103X\",\n    \"gfx1036\": \"gfx103X\"\n  },\n  \"moonshine\": {\n    \"cpu\": \"moonshine0.0.62\"\n  },\n  \"onnxruntime\": {\n    \"cpu\": \"0.3.7\"\n  },\n  \"thinksound\": {\n    \"vulkan\": \"v0.1.2\",\n    \"rocm-stable\": \"v0.1.2\",\n    \"cuda\": \"v0.1.2\"\n  },\n  \"acestep\": {\n    \"vulkan\": \"v0.1.1\",\n    \"rocm-stable\": \"v0.1.1\",\n    \"cuda\": \"v0.1.1\"\n  },\n  \"trellis\": {\n    \"vulkan\": \"v0.4.3\",\n    \"rocm-stable\": \"v0.4.3\",\n    \"cuda\": \"v0.4.3\"\n  },\n  \"openmoss\": {\n    \"vulkan\": \"v0.3.0\",\n    \"cuda\": \"v0.3.0\"\n  },\n  \"clear_bin_if_lemonade_below\": \"9.4.0\"\n}\n",
+              "sha256": "7799b2e1d48252b5a82e127b22f112a998b6bfa0b5ece5691aa6b6614f2d40e6"
+            }
+          },
+          "cache_binary_path": "/home/user/actions-runner/_work/lemonade/lemonade/../bench-binaries/llamacpp-rocm-stable/llama-b11550/llama-server",
+          "cache_marker_version": "b11552",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38195529429/job/114637215566",
+          "log_sha256": "a9788680e50f3a1d9e5274872b1ea0616d640b66c477c76689f6ede1bd55c839"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-11T20:17:13Z",
+        "2026-10-11T20:18:43Z",
+        "2026-10-11T20:20:03Z",
+        "2026-10-11T20:25:23Z",
+        "2026-10-11T20:30:35Z",
+        "2026-10-11T20:31:21Z",
+        "2026-10-11T20:31:59Z",
+        "2026-10-11T20:37:15Z",
+        "2026-10-11T20:42:55Z",
+        "2026-10-11T20:47:15Z",
+        "2026-10-11T20:48:53Z",
+        "2026-10-11T20:53:35Z",
+        "2026-10-11T20:59:03Z",
+        "2026-10-11T21:04:01Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38203722587",
+      "job_id": "114662629299",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11552",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-12T05:02:52Z",
+      "completed_at": "2026-10-12T05:37:59Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38203722587/job/114662629299",
+      "log_sha256": "e5e163d06bc2cf3bfd49245641d709a15e1e2cdd73b5eb68e87bd58155c2e647",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "114662629299",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11552/llama-b11552-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38203722587/job/114662629299",
+          "log_sha256": "e5e163d06bc2cf3bfd49245641d709a15e1e2cdd73b5eb68e87bd58155c2e647"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-11T22:03:36Z",
+        "2026-10-11T22:04:30Z",
+        "2026-10-11T22:05:30Z",
+        "2026-10-11T22:09:34Z",
+        "2026-10-11T22:13:42Z",
+        "2026-10-11T22:14:14Z",
+        "2026-10-11T22:14:42Z",
+        "2026-10-11T22:18:52Z",
+        "2026-10-11T22:22:50Z",
+        "2026-10-11T22:25:50Z",
+        "2026-10-11T22:26:34Z",
+        "2026-10-11T22:30:10Z",
+        "2026-10-11T22:33:45Z",
+        "2026-10-11T22:37:25Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38336283885",
+      "job_id": "115097027022",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11577",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11577/llama-b11577-bin-ubuntu-rocm-10.0-x64.tar.gz",
+      "started_at": "2026-10-13T03:13:45Z",
+      "completed_at": "2026-10-13T04:08:29Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38336283885/job/115097027022",
+      "log_sha256": "19f9f571e17345ec52c698d8bd77755c05963218dfd8564ee647cf7fcc0b8870",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "115097027022",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11577/llama-b11577-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38336283885/job/115097027022",
+          "log_sha256": "19f9f571e17345ec52c698d8bd77755c05963218dfd8564ee647cf7fcc0b8870"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-12T20:14:12Z",
+        "2026-10-12T20:18:49Z",
+        "2026-10-12T20:23:39Z",
+        "2026-10-12T20:29:05Z",
+        "2026-10-12T20:34:21Z",
+        "2026-10-12T20:35:09Z",
+        "2026-10-12T20:35:49Z",
+        "2026-10-12T20:41:17Z",
+        "2026-10-12T20:47:03Z",
+        "2026-10-12T20:51:27Z",
+        "2026-10-12T20:52:29Z",
+        "2026-10-12T20:57:07Z",
+        "2026-10-12T21:02:29Z",
+        "2026-10-12T21:07:25Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38499155871",
+      "job_id": "115641751441",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11606",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11606/llama-b11606-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-14T03:05:33Z",
+      "completed_at": "2026-10-14T04:15:49Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38499155871/job/115641751441",
+      "log_sha256": "7f249962dbeba3178663fe8ddf78172cf573eb56fb98a32b60183b3f8c63974b",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "115641751441",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11606/llama-b11606-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38499155871/job/115641751441",
+          "log_sha256": "7f249962dbeba3178663fe8ddf78172cf573eb56fb98a32b60183b3f8c63974b"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-13T20:06:03Z",
+        "2026-10-13T20:11:57Z",
+        "2026-10-13T20:18:03Z",
+        "2026-10-13T20:25:02Z",
+        "2026-10-13T20:31:56Z",
+        "2026-10-13T20:32:44Z",
+        "2026-10-13T20:33:24Z",
+        "2026-10-13T20:40:34Z",
+        "2026-10-13T20:48:14Z",
+        "2026-10-13T20:54:04Z",
+        "2026-10-13T20:55:08Z",
+        "2026-10-13T21:01:32Z",
+        "2026-10-13T21:08:46Z",
+        "2026-10-13T21:15:04Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38669158468",
+      "job_id": "116207940825",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11633",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11633/llama-b11633-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-15T03:01:13Z",
+      "completed_at": "2026-10-15T04:11:53Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38669158468/job/116207940825",
+      "log_sha256": "bd48138a2653ec6ebb14d4a0ae9c66e3cccb9a143313bf8ce13b7b6ad516649e",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "116207940825",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11633/llama-b11633-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38669158468/job/116207940825",
+          "log_sha256": "bd48138a2653ec6ebb14d4a0ae9c66e3cccb9a143313bf8ce13b7b6ad516649e"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-14T20:01:43Z",
+        "2026-10-14T20:07:47Z",
+        "2026-10-14T20:14:01Z",
+        "2026-10-14T20:20:59Z",
+        "2026-10-14T20:27:55Z",
+        "2026-10-14T20:28:43Z",
+        "2026-10-14T20:29:23Z",
+        "2026-10-14T20:36:37Z",
+        "2026-10-14T20:44:09Z",
+        "2026-10-14T20:49:59Z",
+        "2026-10-14T20:51:01Z",
+        "2026-10-14T20:57:17Z",
+        "2026-10-14T21:04:33Z",
+        "2026-10-14T21:10:55Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38838624277",
+      "job_id": "116773329634",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11669",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11669/llama-b11669-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-16T02:57:37Z",
+      "completed_at": "2026-10-16T03:45:59Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38838624277/job/116773329634",
+      "log_sha256": "7ad296049c6033dc071e936032ae1de775c18cb73d7e18c79db1db996219b047",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "116773329634",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11669/llama-b11669-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38838624277/job/116773329634",
+          "log_sha256": "7ad296049c6033dc071e936032ae1de775c18cb73d7e18c79db1db996219b047"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-15T19:58:04Z",
+        "2026-10-15T19:59:38Z",
+        "2026-10-15T20:00:58Z",
+        "2026-10-15T20:06:20Z",
+        "2026-10-15T20:11:26Z",
+        "2026-10-15T20:12:28Z",
+        "2026-10-15T20:13:08Z",
+        "2026-10-15T20:18:40Z",
+        "2026-10-15T20:24:20Z",
+        "2026-10-15T20:28:46Z",
+        "2026-10-15T20:29:56Z",
+        "2026-10-15T20:34:46Z",
+        "2026-10-15T20:40:06Z",
+        "2026-10-15T20:44:58Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "38993525015",
+      "job_id": "117280886717",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11706",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11706/llama-b11706-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-17T03:02:09Z",
+      "completed_at": "2026-10-17T03:46:10Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38993525015/job/117280886717",
+      "log_sha256": "fadfdc8cc92a05d78b8c832a845532108461e7fd7fca0e1e895654850178ec23",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "117280886717",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11706/llama-b11706-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/38993525015/job/117280886717",
+          "log_sha256": "fadfdc8cc92a05d78b8c832a845532108461e7fd7fca0e1e895654850178ec23"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-16T20:02:42Z",
+        "2026-10-16T20:04:16Z",
+        "2026-10-16T20:05:34Z",
+        "2026-10-16T20:10:58Z",
+        "2026-10-16T20:16:04Z",
+        "2026-10-16T20:17:00Z",
+        "2026-10-16T20:17:40Z",
+        "2026-10-16T20:23:08Z",
+        "2026-10-16T20:28:46Z",
+        "2026-10-16T20:33:10Z",
+        "2026-10-16T20:34:08Z",
+        "2026-10-16T20:38:59Z",
+        "2026-10-16T20:43:41Z",
+        "2026-10-16T20:45:25Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "39088831686",
+      "job_id": "117561008342",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11710",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11710/llama-b11710-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-18T02:51:57Z",
+      "completed_at": "2026-10-18T03:40:04Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/39088831686/job/117561008342",
+      "log_sha256": "4830451d2b4f17b3a48f6209858e2261d7e1592276a88bf9719110cc60196496",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "117561008342",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11710/llama-b11710-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/39088831686/job/117561008342",
+          "log_sha256": "4830451d2b4f17b3a48f6209858e2261d7e1592276a88bf9719110cc60196496"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-17T19:52:23Z",
+        "2026-10-17T19:54:35Z",
+        "2026-10-17T19:55:53Z",
+        "2026-10-17T20:01:11Z",
+        "2026-10-17T20:06:17Z",
+        "2026-10-17T20:07:03Z",
+        "2026-10-17T20:07:41Z",
+        "2026-10-17T20:13:11Z",
+        "2026-10-17T20:18:51Z",
+        "2026-10-17T20:23:11Z",
+        "2026-10-17T20:24:09Z",
+        "2026-10-17T20:28:55Z",
+        "2026-10-17T20:34:21Z",
+        "2026-10-17T20:39:19Z"
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/lemonade",
+      "run_id": "39188554109",
+      "job_id": "117856098334",
+      "fork_id": "llamacpp-rocm-stable",
+      "engine_repository": "lemonade-sdk/llama.cpp",
+      "engine_version": "b11723",
+      "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11723/llama-b11723-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      "started_at": "2026-10-19T03:03:00Z",
+      "completed_at": "2026-10-19T03:54:45Z",
+      "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/39188554109/job/117856098334",
+      "log_sha256": "1438d18e6e664c3dd5909efa11e619e19e94a4039c6992273df75b80af0e4dfb",
+      "scope": "all_available_attempts",
+      "job_evidence": [
+        {
+          "job_id": "117856098334",
+          "method": "download_log",
+          "package_url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b11723/llama-b11723-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "evidence_url": "https://github.com/lemonade-sdk/lemonade/actions/runs/39188554109/job/117856098334",
+          "log_sha256": "1438d18e6e664c3dd5909efa11e619e19e94a4039c6992273df75b80af0e4dfb"
+        }
+      ],
+      "measurement_times": [
+        "2026-10-18T20:03:33Z",
+        "2026-10-18T20:08:17Z",
+        "2026-10-18T20:13:13Z",
+        "2026-10-18T20:18:45Z",
+        "2026-10-18T20:24:01Z",
+        "2026-10-18T20:24:49Z",
+        "2026-10-18T20:25:29Z",
+        "2026-10-18T20:31:01Z",
+        "2026-10-18T20:36:29Z",
+        "2026-10-18T20:37:43Z",
+        "2026-10-18T20:39:15Z",
+        "2026-10-18T20:43:59Z",
+        "2026-10-18T20:49:09Z",
+        "2026-10-18T20:53:59Z"
       ]
     }
   ]

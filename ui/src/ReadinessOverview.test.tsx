@@ -62,7 +62,7 @@ it("renders supplied catalog order without choosing a release anchor or filterin
       { name: "llama.cpp" },
     ),
   ).toBeInTheDocument();
-  expect(screen.getAllByText("Pass: producer qualified")).toHaveLength(1);
+  expect(screen.queryByText("Pass: producer qualified")).not.toBeInTheDocument();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });
 

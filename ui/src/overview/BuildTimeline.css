@@ -45,12 +45,10 @@
   flex-shrink: 0;
   border-radius: 3px;
 }
-.build-mark.pass,
-.build-key.pass {
+.build-mark.pass {
   background: var(--good);
 }
-.build-mark.fail,
-.build-key.fail {
+.build-mark.fail {
   background: var(--bad);
 }
 .build-mark:focus-visible,
@@ -62,18 +60,6 @@
   color: var(--text);
   min-width: 20px;
   text-align: center;
-}
-.build-key {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-}
-.build-legend {
-  font-size: 0.85rem;
-}
-.build-legend > span {
-  white-space: nowrap;
 }
 .build-timeline th[aria-current="date"] {
   color: var(--yellow);
@@ -106,9 +92,6 @@
 }
 .build-tooltip-details {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 4px 12px;
-  margin: 10px 0 0;
 }
 .build-tooltip-details dt {
   color: var(--muted);
@@ -123,4 +106,69 @@
 }
 .build-timeline .month-boundary {
   border-left: 2px solid var(--line);
+}
+
+.build-tooltip-bubble {
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.build-tooltip-bubble .build-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.build-tooltip-bubble .comparison-title {
+  margin: 0;
+  font-size: 16px;
+}
+.build-tooltip-status {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--subpanel);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.build-tooltip-status.pass {
+  color: var(--good);
+  border-color: var(--good);
+  background: color-mix(in srgb, var(--good) 10%, var(--panel));
+}
+.build-tooltip-status.fail {
+  color: var(--bad);
+  border-color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, var(--panel));
+}
+.build-tooltip-details {
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 0 18px 8px;
+  background: var(--subpanel);
+  border-top: 1px solid var(--line);
+}
+.build-tooltip-details dt, .build-tooltip-details dd {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.build-tooltip-details dd {
+  font-weight: 500;
+}
+.build-tooltip-details dt:last-of-type, .build-tooltip-details dd:last-of-type {
+  border-bottom: 0;
+}
+
+.build-timeline-card > .build-engine-heading {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+}
+.build-timeline .os-column {
+  vertical-align: bottom;
 }

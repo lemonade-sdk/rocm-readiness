@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BuildBrowser } from "./BuildBrowser";
@@ -167,11 +173,105 @@ describe("BuildBrowser", () => {
     expect(screen.getAllByText("fail").length).toBeGreaterThan(0);
     expect(screen.getAllByText("skip").length).toBeGreaterThan(0);
     expect(screen.getAllByText("missing").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Gating").length).toBeGreaterThan(0);
-    expect(screen.getByText("12 ms")).toBeInTheDocument();
-    expect(screen.getByText("ROCm 10.1")).toBeInTheDocument();
-    expect(screen.getByText("hipblas.dll missing")).toBeInTheDocument();
-    expect(screen.getByText("not exercised")).toBeInTheDocument();
+    const trigger = screen.getByRole("button", {
+      name: /T0.1 archive contents warn/,
+    });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", {
+      name: "T0.1 · archive contents",
+    });
+    expect(within(dialog).getByText("Gating")).toBeInTheDocument();
+    expect(within(dialog).getByText("12 ms")).toBeInTheDocument();
+    expect(within(dialog).getByText("ROCm 10.1")).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText("hipblas.dll missing"),
+    ).not.toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    fireEvent.click(
+      screen.getByRole("button", { name: /T0.2 runtime dependencies fail/ }),
+    );
+    expect(screen.getByRole("dialog")).toHaveTextContent("hipblas.dll missing");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close test evidence" }),
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("separates compiled targets, hardware validation and index counts from report checks", async () => {
+    const build = buildFixture({
+      build_id: "counts-build",
+      tests: {
+        passed: 14,
+        failed: 0,
+        warned: 0,
+        skipped: 1,
+        missing: 2,
+        total: 17,
+      },
+    });
+    fetchMock.mockResolvedValue(response(producerReport(build)));
+    mount({
+      history: [build],
+      platform: "linux",
+      selectedBuildId: build.build_id,
+    });
+    expect(await screen.findByText("4 recorded checks")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "14 passed · 0 failed · 0 warned · 1 skipped · 2 missing",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "GPU coverage" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Expected compiled targets").nextElementSibling,
+    ).toHaveTextContent("gfx1100, gfx1151");
+    expect(
+      screen.getByText("Physically validated targets").nextElementSibling,
+    ).toHaveTextContent("gfx1151");
+    expect(
+      screen.getByText("Missing compiled targets").nextElementSibling,
+    ).toHaveTextContent("None recorded");
+    expect(
+      screen.getByText(/Index counts and recorded report checks/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows inconsistent target evidence without presenting it as verified coverage", async () => {
+    const build = buildFixture({ build_id: "target-conflict" });
+    const report = producerReport(build);
+    const conflicting = {
+      ...report,
+      gfx: { ...report.gfx, missing_from_binary: ["gfx1151"] },
+    };
+    fetchMock.mockResolvedValue(response(conflicting));
+    mount({ history: [build], selectedBuildId: build.build_id });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "compiled-target lists are inconsistent",
+    );
+  });
+
+  it("rejects a report from a different run attempt", async () => {
+    const build = buildFixture({
+      build_id: "attempt-conflict",
+      run_attempt: 2,
+    });
+    fetchMock.mockResolvedValue(
+      response(producerReport(build, { build: { run_attempt: "1" } })),
+    );
+    mount({ history: [build], selectedBuildId: build.build_id });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "run attempt does not match",
+    );
+  });
+
+  it("does not invent zero check counts for an older row without counts", () => {
+    mount({ history: [buildFixture({ tests: null })] });
+    expect(screen.getByText("Check counts unavailable")).toBeInTheDocument();
   });
 
   it("keeps the selected build header and retries after a report is unavailable", async () => {

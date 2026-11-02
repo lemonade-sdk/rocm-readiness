@@ -45,6 +45,8 @@
 }
 
 .build-browser-list {
+  max-height: 36rem;
+  overflow: auto;
   display: grid;
   gap: 0;
   padding-bottom: 0;
@@ -256,4 +258,123 @@
   border-radius: 8px;
   padding: 9px 12px;
   max-width: 100%;
+}
+
+.build-test-tiles {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  margin-top: 14px;
+}
+
+.build-test-tile {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--emphasis);
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  padding: 12px;
+  text-align: left;
+}
+
+.build-test-tile:hover,
+.build-test-tile:focus-visible {
+  border-color: var(--yellow);
+}
+.build-test-tile > span:not(.build-browser-status) {
+  font-size: 12px;
+}
+
+.build-test-backdrop {
+  align-items: center;
+  background: rgb(0 0 0 / 65%);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 20px;
+  position: fixed;
+  z-index: 100;
+}
+
+.build-test-dialog {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: grid;
+  gap: 18px;
+  max-height: 90dvh;
+  max-width: 760px;
+  overflow: auto;
+  padding: 24px;
+  width: 100%;
+}
+
+.build-test-dialog pre {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.build-test-dialog summary,
+.build-browser-reference summary {
+  cursor: pointer;
+}
+.build-browser-reference dl {
+  margin-top: 14px;
+}
+.build-browser-coverage {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 620px) {
+  .build-test-backdrop {
+    padding: 10px;
+  }
+  .build-test-dialog {
+    padding: 16px;
+  }
+}
+
+.build-inspection-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.build-summary-cards {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.build-summary-cards > section {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 12px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.build-summary-cards h3 {
+  font-size: 13px;
+}
+.build-summary-cards p {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .build-inspection-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .build-summary-cards {
+    grid-template-columns: 1fr;
+  }
 }

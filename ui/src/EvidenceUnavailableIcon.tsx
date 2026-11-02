@@ -11,9 +11,8 @@ export function EvidenceUnavailableIcon() {
       aria-hidden="true"
       focusable="false"
     >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v6" />
-      <circle cx="12" cy="7" r="1" fill="currentColor" stroke="none" />
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="m5 19 14-14" />
     </svg>
   );
 }

@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import type { Build } from "./data";
 import { EngineOverview } from "./EngineOverview";
 import { overview } from "./fixtures";
@@ -90,7 +90,7 @@ it("shows only the last fourteen UTC dates and leaves no-build dates empty", () 
     screen.queryByRole("link", { name: /outside|future/ }),
   ).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: /edge/ })).toBeInTheDocument();
-  expect(screen.getAllByRole("columnheader")).toHaveLength(15);
+  expect(screen.getAllByRole("columnheader")).toHaveLength(17);
   expect(
     screen.getByRole("columnheader", { name: "2026-10-20 UTC" }),
   ).toBeInTheDocument();
@@ -233,4 +233,46 @@ it("does not infer missing OS expectations from a different channel", () => {
   expect(
     nightly.queryByRole("heading", { name: "Linux" }),
   ).not.toBeInTheDocument();
+});
+
+it("groups calendar days under spanning month headings", () => {
+  mount([build()]);
+  expect(
+    screen.getByRole("columnheader", { name: "October 2026" }),
+  ).toHaveAttribute("colspan", "12");
+  expect(
+    screen.getByRole("columnheader", { name: "November 2026" }),
+  ).toHaveAttribute("colspan", "2");
+  expect(
+    screen.getByRole("columnheader", { name: "2026-11-01 UTC" }),
+  ).toHaveTextContent("1");
+  expect(
+    screen.getByRole("columnheader", { name: "2026-11-01 UTC" }),
+  ).toHaveClass("month-boundary");
+  expect(
+    screen.queryByRole("heading", { name: "ROCm 10.1 · Stable" }),
+  ).not.toBeInTheDocument();
+});
+
+it("uses a formatted custom tooltip on the build link without a native title", () => {
+  vi.useFakeTimers();
+  try {
+    mount([
+      build({
+        generated_at: "2026-10-28T00:47:16Z",
+        upstream_sha: "a".repeat(40),
+      }),
+    ]);
+    const link = screen.getByRole("link", { name: /linux-build/ });
+    expect(link).not.toHaveAttribute("title");
+    fireEvent.focus(link);
+    act(() => vi.advanceTimersByTime(400));
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveTextContent("28 Oct 2026, 00:47:16 UTC");
+    expect(tooltip).toHaveTextContent("Revision");
+    expect(tooltip).toHaveTextContent("aaaaaaaaaaaa");
+    expect(link).toHaveAttribute("aria-describedby", tooltip.id);
+  } finally {
+    vi.useRealTimers();
+  }
 });

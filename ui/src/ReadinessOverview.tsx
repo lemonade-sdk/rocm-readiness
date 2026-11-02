@@ -7,17 +7,14 @@ import {
   type Session,
 } from "./data";
 import { BuildLegend, EngineOverview } from "./EngineOverview";
-import { loadExecutions, type ExecutionAttempt } from "./overview/executions";
 import sources from "../../sources.json";
 
 type VersionEvidence = {
   version: string;
   session?: Session;
   builds: Build[] | null;
-  attempts: ExecutionAttempt[];
   error?: string;
   historyError?: string;
-  executionError?: string;
 };
 export function ReadinessOverview({
   session,
@@ -39,7 +36,6 @@ export function ReadinessOverview({
         const row: VersionEvidence = {
           version: entry.rocm_version,
           builds: null,
-          attempts: [],
         };
         try {
           row.session =
@@ -51,14 +47,15 @@ export function ReadinessOverview({
                   fetcher,
                   controller.signal,
                 );
-          const [history, execution] = await Promise.allSettled([
-            loadHistory(row.session, fetcher, controller.signal),
-            loadExecutions(row.session, fetcher, controller.signal),
-          ]);
-          if (history.status === "fulfilled") row.builds = history.value;
-          else row.historyError = String(history.reason);
-          if (execution.status === "fulfilled") row.attempts = execution.value;
-          else row.executionError = String(execution.reason);
+          try {
+            row.builds = await loadHistory(
+              row.session,
+              fetcher,
+              controller.signal,
+            );
+          } catch (error) {
+            row.historyError = String(error);
+          }
         } catch (error) {
           row.error = String(error);
         }
@@ -78,13 +75,7 @@ export function ReadinessOverview({
     row.session?.overview?.engines.flatMap((engine) => engine.latest_builds) ??
     [];
   const visible = state.rows.filter(
-    (row) =>
-      row.error ||
-      row.historyError ||
-      row.executionError ||
-      records(row).length ||
-      row.attempts.length ||
-      row.session?.overview?.performance.status === "available",
+    (row) => row.error || row.historyError || records(row).length,
   );
   const stable = session.index.readiness?.stable_anchor;
   const rows = visible; // The collector owns version selection and ordering.
@@ -96,9 +87,6 @@ export function ReadinessOverview({
       {!!rows.length && <BuildLegend />}
       {state.rows.some((row) => row.historyError) && (
         <button onClick={onRetry}>Retry history</button>
-      )}
-      {state.rows.some((row) => row.executionError) && (
-        <button onClick={onRetry}>Retry benchmark evidence</button>
       )}
       {rows.map((row) => (
         <section
@@ -120,11 +108,6 @@ export function ReadinessOverview({
               Qualification history unavailable: {row.historyError}
             </p>
           )}
-          {row.executionError && (
-            <p role="alert">
-              Benchmark evidence unavailable: {row.executionError}
-            </p>
-          )}
           {row.session?.overview && (
             <EngineOverview
               version={row.version}
@@ -137,23 +120,14 @@ export function ReadinessOverview({
                     (configured) => configured.id === engine.id,
                   )?.platforms ?? engine.platforms,
               }))}
-              executions={row.attempts}
             />
           )}
-          {!records(row).length &&
-            !row.attempts.length &&
-            row.session?.overview?.performance.status === "available" && (
-              <p>
-                Measurements are available, but build qualification and
-                execution outcomes are not recorded.
-              </p>
-            )}
         </section>
       ))}
       {stable && !rows.some((row) => row.version === stable) && (
         <p>No recorded evidence for configured stable ROCm {stable}.</p>
       )}
-      {!rows.length && <p>No build or benchmark records are available.</p>}
+      {!rows.length && <p>No qualification build records are available.</p>}
     </div>
   );
 }

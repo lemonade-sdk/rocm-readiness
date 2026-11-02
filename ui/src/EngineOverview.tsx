@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Tooltip } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
 import { EvidenceUnavailableIcon } from "./EvidenceUnavailableIcon";
-import { BenchmarkExecutions } from "./overview/BenchmarkExecutions";
-import type { ExecutionAttempt } from "./overview/executions";
 import {
   buildDate,
   buildIdentity,
@@ -18,7 +16,6 @@ type Props = {
   version: string;
   history?: Build[] | null;
   now?: Date;
-  executions?: ExecutionAttempt[];
   nested?: boolean;
 };
 
@@ -30,46 +27,55 @@ function BuildMark({ build }: { build: Build }) {
   const outcome = qualificationOutcome(build);
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${outcome === null ? "Evidence unavailable" : outcome === "pass" ? "Pass (producer qualified)" : "Fail (producer unqualified)"}`;
   return (
-    <Link
+    <Tooltip
       to={exactBuildHref(build)}
-      aria-label={label}
-      title={label}
-      className={
+      label={label}
+      triggerClassName={
         outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
+      }
+      content={
+        <>
+          <strong className="comparison-title">
+            {build.tag ?? "Build"} · {platformLabel(build.os)}
+          </strong>
+          <span>
+            {outcome === null
+              ? "Qualification evidence unavailable"
+              : outcome === "pass"
+                ? "Passed qualification"
+                : "Not qualified"}
+          </span>
+          <dl className="build-tooltip-details">
+            <dt>Reported</dt>
+            <dd>
+              {new Intl.DateTimeFormat("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hourCycle: "h23",
+                timeZone: "UTC",
+              }).format(new Date(build.generated_at))}{" "}
+              UTC
+            </dd>
+            <dt>Channel</dt>
+            <dd>{build.channel === "stable" ? "Stable" : "Nightly"}</dd>
+            {build.upstream_sha && (
+              <>
+                <dt>Revision</dt>
+                <dd>{build.upstream_sha.slice(0, 12)}</dd>
+              </>
+            )}
+            <dt>Build</dt>
+            <dd>{build.build_id}</dd>
+          </dl>
+        </>
       }
     >
       {outcome === null ? <EvidenceUnavailableIcon /> : null}
-    </Link>
-  );
-}
-
-function BenchmarkIssues({ attempts }: { attempts: ExecutionAttempt[] }) {
-  return (
-    <>
-      {(["failed", "partial", "unknown"] as const).map((status) => {
-        const rows = attempts.filter((row) => row.execution_status === status);
-        if (!rows.length) return null;
-        const label =
-          status === "failed"
-            ? "Bench fail"
-            : status === "partial"
-              ? "Bench partial"
-              : "Bench incomplete";
-        return (
-          <a
-            key={status}
-            href={rows[0].source_url}
-            target="_blank"
-            rel="noreferrer"
-            className={`build-benchmark-issue ${status}`}
-            aria-label={`${label}: ${rows.length} recorded attempt${rows.length === 1 ? "" : "s"}; ${rows[0].engine_version}; ${rows[0].package_os}; separate from qualification`}
-            title={`${label}: ${rows.length} recorded attempts; execution evidence, separate from qualification`}
-          >
-            {label}
-          </a>
-        );
-      })}
-    </>
+    </Tooltip>
   );
 }
 
@@ -94,7 +100,6 @@ export function EngineOverview({
   version,
   history = null,
   now,
-  executions = [],
   nested = false,
 }: Props) {
   const EngineHeading = nested ? "h3" : "h2";
@@ -108,6 +113,24 @@ export function EngineOverview({
   }, [now]);
   const days = calendarDays(now ?? clock);
   const today = days.at(-1)!;
+  const months: { key: string; label: string; days: number }[] = [];
+  for (const day of days) {
+    const key = day.slice(0, 7),
+      prior = months.at(-1);
+    if (prior?.key === key) prior.days++;
+    else
+      months.push({
+        key,
+        label: new Intl.DateTimeFormat("en", {
+          month: "long",
+          timeZone: "UTC",
+        }).format(new Date(`${day}T00:00:00Z`)),
+        days: 1,
+      });
+  }
+  const monthBoundary = (index: number) =>
+    index > 0 && days[index].slice(0, 7) !== days[index - 1].slice(0, 7);
+
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
       {!nested && <BuildLegend />}
@@ -132,10 +155,7 @@ export function EngineOverview({
             Date.parse(a.generated_at) - Date.parse(b.generated_at) ||
             buildIdentity(a).localeCompare(buildIdentity(b)),
         );
-        const engineAttempts = executions.filter(
-          (row) => row.engine === engine.id && row.rocm_version === version,
-        );
-        if (!builds.length && !engineAttempts.length) return null;
+        if (!builds.length) return null;
         const channels = [
           ...new Set(builds.map((build) => build.channel)),
         ].sort((a, b) => Number(b === "stable") - Number(a === "stable"));
@@ -146,7 +166,6 @@ export function EngineOverview({
             aria-label={engine.label}
           >
             <EngineHeading>{engine.label}</EngineHeading>
-            {!builds.length && <p>No qualification build records</p>}
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,
@@ -163,10 +182,11 @@ export function EngineOverview({
                   className="build-tile"
                   aria-label={`${engine.label} ROCm ${version} ${channel}`}
                 >
-                  <TrackHeading>
-                    ROCm {version}
-                    {` · ${channel === "stable" ? "Stable" : "Nightly"}`}
-                  </TrackHeading>
+                  {channels.length > 1 && (
+                    <TrackHeading>
+                      {channel === "stable" ? "Stable" : "Nightly"}
+                    </TrackHeading>
+                  )}
                   {platforms.length > 0 && (
                     <div
                       className="build-timeline-scroll"
@@ -175,19 +195,49 @@ export function EngineOverview({
                       aria-label={`${engine.label} ${channel} build history`}
                     >
                       <table className="build-timeline">
+                        <colgroup>
+                          <col />
+                        </colgroup>
+                        {months.map((month) => (
+                          <colgroup key={month.key} span={month.days} />
+                        ))}
                         <thead>
+                          <tr className="build-months">
+                            <th scope="col" rowSpan={2} className="os-column">
+                              OS
+                            </th>
+                            {months.map((month, index) => (
+                              <th
+                                key={month.key}
+                                scope="colgroup"
+                                colSpan={month.days}
+                                className={
+                                  index > 0 ? "month-boundary" : undefined
+                                }
+                                aria-label={`${month.label} ${month.key.slice(0, 4)}`}
+                              >
+                                {month.label}
+                              </th>
+                            ))}
+                          </tr>
                           <tr>
-                            <th scope="col">OS</th>
-                            {days.map((day) => (
+                            {days.map((day, index) => (
                               <th
                                 scope="col"
                                 key={day}
+                                className={
+                                  monthBoundary(index)
+                                    ? "month-boundary"
+                                    : undefined
+                                }
                                 aria-label={`${day} UTC`}
                                 aria-current={
                                   day === today ? "date" : undefined
                                 }
                               >
-                                <time dateTime={day}>{day.slice(5)}</time>
+                                <time dateTime={day}>
+                                  {Number(day.slice(8))}
+                                </time>
                               </th>
                             ))}
                           </tr>
@@ -205,8 +255,15 @@ export function EngineOverview({
                                     <small>No qualification evidence</small>
                                   )}
                                 </th>
-                                {days.map((day) => (
-                                  <td key={day}>
+                                {days.map((day, index) => (
+                                  <td
+                                    key={day}
+                                    className={
+                                      monthBoundary(index)
+                                        ? "month-boundary"
+                                        : undefined
+                                    }
+                                  >
                                     <div className="build-day">
                                       {!rows.some(
                                         (build) => buildDate(build) === day,
@@ -220,22 +277,10 @@ export function EngineOverview({
                                           (build) => buildDate(build) === day,
                                         )
                                         .map((build) => (
-                                          <div
-                                            className="build-evidence"
+                                          <BuildMark
                                             key={buildIdentity(build)}
-                                          >
-                                            <BuildMark build={build} />
-                                            <BenchmarkIssues
-                                              attempts={engineAttempts.filter(
-                                                (row) =>
-                                                  row.qualification_build_id ===
-                                                    build.build_id &&
-                                                  row.channel ===
-                                                    build.channel &&
-                                                  row.package_os === build.os,
-                                              )}
-                                            />
-                                          </div>
+                                            build={build}
+                                          />
                                         ))}
                                     </div>
                                   </td>
@@ -250,12 +295,6 @@ export function EngineOverview({
                 </section>
               );
             })}
-            <BenchmarkExecutions
-              attempts={engineAttempts}
-              visibleBuilds={builds.filter((build) =>
-                days.includes(buildDate(build) ?? ""),
-              )}
-            />
           </article>
         );
       })}

@@ -5,7 +5,6 @@ import {
   overview,
   pointer,
   historyFixture,
-  executionAttempt,
 } from "../src/fixtures";
 
 test.beforeEach(async ({ page }) => {
@@ -224,129 +223,49 @@ test("has a keyboard skip link and fits the viewport", async ({
   });
 });
 
-test("shows benchmark failures and incomplete attempts without qualification marks", async ({
-  page,
-}) => {
-  const version = "10.3";
-  const o = overview(version);
-  const attempts = (["passed", "failed", "partial", "unknown"] as const).map(
-    (status) => executionAttempt(version, status),
-  );
-  await page.route(indexUrl, (route) =>
-    route.fulfill({
-      json: {
-        ...index,
-        readiness: { stable_anchor: "10.1" },
-        versions: [
-          ...index.versions,
-          {
-            rocm_version: version,
-            overview: `rocm/${version}/overview.json`,
-            build_count: 0,
-          },
-        ],
-      },
-    }),
-  );
-  await page.route(`**/rocm/${version}/overview.json`, (route) =>
-    route.fulfill({
-      json: {
-        ...o,
-        engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
-        history: [],
-        performance: { status: "not_measured" },
-        execution: {
-          path: `rocm/${version}/executions.json`,
-          attempt_count: 4,
-          summaries: [],
-        },
-      },
-    }),
-  );
-  await page.route(`**/rocm/${version}/executions.json`, (route) =>
-    route.fulfill({
-      json: {
-        schema_version: 1,
-        rocm_version: version,
-        attempts,
-        summaries: [],
-      },
-    }),
-  );
-  await page.goto("./");
-  const section = page.getByRole("region", { name: "ROCm 10.3", exact: true });
-  for (const label of ["1 failed", "1 partial", "1 incomplete"])
-    await expect(
-      section.getByRole("link", { name: label, exact: true }),
-    ).toBeVisible();
-  await expect(section.locator(".build-mark")).toHaveCount(0);
-  await expect(section.getByText("Inspect benchmark attempts")).toHaveCount(0);
-  await expect(
-    section.getByText(/Not linked to a build in this timeline/),
-  ).toBeVisible();
-  await expect(page.getByLabel("ROCm version")).toHaveCount(0);
-
-  await expect(page.locator(".build-legend")).toHaveCount(1);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-});
-
-test("keeps qualified builds green while linking their separate benchmark issues", async ({
+test("overview shows qualification without benchmark status", async ({
   page,
 }) => {
   const o = overview();
-  const attempts = (["failed", "partial", "unknown"] as const).map(
-    (status) => ({
-      ...executionAttempt("10.1", status),
-      qualification_build_id: "linux-build",
-    }),
-  );
   await page.route("**/rocm/10.1/overview.json", (route) =>
     route.fulfill({
       json: {
         ...o,
         execution: {
           path: "rocm/10.1/executions.json",
-          attempt_count: 3,
+          attempt_count: 1,
           summaries: [],
         },
       },
     }),
   );
-  await page.route("**/rocm/10.1/executions.json", (route) =>
-    route.fulfill({
-      json: {
-        schema_version: 1,
-        rocm_version: "10.1",
-        attempts,
-        summaries: [],
-      },
-    }),
-  );
   await page.goto("./");
-  const failure = page.getByRole("link", {
-    name: /Bench fail: 1 recorded attempt/,
-  });
-  await expect(failure).toHaveAttribute("href", attempts[0].source_url);
+  const version = page.getByRole("region", { name: "ROCm 10.1", exact: true });
+  await expect(version.locator(".build-mark.pass").first()).toBeVisible();
   await expect(
-    page
-      .locator(".build-evidence")
-      .filter({ has: failure })
-      .locator(".build-mark.pass"),
-  ).toHaveCount(1);
+    version.getByRole("columnheader", { name: "October 2026" }),
+  ).toHaveAttribute("colspan", "12");
   await expect(
-    page.getByRole("link", { name: /Bench partial: 1/ }),
-  ).toHaveCount(1);
+    version.getByRole("columnheader", { name: "November 2026" }),
+  ).toHaveAttribute("colspan", "2");
+  const mark = version.locator(".build-mark.pass").first();
+  await mark.scrollIntoViewIfNeeded();
+  await mark.focus();
+  await expect(mark).not.toHaveAttribute("title");
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Reported");
+  const box = await tooltip.boundingBox();
+  const viewport = page.viewportSize()!;
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+  expect(box!.y).toBeGreaterThanOrEqual(0);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+  await mark.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+
+  await expect(page.locator(".build-benchmark-issue")).toHaveCount(0);
   await expect(
-    page.getByRole("link", { name: /Bench incomplete: 1/ }),
-  ).toHaveCount(1);
-  await expect(page.getByText("Inspect benchmark attempts")).toHaveCount(0);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
+    page.getByText(/Inspect benchmark attempts|Benchmark execution|Bench fail/),
+  ).toHaveCount(0);
 });

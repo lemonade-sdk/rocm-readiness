@@ -66,16 +66,15 @@ Page One nests engines and recorded channels under each version. There is no
 Page One version selector. One shared legend describes qualification marks; missing
 dates remain neutral gaps. Build timelines cover the last 14 UTC calendar dates.
 
-Benchmark execution is separate from qualification. The collector links attempts to
-a build only when repository, engine, channel, ROCm version, package tag, OS and
-artifact filename identify exactly one qualification build. Ambiguous reruns remain
-unlinked. Page One shows compact failure/partial/incomplete evidence links beside
-that build's qualification mark, without changing its verdict. Issues with no build
-in the displayed 14-day timeline are identified separately with their recorded dates.
-The underlying execution inventory selects latest model/workload attempts and may
-span a different period than qualification history; its totals are not a same-cohort
-build pass rate. There is no attempt inspector on Page One. Legacy data without
-associations remains explicitly unlinked; no tag-only UI joins or inferred passes.
+Page One shows build qualification only. Benchmark execution inventories remain in
+the collected dataset, separate from qualification; the overview neither fetches nor
+renders their statuses, counts or attempt inspector. They do not alter qualification
+marks. Producer reports, build/source/OS identities and the 14-day window remain.
+Calendar headings group day numbers under spanning month names with a month boundary.
+Build links use the shared custom tooltip with formatted UTC report time, qualification,
+channel, revision and build identity. The repeated ROCm/channel heading is omitted
+inside a single-channel card; multiple channels retain concise channel headings.
+Mobile keeps the horizontally scrollable timeline; a vertical redesign is deferred.
 
 Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
 model-performance details. URLs retain

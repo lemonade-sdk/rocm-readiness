@@ -9,7 +9,6 @@ import {
   historyFixture,
   index,
   pointer,
-  executionAttempt,
 } from "./fixtures";
 import type { Session } from "./data";
 
@@ -67,57 +66,6 @@ it("renders supplied catalog order without choosing a release anchor or filterin
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });
 
-it("shows metricless non-passing executions without inventing qualification", async () => {
-  const version = "10.2",
-    o = overview(version);
-  const attempts = (["passed", "failed", "partial", "unknown"] as const).map(
-    (status) => executionAttempt(version, status),
-  );
-  const result = mount(
-    {
-      ...index,
-      versions: [
-        {
-          rocm_version: version,
-          overview: `rocm/${version}/overview.json`,
-          build_count: 0,
-        },
-      ],
-    },
-    {
-      [new URL(`rocm/${version}/overview.json`, indexUrl).href]: {
-        ...o,
-        engines: [{ ...o.engines[0], build_count: 0, latest_builds: [] }],
-        history: [],
-        performance: { status: "not_measured" },
-        execution: {
-          path: `rocm/${version}/executions.json`,
-          attempt_count: 4,
-          summaries: [],
-        },
-      },
-      [new URL(`rocm/${version}/executions.json`, indexUrl).href]: {
-        schema_version: 1,
-        rocm_version: version,
-        attempts,
-        summaries: [],
-      },
-    },
-  );
-  await screen.findByRole("heading", { name: "ROCm 10.2" });
-  for (const label of [
-    "1 failed",
-    "1 partial",
-    "1 incomplete",
-    "No qualification build records",
-  ])
-    expect(screen.getByText(label)).toBeInTheDocument();
-  expect(result.container.querySelectorAll(".build-mark")).toHaveLength(0);
-  expect(
-    screen.queryByText("Inspect benchmark attempts"),
-  ).not.toBeInTheDocument();
-});
-
 it("keeps other supplied tracks visible when one fails", async () => {
   mount(index, { [new URL("rocm/10.2/overview.json", indexUrl).href]: {} });
   await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
@@ -139,14 +87,8 @@ it("labels legacy scope honestly and renders its supplied order without inventin
   ).not.toBeInTheDocument();
 });
 
-it("shows linked benchmark issues beside a passing qualification without changing its verdict", async () => {
+it("keeps the overview focused on qualification even when benchmark evidence exists", async () => {
   const o = overview();
-  const attempts = (["failed", "partial", "unknown"] as const).map(
-    (status) => ({
-      ...executionAttempt("10.1", status),
-      qualification_build_id: "linux-build",
-    }),
-  );
   const result = mount(
     { ...index, versions: [index.versions[0]] },
     {
@@ -154,33 +96,18 @@ it("shows linked benchmark issues beside a passing qualification without changin
         ...o,
         execution: {
           path: "rocm/10.1/executions.json",
-          attempt_count: 3,
+          attempt_count: 1,
           summaries: [],
         },
       },
-      [new URL("rocm/10.1/executions.json", indexUrl).href]: {
-        schema_version: 1,
-        rocm_version: "10.1",
-        attempts,
-        summaries: [],
-      },
     },
   );
-  const failure = await screen.findByRole("link", {
-    name: /Bench fail: 1 recorded attempt/,
-  });
-  expect(failure).toHaveAttribute("href", attempts[0].source_url);
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
   expect(
-    failure.parentElement?.querySelector(".build-mark.pass"),
+    result.container.querySelector(".build-mark.pass"),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: /Bench partial: 1/ }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole("link", { name: /Bench incomplete: 1/ }),
-  ).toBeInTheDocument();
-  expect(result.container.querySelectorAll(".build-mark.fail")).toHaveLength(0);
-  expect(
-    screen.queryByText("Inspect benchmark attempts"),
+    screen.queryByText(/Bench fail|Benchmark execution|Inspect benchmark/),
   ).not.toBeInTheDocument();
+  expect(result.container.querySelector(".build-benchmark-issue")).toBeNull();
 });

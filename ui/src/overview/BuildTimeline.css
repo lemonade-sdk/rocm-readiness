@@ -19,7 +19,8 @@
   vertical-align: middle;
   text-align: center;
 }
-.build-timeline th:first-child {
+.build-timeline .os-column,
+.build-timeline th[scope="row"] {
   width: 120px;
   text-align: left;
 }
@@ -93,46 +94,33 @@
 .readiness-version {
   margin: 2rem 0;
 }
-.benchmark-executions {
-  margin-top: 1.5rem;
-}
-.execution-status {
-  font-size: 0.85rem;
-}
-.execution-status.failed {
-  color: var(--bad);
-  font-weight: 700;
-}
-.execution-status.partial {
-  color: var(--warning);
-  font-weight: 700;
-}
-.execution-status.unknown {
-  color: var(--muted);
-}
 .build-timeline h5 {
   margin: 0;
   font-size: inherit;
 }
-.build-evidence {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
+
+.build-tooltip-bubble {
+  pointer-events: none;
+  z-index: 100;
+  overflow-wrap: anywhere;
 }
-.build-benchmark-issue {
-  font-size: 0.58rem;
-  line-height: 1.2;
-  text-align: center;
+.build-tooltip-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 10px 0 0;
 }
-.build-benchmark-issue.failed {
-  color: var(--bad);
-  font-weight: 700;
-}
-.build-benchmark-issue.partial {
-  color: var(--warning);
-  font-weight: 700;
-}
-.build-benchmark-issue.unknown {
+.build-tooltip-details dt {
   color: var(--muted);
+}
+.build-tooltip-details dd {
+  margin: 0;
+}
+
+.build-timeline .build-months th[scope="colgroup"] {
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.55rem;
+}
+.build-timeline .month-boundary {
+  border-left: 2px solid var(--line);
 }

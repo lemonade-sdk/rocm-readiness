@@ -77,6 +77,7 @@ const indexSchema = z.object({
         status: z.string(),
         repository: z.string().optional(),
         record_count: count.optional(),
+        stale_after_hours: z.number().nonnegative().nullable().optional(),
       }),
     )
     .optional(),
@@ -305,7 +306,14 @@ export async function loadSession(
   includeOverview = true,
 ): Promise<Session> {
   if (LOCAL_DATA)
-    return loadLocalSession(LOCAL_DATA, version, fetcher, signal, onPointer, includeOverview);
+    return loadLocalSession(
+      LOCAL_DATA,
+      version,
+      fetcher,
+      signal,
+      onPointer,
+      includeOverview,
+    );
   const pointer = await read(POINTER_URL, pointerSchema, fetcher, signal);
   const expected = `https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/${pointer.data_commit}/data/index.json`;
   if (pointer.data_commit !== null && pointer.index_url !== expected) {
@@ -350,7 +358,9 @@ export async function loadSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected
+    ? loadVersion(session, selected, fetcher, signal)
+    : session;
 }
 
 async function loadLocalSession(
@@ -388,5 +398,7 @@ async function loadLocalSession(
     overview: null,
   };
   const selected = version || index.default_version;
-  return includeOverview && selected ? loadVersion(session, selected, fetcher, signal) : session;
+  return includeOverview && selected
+    ? loadVersion(session, selected, fetcher, signal)
+    : session;
 }

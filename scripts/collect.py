@@ -171,10 +171,21 @@ def normalize_qualification(source, data, url, policy=None):
         "unsupported schema version",
     )
     _check(source, "", "builds", isinstance(data.get("builds"), list), "expected array")
+    nightly = source.get("repository") == "lemonade-sdk/llamacpp-rocm"
+    if nightly:
+        _check(source, "", "repo", data.get("repo") == source["repository"])
+        _check(source, "", "schema_version", schema_version == 1)
     rows, seen = [], set()
     for index, row in enumerate(data["builds"]):
         location = f"/builds/{index}"
         _check(source, location, "record", isinstance(row, dict), "expected object")
+        producer_version = row.get("rocm_version")
+        if nightly:
+            version = re.fullmatch(
+                r"([0-9]+\.[0-9]+\.[0-9]+)a[0-9]{8}", str(producer_version)
+            )
+            _check(source, location, "rocm_version", version is not None)
+            row = {**row, "rocm_version": version[1]}
         # A shared producer index may contain old tracks; do not normalize their reports.
         if (
             policy is not None
@@ -183,13 +194,26 @@ def normalize_qualification(source, data, url, policy=None):
             and not in_readiness_scope(row, policy)
         ):
             continue
-        for field in ("build_id", "generated_at", "rocm_version", "run_url", "tag"):
+        for field in ("build_id", "generated_at", "rocm_version", "run_url"):
             _check(
                 source,
                 location,
                 field,
                 isinstance(row.get(field), str) and bool(row[field]),
             )
+        _check(
+            source, location, "tag",
+            (nightly and "tag" in row and row["tag"] is None)
+            or (isinstance(row.get("tag"), str) and bool(row["tag"])),
+        )
+        producer_build_id = row["build_id"]
+        if nightly:
+            row = {
+                **row,
+                "build_id": f"{producer_build_id}@{row.get('run_attempt')}",
+                "producer_build_id": producer_build_id,
+                "producer_rocm_version": producer_version,
+            }
         _check(
             source,
             location,

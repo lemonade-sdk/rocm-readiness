@@ -30,8 +30,9 @@
       "adapter": "qualification-v1",
       "repository": "lemonade-sdk/llamacpp-rocm",
       "ref": "qualification-data",
-      "availability": "awaiting_data",
+      "path": "qualification/index.json",
       "channel": "nightly",
+      "stale_after_hours": 72,
       "type": "readiness",
       "project": "llamacpp"
     },

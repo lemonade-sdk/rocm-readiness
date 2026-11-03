@@ -105,6 +105,8 @@ const buildSchema = z.object({
   rocm_version: z.string(),
   os: z.string(),
   tag: z.string().nullable().optional(),
+  producer_rocm_version: z.string().nullable().optional(),
+  gfx_family: z.string().nullable().optional(),
   artifact: z.string().nullable().optional(),
   source_id: z.string().nullable().optional(),
   upstream_sha: z.string().nullable().optional(),

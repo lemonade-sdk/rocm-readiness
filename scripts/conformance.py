@@ -756,7 +756,8 @@ def validate_dataset(
                 ownership(row, path, ptr)
                 for key in ("build_id", "tag", "channel", "os"):
                     _check(
-                        isinstance(row.get(key), str) and row[key],
+                        (isinstance(row.get(key), str) and row[key])
+                        or (key == "tag" and row.get("channel") == "nightly" and row[key] is None),
                         path,
                         ptr + "/" + key,
                         "expected nonempty build identity string",
@@ -885,7 +886,7 @@ def validate_dataset(
                     or isinstance(statuses, dict)
                     and all(
                         isinstance(k, str)
-                        and val in ("pass", "warn", "fail", "skip", "missing")
+                        and val in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
                         for k, val in statuses.items()
                     ),
                     path,

@@ -37,10 +37,12 @@ class ScopeTests(unittest.TestCase):
         )
 
         def fetch(url):
-            if "llamacpp-rocm" in url or "vllm-rocm" in url:
+            if "vllm-rocm" in url:
                 raise AssertionError("held producer was fetched")
             if "/commits/" in url:
                 return {"sha": "a" * 40}
+            if "llamacpp-rocm" in url and url.endswith("qualification/index.json"):
+                return {"schema_version": 1, "repo": "lemonade-sdk/llamacpp-rocm", "builds": []}
             if url.endswith("qualification/index.json"):
                 return fixture("llama.json")
             if url.endswith("leaderboard.json"):

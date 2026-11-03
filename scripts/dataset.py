@@ -24,8 +24,9 @@ BUILD_FIELDS = """
 source_id build_id engine tag artifact rocm_version channel os gfx_target hardware_validated gfx
 qualified version_qualified overall generated_at run_attempt tests blocked_by blocking_tests
 report_url run_url source_pointer results upstream_sha event run_id
+producer_build_id producer_rocm_version gfx_family tier0 tier1 build_result published
 """.split()
-OPTIONAL_BUILD_FIELDS = {"artifact", "results", "upstream_sha", "event", "run_id"}
+OPTIONAL_BUILD_FIELDS = set("artifact results upstream_sha event run_id producer_build_id producer_rocm_version gfx_family tier0 tier1 build_result published".split())
 MEASUREMENT_FIELDS = """
 source_id source_pointer kind engine channel backend fork_id engine_repository engine_version
 model scenario quant system_id context_size input_tokens measured_at run_id run_url
@@ -100,7 +101,7 @@ def _validate_build(row):
             isinstance(row["results"], dict)
             and all(
                 isinstance(key, str)
-                and value in ("pass", "warn", "fail", "skip", "missing")
+                and value in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
                 for key, value in row["results"].items()
             )
         ),

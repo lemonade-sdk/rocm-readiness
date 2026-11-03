@@ -162,11 +162,12 @@ def _check(
 
 def normalize_qualification(source, data, url, policy=None):
     _check(source, "", "document", isinstance(data, dict), "expected object")
+    schema_version = data.get("schema_version")
     _check(
         source,
         "",
         "schema_version",
-        data.get("schema_version") == 1,
+        type(schema_version) is int and schema_version in (1, 2),
         "unsupported schema version",
     )
     _check(source, "", "builds", isinstance(data.get("builds"), list), "expected array")
@@ -231,13 +232,20 @@ def normalize_qualification(source, data, url, policy=None):
                 type(value) is int and value >= 0,
                 "invalid test count",
             )
-        for field in ("version_qualified", "hardware_validated"):
+        for field in ("version_qualified", "hardware_validated", "published"):
             _check(
                 source,
                 location,
                 field,
                 row.get(field) is None or type(row[field]) is bool,
             )
+        _check(
+            source,
+            location,
+            "build_result",
+            row.get("build_result")
+            in (None, "pass", "fail", "cancelled", "skipped", "unknown"),
+        )
         _check(
             source,
             location,
@@ -297,7 +305,7 @@ def normalize_qualification(source, data, url, policy=None):
                 source,
                 location,
                 f"results/{pointer(name)}",
-                value in ("pass", "fail", "warn", "skip", "missing"),
+                value in ("pass", "fail", "warn", "skip", "missing", "not_applicable"),
                 "invalid test result",
             )
         report = row.get("report_url")

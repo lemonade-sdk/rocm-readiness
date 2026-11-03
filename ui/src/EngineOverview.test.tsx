@@ -64,7 +64,7 @@ it("renders distinct same-day builds as exact-build links rather than a daily ro
     "href",
     expect.stringContaining("source=llamacpp-stable-qualification"),
   );
-  expect(links[0]).toHaveAccessibleName(/Pass/);
+  expect(links[0]).toHaveAccessibleName(/Qualified/);
   expect(links[1]).toHaveAccessibleName(/Fail/);
 });
 
@@ -120,7 +120,7 @@ it("keeps unknown evidence neutral and respects explicit qualification despite w
   expect(
     screen.getByRole("link", { name: /unknown.*Evidence unavailable/ }),
   ).not.toHaveClass("build-mark");
-  expect(screen.getByRole("link", { name: /warning.*Pass/ })).toHaveClass(
+  expect(screen.getByRole("link", { name: /warning.*Qualified with warnings/ })).toHaveClass(
     "build-mark",
     "pass",
   );

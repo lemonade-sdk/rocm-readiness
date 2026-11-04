@@ -51,11 +51,18 @@ properties are required when restoring schema-v2 history.
 
 ## Retention and identity
 
-`(source_id, build_id)` uniquely identifies a retained build. A current row
-replaces the same prior identity; other prior rows survive only while matching
-the configured source repository, engine and channel. Sources marked
-`awaiting_data` are excluded. History is merged only for a complete collection.
-An explicit empty current feed does not erase prior in-scope history.
+`(source_id, build_id)` uniquely identifies a retained build. Nightly build IDs
+include the run attempt; `producer_build_id` preserves the original index ID.
+Production collection rebuilds from current producer snapshots without merging
+previous downstream records. An empty current source contributes no rows.
+Legacy/custom configurations with a numeric stable anchor can still explicitly
+reuse prior in-scope history.
+
+`producer_rocm_version` preserves the exact SDK (including nightly alpha/date),
+while `rocm_version` retains the numeric SDK version used by package mapping. `gfx_family`
+identifies the archive family. `tier0`, `tier1`, `build_result`, and `published`
+preserve independent producer outcomes; absent build/publication evidence stays
+unknown. Test results may also be `not_applicable`.
 
 Grouping follows `generated_at`, not collection time or the build tag. Builds
 are sorted descending by parsed timestamp, attempt number, source ID, and build

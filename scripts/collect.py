@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .config import load_config
+    from .readiness import select_policy
     from .executions import collect_executions, select_latest
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
@@ -30,6 +31,7 @@ if __package__:
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from config import load_config
+    from readiness import select_policy
     from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
@@ -86,9 +88,18 @@ def validate_config(config):
         require(
             isinstance(policy, dict)
             and isinstance(policy.get("stable_anchor"), str)
-            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"]),
+            and (
+                policy["stable_anchor"] == "latest"
+                or re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"])
+            ),
             "invalid readiness stable_anchor",
         )
+        if policy["stable_anchor"] == "latest":
+            require(
+                type(policy.get("nightly_limit")) is int
+                and policy["nightly_limit"] == 2,
+                "latest readiness requires nightly_limit=2",
+            )
     engines = config["engines"]
     engine_ids = [e["id"] for e in engines]
     require(len(engine_ids) == len(set(engine_ids)), "duplicate engine id")
@@ -202,7 +213,9 @@ def normalize_qualification(source, data, url, policy=None):
                 isinstance(row.get(field), str) and bool(row[field]),
             )
         _check(
-            source, location, "tag",
+            source,
+            location,
+            "tag",
             (nightly and "tag" in row and row["tag"] is None)
             or (isinstance(row.get("tag"), str) and bool(row["tag"])),
         )
@@ -737,6 +750,10 @@ def collect(
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
+    dynamic = config.get("readiness", {}).get("stable_anchor") == "latest"
+    # Keep previous_data for last-good status and upstream health, never merge
+    # previous readiness records into a current-snapshot publication.
+    readiness_previous = None if dynamic else previous_data
     # Raw execution proof is an artifact of this collection, never reused as current evidence.
     (destination / "provenance/executions.json").unlink(missing_ok=True)
     now = now or datetime.now(timezone.utc).isoformat()
@@ -803,8 +820,14 @@ def collect(
             fetch_url = None
             if source["adapter"] == "qualification-v1":
                 rows = normalize_qualification(
-                    source, data, url, config.get("readiness")
+                    source, data, url, None if dynamic else config.get("readiness")
                 )
+                state["schema_version"] = data["schema_version"]
+                if dynamic:
+                    state["rocm_tracks"] = sorted(
+                        {row["rocm_version"] for row in rows},
+                        key=lambda value: tuple(map(int, value.split("."))),
+                    )
                 target, date_key = "builds", "generated_at"
             else:
                 rows = normalize_performance(source, data)
@@ -846,7 +869,9 @@ def collect(
                 status=(
                     "empty"
                     if not rows
-                    else "stale" if age > source["stale_after_hours"] else "fresh"
+                    else "stale"
+                    if age > source["stale_after_hours"]
+                    else "fresh"
                 ),
                 latest_observation_at=latest.isoformat() if latest else None,
                 age_hours=round(age, 2) if age is not None else None,
@@ -883,11 +908,13 @@ def collect(
             output["collection_status"] = "degraded"
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
     write_json(destination / "errors.json", {"errors": output["errors"]})
+    if dynamic:
+        output["readiness"] = select_policy(config["readiness"], output["builds"])
     evidence = list(package_evidence or [])
     previous_measurements = []
     system_matches = None
-    if previous_data is not None:
-        _, prior_measurements, prior_systems = _load_previous(previous_data)
+    if readiness_previous is not None:
+        _, prior_measurements, prior_systems = _load_previous(readiness_previous)
         current_systems = {
             (system["source_id"], system["id"]): system for system in output["systems"]
         }
@@ -920,7 +947,7 @@ def collect(
         output[field] = [
             row
             for row in output[field]
-            if in_readiness_scope(row, config.get("readiness"))
+            if in_readiness_scope(row, output.get("readiness"))
         ]
     if output["execution_evidence"]:
         write_json(
@@ -943,7 +970,7 @@ def collect(
     output["dataset"] = write_dataset(
         output,
         destination,
-        previous_data=previous_data,
+        previous_data=readiness_previous,
         publish_index=False,
         source_configs={source["id"]: source for source in config["sources"]},
     )
@@ -976,8 +1003,8 @@ def collect(
             upstream = None
         if upstream:
             print(
-                f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
-                f'{upstream["api_calls"]} API calls',
+                f"Upstream: {upstream['project_count']} projects, {upstream['status']}, "
+                f"{upstream['api_calls']} API calls",
                 flush=True,
             )
     write_json(destination / "errors.json", {"errors": output["errors"]})
@@ -1129,8 +1156,8 @@ def main():
         lines.extend(
             [
                 "",
-                f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
-                f'{upstream["api_calls"]} GitHub API calls',
+                f"Upstream health: {upstream['project_count']} projects, {upstream['status']}, "
+                f"{upstream['api_calls']} GitHub API calls",
             ]
         )
         lines.extend(f"- upstream: {error}" for error in upstream.get("errors", []))

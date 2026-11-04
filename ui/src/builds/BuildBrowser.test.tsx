@@ -198,6 +198,18 @@ describe("BuildBrowser", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("opens a real nightly report using release_tag and its exact SDK", async () => {
+    const build = buildFixture({ channel: "nightly", rocm_version: "10.3",
+      producer_rocm_version: "10.3.0a20261104", run_attempt: 1 });
+    fetchMock.mockResolvedValue(response(producerReport(build, { build: {
+      llamacpp_tag: undefined, release_tag: build.tag,
+      rocm_version: "10.3.0a20261104",
+    } })));
+    mount({ history: [build], selectedBuildId: build.build_id });
+    expect(await screen.findByText("T0.1")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("rejects a report whose metadata does not match the selected feed row", async () => {
     const build = buildFixture({ build_id: "mismatch-build" });
     fetchMock.mockResolvedValue(

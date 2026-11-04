@@ -26,7 +26,9 @@ qualified version_qualified overall generated_at run_attempt tests blocked_by bl
 report_url run_url source_pointer results upstream_sha event run_id
 producer_build_id producer_rocm_version gfx_family tier0 tier1 build_result published
 """.split()
-OPTIONAL_BUILD_FIELDS = set("artifact results upstream_sha event run_id producer_build_id producer_rocm_version gfx_family tier0 tier1 build_result published".split())
+OPTIONAL_BUILD_FIELDS = set(
+    "artifact results upstream_sha event run_id producer_build_id producer_rocm_version gfx_family tier0 tier1 build_result published".split()
+)
 MEASUREMENT_FIELDS = """
 source_id source_pointer kind engine channel backend fork_id engine_repository engine_version
 model scenario quant system_id context_size input_tokens measured_at run_id run_url
@@ -66,6 +68,8 @@ def in_readiness_scope(row, policy):
     """Keep only the configured stable and upcoming ROCm tracks, for every engine."""
     if policy is None or row.get("rocm_version") is None:
         return True  # Unversioned non-ROCm baselines retain their existing contract.
+    if "tracks" in policy:
+        return row["rocm_version"] in policy["tracks"]
     return (
         _version_key(row["rocm_version"])[0] >= _version_key(policy["stable_anchor"])[0]
     )
@@ -101,7 +105,8 @@ def _validate_build(row):
             isinstance(row["results"], dict)
             and all(
                 isinstance(key, str)
-                and value in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
+                and value
+                in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
                 for key, value in row["results"].items()
             )
         ),
@@ -949,7 +954,7 @@ def write_dataset(
         },
     }
     if policy is not None:
-        index["readiness"] = {"stable_anchor": policy["stable_anchor"]}
+        index["readiness"] = dict(policy)
         # Remove only obsolete generated ROCm track directories in this output.
         # Never touch upstream sources, previous_data, or unrelated output files.
         root = destination / "rocm"

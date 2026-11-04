@@ -270,9 +270,21 @@ it("uses a formatted custom tooltip on the build link without a native title", (
     const tooltip = screen.getByRole("tooltip");
     expect(tooltip).toHaveTextContent("28 Oct 2026, 00:47:16 UTC");
     expect(tooltip).toHaveTextContent("Revision");
+    expect(tooltip).toHaveTextContent("Source feed did not report a build result");
+    expect(tooltip).toHaveTextContent("Source feed did not report whether this archive shipped");
     expect(tooltip).toHaveTextContent("aaaaaaaaaaaa");
     expect(link).toHaveAttribute("aria-describedby", tooltip.id);
   } finally {
     vi.useRealTimers();
   }
+});
+
+it("keeps qualification separate from an explicit build result and publication", async () => {
+  mount([build({ qualified: true, overall: "warn", build_result: "pass", published: false })]);
+  const link = screen.getByRole("link", { name: /Qualified with warnings/ });
+  fireEvent.focus(link);
+  const tooltip = await screen.findByRole("tooltip");
+  expect(tooltip).toHaveTextContent("Build jobpass");
+  expect(tooltip).toHaveTextContent("Did not ship in this run");
+  expect(link).toHaveClass("pass");
 });

@@ -449,7 +449,8 @@
   ],
   "views": {
     "readiness": {
-      "stable_anchor": "10.1",
+      "stable_anchor": "latest",
+      "nightly_limit": 2,
       "sources": [
         "llamacpp-stable-qualification",
         "llamacpp-nightly-qualification",

@@ -35,9 +35,11 @@ else:
 RAW = re.compile(
     r"https://raw\.githubusercontent\.com/([^/]+/[^/]+)/([a-f0-9]{40})/[^?#]+"
 )
-BUILD_REQUIRED = set("""source_id build_id engine tag rocm_version channel os gfx_target
+BUILD_REQUIRED = set(
+    """source_id build_id engine tag rocm_version channel os gfx_target
 hardware_validated gfx qualified version_qualified overall generated_at run_attempt tests
-blocked_by blocking_tests report_url run_url source_pointer source_url""".split())
+blocked_by blocking_tests report_url run_url source_pointer source_url""".split()
+)
 MEASUREMENT_REQUIRED = set(
     """source_id source_pointer kind engine channel backend fork_id
 engine_repository engine_version model scenario quant system_id context_size input_tokens
@@ -621,6 +623,63 @@ def validate_dataset(
     policy = index.get("readiness")
     configured_policy = config.get("readiness") if config is not None else None
     if configured_policy is not None:
+        if configured_policy.get("stable_anchor") == "latest":
+            # Independently derive the selection from this run's pinned source
+            # copies. Published runtime datasets omit these CI evidence copies.
+            candidates = {"stable": set(), "nightly": set()}
+            for source in sources:
+                if source.get("adapter") != "qualification-v1":
+                    continue
+                tracks = source.get("rocm_tracks")
+                _check(
+                    isinstance(tracks, list)
+                    and all(
+                        isinstance(v, str) and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", v)
+                        for v in tracks
+                    ),
+                    "index.json",
+                    "/sources",
+                    "expected source ROCm track inventory",
+                )
+                if source.get("snapshot") and (root / source["snapshot"]).exists():
+                    document = read(source["snapshot"])
+                    observed = set()
+                    for row in document.get("builds", []):
+                        value = row.get("rocm_version", "")
+                        match = re.fullmatch(
+                            r"([0-9]+)\.([0-9]+)(?:\.[0-9]+)?(?:a[0-9]{8})?", value
+                        )
+                        _check(
+                            match is not None,
+                            source["snapshot"],
+                            "/builds",
+                            "invalid producer ROCm track",
+                        )
+                        observed.add(value.split("a")[0])
+                    _check(
+                        set(tracks) == observed,
+                        source["snapshot"],
+                        "/builds",
+                        "source track inventory must match pinned snapshot",
+                    )
+                candidates[source["channel"]].update(tracks)
+            sort_key = lambda value: tuple(int(part) for part in value.split("."))
+            _check(
+                bool(candidates["stable"]),
+                "index.json",
+                "/readiness",
+                "no current stable source evidence",
+            )
+            anchor = max(candidates["stable"], key=sort_key)
+            by_minor = {}
+            for value in candidates["nightly"]:
+                minor = sort_key(value)[:2]
+                if minor <= sort_key(anchor)[:2]:
+                    continue
+                if minor not in by_minor or sort_key(value) > sort_key(by_minor[minor]):
+                    by_minor[minor] = value
+            nightly = [by_minor[minor] for minor in sorted(by_minor)[:2]]
+            configured_policy = {"stable_anchor": anchor, "tracks": [anchor, *nightly]}
         _check(
             policy == configured_policy,
             "index.json",
@@ -638,6 +697,22 @@ def validate_dataset(
         anchor_key = _version(
             policy.get("stable_anchor"), "index.json", "/readiness/stable_anchor"
         )[0]
+        if "tracks" in policy:
+            tracks = policy["tracks"]
+            _check(
+                isinstance(tracks, list)
+                and 1 <= len(tracks) <= 3
+                and tracks[0] == policy["stable_anchor"]
+                and tracks
+                == sorted(
+                    set(tracks),
+                    key=lambda v: _version(v, "index.json", "/readiness/tracks")[0],
+                )
+                and set(version_names) == set(tracks),
+                "index.json",
+                "/readiness/tracks",
+                "catalog must contain stable and at most two selected newer tracks",
+            )
     if raw_execution is not None:
         try:
             expected_execution_versions = validate_execution_completeness(
@@ -649,7 +724,11 @@ def validate_dataset(
             expected_execution_versions = {
                 v
                 for v in expected_execution_versions
-                if _version(v, "index.json", "/versions")[0] >= anchor_key
+                if (
+                    v in policy["tracks"]
+                    if "tracks" in policy
+                    else _version(v, "index.json", "/versions")[0] >= anchor_key
+                )
             }
         _check(
             expected_execution_versions <= set(version_names),
@@ -757,7 +836,11 @@ def validate_dataset(
                 for key in ("build_id", "tag", "channel", "os"):
                     _check(
                         (isinstance(row.get(key), str) and row[key])
-                        or (key == "tag" and row.get("channel") == "nightly" and row[key] is None),
+                        or (
+                            key == "tag"
+                            and row.get("channel") == "nightly"
+                            and row[key] is None
+                        ),
                         path,
                         ptr + "/" + key,
                         "expected nonempty build identity string",
@@ -886,7 +969,8 @@ def validate_dataset(
                     or isinstance(statuses, dict)
                     and all(
                         isinstance(k, str)
-                        and val in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
+                        and val
+                        in ("pass", "warn", "fail", "skip", "missing", "not_applicable")
                         for k, val in statuses.items()
                     ),
                     path,

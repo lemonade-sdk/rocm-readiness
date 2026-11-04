@@ -18,11 +18,13 @@ Requires `uv` and an authenticated GitHub CLI (`gh`) for benchmark package evide
 uv run --no-project --python 3.12 python scripts/check.py --output-dir data/local-preview
 ```
 
-This runs the tests and collection used by CI. Set `GH_TOKEN` so the upstream
+This runs the tests and collection used by CI. Production readiness discovers
+the newest stable track and up to two newer nightly tracks from current producer
+evidence. Each run replaces the readiness snapshot without merging prior records. Set `GH_TOKEN` so the upstream
 view can read projects' GitHub Actions; `UPSTREAM_API_BUDGET` caps its calls. To reuse an earlier dataset, add
 `--previous-data data/local-preview` and choose a different output directory.
-Use `--fresh` to rebuild from producer feeds without reusing previous records.
-PR checks use this mode. The preview includes source copies and diagnostics for inspection.
+Production readiness always rebuilds from current feeds. `--fresh` also prevents
+reuse in custom configurations; PR checks use this mode. The preview includes source copies and diagnostics for inspection.
 
 Actions runs on PRs, main pushes, manual dispatch, and a daily schedule. Its
 `readiness-data-*` artifacts are retained for 30 days. Main runs publish successful

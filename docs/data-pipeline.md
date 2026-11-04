@@ -7,9 +7,11 @@ for the published files. [JSON reference](reference/README.md) provides
 field types, nullability and [producer mappings](reference/mappings.md).
 
 `sources.json` is maintained here by repository contributors. Its entries locate
-the upstream JSON files listed below. Each run combines their current results
-with the last successfully published dataset, retaining in-scope history and
-previously verified package associations.
+the upstream JSON files listed below. Each run rebuilds readiness from current pinned producer snapshots. It discovers
+the newest stable qualification track and selects up to two numerically newer
+nightly tracks with actual qualification records. Previous downstream records
+and package associations are not carried forward. The last successful publication
+remains available until the replacement passes validation.
 
 ## Current sources
 

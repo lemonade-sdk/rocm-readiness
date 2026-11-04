@@ -50,17 +50,19 @@ choosing System restores automatic behavior. Theme selection is applied before
 the app renders. If browser storage is unavailable, switching still works for
 the current visit.
 
-The collector uses `views.readiness.stable_anchor` in
-[sources.json](../sources.json) (currently owner-selected `10.1`) to scope the
-**whole app's dataset** to current stable and newer ROCm tracks with actual records.
-CI emits only eligible qualification histories, performance and execution inventories
-across all engines; retained older tracks are not reintroduced. Its catalog is ordered
-numerically ascending, with the configured stable track first when it has records.
-There is no fixed future-track count or invented nightly data. The UI renders this
-supplied catalog and uses `index.readiness.stable_anchor` only to label the anchor;
-it does not import release policy, compare versions or select tracks. Older external
-datasets without scope metadata render their supplied catalog with an explicit
-legacy-scope notice; the UI never guesses a stable release from build channels.
+The collector discovers the newest stable ROCm track from current stable
+qualification records (`views.readiness.stable_anchor: "latest"`). It selects
+at most the next two numerically newer nightly tracks with real qualification
+records (`nightly_limit: 2`). AMD SDK availability alone does not establish a
+qualified llama.cpp archive. Full dated nightly SDK identifiers remain in each
+build's provenance; numeric SDK version identifiers remain unchanged for package mapping.
+
+Every collection rebuilds readiness from current producer snapshots, without
+carrying forward previous downstream records. Records present in those producer
+snapshots remain available within the selected tracks. The catalog is ordered
+numerically ascending, with stable first. The UI renders that catalog and uses
+`index.readiness.stable_anchor` to label stable. Older datasets without scope
+metadata retain an explicit legacy-scope notice.
 
 Page One nests engines and recorded channels under each version. There is no
 Page One version selector. One shared legend describes qualification marks; missing

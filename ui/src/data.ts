@@ -120,6 +120,8 @@ const buildSchema = z.object({
   generated_at: time,
   qualified: z.boolean().nullable().optional(),
   version_qualified: z.boolean().nullable().optional(),
+  build_result: z.enum(["pass", "fail", "cancelled", "skipped", "unknown"]).nullable().optional(),
+  published: z.boolean().nullable().optional(),
   overall: z.string().nullable().optional(),
   hardware_validated: z.boolean().nullable().optional(),
   report_url: z.string().nullable().optional(),

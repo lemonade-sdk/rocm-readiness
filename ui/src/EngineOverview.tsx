@@ -62,6 +62,16 @@ function BuildMark({ build }: { build: Build }) {
                 <dd>{failureReasons.length ? [...new Set(failureReasons)].join("; ") : "Not reported"}</dd>
               </>
             )}
+            <dt>Build job</dt>
+            <dd>{build.build_result == null
+              ? "Source feed did not report a build result"
+              : build.build_result === "unknown"
+                ? "Source feed could not determine the build result"
+                : build.build_result}</dd>
+            <dt>Publication</dt>
+            <dd>{build.published == null
+              ? "Source feed did not report whether this archive shipped"
+              : build.published ? "Shipped in this run" : "Did not ship in this run"}</dd>
             <dt>Reported</dt>
             <dd>
               {new Intl.DateTimeFormat("en-GB", {

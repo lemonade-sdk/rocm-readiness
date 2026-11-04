@@ -17,6 +17,7 @@ type Props = {
   history?: Build[] | null;
   now?: Date;
   nested?: boolean;
+  emptyChannel?: Build["channel"];
 };
 
 function platformLabel(os: string) {
@@ -111,6 +112,7 @@ export function EngineOverview({
   history = null,
   now,
   nested = false,
+  emptyChannel,
 }: Props) {
   const EngineHeading = nested ? "h3" : "h2";
   const TrackHeading = nested ? "h4" : "h3";
@@ -164,10 +166,11 @@ export function EngineOverview({
             Date.parse(a.generated_at) - Date.parse(b.generated_at) ||
             buildIdentity(a).localeCompare(buildIdentity(b)),
         );
-        if (!builds.length) return null;
+        if (!builds.length && !emptyChannel) return null;
         const channels = [
           ...new Set(builds.map((build) => build.channel)),
         ].sort((a, b) => Number(b === "stable") - Number(a === "stable"));
+        if (!channels.length && emptyChannel) channels.push(emptyChannel);
         return (
           <article
             className="card engine-card build-timeline-card"

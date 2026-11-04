@@ -40,7 +40,6 @@ export function ReadinessOverview({
           builds: null,
           release: entry.release,
         };
-        if (row.release) return row;
         try {
           row.session =
             session.version === entry.rocm_version && session.overview
@@ -101,7 +100,6 @@ export function ReadinessOverview({
             ROCm {row.version}
             {row.version === stable ? " · Latest stable" : ""}
           </h2>
-          {row.release && <ReleaseDetails release={row.release} />}
           {row.error && (
             <div role="alert">
               {row.error} <button onClick={onRetry}>Retry data</button>
@@ -117,7 +115,13 @@ export function ReadinessOverview({
               version={row.version}
               history={row.builds}
               nested
-              engines={row.session.overview.engines.map((engine) => ({
+              emptyChannel={
+                row.release ? (row.version === stable ? "stable" : "nightly") : undefined
+              }
+              engines={(row.release && !row.session.overview.engines.length
+                ? sources.engines.map((engine) => ({ ...engine, build_count: 0, latest_builds: [] }))
+                : row.session.overview.engines
+              ).map((engine) => ({
                 ...engine,
                 platforms:
                   sources.engines.find(
@@ -126,6 +130,7 @@ export function ReadinessOverview({
               }))}
             />
           )}
+          {row.release && <ReleaseDetails release={row.release} />}
         </section>
       ))}
       {stable && !rows.some((row) => row.version === stable) && (
@@ -145,22 +150,25 @@ function ReleaseDetails({ release }: { release: PublishedRelease }) {
         {" · Published "}<time dateTime={release.published_at}>{release.published_at.slice(0, 10)}</time>
       </p>
       {!anyReport && <p>Qualification data unavailable</p>}
-      <ul>
-        {release.archives.map((archive) => (
-          <li key={archive.name}>
-            <a href={archive.url}>{archive.name}</a>
-            {archive.report_url ? (
-              <>
-                {" · "}
-                <a href={archive.report_url}>Qualification report</a>
-                {archive.qualified === true
-                  ? archive.overall === "warn" ? " · Qualified with warnings" : " · Qualified"
-                  : archive.qualified === false ? " · Did not qualify" : ""}
-              </>
-            ) : anyReport ? " · Qualification data unavailable" : null}
-          </li>
-        ))}
-      </ul>
+      <details>
+        <summary>Downloads and reports</summary>
+        <ul>
+          {release.archives.map((archive) => (
+            <li key={archive.name}>
+              <a href={archive.url}>{archive.name}</a>
+              {archive.report_url ? (
+                <>
+                  {" · "}
+                  <a href={archive.report_url}>Qualification report</a>
+                  {archive.qualified === true
+                    ? archive.overall === "warn" ? " · Qualified with warnings" : " · Qualified"
+                    : archive.qualified === false ? " · Did not qualify" : ""}
+                </>
+              ) : anyReport ? " · Qualification data unavailable" : null}
+            </li>
+          ))}
+        </ul>
+      </details>
     </>
   );
 }

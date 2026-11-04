@@ -162,14 +162,14 @@ function reportMetadata(
     throw new Error("Producer report is missing build metadata.");
   const reportOs = text(reportBuild.os);
   const reportVersion = text(reportBuild.rocm_version);
-  const reportTag = text(reportBuild.llamacpp_tag) ?? text(reportBuild.tag);
+  const reportTag = text(reportBuild.llamacpp_tag) ?? text(reportBuild.release_tag) ?? text(reportBuild.tag);
   if (!reportOs || canonicalPlatform(reportOs) !== canonicalPlatform(build.os))
     throw new Error("Producer report OS does not match the selected feed row.");
-  if (!reportVersion || reportVersion !== build.rocm_version)
+  if (!reportVersion || reportVersion !== (build.producer_rocm_version ?? build.rocm_version))
     throw new Error(
       "Producer report ROCm version does not match the selected feed row.",
     );
-  if (!build.tag || !reportTag || reportTag !== build.tag)
+  if ((reportTag ?? null) !== (build.tag ?? null) || (!build.tag && build.channel !== "nightly"))
     throw new Error(
       "Producer report package tag does not match the selected feed row.",
     );

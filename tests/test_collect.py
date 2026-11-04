@@ -107,10 +107,56 @@ class QualificationTests(unittest.TestCase):
         self.assertTrue(rows[1]["qualified"])
         self.assertGreater(rows[1]["tests"]["failed"], 0)
 
+    def test_v2_preserves_archive_verdicts_and_publication_evidence(self):
+        source = {"id": "llama", "engine": "llamacpp", "channel": "stable"}
+        data = fixture("llama.json")
+        data["schema_version"] = 2
+        qualified = data["builds"][0]
+        qualified.update(
+            overall="warn",
+            tier1="warn",
+            version_qualified=False,
+            published=False,
+            build_result="pass",
+            event="schedule",
+        )
+        placeholder = copy.deepcopy(qualified)
+        placeholder.update(
+            build_id="placeholder",
+            qualified=False,
+            overall="fail",
+            tier1="missing",
+            hardware_validated=False,
+            build_result="fail",
+            blocked_by=["build failed"],
+            results={"T0.1": "missing", "T0.10": "not_applicable"},
+            report_url="reports/placeholder.json",
+        )
+        historical = copy.deepcopy(fixture("llama.json")["builds"][0])
+        historical["build_id"] = "historical"
+        data["builds"].extend((historical, placeholder))
+        url = "https://raw.githubusercontent.com/a/b/abc/qualification/index.json"
+        archive, historical, blocked = normalize_qualification(source, data, url)
+        self.assertTrue(archive["qualified"])
+        self.assertEqual(archive["overall"], "warn")
+        self.assertEqual(archive["tier1"], "warn")
+        self.assertFalse(archive["version_qualified"])
+        self.assertFalse(archive["published"])
+        self.assertEqual(archive["event"], "schedule")
+        self.assertNotIn("published", historical)
+        self.assertFalse(blocked["qualified"])
+        self.assertEqual(blocked["build_result"], "fail")
+        self.assertEqual(blocked["blocked_by"], ["build failed"])
+        self.assertEqual(blocked["results"]["T0.10"], "not_applicable")
+        self.assertEqual(
+            blocked["report_url"],
+            "https://raw.githubusercontent.com/a/b/abc/qualification/reports/placeholder.json",
+        )
+
     def test_rejects_unknown_schema_and_non_boolean_verdict(self):
         source = {"id": "x", "engine": "llamacpp", "channel": "stable", "os": None}
         data = fixture("llama.json")
-        data["schema_version"] = 2
+        data["schema_version"] = 3
         with self.assertRaisesRegex(ValueError, "schema_version"):
             normalize_qualification(source, data, "https://example.com/index.json")
         data["schema_version"] = 1

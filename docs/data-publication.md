@@ -75,12 +75,14 @@ Comparing ROCm versions uses their per-version performance files.
 Version directories group the configured builds and measurements by ROCm version.
 Stable llama.cpp packages label versions such as `7.14`, `10.0`, and `10.1`.
 Each build record identifies its engine and channel; the directory groups records
-by ROCm version. History is retained when it
-matches the configured sources, selected performance forks, and current stable/upcoming
-ROCm scope. `views.readiness.stable_anchor` applies to the entire generated app dataset,
-not just Page One. Regeneration removes obsolete generated ROCm track directories
-from its output; publication copies only the validated manifest. External producer
-files and historical datasets are not modified.
+by the producer’s numeric ROCm version (for example, `10.3.0`). `views.readiness.stable_anchor: "latest"` discovers
+the newest track in the current stable qualification feed; `nightly_limit: 2`
+selects up to the next two newer tracks in current nightly qualification evidence.
+Exact SDK versions remain on build records as `producer_rocm_version`.
+This policy applies to the entire readiness dataset. Every run rebuilds from
+current producer snapshots; previous downstream history is not merged.
+Publication replaces tracked `data/` with the validated manifest in one commit,
+removing obsolete tracks. Producer data and Git history are not modified.
 
 ## Publishing and recovery
 

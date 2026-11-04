@@ -16,7 +16,7 @@ is **2** and the current package association contract is `attribution_version: 2
 | `/reference_model` | JSON value, required | Configuration value copied unchanged; null when absent. |
 | `/default_version` | ROCm version string or null, required | First supplied version, or null when empty. With configured readiness scope this is the anchor when recorded, otherwise the earliest recorded upcoming track. |
 | `/versions` | array of version entries, required | Union of versions with in-scope builds, assigned measurements or executions. Configured readiness scope emits anchor/newer tracks in numeric ascending order; legacy unscoped datasets use descending order. |
-| `/readiness` | object, optional | Additive metadata `{ "stable_anchor": "10.1" }` copied from collector policy; when present all ROCm records are scoped to this version and newer. |
+| `/readiness` | object, optional | Resolved metadata, e.g. `{ "stable_anchor": "10.1", "tracks": ["10.1", "10.2", "10.3"] }`. Production discovers stable from current producer records and selects at most two newer nightly tracks; all versioned readiness records belong to this selection. Legacy numeric-anchor policies omit `tracks`. |
 | `/versions/*/rocm_version` | string, required | Dotted nonnegative integer version components, e.g. `10.1`. |
 | `/versions/*/overview` | relative path string, required | `rocm/<version>/overview.json`. |
 | `/versions/*/build_count` | nonnegative integer, required | Count of retained, merged, in-scope build records for this version across engines. |

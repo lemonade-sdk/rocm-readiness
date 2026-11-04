@@ -32,7 +32,12 @@ function BuildMark({ build }: { build: Build }) {
       .filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase()))
       .map(([test]) => `${test} failed`),
   ];
-  const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${outcome === null ? "Evidence unavailable" : outcome === "pass" ? "Pass (producer qualified)" : "Fail (producer unqualified)"}`;
+  const status = outcome === null
+    ? "Evidence unavailable"
+    : outcome === "fail"
+      ? "Failed"
+      : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
+  const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
   return (
     <Tooltip
       to={exactBuildHref(build)}
@@ -47,11 +52,7 @@ function BuildMark({ build }: { build: Build }) {
               {build.tag ?? "Build"} · {platformLabel(build.os)}
             </strong>
             <span className={`build-tooltip-status ${outcome ?? "unknown"}`}>
-              {outcome === null
-                ? "Unknown"
-                : outcome === "pass"
-                  ? "Qualified"
-                  : "Failed"}
+              {status}
             </span>
           </span>
           <dl className="build-tooltip-details">
@@ -61,6 +62,16 @@ function BuildMark({ build }: { build: Build }) {
                 <dd>{failureReasons.length ? [...new Set(failureReasons)].join("; ") : "Not reported"}</dd>
               </>
             )}
+            <dt>Build job</dt>
+            <dd>{build.build_result == null
+              ? "Source feed did not report a build result"
+              : build.build_result === "unknown"
+                ? "Source feed could not determine the build result"
+                : build.build_result}</dd>
+            <dt>Publication</dt>
+            <dd>{build.published == null
+              ? "Source feed did not report whether this archive shipped"
+              : build.published ? "Shipped in this run" : "Did not ship in this run"}</dd>
             <dt>Reported</dt>
             <dd>
               {new Intl.DateTimeFormat("en-GB", {

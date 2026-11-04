@@ -55,7 +55,7 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
   };
   await page.route("https://raw.githubusercontent.com/**", routeFixture);
   await page.goto("./");
-  await expect(page.getByRole("link", { name: /b-warning.*Pass/ })).toHaveClass(
+  await expect(page.getByRole("link", { name: /b-warning.*Qualified with warnings/ })).toHaveClass(
     /build-mark pass/,
   );
   const failed = page.getByRole("link", { name: /b-failed.*Fail/ });

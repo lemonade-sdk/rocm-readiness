@@ -36,7 +36,7 @@ class ReadinessScopeTests(unittest.TestCase):
 
     def test_config_is_carried_into_collector_policy(self):
         config, _ = load_config(json.loads(Path("sources.json").read_text()))
-        self.assertEqual(config["readiness"], {"stable_anchor": "10.1"})
+        self.assertEqual(config["readiness"], {"stable_anchor": "latest", "nightly_limit": 2})
 
     def test_all_engines_scope_previous_history_order_and_regeneration(self):
         versions = ["7.14", "10.0", "10.1", "10.2", "10.3", "10.10"]

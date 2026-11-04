@@ -25,7 +25,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_readiness_stable_anchor_is_explicit_and_validated(self):
         config = json.loads((ROOT / "sources.json").read_text())
-        self.assertEqual(config["views"]["readiness"]["stable_anchor"], "10.1")
+        self.assertEqual(config["views"]["readiness"]["stable_anchor"], "latest")
         config["views"]["readiness"]["stable_anchor"] = "10.2"
         self.load(config)
         for invalid in (None, 10.1, "", "10.2a-2026-11-02"):

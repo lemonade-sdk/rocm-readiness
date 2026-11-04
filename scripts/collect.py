@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .config import load_config
+    from .readiness import select_policy
     from .executions import collect_executions, select_latest
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
@@ -30,6 +31,7 @@ if __package__:
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from config import load_config
+    from readiness import select_policy
     from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
@@ -86,9 +88,18 @@ def validate_config(config):
         require(
             isinstance(policy, dict)
             and isinstance(policy.get("stable_anchor"), str)
-            and re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"]),
+            and (
+                policy["stable_anchor"] == "latest"
+                or re.fullmatch(r"[0-9]+(?:\.[0-9]+)+", policy["stable_anchor"])
+            ),
             "invalid readiness stable_anchor",
         )
+        if policy["stable_anchor"] == "latest":
+            require(
+                type(policy.get("nightly_limit")) is int
+                and policy["nightly_limit"] == 2,
+                "latest readiness requires nightly_limit=2",
+            )
     engines = config["engines"]
     engine_ids = [e["id"] for e in engines]
     require(len(engine_ids) == len(set(engine_ids)), "duplicate engine id")
@@ -162,18 +173,30 @@ def _check(
 
 def normalize_qualification(source, data, url, policy=None):
     _check(source, "", "document", isinstance(data, dict), "expected object")
+    schema_version = data.get("schema_version")
     _check(
         source,
         "",
         "schema_version",
-        data.get("schema_version") == 1,
+        type(schema_version) is int and schema_version in (1, 2),
         "unsupported schema version",
     )
     _check(source, "", "builds", isinstance(data.get("builds"), list), "expected array")
+    nightly = source.get("repository") == "lemonade-sdk/llamacpp-rocm"
+    if nightly:
+        _check(source, "", "repo", data.get("repo") == source["repository"])
+        _check(source, "", "schema_version", schema_version == 1)
     rows, seen = [], set()
     for index, row in enumerate(data["builds"]):
         location = f"/builds/{index}"
         _check(source, location, "record", isinstance(row, dict), "expected object")
+        producer_version = row.get("rocm_version")
+        if nightly:
+            version = re.fullmatch(
+                r"([0-9]+\.[0-9]+\.[0-9]+)a[0-9]{8}", str(producer_version)
+            )
+            _check(source, location, "rocm_version", version is not None)
+            row = {**row, "rocm_version": version[1]}
         # A shared producer index may contain old tracks; do not normalize their reports.
         if (
             policy is not None
@@ -182,13 +205,28 @@ def normalize_qualification(source, data, url, policy=None):
             and not in_readiness_scope(row, policy)
         ):
             continue
-        for field in ("build_id", "generated_at", "rocm_version", "run_url", "tag"):
+        for field in ("build_id", "generated_at", "rocm_version", "run_url"):
             _check(
                 source,
                 location,
                 field,
                 isinstance(row.get(field), str) and bool(row[field]),
             )
+        _check(
+            source,
+            location,
+            "tag",
+            (nightly and "tag" in row and row["tag"] is None)
+            or (isinstance(row.get("tag"), str) and bool(row["tag"])),
+        )
+        producer_build_id = row["build_id"]
+        if nightly:
+            row = {
+                **row,
+                "build_id": f"{producer_build_id}@{row.get('run_attempt')}",
+                "producer_build_id": producer_build_id,
+                "producer_rocm_version": producer_version,
+            }
         _check(
             source,
             location,
@@ -231,13 +269,20 @@ def normalize_qualification(source, data, url, policy=None):
                 type(value) is int and value >= 0,
                 "invalid test count",
             )
-        for field in ("version_qualified", "hardware_validated"):
+        for field in ("version_qualified", "hardware_validated", "published"):
             _check(
                 source,
                 location,
                 field,
                 row.get(field) is None or type(row[field]) is bool,
             )
+        _check(
+            source,
+            location,
+            "build_result",
+            row.get("build_result")
+            in (None, "pass", "fail", "cancelled", "skipped", "unknown"),
+        )
         _check(
             source,
             location,
@@ -297,7 +342,7 @@ def normalize_qualification(source, data, url, policy=None):
                 source,
                 location,
                 f"results/{pointer(name)}",
-                value in ("pass", "fail", "warn", "skip", "missing"),
+                value in ("pass", "fail", "warn", "skip", "missing", "not_applicable"),
                 "invalid test result",
             )
         report = row.get("report_url")
@@ -705,6 +750,10 @@ def collect(
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
+    dynamic = config.get("readiness", {}).get("stable_anchor") == "latest"
+    # Keep previous_data for last-good status and upstream health, never merge
+    # previous readiness records into a current-snapshot publication.
+    readiness_previous = None if dynamic else previous_data
     # Raw execution proof is an artifact of this collection, never reused as current evidence.
     (destination / "provenance/executions.json").unlink(missing_ok=True)
     now = now or datetime.now(timezone.utc).isoformat()
@@ -771,8 +820,14 @@ def collect(
             fetch_url = None
             if source["adapter"] == "qualification-v1":
                 rows = normalize_qualification(
-                    source, data, url, config.get("readiness")
+                    source, data, url, None if dynamic else config.get("readiness")
                 )
+                state["schema_version"] = data["schema_version"]
+                if dynamic:
+                    state["rocm_tracks"] = sorted(
+                        {row["rocm_version"] for row in rows},
+                        key=lambda value: tuple(map(int, value.split("."))),
+                    )
                 target, date_key = "builds", "generated_at"
             else:
                 rows = normalize_performance(source, data)
@@ -814,7 +869,9 @@ def collect(
                 status=(
                     "empty"
                     if not rows
-                    else "stale" if age > source["stale_after_hours"] else "fresh"
+                    else "stale"
+                    if age > source["stale_after_hours"]
+                    else "fresh"
                 ),
                 latest_observation_at=latest.isoformat() if latest else None,
                 age_hours=round(age, 2) if age is not None else None,
@@ -851,11 +908,13 @@ def collect(
             output["collection_status"] = "degraded"
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
     write_json(destination / "errors.json", {"errors": output["errors"]})
+    if dynamic:
+        output["readiness"] = select_policy(config["readiness"], output["builds"])
     evidence = list(package_evidence or [])
     previous_measurements = []
     system_matches = None
-    if previous_data is not None:
-        _, prior_measurements, prior_systems = _load_previous(previous_data)
+    if readiness_previous is not None:
+        _, prior_measurements, prior_systems = _load_previous(readiness_previous)
         current_systems = {
             (system["source_id"], system["id"]): system for system in output["systems"]
         }
@@ -888,7 +947,7 @@ def collect(
         output[field] = [
             row
             for row in output[field]
-            if in_readiness_scope(row, config.get("readiness"))
+            if in_readiness_scope(row, output.get("readiness"))
         ]
     if output["execution_evidence"]:
         write_json(
@@ -911,7 +970,7 @@ def collect(
     output["dataset"] = write_dataset(
         output,
         destination,
-        previous_data=previous_data,
+        previous_data=readiness_previous,
         publish_index=False,
         source_configs={source["id"]: source for source in config["sources"]},
     )
@@ -944,8 +1003,8 @@ def collect(
             upstream = None
         if upstream:
             print(
-                f'Upstream: {upstream["project_count"]} projects, {upstream["status"]}, '
-                f'{upstream["api_calls"]} API calls',
+                f"Upstream: {upstream['project_count']} projects, {upstream['status']}, "
+                f"{upstream['api_calls']} API calls",
                 flush=True,
             )
     write_json(destination / "errors.json", {"errors": output["errors"]})
@@ -1097,8 +1156,8 @@ def main():
         lines.extend(
             [
                 "",
-                f'Upstream health: {upstream["project_count"]} projects, {upstream["status"]}, '
-                f'{upstream["api_calls"]} GitHub API calls',
+                f"Upstream health: {upstream['project_count']} projects, {upstream['status']}, "
+                f"{upstream['api_calls']} GitHub API calls",
             ]
         )
         lines.extend(f"- upstream: {error}" for error in upstream.get("errors", []))

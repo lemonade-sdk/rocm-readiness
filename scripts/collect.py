@@ -909,7 +909,39 @@ def collect(
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
     write_json(destination / "errors.json", {"errors": output["errors"]})
     if dynamic:
+        print(
+            "Readiness availability observed: "
+            + json.dumps(
+                [
+                    {
+                        key: source.get(key)
+                        for key in (
+                            "id",
+                            "channel",
+                            "status",
+                            "commit",
+                            "schema_version",
+                            "rocm_tracks",
+                        )
+                    }
+                    for source in output["sources"]
+                    if source["adapter"] == "qualification-v1"
+                ]
+            ),
+            flush=True,
+        )
         output["readiness"] = select_policy(config["readiness"], output["builds"])
+        print(
+            "Readiness availability selected: "
+            + json.dumps(
+                {
+                    "stable": output["readiness"]["stable_anchor"],
+                    "nightly": output["readiness"]["tracks"][1:],
+                    "nightly_limit": config["readiness"]["nightly_limit"],
+                }
+            ),
+            flush=True,
+        )
     evidence = list(package_evidence or [])
     previous_measurements = []
     system_matches = None

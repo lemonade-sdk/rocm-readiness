@@ -1,1 +1,1 @@
-{"schema_version":1,"sync":{"attempted_at":"2026-11-04T11:05:25.750894+00:00","status":"failed","last_successful_at":"2026-11-03T11:05:12.771307+00:00","errors":[{"source_id":"llamacpp-stable-qualification","record":"","field":"schema_version","reason":"unsupported schema version"}]}}
+{"schema_version":1,"sync":{"attempted_at":"2026-11-04T16:06:12.535955+00:00","status":"success","last_successful_at":"2026-11-04T16:06:12.535955+00:00","errors":[]}}

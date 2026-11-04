@@ -269,36 +269,37 @@ export function EngineOverview({
                                     <small>No qualification evidence</small>
                                   )}
                                 </th>
-                                {days.map((day, index) => (
-                                  <td
-                                    key={day}
-                                    className={
-                                      monthBoundary(index)
-                                        ? "month-boundary"
-                                        : undefined
-                                    }
-                                  >
-                                    <div className="build-day">
-                                      {!rows.some(
-                                        (build) => buildDate(build) === day,
-                                      ) && (
-                                        <span className="build-no-data">
-                                          No data
-                                        </span>
-                                      )}
-                                      {rows
-                                        .filter(
-                                          (build) => buildDate(build) === day,
-                                        )
-                                        .map((build) => (
-                                          <BuildMark
-                                            key={buildIdentity(build)}
-                                            build={build}
-                                          />
-                                        ))}
-                                    </div>
-                                  </td>
-                                ))}
+                                {days.map((day, index) => {
+                                  const dayBuilds = rows.filter(
+                                    (build) => buildDate(build) === day,
+                                  );
+                                  const visibleBuilds =
+                                    channel === "nightly" ? dayBuilds.slice(-1) : dayBuilds;
+                                  return (
+                                    <td
+                                      key={day}
+                                      className={
+                                        monthBoundary(index)
+                                          ? "month-boundary"
+                                          : undefined
+                                      }
+                                    >
+                                      <div className="build-day">
+                                        {!visibleBuilds.length && (
+                                          <span className="build-no-data">
+                                            No data
+                                          </span>
+                                        )}
+                                        {visibleBuilds.map((build) => (
+                                            <BuildMark
+                                              key={buildIdentity(build)}
+                                              build={build}
+                                            />
+                                          ))}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
                               </tr>
                             );
                           })}

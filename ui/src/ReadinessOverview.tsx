@@ -150,25 +150,6 @@ function ReleaseDetails({ release }: { release: PublishedRelease }) {
         {" · Published "}<time dateTime={release.published_at}>{release.published_at.slice(0, 10)}</time>
       </p>
       {!anyReport && <p>Qualification data unavailable</p>}
-      <details>
-        <summary>Downloads and reports</summary>
-        <ul>
-          {release.archives.map((archive) => (
-            <li key={archive.name}>
-              <a href={archive.url}>{archive.name}</a>
-              {archive.report_url ? (
-                <>
-                  {" · "}
-                  <a href={archive.report_url}>Qualification report</a>
-                  {archive.qualified === true
-                    ? archive.overall === "warn" ? " · Qualified with warnings" : " · Qualified"
-                    : archive.qualified === false ? " · Did not qualify" : ""}
-                </>
-              ) : anyReport ? " · Qualification data unavailable" : null}
-            </li>
-          ))}
-        </ul>
-      </details>
     </>
   );
 }

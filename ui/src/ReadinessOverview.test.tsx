@@ -111,3 +111,25 @@ it("keeps the overview focused on qualification even when benchmark evidence exi
   ).not.toBeInTheDocument();
   expect(result.container.querySelector(".build-benchmark-issue")).toBeNull();
 });
+
+it("shows published archives when a track has no qualification records", async () => {
+  const releaseUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1352";
+  const archiveUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1352/archive.zip";
+  mount({
+    ...index,
+    versions: [{
+      ...index.versions[1],
+      build_count: 0,
+      release: {
+        tag: "b1352",
+        version: "10.2.0a20261022",
+        url: releaseUrl,
+        published_at: "2026-10-22T15:19:29Z",
+        archives: [{ name: "archive.zip", url: archiveUrl }],
+      },
+    }],
+  });
+  expect(await screen.findByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
+  expect(screen.getByRole("link", { name: "archive.zip" })).toHaveAttribute("href", archiveUrl);
+  expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();
+});

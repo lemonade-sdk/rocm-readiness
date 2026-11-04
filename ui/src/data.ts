@@ -26,6 +26,7 @@ const testsSchema = z
     warned: count.optional(),
     skipped: count.optional(),
     missing: count.optional(),
+    not_applicable: count.optional(),
     total: count,
   })
   .refine((value) => {
@@ -34,7 +35,8 @@ const testsSchema = z
       value.failed +
       (value.warned ?? 0) +
       (value.skipped ?? 0) +
-      (value.missing ?? 0);
+      (value.missing ?? 0) +
+      (value.not_applicable ?? 0);
     const complete =
       value.warned !== undefined &&
       value.skipped !== undefined &&
@@ -63,6 +65,22 @@ const pointerSchema = z.object({
   index_url: z.string().nullable(),
   sync: syncSchema,
 });
+const httpsUrl = z.url({ protocol: /^https$/ });
+const releaseSchema = z.object({
+  version: z.string(),
+  tag: z.string(),
+  published_at: time,
+  url: httpsUrl,
+  archives: z.array(z.object({
+    name: z.string(),
+    url: httpsUrl,
+    report_url: httpsUrl.optional(),
+    qualified: z.boolean().nullish(),
+    overall: z.string().nullish(),
+  })).min(1),
+});
+export type PublishedRelease = z.infer<typeof releaseSchema>;
+
 const indexSchema = z.object({
   schema_version: z.literal(2),
   generated_at: time,
@@ -95,6 +113,7 @@ const indexSchema = z.object({
       rocm_version: z.string().min(1),
       overview: z.string(),
       build_count: count,
+      release: releaseSchema.optional(),
     }),
   ),
 });

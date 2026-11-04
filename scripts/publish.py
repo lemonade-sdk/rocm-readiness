@@ -149,6 +149,8 @@ def manifest(root, allow_legacy=False):
             from conformance import validate_dataset
         validate_dataset(root, check_live_pointer=False)
     paths = {"index.json"}
+    if "release_inventory" in index:
+        paths.add(index["release_inventory"])
     for item in index["versions"]:
         overview_path = item["overview"]
         paths.add(overview_path)

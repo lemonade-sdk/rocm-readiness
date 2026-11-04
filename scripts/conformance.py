@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 if __package__:
     from .config import load_config
+    from .readiness import release_policy, select_releases
+    from .release_inventory import INVENTORY, match_archive, validate_inventory
     from .execution_dataset import (
         validate_execution_file,
         validate_execution_provenance,
@@ -23,6 +25,8 @@ if __package__:
     from .validation import PipelineValidationError
 else:
     from config import load_config
+    from readiness import release_policy, select_releases
+    from release_inventory import INVENTORY, match_archive, validate_inventory
     from execution_dataset import (
         validate_execution_file,
         validate_execution_provenance,
@@ -622,6 +626,36 @@ def validate_dataset(
     version_names = [row.get("rocm_version") for row in versions]
     policy = index.get("readiness")
     configured_policy = config.get("readiness") if config is not None else None
+    repositories = (configured_policy or {}).get("release_repositories")
+    if "release_inventory" in index or repositories:
+        _check(
+            index.get("release_inventory") == INVENTORY,
+            "index.json",
+            "/release_inventory",
+            "expected release inventory path",
+        )
+        inventory = read(INVENTORY)
+        try:
+            releases = validate_inventory(inventory, repositories)
+            selected = select_releases(releases, 2)
+            if release_policy(selected) != policy or len(selected) != len(versions):
+                raise ValueError(
+                    "release selection does not match published readiness scope"
+                )
+            for version, expected in zip(versions, selected):
+                actual = version["release"]
+                if {k: v for k, v in actual.items() if k != "archives"} != {
+                    k: v for k, v in expected.items() if k != "archives"
+                } or len(actual["archives"]) != len(expected["archives"]):
+                    raise ValueError("selected release does not match inventory")
+                for archive, original in zip(actual["archives"], expected["archives"]):
+                    if any(archive.get(k) != v for k, v in original.items()):
+                        raise ValueError("selected archive does not match inventory")
+                    if "report_url" in archive and not _url(archive["report_url"]):
+                        raise ValueError("invalid selected archive report URL")
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            _fail(INVENTORY, "/", str(error))
+        configured_policy = None
     if configured_policy is not None:
         if configured_policy.get("stable_anchor") == "latest":
             # Independently derive the selection from this run's pinned source
@@ -1025,6 +1059,44 @@ def validate_dataset(
             f"/versions/{vpos}/build_count",
             f"count must equal {len(builds)} retained identities in {overview_path} history",
         )
+        if "release_inventory" in index:
+            release = entry["release"]
+            for archive in release["archives"]:
+                build_id = archive.get("qualification_build_id")
+                source_id = archive.get("qualification_source_id")
+                if build_id is not None or source_id is not None:
+                    _check(
+                        any(
+                            row["build_id"] == build_id
+                            and row["source_id"] == source_id
+                            and match_archive(
+                                row, source_map[source_id], release, archive
+                            )
+                            and all(
+                                row.get(key) == archive.get(key)
+                                for key in ("report_url", "qualified", "overall")
+                            )
+                            for row in builds
+                        ),
+                        "index.json",
+                        f"/versions/{vpos}/release",
+                        "qualification must identify the exact archived build",
+                    )
+                elif "report_url" in archive:
+                    _check(
+                        archive["report_url"] == archive.get("attached_report")
+                        and type(archive.get("qualified")) is bool,
+                        "index.json",
+                        f"/versions/{vpos}/release",
+                        "qualification report must be attached to the exact archive",
+                    )
+                else:
+                    _check(
+                        "qualified" not in archive and "overall" not in archive,
+                        "index.json",
+                        f"/versions/{vpos}/release",
+                        "qualification outcomes require evidence",
+                    )
         performance = overview.get("performance")
         _check(
             isinstance(performance, dict),

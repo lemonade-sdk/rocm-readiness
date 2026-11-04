@@ -17,6 +17,7 @@ class ScopeTests(unittest.TestCase):
     def test_production_scope_skips_vllm_fetch_and_prunes_its_saved_records(self):
         config, _ = load_config(json.loads(Path("sources.json").read_text()))
         # This fixture exercises source pruning with its 10.0 fixture anchor.
+        config["readiness"].pop("release_repositories")
         config["readiness"]["stable_anchor"] = "10.0"
         # Not the separate detailed-run feed.
         next(s for s in config["sources"] if s["id"] == "lemonade-performance")[

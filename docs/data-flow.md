@@ -6,6 +6,7 @@
 flowchart LR
     Sources["sources.json"] --> Collect["Fetch and map feeds"]
     Feeds["Upstream result files"] --> Collect
+    Releases["GitHub releases and binary assets"] --> Collect
     Previous["Last published dataset"] --> Collect
     Collect --> Evidence["Associate ROCm packages"]
     Evidence --> Dataset["Versioned dataset"]
@@ -18,7 +19,7 @@ flowchart LR
 | --- | --- |
 | [sources.json](../sources.json) | Configuration maintained here: source repositories, branches, files, adapters, and filters. [Configuration guide](data-pipeline.md#adding-or-changing-a-source). |
 | [Upstream result files](data-pipeline.md#current-sources) | llama.cpp's [qualification index](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) and Lemonade's [benchmark leaderboard](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json). [Retained fields](data-pipeline.md#what-we-retain). |
-| [Last published dataset](data-publication.md#dataset-entry-point) | Our saved JSON from the last successful publication, restored using the [latest.json pointer](data-publication.md#dataset-entry-point). It preserves build/model history and verified package associations across runs. |
+| [Last published dataset](data-publication.md#dataset-entry-point) | Our saved JSON from the last successful publication, restored using the [latest.json pointer](data-publication.md#dataset-entry-point). It supplies the prior release inventory and upstream health history. |
 
 The [JSON reference](reference/README.md) documents file contracts, field lineage,
 and pinned mapping examples.
@@ -30,7 +31,7 @@ PRs validate a fresh collection from producer feeds and upload an artifact.
 Main runs publish successful datasets. Failed runs update live `latest.json` and
 `sync.json` with the error while retaining the last good dataset pointer.
 CI artifacts contain source copies and diagnostics and are [retained for 30 days](data-publication.md#history-grouping-and-retention).
-Published build history is preserved across runs and grouped by calendar month.
+Producer build history for the selected tracks is grouped by calendar month.
 
 llama.cpp reads stable builds from `lemonade-sdk/llama.cpp` and their stable
 ROCm model results from Lemonade's benchmark feed.
@@ -42,6 +43,7 @@ add a feed.
 ```mermaid
 flowchart LR
     Latest["latest.json"] -->|index_url| Index["Pinned index.json"]
+    Index -->|inventory path| Inventory["Release inventory"]
     Index -->|overview path| Overview["ROCm overview"]
     Overview -->|history paths| History["history/YYYY-MM.json"]
     History -->|report_url| Report["Producer report"]

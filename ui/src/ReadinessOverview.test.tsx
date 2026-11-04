@@ -112,7 +112,7 @@ it("keeps the overview focused on qualification even when benchmark evidence exi
   expect(result.container.querySelector(".build-benchmark-issue")).toBeNull();
 });
 
-it("shows published archives when a track has no qualification records", async () => {
+it("shows a published track when qualification records are unavailable", async () => {
   const releaseUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1352";
   const archiveUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1352/archive.zip";
   mount({
@@ -131,8 +131,8 @@ it("shows published archives when a track has no qualification records", async (
   }, { [new URL("rocm/10.2/overview.json", indexUrl).href]: { ...overview("10.2"), engines: [], history: [] } });
   expect(await screen.findByRole("region", { name: "llama.cpp nightly build history" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
-  screen.getByText("Downloads and reports").click();
-  expect(screen.getByRole("link", { name: "archive.zip" })).toHaveAttribute("href", archiveUrl);
+  expect(screen.queryByText("Downloads and reports")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "archive.zip" })).not.toBeInTheDocument();
   expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();
 });
 

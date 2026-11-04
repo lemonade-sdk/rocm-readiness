@@ -288,3 +288,22 @@ it("keeps qualification separate from an explicit build result and publication",
   expect(tooltip).toHaveTextContent("Did not ship in this run");
   expect(link).toHaveClass("pass");
 });
+
+it("shows the last nightly result per OS and day even when an earlier result passed", () => {
+  mount([
+    build({ channel: "nightly", build_id: "linux-latest", qualified: false,
+      generated_at: "2026-11-01T02:00:00Z" }),
+    build({ channel: "nightly", build_id: "linux-earlier", qualified: true,
+      generated_at: "2026-11-01T01:00:00Z" }),
+    build({ channel: "nightly", build_id: "linux-prior-day", qualified: true,
+      generated_at: "2026-10-31T02:00:00Z" }),
+    build({ channel: "nightly", build_id: "windows-latest", os: "windows", qualified: true,
+      generated_at: "2026-11-01T01:00:00Z" }),
+  ]);
+
+  expect(screen.getByRole("link", { name: /linux-latest.*Failed/ }))
+    .toHaveAttribute("href", expect.stringContaining("build=linux-latest"));
+  expect(screen.getByRole("link", { name: /linux-prior-day.*Qualified/ })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /windows-latest.*Qualified/ })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /linux-earlier/ })).not.toBeInTheDocument();
+});

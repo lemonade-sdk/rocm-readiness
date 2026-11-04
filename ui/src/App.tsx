@@ -385,7 +385,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   </h1>
                   <p>
                     {view === "overview"
-                      ? "See recorded build qualification across engines and operating systems. Qualification alone does not establish that artifacts were published."
+                      ? "See ROCm builds and the qualification evidence available for their archives."
                       : "Build qualification and model performance, grounded in published evidence."}
                   </p>
                 </div>

@@ -16,7 +16,8 @@ from urllib.request import Request, urlopen
 
 if __package__:
     from .config import load_config
-    from .readiness import select_policy
+    from .readiness import release_policy, select_policy
+    from .release_inventory import INVENTORY, REPOSITORY, discover, qualify
     from .executions import collect_executions, select_latest
     from .attribution import attribute_stable, resolve_package
     from .conformance import validate_dataset
@@ -31,7 +32,8 @@ if __package__:
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from config import load_config
-    from readiness import select_policy
+    from readiness import release_policy, select_policy
+    from release_inventory import INVENTORY, REPOSITORY, discover, qualify
     from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
@@ -94,12 +96,24 @@ def validate_config(config):
             ),
             "invalid readiness stable_anchor",
         )
-        if policy["stable_anchor"] == "latest":
+        if policy["stable_anchor"] == "latest" and "release_repositories" not in policy:
             require(
                 type(policy.get("nightly_limit")) is int
                 and policy["nightly_limit"] == 2,
                 "latest readiness requires nightly_limit=2",
             )
+    if policy is not None and "release_repositories" in policy:
+        repositories = policy["release_repositories"]
+        require(
+            policy["stable_anchor"] == "latest"
+            and isinstance(repositories, dict)
+            and set(repositories) == {"stable", "nightly"}
+            and all(
+                isinstance(repo, str) and REPOSITORY.fullmatch(repo)
+                for repo in repositories.values()
+            ),
+            "invalid readiness release repositories",
+        )
     engines = config["engines"]
     engine_ids = [e["id"] for e in engines]
     require(len(engine_ids) == len(set(engine_ids)), "duplicate engine id")
@@ -750,7 +764,9 @@ def collect(
 ):
     validate_config(config)
     last_success = load_last_success(destination, previous_data)
-    dynamic = config.get("readiness", {}).get("stable_anchor") == "latest"
+    policy = config.get("readiness", {})
+    dynamic = policy.get("stable_anchor") == "latest"
+    release_repositories = policy.get("release_repositories")
     # Keep previous_data for last-good status and upstream health, never merge
     # previous readiness records into a current-snapshot publication.
     readiness_previous = None if dynamic else previous_data
@@ -903,12 +919,48 @@ def collect(
                 diagnostic = PipelineValidationError(
                     sid, "", "source", f"{type(error).__name__}: {error}"
                 ).diagnostic
+            if (
+                release_repositories
+                and source["adapter"] == "qualification-v1"
+                and (fetch_url or not isinstance(error, OSError))
+            ):
+                state.update(status="awaiting_data", diagnostic=diagnostic)
+                print(
+                    f"{sid}: qualification unavailable: {diagnostic}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                continue
             output["errors"].append(diagnostic)
             state.update(status="error", error=str(error), diagnostic=diagnostic)
             output["collection_status"] = "degraded"
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
     write_json(destination / "errors.json", {"errors": output["errors"]})
-    if dynamic:
+    if release_repositories:
+        try:
+            previous_inventory = previous_data / INVENTORY if previous_data else None
+            previous = (
+                json.loads(previous_inventory.read_text(encoding="utf-8"))
+                if previous_inventory and previous_inventory.is_file()
+                else None
+            )
+            inventory, selected = discover(
+                release_repositories,
+                None,
+                fetch,
+                previous,
+                today=clock.date(),
+            )
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+            raise PipelineValidationError(
+                "github-releases", "", "discovery", str(error)
+            ) from error
+        write_json(destination / INVENTORY, inventory)
+        output["readiness"] = release_policy(selected)
+        output["selected_releases"] = qualify(
+            selected, output["builds"], output["sources"], fetch
+        )
+    elif dynamic:
         print(
             "Readiness availability observed: "
             + json.dumps(

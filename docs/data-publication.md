@@ -21,7 +21,8 @@ that successful dataset, including its original sync status.
 | Path under `data/` | Contents |
 | --- | --- |
 | `latest.json` | Publisher-written bookmark: points to the last successful dataset's commit/index and reports the newest ingestion attempt's status. |
-| `index.json` | Collector-written catalog: available ROCm versions, default selection, source status, build counts, and overview paths. |
+| `index.json` | Collector-written catalog: available ROCm versions, default selection, source status, build counts, overview paths, and selected releases with per-archive qualification links. |
+| `release-inventory.json` | Observed published ROCm releases and archives, with repository, exact SDK version, tag, publication time and release URL. Includes the pagination marker for each source. |
 | `rocm/<version>/overview.json` | Summary for one ROCm version: engine cards, latest builds, latest model measurements, and paths to full history. |
 | `rocm/<version>/history/YYYY-MM.json` | All retained build records for that version and calendar month, including engine, channel, date, qualification results, and evidence links. |
 | `rocm/<version>/performance.json` | Model measurement history and hardware for one ROCm version, with workload, metrics, and verified package associations. |
@@ -75,12 +76,12 @@ Comparing ROCm versions uses their per-version performance files.
 Version directories group the configured builds and measurements by ROCm version.
 Stable llama.cpp packages label versions such as `7.14`, `10.0`, and `10.1`.
 Each build record identifies its engine and channel; the directory groups records
-by the producer’s numeric ROCm version (for example, `10.3.0`). `views.readiness.stable_anchor: "latest"` discovers
-the newest track in the current stable qualification feed; `nightly_limit: 2`
-selects up to the next two newer tracks in current nightly qualification evidence.
-Exact SDK versions remain on build records as `producer_rocm_version`.
-This policy applies to the entire readiness dataset. Every run rebuilds from
-current producer snapshots; previous downstream history is not merged.
+by the producer’s numeric ROCm version (for example, `10.3.0`). The
+[catalog scope](data-pipeline.md#published-release-discovery) comes from published
+binary releases. A track can have a version overview with zero qualification
+records. Exact SDK versions remain on the selected releases and on build records
+as `producer_rocm_version`. Each collection rebuilds qualification and performance
+from current producer snapshots and carries forward the release inventory.
 Publication replaces tracked `data/` with the validated manifest in one commit,
 removing obsolete tracks. Producer data and Git history are not modified.
 

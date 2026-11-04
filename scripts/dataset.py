@@ -904,8 +904,14 @@ def write_dataset(
                 status="rocm_identified", reason="ambiguous qualification builds"
             )
         execution_versions.setdefault(row["rocm_version"], []).append(row)
+    releases = {
+        version: row
+        for version, row in zip(
+            (policy or {}).get("tracks", []), output.get("selected_releases", [])
+        )
+    }
     for version in sorted(
-        set(grouped) | set(assigned) | set(execution_versions),
+        set(grouped) | set(assigned) | set(execution_versions) | set(releases),
         key=_version_key,
         reverse=policy is None,
     ):
@@ -925,6 +931,7 @@ def write_dataset(
                 "rocm_version": version,
                 "overview": f"rocm/{version}/overview.json",
                 "build_count": count,
+                **({"release": releases[version]} if version in releases else {}),
             }
         )
     performance = {
@@ -953,6 +960,8 @@ def write_dataset(
             "awaiting_evidence_count": 0,
         },
     }
+    if releases:
+        index["release_inventory"] = "release-inventory.json"
     if policy is not None:
         index["readiness"] = dict(policy)
         # Remove only obsolete generated ROCm track directories in this output.

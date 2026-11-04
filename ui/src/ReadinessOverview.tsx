@@ -4,6 +4,7 @@ import {
   loadHistory,
   type Build,
   type Fetcher,
+  type PublishedRelease,
   type Session,
 } from "./data";
 import { EngineOverview } from "./EngineOverview";
@@ -11,6 +12,7 @@ import sources from "../../sources.json";
 
 type VersionEvidence = {
   version: string;
+  release?: PublishedRelease;
   session?: Session;
   builds: Build[] | null;
   error?: string;
@@ -36,7 +38,9 @@ export function ReadinessOverview({
         const row: VersionEvidence = {
           version: entry.rocm_version,
           builds: null,
+          release: entry.release,
         };
+        if (row.release) return row;
         try {
           row.session =
             session.version === entry.rocm_version && session.overview
@@ -75,7 +79,7 @@ export function ReadinessOverview({
     row.session?.overview?.engines.flatMap((engine) => engine.latest_builds) ??
     [];
   const visible = state.rows.filter(
-    (row) => row.error || row.historyError || records(row).length,
+    (row) => row.release || row.error || row.historyError || records(row).length,
   );
   const stable = session.index.readiness?.stable_anchor;
   const rows = visible; // The collector owns version selection and ordering.
@@ -97,6 +101,7 @@ export function ReadinessOverview({
             ROCm {row.version}
             {row.version === stable ? " · Latest stable" : ""}
           </h2>
+          {row.release && <ReleaseDetails release={row.release} />}
           {row.error && (
             <div role="alert">
               {row.error} <button onClick={onRetry}>Retry data</button>
@@ -128,5 +133,34 @@ export function ReadinessOverview({
       )}
       {!rows.length && <p>No qualification build records are available.</p>}
     </div>
+  );
+}
+
+function ReleaseDetails({ release }: { release: PublishedRelease }) {
+  const anyReport = release.archives.some((archive) => archive.report_url);
+  return (
+    <>
+      <p>
+        llama.cpp <a href={release.url}>{release.tag}</a> · ROCm {release.version}
+        {" · Published "}<time dateTime={release.published_at}>{release.published_at.slice(0, 10)}</time>
+      </p>
+      {!anyReport && <p>Qualification data unavailable</p>}
+      <ul>
+        {release.archives.map((archive) => (
+          <li key={archive.name}>
+            <a href={archive.url}>{archive.name}</a>
+            {archive.report_url ? (
+              <>
+                {" · "}
+                <a href={archive.report_url}>Qualification report</a>
+                {archive.qualified === true
+                  ? archive.overall === "warn" ? " · Qualified with warnings" : " · Qualified"
+                  : archive.qualified === false ? " · Did not qualify" : ""}
+              </>
+            ) : anyReport ? " · Qualification data unavailable" : null}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

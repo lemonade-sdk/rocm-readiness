@@ -38,3 +38,45 @@ def select_policy(policy, builds):
         for minor in sorted(by_track, key=key)[: policy["nightly_limit"]]
     ]
     return {"stable_anchor": anchor, "tracks": [anchor, *nightly]}
+
+
+def numeric_version(value):
+    return re.split(r"a|rc", value, maxsplit=1)[0]
+
+
+def release_version_key(release):
+    return tuple(map(int, numeric_version(release["version"]).split(".")))
+
+
+def release_minor(release):
+    return release_version_key(release)[:2]
+
+
+def select_releases(releases, nightly_limit):
+    latest = {"stable": {}, "nightly": {}}
+    for release in releases:
+        by_minor = latest[release["channel"]]
+        minor = release_minor(release)
+        key = lambda row: (
+            row["published_at"],
+            row["tag"],
+            release_version_key(row),
+            row["version"],
+        )
+        if minor not in by_minor or key(release) > key(by_minor[minor]):
+            by_minor[minor] = release
+    if not latest["stable"]:
+        raise ValueError("release discovery found no published stable ROCm binaries")
+    anchor = max(latest["stable"])
+    nightly = latest["nightly"]
+    return [
+        latest["stable"][anchor],
+        *[nightly[minor] for minor in sorted(nightly) if minor > anchor][
+            :nightly_limit
+        ],
+    ]
+
+
+def release_policy(selected):
+    tracks = [numeric_version(row["version"]) for row in selected]
+    return {"stable_anchor": tracks[0], "tracks": tracks}

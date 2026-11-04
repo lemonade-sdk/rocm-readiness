@@ -109,6 +109,10 @@ def load_config(config):
         readiness["readiness"] = {"stable_anchor": readiness_view["stable_anchor"]}
         if "nightly_limit" in readiness_view:
             readiness["readiness"]["nightly_limit"] = readiness_view["nightly_limit"]
+        if "release_repositories" in readiness_view:
+            readiness["readiness"]["release_repositories"] = copy.deepcopy(
+                readiness_view["release_repositories"]
+            )
     validate_config(readiness)
     upview = views.get("upstream")
     # Validate every project and job, including entries outside a view.

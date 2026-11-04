@@ -6,23 +6,68 @@ See [data flow](data-flow.md) for the overview and [data publication](data-publi
 for the published files. [JSON reference](reference/README.md) provides
 field types, nullability and [producer mappings](reference/mappings.md).
 
-`sources.json` is maintained here by repository contributors. Its entries locate
-the upstream JSON files listed below. Each run rebuilds readiness from current pinned producer snapshots. It discovers
-the newest stable qualification track and selects up to two numerically newer
-nightly tracks with actual qualification records. Previous downstream records
-and package associations are not carried forward. The last successful publication
-remains available until the replacement passes validation.
+## Published release discovery
+
+`views.readiness.release_repositories` in [sources.json](../sources.json) sets
+the [stable repository](https://github.com/lemonade-sdk/llama.cpp/releases) and
+the [nightly repository](https://github.com/lemonade-sdk/llamacpp-rocm/releases).
+The collector reads uploaded ROCm binary archives from published releases. It
+takes the stable SDK version from the archive filename and the exact nightly SDK
+version from the release's ROCm Version field.
+
+The first run paginates through both release histories. Later runs restore
+`release-inventory.json`, paginate through new observations until they reach
+the previous first release, and merge those observations by repository and tag.
+If the marker has disappeared, the scan continues through the full history.
+A weekly full scan picks up changes on older releases beyond the marker.
+The collector fetches each proposed release by tag again to check its archives.
+If a release has been removed or has lost its binaries, the collector recomputes
+the selection. A discovery request failure fails the collection and preserves
+the last successful publication. A successful scan with fewer eligible nightlies
+publishes the available tracks.
+
+The dashboard selects the latest published release in the highest numeric
+stable minor track, then the latest published release in every
+available newer nightly minor track in numeric order. An older nightly can
+remain eligible while its binaries are published. The CI log lists observed
+tracks, selected tags and qualification coverage for each release.
+
+Qualification joins by repository, channel, exact SDK version, tag and archive.
+The collector uses the pinned qualification feed when it contains a matching
+report. If the feed is unavailable or has no matching entry, it checks the release-attached report and verifies its tag,
+SDK version and archive. When neither provides evidence, the dashboard keeps the
+download links and shows “Qualification data unavailable.” Qualification and
+performance records are rebuilt from current producer snapshots.
 
 ## Current sources
 
 | Data | Repository / branch | Entry file |
 | --- | --- | --- |
 | llama.cpp stable qualification | [lemonade-sdk/llama.cpp · qualification-data](https://github.com/lemonade-sdk/llama.cpp/tree/qualification-data) | [qualification/index.json](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) |
+| llama.cpp nightly qualification | [lemonade-sdk/llamacpp-rocm · qualification-data](https://github.com/lemonade-sdk/llamacpp-rocm/tree/qualification-data) | [qualification/index.json](https://github.com/lemonade-sdk/llamacpp-rocm/blob/qualification-data/qualification/index.json) |
 | Model performance | [lemonade-sdk/lemonade · benchmark-data](https://github.com/lemonade-sdk/lemonade/tree/benchmark-data) | [leaderboard.json](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json) |
 
 llama.cpp ingests stable ROCm builds from `lemonade-sdk/llama.cpp` and their model
 results from Lemonade's `benchmark-data` branch. `include_forks: ["llamacpp-rocm-stable"]`
 selects those results before association.
+
+## Qualification feed contracts
+
+Both producers maintain `.github/qualify-rocm/FEED.md` and mirror it as
+`qualification/SCHEMA.md` alongside the live index on the `qualification-data`
+branch. Consult the mirrored schema when inspecting a pinned feed revision.
+
+- Stable uses schema v2 with one archive per OS and ROCm SDK version. Each
+  archive covers multiple compiled GFX targets. [Stable FEED.md](https://github.com/lemonade-sdk/llama.cpp/blob/lemonade/.github/qualify-rocm/FEED.md) · [Stable schema mirror](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/SCHEMA.md)
+- Nightly uses schema v1 with one archive per OS and configured GFX family.
+  Each run pins one exact TheRock SDK version, bundled in its archives. The
+  target matrix determines the row count. [Nightly FEED.md](https://github.com/lemonade-sdk/llamacpp-rocm/blob/main/.github/qualify-rocm/FEED.md) · [Nightly schema mirror](https://github.com/lemonade-sdk/llamacpp-rocm/blob/qualification-data/qualification/SCHEMA.md)
+
+Use `gfx_family` for nightly package coverage, `gfx` for the compiled-target
+audit, and `gfx_target` with `hardware_validated` for actual GPU testing.
+Archive qualification, publication, and hardware validation are separate.
+Stable attached reports call their verdict `promoted`. Nightly attached
+reports use `qualified`.
 
 ## What we retain
 
@@ -61,7 +106,7 @@ into build or model-measurement records.
 
 | Adapter | Function | Expected contents |
 | --- | --- | --- |
-| `qualification-v1` | `normalize_qualification()` | `schema_version: 1` and a `builds` array with build tags, ROCm versions, test results, and report links |
+| `qualification-v1` | `normalize_qualification()` | Stable `schema_version: 2` or nightly `schema_version: 1` and a `builds` array with build tags, ROCm versions, test results, and report links |
 | `lemonade-leaderboard-v1` | `normalize_performance()` | `systems`, `by_model_scenario`, and `history`, containing hardware and model benchmark results |
 
 Choose the adapter by inspecting the producer JSON. Qualification format details:

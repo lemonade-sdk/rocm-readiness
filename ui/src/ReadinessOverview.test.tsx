@@ -128,8 +128,29 @@ it("shows published archives when a track has no qualification records", async (
         archives: [{ name: "archive.zip", url: archiveUrl }],
       },
     }],
-  });
-  expect(await screen.findByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
+  }, { [new URL("rocm/10.2/overview.json", indexUrl).href]: { ...overview("10.2"), engines: [], history: [] } });
+  expect(await screen.findByRole("region", { name: "llama.cpp nightly build history" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
+  screen.getByText("Downloads and reports").click();
   expect(screen.getByRole("link", { name: "archive.zip" })).toHaveAttribute("href", archiveUrl);
   expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();
+});
+
+
+it("keeps the qualification timeline when a release has recorded builds", async () => {
+  mount({
+    ...index,
+    versions: [{
+      ...index.versions[0],
+      release: {
+        tag: "b11972",
+        version: "10.1",
+        url: "https://github.com/example/project/releases/tag/b11972",
+        published_at: "2026-10-29T00:00:00Z",
+        archives: [],
+      },
+    }],
+  });
+  const chart = await screen.findByRole("region", { name: "llama.cpp stable build history" });
+  expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("view=build"));
 });

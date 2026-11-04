@@ -208,6 +208,9 @@ def qualify(selected, builds, sources, fetch):
                 try:
                     report = fetch(report_url)
                     build = report["build"]
+                    verdict = report.get(
+                        "promoted" if release["channel"] == "stable" else "qualified"
+                    )
                     if (
                         (
                             build.get("release_tag")
@@ -217,7 +220,7 @@ def qualify(selected, builds, sources, fetch):
                         != release["tag"]
                         or build["artifact"] != archive["name"]
                         or build["rocm_version"] != release["version"]
-                        or type(report["qualified"]) is not bool
+                        or type(verdict) is not bool
                         or (
                             report.get("overall") is not None
                             and not isinstance(report["overall"], str)
@@ -228,7 +231,7 @@ def qualify(selected, builds, sources, fetch):
                         )
                     archive.update(
                         report_url=report_url,
-                        qualified=report["qualified"],
+                        qualified=verdict,
                         overall=report.get("overall"),
                     )
                 except (

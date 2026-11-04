@@ -136,7 +136,15 @@ class ReleaseDiscoveryTests(unittest.TestCase):
         from tests.test_current_tracks import CurrentTracksTests
 
         config = CurrentTracksTests().config()
+        config["readiness"].pop("nightly_limit")
         config["readiness"]["release_repositories"] = self.repositories
+        extra = self.release("b1366", "10.4.0a20261104", 4)
+        stable_report = {
+            "name": "qualification-llama-b12109-bin-ubuntu-rocm-10.1-x64.json",
+            "state": "uploaded",
+            "size": 1,
+        }
+        self.stable["assets"].append(stable_report)
 
         def fetch(url):
             nightly = f"/{self.nightly_repo}/" in url
@@ -151,6 +159,16 @@ class ReleaseDiscoveryTests(unittest.TestCase):
                     "repo": self.nightly_repo if nightly else self.stable_repo,
                 }
             if url.endswith(".json"):
+                if not nightly:
+                    return {
+                        "build": {
+                            "llamacpp_tag": "b12109",
+                            "artifact": "llama-b12109-bin-ubuntu-rocm-10.1-x64.tar.gz",
+                            "rocm_version": "10.1",
+                        },
+                        "promoted": True,
+                        "overall": "pass",
+                    }
                 return {
                     "build": {
                         "release_tag": "b1365",
@@ -162,14 +180,17 @@ class ReleaseDiscoveryTests(unittest.TestCase):
                 }
             if "/tags/" in url:
                 return {
-                    row["tag_name"]: row for row in (self.stable, self.old, self.new)
+                    row["tag_name"]: row
+                    for row in (self.stable, self.old, self.new, extra)
                 }[url.rsplit("/", 1)[-1]]
-            return [self.old, self.new] if nightly else [self.stable]
+            return [self.old, self.new, extra] if nightly else [self.stable]
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             output = collect(config, root, fetch=fetch, now="2026-11-04T18:00:00Z")
-            stable, older, newer = output["dataset"]["versions"]
+            stable, older, newer, newest = output["dataset"]["versions"]
+            self.assertEqual(newest["release"]["tag"], "b1366")
+            self.assertIs(stable["release"]["archives"][0]["qualified"], True)
             self.assertEqual(output["sources"][1]["status"], "awaiting_data")
             self.assertEqual(stable["release"]["tag"], "b12109")
             self.assertEqual(older["release"]["version"], "10.2.0a20261022")

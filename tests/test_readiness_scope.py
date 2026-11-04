@@ -40,7 +40,6 @@ class ReadinessScopeTests(unittest.TestCase):
             config["readiness"],
             {
                 "stable_anchor": "latest",
-                "nightly_limit": 2,
                 "release_repositories": {
                     "stable": "lemonade-sdk/llama.cpp",
                     "nightly": "lemonade-sdk/llamacpp-rocm",

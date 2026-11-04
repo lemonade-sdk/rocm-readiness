@@ -637,7 +637,7 @@ def validate_dataset(
         inventory = read(INVENTORY)
         try:
             releases = validate_inventory(inventory, repositories)
-            selected = select_releases(releases, 2)
+            selected = select_releases(releases, None)
             if release_policy(selected) != policy or len(selected) != len(versions):
                 raise ValueError(
                     "release selection does not match published readiness scope"
@@ -735,7 +735,8 @@ def validate_dataset(
             tracks = policy["tracks"]
             _check(
                 isinstance(tracks, list)
-                and 1 <= len(tracks) <= 3
+                and bool(tracks)
+                and ("release_inventory" in index or len(tracks) <= 3)
                 and tracks[0] == policy["stable_anchor"]
                 and tracks
                 == sorted(
@@ -745,7 +746,7 @@ def validate_dataset(
                 and set(version_names) == set(tracks),
                 "index.json",
                 "/readiness/tracks",
-                "catalog must contain stable and at most two selected newer tracks",
+                "catalog must contain stable and the selected newer tracks",
             )
     if raw_execution is not None:
         try:

@@ -27,8 +27,8 @@ the last successful publication. A successful scan with fewer eligible nightlies
 publishes the available tracks.
 
 The dashboard selects the latest published release in the highest numeric
-stable minor track, then the latest published release in each of the first two
-available newer nightly minor tracks in numeric order. An older nightly can
+stable minor track, then the latest published release in every
+available newer nightly minor track in numeric order. An older nightly can
 remain eligible while its binaries are published. The CI log lists observed
 tracks, selected tags and qualification coverage for each release.
 
@@ -50,6 +50,24 @@ performance records are rebuilt from current producer snapshots.
 llama.cpp ingests stable ROCm builds from `lemonade-sdk/llama.cpp` and their model
 results from Lemonade's `benchmark-data` branch. `include_forks: ["llamacpp-rocm-stable"]`
 selects those results before association.
+
+## Qualification feed contracts
+
+Both producers maintain `.github/qualify-rocm/FEED.md` and mirror it as
+`qualification/SCHEMA.md` alongside the live index on the `qualification-data`
+branch. Consult the mirrored schema when inspecting a pinned feed revision.
+
+- Stable uses schema v2 with one archive per OS and ROCm SDK version. Each
+  archive covers multiple compiled GFX targets. [Stable FEED.md](https://github.com/lemonade-sdk/llama.cpp/blob/lemonade/.github/qualify-rocm/FEED.md) · [Stable schema mirror](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/SCHEMA.md)
+- Nightly uses schema v1 with one archive per OS and configured GFX family.
+  Each run pins one exact TheRock SDK version, bundled in its archives. The
+  target matrix determines the row count. [Nightly FEED.md](https://github.com/lemonade-sdk/llamacpp-rocm/blob/main/.github/qualify-rocm/FEED.md) · [Nightly schema mirror](https://github.com/lemonade-sdk/llamacpp-rocm/blob/qualification-data/qualification/SCHEMA.md)
+
+Use `gfx_family` for nightly package coverage, `gfx` for the compiled-target
+audit, and `gfx_target` with `hardware_validated` for actual GPU testing.
+Archive qualification, publication, and hardware validation are separate.
+Stable attached reports call their verdict `promoted`. Nightly attached
+reports use `qualified`.
 
 ## What we retain
 
@@ -88,7 +106,7 @@ into build or model-measurement records.
 
 | Adapter | Function | Expected contents |
 | --- | --- | --- |
-| `qualification-v1` | `normalize_qualification()` | `schema_version: 1` and a `builds` array with build tags, ROCm versions, test results, and report links |
+| `qualification-v1` | `normalize_qualification()` | Stable `schema_version: 2` or nightly `schema_version: 1` and a `builds` array with build tags, ROCm versions, test results, and report links |
 | `lemonade-leaderboard-v1` | `normalize_performance()` | `systems`, `by_model_scenario`, and `history`, containing hardware and model benchmark results |
 
 Choose the adapter by inspecting the producer JSON. Qualification format details:

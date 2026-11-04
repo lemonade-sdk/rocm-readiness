@@ -96,7 +96,7 @@ def validate_config(config):
             ),
             "invalid readiness stable_anchor",
         )
-        if policy["stable_anchor"] == "latest":
+        if policy["stable_anchor"] == "latest" and "release_repositories" not in policy:
             require(
                 type(policy.get("nightly_limit")) is int
                 and policy["nightly_limit"] == 2,
@@ -946,7 +946,7 @@ def collect(
             )
             inventory, selected = discover(
                 release_repositories,
-                config["readiness"]["nightly_limit"],
+                None,
                 fetch,
                 previous,
                 today=clock.date(),

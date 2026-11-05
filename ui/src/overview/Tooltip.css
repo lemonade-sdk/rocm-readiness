@@ -25,7 +25,7 @@
   background: var(--panel);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow);
   white-space: normal;
   text-align: left;

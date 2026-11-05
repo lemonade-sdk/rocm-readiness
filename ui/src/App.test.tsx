@@ -24,20 +24,20 @@ it("omits engine and channel sections without build records", async () => {
   for (const name of ["vLLM", "Whisper", "Stable Diffusion"])
     expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("heading", { name: /Nightly/ }),
+    screen.queryByRole("heading", { name: "Nightly" }),
   ).not.toBeInTheDocument();
   expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
 });
 it("shows separate linked UI and active data versions without the tagline", async () => {
   mount();
   await screen.findByRole("heading", { name: "ROCm Readiness" });
-  const ui = screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ });
+  const ui = screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ });
   expect(ui.getAttribute("href")).toMatch(
     /^https:\/\/github.com\/lemonade-sdk\/rocm-readiness\/commit\/[a-f0-9]{40}$/,
   );
   expect(
     screen.getByRole("link", {
-      name: `Data ${pointer.data_commit.slice(0, 8)}`,
+      name: `Published data ${pointer.data_commit.slice(0, 8)}`,
     }),
   ).toHaveAttribute(
     "href",
@@ -49,10 +49,10 @@ it("keeps the UI version visible when initial data loading fails", async () => {
   mount(vi.fn().mockRejectedValue(new Error("Offline")));
   await screen.findByRole("alert");
   expect(
-    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+    screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ }),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("link", { name: /^Data / }),
+    screen.queryByRole("link", { name: /^Published data / }),
   ).not.toBeInTheDocument();
 });
 it("updates only the data version after a successful dataset refresh", async () => {
@@ -78,18 +78,18 @@ it("updates only the data version after a successful dataset refresh", async () 
   mount(fetcher);
   await screen.findByRole("button", { name: "Retry history" });
   const uiHref = screen
-    .getByRole("link", { name: /^UI [a-f0-9]{8}$/ })
+    .getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ })
     .getAttribute("href");
   advance = true;
   fireEvent.click(screen.getByRole("button", { name: "Retry history" }));
   expect(
-    await screen.findByRole("link", { name: "Data bbbbbbbb" }),
+    await screen.findByRole("link", { name: "Published data bbbbbbbb" }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+    screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ }),
   ).toHaveAttribute("href", uiHref);
   expect(
-    screen.queryByRole("link", { name: "Data aaaaaaaa" }),
+    screen.queryByRole("link", { name: "Published data aaaaaaaa" }),
   ).not.toBeInTheDocument();
 });
 it("ignores legacy overview platform filters and links builds to scoped Page Two", async () => {
@@ -203,7 +203,7 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
     screen.getByText(/Keeping the last usable dataset/),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: "Data aaaaaaaa" }),
+    screen.getByRole("link", { name: "Published data aaaaaaaa" }),
   ).toBeInTheDocument();
 });
 it("omits the normal status strip and refresh button", async () => {

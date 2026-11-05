@@ -6,6 +6,26 @@
   display: grid;
   gap: 1rem;
 }
+.up-hero {
+  margin: 0;
+}
+.up-hero .eyebrow {
+  color: var(--muted);
+}
+.up-totals {
+  margin-top: 1.5rem;
+}
+.up-totals .up-stat {
+  min-width: 0;
+  flex: 1 1 7rem;
+  padding: 0;
+}
+.up-totals .up-stat strong {
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+}
+.up-projects-heading {
+  margin-top: 0.5rem;
+}
 .up-totals,
 .up-kpis {
   display: flex;
@@ -16,9 +36,6 @@
   display: grid;
   min-width: 9rem;
   padding: 0.6rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 0.6rem;
-  background: var(--panel);
 }
 .up-stat strong {
   font-size: 1.5rem;
@@ -39,22 +56,82 @@
 }
 .up-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr));
   gap: 1rem;
 }
 .up-card {
+  min-width: 0;
   cursor: pointer;
   display: grid;
   gap: 0.6rem;
   align-content: start;
 }
+.up-section-heading {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.up-project-activity {
+  overflow-x: auto;
+  min-width: 0;
+  margin-top: 0.65rem;
+  padding: 0.75rem 1rem 0.5rem;
+  border-radius: var(--radius-control);
+  background: var(--subpanel);
+}
+.up-project-activity:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-activity-table {
+  width: 100%;
+  min-width: 29rem;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.up-activity-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+}
+.up-activity-table th,
+.up-activity-table td {
+  padding: 0.3rem 0.15rem;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+.up-activity-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+.up-activity-table th:first-child {
+  padding-inline-end: 0.65rem;
+  text-align: left;
+}
+.up-activity-table thead th {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.up-activity-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.up-activity-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
 .up-card .up-kpis {
-  flex-wrap: nowrap;
+  align-self: center;
   gap: 0.5rem;
 }
 .up-card .up-stat {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 6rem;
   padding: 0.4rem 0.6rem;
 }
 .up-card .up-stat strong {
@@ -65,7 +142,7 @@
   font-size: 0.75rem;
 }
 .up-card:hover {
-  border-color: var(--accent-line);
+  background: var(--control);
 }
 .up-card-head,
 .up-page-head {
@@ -85,14 +162,14 @@
 .up-repo {
   margin-left: auto;
   font-size: 0.75rem;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .up-badge {
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.05rem 0.55rem;
   border-radius: 999px;
-  border: 1px solid currentColor;
+  background: var(--badge);
 }
 .up-badge-up {
   color: var(--good);
@@ -123,36 +200,45 @@
   min-width: 22rem;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-panel);
   box-shadow: var(--shadow);
 }
 .up-forks li {
   display: grid;
   padding: 0.2rem 0;
 }
-.up-strip {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.up-strip-label {
-  width: 4.5rem;
-  text-align: right;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
 .up-ticks {
+  flex-wrap: wrap;
   display: flex;
   gap: 2px;
 }
 .up-tick {
-  display: block;
-  width: 6px;
-  height: 18px;
-  border-radius: 2px;
+  display: inline-grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
   border: 0;
+  border-radius: 50%;
   padding: 0;
-  background: var(--chart-track);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1;
+  outline: 0;
+}
+.up-tick.up-good { color: var(--good); }
+.up-tick.up-warn { color: var(--warning); }
+.up-tick.up-bad,
+.up-tick.up-stall { color: var(--bad); }
+.up-tick.up-good,
+.up-tick.up-warn,
+.up-tick.up-bad {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+button.up-tick:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 button.up-tick {
   cursor: pointer;
@@ -194,14 +280,14 @@ button.up-tick {
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--line);
-  border-radius: 0.6rem;
+  border-radius: var(--radius-panel);
   background: var(--background);
 }
 .up-filter button {
   border: 1px solid var(--line);
   background: var(--control);
   color: inherit;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-control);
   padding: 0.15rem 0.6rem;
   font: inherit;
   font-size: 0.8rem;
@@ -224,7 +310,7 @@ button.up-tick {
   padding: 0.5rem 0.75rem;
   border-left: 3px solid var(--bad);
   background: var(--error);
-  border-radius: 0.3rem;
+  border-radius: 2px;
 }
 .up-cols {
   display: grid;
@@ -268,7 +354,7 @@ button.up-tick {
   display: flex;
   flex-direction: column;
   border: 1px solid transparent;
-  border-radius: 0.3rem;
+  border-radius: 2px;
   background: none;
   padding: 2px;
   cursor: pointer;
@@ -314,7 +400,7 @@ button.up-tick {
 .up-daypanel {
   margin-top: 0.5rem;
   border: 1px solid var(--line);
-  border-radius: 0.5rem;
+  border-radius: var(--radius-panel);
   background: var(--subpanel);
 }
 .up-daypanel-head {
@@ -333,7 +419,7 @@ button.up-tick {
   border: 1px solid var(--line);
   background: var(--control);
   color: inherit;
-  border-radius: 0.3rem;
+  border-radius: 2px;
   cursor: pointer;
   font: inherit;
 }
@@ -395,7 +481,7 @@ button.up-tick {
   font-size: 0.7rem;
   padding: 0 0.4rem;
   border: 1px solid var(--line);
-  border-radius: 0.3rem;
+  border-radius: 999px;
 }
 .up-chip-passed {
   color: var(--good) !important;
@@ -486,11 +572,16 @@ button.up-tick {
 }
 .track-tabs a {
   padding: 0.25rem 0.7rem;
-  border-radius: 0.4rem;
+  border-radius: var(--radius-control);
   color: var(--muted);
   text-decoration: none;
 }
 .track-tabs a[aria-current="page"] {
-  color: var(--text);
-  background: var(--control);
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.45em;
+}
+.track-tabs a:hover {
+  color: var(--accent);
 }

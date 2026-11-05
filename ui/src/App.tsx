@@ -216,25 +216,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </a>
       <header className="header">
         <Link className="brand" to={href("overview")}>
-          <span className="brand-mark" aria-hidden="true">
-            ◒
-          </span>{" "}
-          Lemonade <span className="brand-light">Performance</span>
+          ROCm Readiness
+          <span className="deck-label">Signal Deck</span>
         </Link>
-        <nav className="track-tabs" aria-label="Dashboards">
-          <Link
-            aria-current={track === "readiness" ? "page" : undefined}
-            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
-          >
-            ROCm readiness
-          </Link>
-          <Link
-            aria-current={track === "upstream" ? "page" : undefined}
-            to="?track=upstream"
-          >
-            Upstream health
-          </Link>
-        </nav>
         <div className="header-controls">
           {track === "readiness" && view !== "overview" && (
             <label htmlFor="version">ROCm version</label>
@@ -261,7 +245,28 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           <ThemeControl />
         </div>
       </header>
+      <aside className="deck-rail" aria-label="Workspaces">
+        <div className="deck-kicker">Workspaces</div>
+        <nav className="track-tabs" aria-label="Dashboards">
+          <Link
+            aria-current={track === "readiness" ? "page" : undefined}
+            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
+          >
+            ROCm readiness
+          </Link>
+          <Link
+            aria-current={track === "upstream" ? "page" : undefined}
+            to="?track=upstream"
+          >
+            Upstream health
+          </Link>
+        </nav>
+      </aside>
       <main id="main" tabIndex={-1}>
+        <div className="deck-context" aria-hidden="true">
+          <span>{track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}</span>
+          <span>ROCm ecosystem</span>
+        </div>
         {track === "readiness" && view !== "overview" && (
           <div className="topline">
             <nav aria-label="Breadcrumb">
@@ -492,45 +497,59 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               )}
             </>
           )}
-        <footer>
-          <div>
-            <p>
-              {uiCommit ? (
+      </main>
+      <footer className="deck-provenance" aria-label="Dashboard provenance">
+        <div className="deck-kicker">About this data</div>
+        {session && (
+          <div className="provenance-updated">
+            <span>Data updated</span>
+            <time dateTime={session.index.generated_at}>
+              {date(session.index.generated_at)}
+            </time>
+          </div>
+        )}
+        <div className="provenance-group">
+          <div className="provenance-label">Revisions</div>
+          <div className="provenance-links">
+            {uiCommit ? (
+              <span>
+                UI deployment (
                 <a
                   href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${uiCommit}`}
-                  title={`UI commit ${uiCommit}`}
+                  aria-label={`UI deployment ${uiCommit.slice(0, 8)}`}
+                  title={uiCommit}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  UI {uiCommit.slice(0, 8)}
+                  {uiCommit.slice(0, 8)}
                 </a>
-              ) : (
-                <span>UI version unavailable</span>
-              )}
-              {session ? (
-                <>
-                  {" · "}
-                  {session.pointer.data_commit ? (
-                    <a
-                      href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
-                      title={`Data commit ${session.pointer.data_commit}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Data {session.pointer.data_commit.slice(0, 8)}
-                    </a>
-                  ) : (
-                    <span>Local dataset preview</span>
-                  )}
-                  {" · "}
-                  <time dateTime={session.index.generated_at}>
-                    Data updated {date(session.index.generated_at)}
-                  </time>
-                </>
-              ) : null}
-            </p>
+                )
+              </span>
+            ) : (
+              <span>UI deployment revision unavailable</span>
+            )}
+            {session && (session.pointer.data_commit ? (
+              <span>
+                Published data (
+                <a
+                  href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
+                  aria-label={`Published data ${session.pointer.data_commit.slice(0, 8)}`}
+                  title={session.pointer.data_commit}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {session.pointer.data_commit.slice(0, 8)}
+                </a>
+                )
+              </span>
+            ) : (
+              <span>Local dataset preview</span>
+            ))}
           </div>
-          <div className="footer-links">
+        </div>
+        <div className="provenance-group">
+          <div className="provenance-label">References</div>
+          <div className="provenance-links">
             {session && (
               <a href={session.indexUrl} target="_blank" rel="noreferrer">
                 Pinned dataset
@@ -544,8 +563,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               Source repository ↗
             </a>
           </div>
-        </footer>
-      </main>
+        </div>
+      </footer>
     </>
   );
 }

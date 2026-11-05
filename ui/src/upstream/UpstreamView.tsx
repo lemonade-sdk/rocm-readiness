@@ -167,7 +167,17 @@ function Forks({ project }: { project: Project }) {
   );
 }
 
-/** One thin tick per day, coloured by that day's pass rate. */
+const activityStates = {
+  good: { glyph: "✓", label: "95–100% passed" },
+  warn: { glyph: "△", label: "80–<95% passed" },
+  bad: { glyph: "×", label: "Below 80% passed" },
+  stall: { glyph: "□", label: "Requested, no runs" },
+  skip: { glyph: "↷", label: "Skipped" },
+  idle: { glyph: "–", label: "No collected evidence" },
+  none: { glyph: "○", label: "No pass or fail result" },
+} as const;
+
+/** One outcome mark per day, with its counts available in the label. */
 export function Ticks({
   days,
   cellOf,
@@ -193,7 +203,9 @@ export function Ticks({
             title={text}
             aria-label={text}
             onClick={() => onPick(day)}
-          />
+          >
+            <span aria-hidden="true">{activityStates[state].glyph}</span>
+          </button>
         ) : (
           <span
             key={day}
@@ -201,7 +213,9 @@ export function Ticks({
             className={`up-tick up-${state}`}
             title={text}
             aria-label={text}
-          />
+          >
+            <span aria-hidden="true">{activityStates[state].glyph}</span>
+          </span>
         );
       })}
     </div>
@@ -310,21 +324,35 @@ function ProjectGrid({
   const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <div className="up-totals">
-        <Stat value={overview.projects.length} label="projects" />
-        <Stat value={all.length} label="configured client jobs" />
-        <Stat
-          value={totals.pct === null ? "–" : `${totals.pct}%`}
-          label={complete ? "passed on main" : "of collected results passed on main"}
-        />
-        <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
-        <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
+      <div className="overview-hero up-hero">
+        <div className="eyebrow">ROCm / CI OBSERVABILITY</div>
+        <h1>Upstream Health</h1>
+        <p>Follow AMD-targeted CI across upstream projects.</p>
+        <div className="up-totals">
+          <Stat value={overview.projects.length} label="projects" />
+          <Stat value={all.length} label="configured client jobs" />
+          <Stat
+            value={totals.pct === null ? "–" : `${totals.pct}%`}
+            label={complete ? "passed on main" : "of collected results passed on main"}
+          />
+          <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
+          <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
+        </div>
       </div>
       <p className="up-rule muted">
         Upstream means a test on the default branch ran on{" "}
         configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
         targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
       </p>
+      <h2 className="up-projects-heading">Projects</h2>
+      <ul className="up-activity-key" aria-label="Daily CI activity legend">
+        {Object.entries(activityStates).map(([state, { glyph, label }]) => (
+          <li key={state}>
+            <span className={`up-tick up-${state}`} aria-hidden="true">{glyph}</span>
+            {label}
+          </li>
+        ))}
+      </ul>
       <div className="up-cards">
         {overview.projects.map((project) => {
           const r = rate(project.jobs);
@@ -359,6 +387,7 @@ function ProjectGrid({
               {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
                 <>
+                  <h3 className="up-section-heading">Project metrics</h3>
                   <div className="up-kpis">
                     <Stat
                       value={r.pct === null ? "–" : `${r.pct}%`}
@@ -377,22 +406,54 @@ function ProjectGrid({
                       />
                     )}
                   </div>
-                  {CATEGORIES.map((category) => {
-                    const jobs = project.jobs.filter(
-                      (j) => j.category === category,
-                    );
-                    if (!jobs.length) return null;
-                    return (
-                      <div className="up-strip" key={category}>
-                        <span className="up-strip-label">{category}</span>
-                        <Ticks
-                          days={last14}
-                          cellOf={(d) => sumCells(jobs, d)}
-                          label={`${project.label} ${category}, last 14 days`}
-                        />
-                      </div>
-                    );
-                  })}
+                  <div
+                    className="up-project-activity"
+                    role="region"
+                    aria-label={`${project.label} activity calendar`}
+                    tabIndex={0}
+                  >
+                    <table className="up-activity-table">
+                      <caption>Daily CI activity · Last 14 days</caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Category</th>
+                          {last14.map((day) => (
+                            <th key={day} scope="col" aria-label={day}>
+                              <time dateTime={day}>{day.slice(8)}</time>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {CATEGORIES.map((category) => {
+                          const jobs = project.jobs.filter((job) => job.category === category);
+                          if (!jobs.length) return null;
+                          return (
+                            <tr key={category}>
+                              <th scope="row">{category}</th>
+                              {last14.map((day) => {
+                                const cell = sumCells(jobs, day);
+                                const state = cellState(cell);
+                                const text = describe(day, cell);
+                                return (
+                                  <td key={day}>
+                                    <span
+                                      className={`up-tick up-${state}`}
+                                      role="img"
+                                      aria-label={text}
+                                      title={text}
+                                    >
+                                      <span aria-hidden="true">{activityStates[state].glyph}</span>
+                                    </span>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </>
               ) : (
                 <p className="muted">

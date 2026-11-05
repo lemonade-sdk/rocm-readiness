@@ -43,6 +43,10 @@ computed badge, forks and 14-day status strips. A project page
 
 ## Appearance
 
+All dashboard UI changes follow [Signal Deck](../docs/ui-design-reference.md), with
+ROCm documentation blues, a side rail for dashboard navigation and dataset
+provenance, and tables with distinct symbols for qualification and CI outcomes.
+
 The dashboard follows the device's light/dark preference by default, including
 changes while it is open. Use the sun/moon control in the header to choose
 **System**, **Light**, or **Dark**. Explicit choices are saved in this browser;

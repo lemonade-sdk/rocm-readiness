@@ -105,7 +105,23 @@ function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number })
         </>
       }
     >
-      {outcome === null ? <EvidenceUnavailableIcon /> : null}
+      {outcome === null ? (
+        <EvidenceUnavailableIcon />
+      ) : (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d={outcome === "pass" ? "m3 8 3 3 7-7" : "m4 4 8 8M12 4l-8 8"} />
+        </svg>
+      )}
     </Tooltip>
   );
 }
@@ -119,7 +135,6 @@ export function EngineOverview({
   emptyChannel,
 }: Props) {
   const EngineHeading = nested ? "h3" : "h2";
-  const TrackHeading = nested ? "h4" : "h3";
   const OSHeading = nested ? "h5" : "h4";
   const [clock, setClock] = useState(() => new Date());
   useEffect(() => {
@@ -177,13 +192,10 @@ export function EngineOverview({
         if (!channels.length && emptyChannel) channels.push(emptyChannel);
         return (
           <article
-            className="card engine-card build-timeline-card"
+            className="build-timeline-card"
             key={engine.id}
             aria-label={engine.label}
           >
-            <EngineHeading className="build-engine-heading">
-              {engine.label}
-            </EngineHeading>
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,
@@ -200,11 +212,14 @@ export function EngineOverview({
                   className="build-tile"
                   aria-label={`${engine.label} ROCm ${version} ${channel}`}
                 >
-                  {channels.length > 1 && (
-                    <TrackHeading>
-                      {channel === "stable" ? "Stable" : "Nightly"}
-                    </TrackHeading>
-                  )}
+                  <div className="build-table-heading">
+                    <EngineHeading className="build-engine-heading">
+                      {engine.label}
+                    </EngineHeading>
+                    {channels.length > 1 && (
+                      <span>{channel === "stable" ? "Stable" : "Nightly"}</span>
+                    )}
+                  </div>
                   {platforms.length > 0 && (
                     <div
                       className="build-timeline-scroll"

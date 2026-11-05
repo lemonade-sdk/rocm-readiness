@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Tooltip } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
-import { EvidenceUnavailableIcon } from "./EvidenceUnavailableIcon";
+import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
 import {
   buildDate,
   buildIdentity,
   calendarDays,
+  calendarMonthGroups,
+  isCalendarMonthBoundary,
   exactBuildHref,
   qualificationOutcome,
 } from "./overview/buildTimeline";
@@ -105,23 +107,7 @@ function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number })
         </>
       }
     >
-      {outcome === null ? (
-        <EvidenceUnavailableIcon />
-      ) : (
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d={outcome === "pass" ? "m3 8 3 3 7-7" : "m4 4 8 8M12 4l-8 8"} />
-        </svg>
-      )}
+      <BuildOutcomeIcon outcome={outcome} />
     </Tooltip>
   );
 }
@@ -144,23 +130,7 @@ export function EngineOverview({
   }, [now]);
   const days = calendarDays(now ?? clock);
   const today = days.at(-1)!;
-  const months: { key: string; label: string; days: number }[] = [];
-  for (const day of days) {
-    const key = day.slice(0, 7),
-      prior = months.at(-1);
-    if (prior?.key === key) prior.days++;
-    else
-      months.push({
-        key,
-        label: new Intl.DateTimeFormat("en", {
-          month: "long",
-          timeZone: "UTC",
-        }).format(new Date(`${day}T00:00:00Z`)),
-        days: 1,
-      });
-  }
-  const monthBoundary = (index: number) =>
-    index > 0 && days[index].slice(0, 7) !== days[index - 1].slice(0, 7);
+  const months = calendarMonthGroups(days);
 
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
@@ -212,8 +182,8 @@ export function EngineOverview({
                   className="build-tile"
                   aria-label={`${engine.label} ROCm ${version} ${channel}`}
                 >
-                  <div className="build-table-heading">
-                    <EngineHeading className="build-engine-heading">
+                  <div className="data-table-heading">
+                    <EngineHeading className="data-table-title">
                       {engine.label}
                     </EngineHeading>
                     {channels.length > 1 && (
@@ -222,7 +192,7 @@ export function EngineOverview({
                   </div>
                   {platforms.length > 0 && (
                     <div
-                      className="build-timeline-scroll"
+                      className="build-timeline-scroll calendar-surface"
                       tabIndex={0}
                       role="region"
                       aria-label={`${engine.label} ${channel} build history`}
@@ -235,7 +205,7 @@ export function EngineOverview({
                           <colgroup key={month.key} span={month.days} />
                         ))}
                         <thead>
-                          <tr className="build-months">
+                          <tr className="calendar-months">
                             <th scope="col" rowSpan={2} className="os-column">
                               OS
                             </th>
@@ -259,7 +229,7 @@ export function EngineOverview({
                                 scope="col"
                                 key={day}
                                 className={
-                                  monthBoundary(index)
+                                  isCalendarMonthBoundary(days, index)
                                     ? "month-boundary"
                                     : undefined
                                 }
@@ -292,30 +262,25 @@ export function EngineOverview({
                                   const dayBuilds = rows.filter(
                                     (build) => buildDate(build) === day,
                                   );
-                                  const visibleBuilds =
-                                    channel === "nightly" ? dayBuilds.slice(-1) : dayBuilds;
+                                  const latestBuild = dayBuilds.at(-1);
                                   return (
                                     <td
                                       key={day}
                                       className={
-                                        monthBoundary(index)
+                                        isCalendarMonthBoundary(days, index)
                                           ? "month-boundary"
                                           : undefined
                                       }
                                     >
                                       <div className="build-day">
-                                        {!visibleBuilds.length && (
-                                          <span className="build-no-data">
-                                            No data
-                                          </span>
+                                        {latestBuild ? (
+                                          <BuildMark
+                                            build={latestBuild}
+                                            dayCount={channel === "nightly" && history !== null ? dayBuilds.length : 1}
+                                          />
+                                        ) : (
+                                          <span className="build-no-data">No data</span>
                                         )}
-                                        {visibleBuilds.map((build) => (
-                                            <BuildMark
-                                              key={buildIdentity(build)}
-                                              build={build}
-                                              dayCount={channel === "nightly" && history !== null ? dayBuilds.length : 1}
-                                            />
-                                          ))}
                                       </div>
                                     </td>
                                   );

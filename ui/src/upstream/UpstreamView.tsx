@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Fetcher, Session } from "../data";
+import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
+import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import {
   CATEGORIES,
   cellState,
@@ -177,6 +179,13 @@ const activityStates = {
   none: { glyph: "○", label: "No pass or fail result" },
 } as const;
 
+function ActivityMark({ state }: { state: keyof typeof activityStates }) {
+  if (state === "good" || state === "warn" || state === "bad") {
+    return <BuildOutcomeIcon outcome={state === "good" ? "pass" : state === "bad" ? "fail" : "warn"} />;
+  }
+  return <span className={`up-activity-symbol up-activity-${state}`} aria-hidden="true">{activityStates[state].glyph}</span>;
+}
+
 /** One outcome mark per day, with its counts available in the label. */
 export function Ticks({
   days,
@@ -199,22 +208,22 @@ export function Ticks({
           <button
             key={day}
             type="button"
-            className={`up-tick up-${state}`}
+            className="up-tick"
             title={text}
             aria-label={text}
             onClick={() => onPick(day)}
           >
-            <span aria-hidden="true">{activityStates[state].glyph}</span>
+            <ActivityMark state={state} />
           </button>
         ) : (
           <span
             key={day}
             role="img"
-            className={`up-tick up-${state}`}
+            className="up-tick"
             title={text}
             aria-label={text}
           >
-            <span aria-hidden="true">{activityStates[state].glyph}</span>
+            <ActivityMark state={state} />
           </span>
         );
       })}
@@ -317,6 +326,7 @@ function ProjectGrid({
   onNavigate: (next: URLSearchParams) => void;
 }) {
   const last14 = windowDays(overview, 14);
+  const months = calendarMonthGroups(last14);
   const all = overview.projects.flatMap((p) => p.jobs);
   const totals = rate(all);
   const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
@@ -324,20 +334,16 @@ function ProjectGrid({
   const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <div className="overview-hero up-hero">
-        <div className="eyebrow">ROCm / CI OBSERVABILITY</div>
-        <h1>Upstream Health</h1>
-        <p>Follow AMD-targeted CI across upstream projects.</p>
-        <div className="up-totals">
-          <Stat value={overview.projects.length} label="projects" />
-          <Stat value={all.length} label="configured client jobs" />
-          <Stat
-            value={totals.pct === null ? "–" : `${totals.pct}%`}
-            label={complete ? "passed on main" : "of collected results passed on main"}
-          />
-          <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
-          <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
-        </div>
+      <h2 className="up-summary-heading">CI summary</h2>
+      <div className="up-totals">
+        <Stat value={overview.projects.length} label="projects" />
+        <Stat value={all.length} label="configured client jobs" />
+        <Stat
+          value={totals.pct === null ? "–" : `${totals.pct}%`}
+          label={complete ? "passed on main" : "of collected results passed on main"}
+        />
+        <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
+        <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
       </div>
       <p className="up-rule muted">
         Upstream means a test on the default branch ran on{" "}
@@ -345,21 +351,13 @@ function ProjectGrid({
         targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
       </p>
       <h2 className="up-projects-heading">Projects</h2>
-      <ul className="up-activity-key" aria-label="Daily CI activity legend">
-        {Object.entries(activityStates).map(([state, { glyph, label }]) => (
-          <li key={state}>
-            <span className={`up-tick up-${state}`} aria-hidden="true">{glyph}</span>
-            {label}
-          </li>
-        ))}
-      </ul>
       <div className="up-cards">
         {overview.projects.map((project) => {
           const r = rate(project.jobs);
           return (
             <article
               key={project.id}
-              className="card up-card"
+              className="up-card"
               onClick={() =>
                 onNavigate(query(params, { project: project.id, lens: null }))
               }
@@ -406,20 +404,35 @@ function ProjectGrid({
                       />
                     )}
                   </div>
+                  <div className="data-table-heading">
+                    <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
+                    <span>Last 14 days</span>
+                  </div>
                   <div
-                    className="up-project-activity"
+                    className="up-project-activity calendar-surface"
                     role="region"
                     aria-label={`${project.label} activity calendar`}
                     tabIndex={0}
                   >
-                    <table className="up-activity-table">
-                      <caption>Daily CI activity · Last 14 days</caption>
+                    <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
+                      <colgroup><col /></colgroup>
+                      {months.map((month) => <colgroup key={month.key} span={month.days} />)}
                       <thead>
+                        <tr className="calendar-months">
+                          <th scope="col" rowSpan={2}>Category</th>
+                          {months.map((month, index) => (
+                            <th key={month.key} scope="colgroup" colSpan={month.days}
+                              className={index ? "month-boundary" : undefined}
+                              aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
+                              {month.label}
+                            </th>
+                          ))}
+                        </tr>
                         <tr>
-                          <th scope="col">Category</th>
-                          {last14.map((day) => (
-                            <th key={day} scope="col" aria-label={day}>
-                              <time dateTime={day}>{day.slice(8)}</time>
+                          {last14.map((day, index) => (
+                            <th key={day} scope="col" aria-label={`${day} UTC`}
+                              className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
+                              <time dateTime={day}>{Number(day.slice(8))}</time>
                             </th>
                           ))}
                         </tr>
@@ -431,19 +444,19 @@ function ProjectGrid({
                           return (
                             <tr key={category}>
                               <th scope="row">{category}</th>
-                              {last14.map((day) => {
+                              {last14.map((day, index) => {
                                 const cell = sumCells(jobs, day);
                                 const state = cellState(cell);
                                 const text = describe(day, cell);
                                 return (
-                                  <td key={day}>
+                                  <td key={day} className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
                                     <span
-                                      className={`up-tick up-${state}`}
+                                      className="up-tick"
                                       role="img"
                                       aria-label={text}
                                       title={text}
                                     >
-                                      <span aria-hidden="true">{activityStates[state].glyph}</span>
+                                      <ActivityMark state={state} />
                                     </span>
                                   </td>
                                 );
@@ -454,6 +467,14 @@ function ProjectGrid({
                       </tbody>
                     </table>
                   </div>
+                  <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+                    {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
+                      <li key={state}>
+                        <span className="up-tick" aria-hidden="true"><ActivityMark state={state} /></span>
+                        {activityStates[state].label}
+                      </li>
+                    ))}
+                  </ul>
                 </>
               ) : (
                 <p className="muted">

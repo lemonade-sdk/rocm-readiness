@@ -25,7 +25,7 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
       os: "windows",
       report_url: null,
     },
-    { ...base, build_id: "unknown", tag: "b-unknown", qualified: null },
+    { ...base, build_id: "unknown", tag: "b-unknown", qualified: null, generated_at: "2026-10-28T12:00:00Z" },
   ];
   data.engines[0].latest_builds = [
     { ...base, build_id: "warning", tag: "b-warning", overall: "warn" },

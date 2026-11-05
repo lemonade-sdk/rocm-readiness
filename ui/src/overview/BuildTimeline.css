@@ -1,8 +1,5 @@
 .build-tile {
   margin-top: 0.65rem;
-  padding: 0.65rem clamp(8px, 2vw, 16px);
-  border-radius: var(--radius-panel);
-  background: color-mix(in srgb, var(--panel) 55%, var(--background));
 }
 .build-tile + .build-tile {
   margin-top: 0.9rem;
@@ -10,6 +7,7 @@
 .build-timeline-scroll {
   overflow-x: auto;
   max-width: 100%;
+  padding: 0.65rem clamp(8px, 2vw, 16px);
 }
 .build-timeline {
   width: 100%;
@@ -38,28 +36,30 @@
 }
 .build-day {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-width: 24px;
   justify-content: center;
   align-items: center;
+  min-width: 24px;
+}
+.build-day .build-evidence-missing {
+  display: inline-grid;
+  place-items: center;
 }
 .build-mark {
   display: inline-grid;
   place-items: center;
-  width: 20px;
+  width: 44px;
   height: 20px;
   flex-shrink: 0;
-  border-radius: 50%;
   text-decoration: none;
-  background: color-mix(in srgb, currentColor 12%, var(--panel));
 }
-.build-mark.pass {
-  color: var(--good);
+.build-outcome-bar {
+  display: block;
+  flex: none;
 }
-.build-mark.fail {
-  color: var(--bad);
-}
+.build-outcome-bar.pass { color: var(--good); }
+.build-outcome-bar.warn { color: var(--warning); }
+.build-outcome-bar.fail { color: var(--bad); }
+.build-outcome-bar.unknown { color: var(--muted); }
 .build-mark:focus-visible,
 .build-evidence-missing:focus-visible {
   outline: 2px solid var(--text);
@@ -67,7 +67,7 @@
 }
 .build-evidence-missing {
   color: var(--text);
-  min-width: 20px;
+  min-width: 44px;
   text-align: center;
 }
 .build-timeline thead th {
@@ -123,13 +123,7 @@
   margin: 0;
 }
 
-.build-timeline .build-months th[scope="colgroup"] {
-  border-bottom: 2px solid var(--line);
-  padding-bottom: 0.55rem;
-}
-.build-timeline .month-boundary {
-  border-left: 2px solid var(--line);
-}
+
 
 .build-tooltip-bubble {
   padding: 0;
@@ -185,19 +179,6 @@
   border-bottom: 0;
 }
 
-.build-table-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 0.65rem;
-  margin-bottom: 0.2rem;
-  color: var(--muted);
-  font-size: 0.75rem;
-}
-.build-table-heading .build-engine-heading {
-  margin: 0;
-  color: var(--text);
-  font: 600 1.0625rem ui-monospace, monospace;
-}
 .build-timeline .os-column {
   vertical-align: bottom;
 }

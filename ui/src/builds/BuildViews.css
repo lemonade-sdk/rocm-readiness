@@ -2,32 +2,59 @@
 .build-chart-legend, .build-chart-paging { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
 .build-chart-legend { font-size: .85rem; }
 .build-chart-legend span { display: inline-flex; align-items: center; gap: .35rem; }
-.build-chart-track { padding: 1rem; min-width: 0; }
-.build-chart-track h2, .build-review-panel h2, .build-review-panel p { margin: 0; }
-.build-chart-scroll { overflow-x: auto; }
+.build-chart-track { min-width: 0; }
+.build-chart-track + .build-chart-track { margin-top: 0.5rem; }
+.build-review-panel h2, .build-review-panel p { margin: 0; }
+.build-chart-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.5rem 1rem 0.75rem;
+}
 .build-chart-days {
   display: grid;
   grid-template-columns: repeat(14, minmax(3rem, 1fr));
   width: max(100%, 42rem);
-  padding-block: .75rem .25rem;
+  padding-block: .25rem;
 }
 .build-chart-day {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto 1fr;
   justify-items: stretch;
   text-align: center;
   min-width: 0;
 }
-.build-chart-day[data-focused] { background: var(--accent-surface); }
-.build-chart-day[data-focused] time { border-top-color: var(--accent); font-weight: 600; }
-.build-chart-track h2, .build-chart-day time, .build-review-metric strong {
+.build-chart-day[data-focused] time { border-bottom-color: var(--accent); font-weight: 600; }
+.build-chart-month, .build-chart-day time, .build-review-metric strong {
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
-.build-chart-day time { font-size: .75rem; padding-block: .3rem; border-top: 1px solid var(--line); }
-.build-chart-stack { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-height: 1.5rem; }
-.build-chart-mark { display: flex; align-items: center; gap: 2px; width: 2.75rem; height: 18px; justify-content: center; }
+.build-chart-month {
+  padding-bottom: 0.55rem;
+  border-bottom: 2px solid var(--line);
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.build-chart-day time { font-size: .75rem; padding-block: .3rem; border-bottom: 1px solid var(--line); }
+.build-chart-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 1.5rem;
+  padding-block-start: 6px;
+}
+.build-chart-mark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 8px;
+}
+.build-chart-stack .build-mark { height: auto; }
 .build-chart-mark:focus-visible { outline-offset: -2px; }
-.build-chart-bench { line-height: 1; }
+.build-chart-bench { position: absolute; inset-inline-end: 1px; line-height: 1; }
 .build-tick { display: inline-block; box-sizing: border-box; width: 1.25rem; height: 8px; border-radius: 2px; }
 .build-tick.pass { background: var(--chart-pass); }
 .build-tick.warn { background: repeating-linear-gradient(135deg, var(--chart-warn) 0 2px, transparent 2px 4px); }
@@ -50,3 +77,53 @@
 }
 .build-chart-selection { display: flex; flex-wrap: wrap; gap: .5rem; padding: .65rem; border: 1px solid var(--line); }
 .build-chart-selection a { margin-inline-start: auto; }
+
+.build-chart-stack .build-evidence-missing { display: inline-grid; place-items: center; }
+.build-chart-legend .build-mark { display: inline-grid; }
+.build-charts > .build-filters {
+  padding-bottom: 0.75rem;
+}
+.build-filters {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 0.8rem 1.5rem;
+}
+.build-filter-options legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.build-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.build-filter-options button {
+  min-height: 38px;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  background: var(--panel);
+  font-size: 0.8rem;
+}
+.build-filter-options button:hover:enabled {
+  background: var(--control);
+}
+.build-filter-options button[aria-pressed="true"] {
+  color: var(--selection-text);
+  background: var(--selection-bg);
+}
+.build-filter-options button:disabled { cursor: default; }
+.build-filter-options button:disabled[aria-pressed="true"] { opacity: 1; }
+.build-search {
+  margin-inline-start: auto;
+}
+@media (pointer: coarse) {
+  .build-filter-options button { min-height: 44px; }
+}

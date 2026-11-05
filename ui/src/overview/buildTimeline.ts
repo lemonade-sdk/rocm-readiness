@@ -50,3 +50,20 @@ export function buildIdentity(build: Build): string {
     build.gfx_target,
   ]);
 }
+
+const calendarMonthLabel = new Intl.DateTimeFormat("en", { month: "long", timeZone: "UTC" });
+
+export function calendarMonthGroups(days: readonly string[]) {
+  const months: { key: string; label: string; days: number }[] = [];
+  for (const day of days) {
+    const key = day.slice(0, 7);
+    const previous = months.at(-1);
+    if (previous?.key === key) previous.days++;
+    else months.push({ key, label: calendarMonthLabel.format(new Date(day)), days: 1 });
+  }
+  return months;
+}
+
+export function isCalendarMonthBoundary(days: readonly string[], index: number) {
+  return index > 0 && days[index].slice(0, 7) !== days[index - 1].slice(0, 7);
+}

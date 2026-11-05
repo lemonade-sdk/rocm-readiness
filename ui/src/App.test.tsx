@@ -136,7 +136,6 @@ it("ignores legacy overview platform filters and links a stable build to its rev
     screen.queryByRole("link", { name: /Open build history-2 / }),
   ).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Engine builds" }));
-  expect(await screen.findByRole("link", { name: "Nightly" })).toBeInTheDocument();
   expect(
     (await screen.findAllByRole("link", { name: /Open build history-2 / }))
       .length,
@@ -260,17 +259,13 @@ it("does not show the old version under a newly selected version while loading",
       : original(input),
   );
   mount(fetcher, "/?view=engine");
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
-  fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.2" },
-  });
-  expect(
-    screen.queryByRole("heading", { name: "llama.cpp builds" }),
-  ).not.toBeInTheDocument();
+  const history = await screen.findByRole("region", { name: "Engine build history" });
+  fireEvent.click(within(history).getByRole("button", { name: "10.2" }));
   await waitFor(() => expect(resolve).toBeDefined());
-  fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.1" },
-  });
+  expect(
+    screen.queryByRole("region", { name: "Engine build history" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "10.1" }));
   await screen.findByRole("heading", { name: "llama.cpp builds" });
   await act(async () =>
     resolve(new Response(JSON.stringify(overview("10.2")))),
@@ -287,11 +282,18 @@ it("reopens shared engine scope and preserves filters in navigation", async () =
   expect(
     await screen.findByRole("heading", { name: "llama.cpp builds" }),
   ).toBeInTheDocument();
-  expect(await screen.findByLabelText("Platform")).toHaveValue("linux");
-  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
-    "href",
-    expect.stringContaining("platform=linux"),
-  );
+  expect(await screen.findByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Windows" }));
+  expect(screen.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Linux" }));
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("href", expect.stringContaining("platform=windows"));
+  expect(screen.getByRole("button", { name: "Windows" })).toBeDisabled();
+
+  expect(screen.queryByRole("group", { name: "Build track" })).not.toBeInTheDocument();
 });
 
 it("opens a nightly day stack and reviews an earlier failed build", async () => {

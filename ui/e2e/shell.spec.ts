@@ -49,7 +49,8 @@ test("overview build marks open the exact build review", async ({ page }) => {
     page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
+  await expect(page.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("pins data, switches versions and restores scope through browser history", async ({
@@ -76,7 +77,7 @@ test("pins data, switches versions and restores scope through browser history", 
 
   await expect(page.locator(".build-legend")).toHaveCount(0);
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await page.getByLabel("ROCm version").selectOption("10.2");
+  await page.getByRole("group", { name: "ROCm version" }).getByRole("button", { name: "10.2", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "llama.cpp builds" }),
   ).toBeVisible();
@@ -84,8 +85,9 @@ test("pins data, switches versions and restores scope through browser history", 
   await expect(
     page.getByRole("heading", { name: "llama.cpp builds", exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Platform", { exact: true }).selectOption("linux");
+  await page.getByRole("button", { name: "Windows" }).click();
   await expect(page).toHaveURL(/platform=linux/);
+  await expect(page.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
   await page.getByLabel("Find build").fill("linux-build");
   await expect(page).toHaveURL(/build_filter=linux-build/);
   await page
@@ -107,9 +109,9 @@ test("pins data, switches versions and restores scope through browser history", 
   ).toBeVisible();
   await expect(page).toHaveURL(shared);
   await page.goBack();
-  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue(
-    "linux",
-  );
+  await expect(page).toHaveURL(/view=engine.*platform=linux/);
+  await expect(page.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
   await page.goForward();
   await expect(page).toHaveURL(/build_filter=linux-build/);
   await expect(

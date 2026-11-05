@@ -144,7 +144,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     session && (view === "overview" || !version || session.version === version);
   const overview = scopeMatches ? session.overview : null;
   const platformValid =
-    view === "overview" || ["all", "linux", "windows"].includes(platform);
+    view === "overview" || ["all", "linux", "windows"].includes(platform) ||
+    (view === "engine" && platform === "none");
   const viewValid = [
     "overview",
     "engine",
@@ -159,6 +160,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
     next.set("view", nextView);
+    if (nextView !== "engine" && next.get("platform") === "none") next.delete("platform");
     if (nextView === "engine") {
       for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "build_filter"])
         next.delete(key);
@@ -209,6 +211,59 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     setParams(next);
   };
 
+  const showPageHeading = track === "readiness" && session &&
+    (overview || (view === "overview" && session.index.versions.length > 0)) &&
+    viewValid && platformValid;
+  const pageTitle =
+    track === "upstream" ? "Upstream Health" :
+    view === "engine" ? "llama.cpp builds" :
+    view === "build" ? "Build evidence" :
+    view === "build-review" ? "Build review" :
+    view === "build-performance" ? "Performance evidence" :
+    view === "performance" || view === "model" ? "Model performance" :
+    "ROCm Readiness";
+  const versionOptions = session?.index.versions ?? [];
+  const versionFilter = view === "engine" ? (
+    <fieldset className="build-filter-options">
+      <legend>ROCm version</legend>
+      {!session && <span className="muted">Loading…</span>}
+      {selected && !versionOptions.some((row) => row.rocm_version === selected) && (
+        <button type="button" aria-pressed="true" disabled>{selected} · unavailable</button>
+      )}
+      {versionOptions.map(({ rocm_version }) => (
+        <button
+          key={rocm_version}
+          type="button"
+          aria-pressed={selected === rocm_version}
+          onClick={() => { if (selected !== rocm_version) changeVersion(rocm_version); }}
+        >
+          {rocm_version}
+        </button>
+      ))}
+    </fieldset>
+  ) : (
+    <label>
+      ROCm version
+      <select
+        value={selected}
+        disabled={!session?.index.versions.length}
+        onChange={(event) => changeVersion(event.target.value)}
+      >
+        {!session && <option value="">Loading…</option>}
+        {version &&
+          session &&
+          !session.index.versions.some(
+            (row) => row.rocm_version === version,
+          ) && <option value={version}>{version} · unavailable</option>}
+        {session?.index.versions.map((row) => (
+          <option key={row.rocm_version} value={row.rocm_version}>
+            {row.rocm_version}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -219,68 +274,48 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           ROCm Readiness
           <span className="deck-label">Signal Deck</span>
         </Link>
-        <div className="header-controls">
-          {track === "readiness" && view !== "overview" && (
-            <label htmlFor="version">ROCm version</label>
-          )}
-          <select
-            hidden={track !== "readiness" || view === "overview"}
-            id="version"
-            value={selected}
-            disabled={!session?.index.versions.length}
-            onChange={(event) => changeVersion(event.target.value)}
-          >
-            {!session && <option value="">Loading…</option>}
-            {version &&
-              session &&
-              !session.index.versions.some(
-                (row) => row.rocm_version === version,
-              ) && <option value={version}>{version} · unavailable</option>}
-            {session?.index.versions.map((row) => (
-              <option key={row.rocm_version} value={row.rocm_version}>
-                {row.rocm_version}
-              </option>
-            ))}
-          </select>
-          <ThemeControl />
+        <div className="header-page">
+          <div className="header-page-heading">
+            {showPageHeading || (track === "upstream" && !params.get("project")) ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
+            <div className="deck-context">
+              {track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}
+            </div>
+          </div>
         </div>
+        <div className="header-controls"><ThemeControl /></div>
       </header>
       <aside className="deck-rail" aria-label="Workspaces">
         <div className="deck-kicker">Workspaces</div>
         <nav className="track-tabs" aria-label="Dashboards">
-          <Link
-            aria-current={track === "readiness" ? "page" : undefined}
-            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
-          >
-            ROCm readiness
-          </Link>
-          <Link
-            aria-current={track === "upstream" ? "page" : undefined}
-            to="?track=upstream"
-          >
-            Upstream health
-          </Link>
+          <ul className="workspace-list">
+            <li>
+              <Link
+                aria-current={track === "readiness" ? "true" : undefined}
+                to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
+              >
+                ROCm readiness
+              </Link>
+              {track === "readiness" && (
+                <ul className="workspace-views" aria-label="Dashboard views">
+                  <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
+                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Engine builds</Link></li>
+                  <li><Link aria-current={view === "performance" || view === "model" ? "page" : undefined} to={href("performance")}>Model performance</Link></li>
+                </ul>
+              )}
+            </li>
+            <li>
+              <Link aria-current={track === "upstream" ? "page" : undefined} to="?track=upstream">
+                Upstream health
+              </Link>
+            </li>
+          </ul>
         </nav>
       </aside>
       <main id="main" tabIndex={-1}>
-        <div className="deck-context" aria-hidden="true">
-          <span>{track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}</span>
-          <span>ROCm ecosystem</span>
-        </div>
-        {track === "readiness" && view !== "overview" && (
-          <div className="topline">
-            <nav aria-label="Breadcrumb">
-              <Link to={href("overview")}>ROCm readiness</Link>
-              {view !== "overview" && (
-                <>
-                  <span aria-hidden="true">/</span>
-                  <Link to={href("engine")}>llama.cpp</Link>
-                </>
-              )}
-              {selected && <span className="muted">/ {selected}</span>}
-            </nav>
-          </div>
-        )}
+        {track === "readiness" && view !== "overview" &&
+          (view !== "engine" || history?.session !== session || !history?.builds || !overview || !platformValid) && (
+            <div className="build-browser-toolbar build-filters">{versionFilter}</div>
+          )}
         {liveSync?.status === "failed" && (
           <div className="notice warning">
             <strong>Latest ingestion failed</strong>
@@ -382,62 +417,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           viewValid &&
           platformValid && (
             <>
-              <div
-                className={view === "overview" ? "hero overview-hero" : "hero"}
-              >
-                <div>
-                  {view !== "overview" && (
-                    <div className="eyebrow">{view === "engine" || buildView ? "ROCm / BUILDS" : "ROCm / STABLE RELEASES"}</div>
-                  )}
-                  <h1>
-                    {view === "overview"
-                      ? "ROCm Readiness"
-                      : view === "engine"
-                        ? "llama.cpp builds"
-                        : view === "build"
-                          ? "Build evidence"
-                          : view === "build-review"
-                            ? "Build review"
-                            : view === "build-performance"
-                              ? "Performance evidence"
-                              : "Model performance"}
-                  </h1>
-                  <p>
-                    {view === "overview"
-                      ? "See ROCm builds and the qualification evidence available for their archives."
-                      : "Build qualification and model performance, grounded in published evidence."}
-                  </p>
-                </div>
-                {view !== "overview" && (
-                  <span className="release-pill">
-                    ROCm {overview?.rocm_version ?? selected}
-                  </span>
-                )}
-              </div>
-              <nav className="view-tabs" aria-label="Dashboard views">
-                <Link
-                  aria-current={view === "overview" ? "page" : undefined}
-                  to={href("overview")}
-                >
-                  Overview
-                </Link>
-                <Link
-                  aria-current={
-                    view === "engine" || buildView ? "page" : undefined
-                  }
-                  to={href("engine")}
-                >
-                  Engine builds
-                </Link>
-                <Link
-                  aria-current={
-                    ["performance", "model"].includes(view) ? "page" : undefined
-                  }
-                  to={href("performance")}
-                >
-                  Model performance
-                </Link>
-              </nav>
               {view === "overview" && (
                 <ReadinessOverview
                   session={session}
@@ -455,6 +434,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   <div onClick={handleLocalNavigation}>
                     {view === "engine" ? <EngineBuilds
                       session={session} history={history.builds} params={params} fetcher={fetcher}
+                      versionFilter={versionFilter}
                       onNavigate={(next, replace) => setParams(next, { replace })}
                     /> : view === "build" ? <BuildBrowser
                       session={session}

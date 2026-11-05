@@ -234,7 +234,7 @@ p {
 }
 main {
   max-width: 1336px;
-  margin: auto;
+  margin-inline: auto;
   padding: 28px 28px 36px;
   outline: none;
 }
@@ -285,27 +285,6 @@ main {
   font-size: 12px;
   color: var(--text);
   white-space: nowrap;
-}
-.view-tabs {
-  display: flex;
-  gap: 26px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
-}
-.view-tabs a {
-  text-decoration: none;
-  color: var(--muted);
-  font-size: 13px;
-  padding: 0 0 13px;
-  border-bottom: 2px solid transparent;
-}
-.view-tabs a[aria-current="page"] {
-  border-color: var(--focus);
-  color: var(--text);
-}
-.view-tabs a:hover {
-  text-decoration: none;
-  color: var(--text);
 }
 .stats {
   display: grid;
@@ -590,15 +569,6 @@ main {
   top: 12px;
 }
 @media (max-width: 760px) {
-  .header {
-    padding: 18px 20px;
-    flex-wrap: wrap;
-  }
-  .header-controls {
-    width: 100%;
-    justify-content: space-between;
-    gap: 8px;
-  }
   .channel {
     margin-right: auto;
     font-size: 8px;
@@ -635,12 +605,6 @@ main {
   }
   .stats small {
     font-size: 9px;
-  }
-  .view-tabs {
-    gap: 22px;
-  }
-  .view-tabs a {
-    font-size: 12px;
   }
   .platform-grid {
     grid-template-columns: 1fr;
@@ -904,14 +868,12 @@ main {
   height: 40px;
   padding: 8px;
 }
-.theme-toggle,
-.header-controls select {
+.theme-toggle {
   border: 0;
   background-color: transparent;
 }
 .theme-toggle:hover,
-.theme-toggle[aria-expanded="true"],
-.header-controls select:hover:enabled {
+.theme-toggle[aria-expanded="true"] {
   background-color: var(--control);
 }
 .theme-toggle svg {
@@ -943,49 +905,6 @@ main {
 .theme-options button[aria-pressed="true"] {
   color: var(--selection-text);
   background: var(--selection-bg);
-}
-
-.overview-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  margin: 12px 0 20px;
-  padding: clamp(22px, 4vw, 46px);
-  border-radius: var(--radius-panel);
-  background: radial-gradient(ellipse at 100% 0%, var(--hero-glow), transparent 72%),
-    var(--panel);
-}
-.overview-hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0 0 0 38%;
-  background: repeating-linear-gradient(
-    135deg,
-    transparent 0 20px,
-    var(--hero-trace) 20px 21px,
-    transparent 21px 28px
-  );
-  mask-image: linear-gradient(to right, transparent 20%, #000);
-  opacity: 0.19;
-  pointer-events: none;
-}
-.overview-hero p {
-  max-width: 78ch;
-  line-height: 1.5;
-}
-.header-controls select {
-  appearance: none;
-  padding: 9px 29px 9px 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23878c78' stroke-width='1.5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-}
-@media (forced-colors: active) {
-  .header-controls select {
-    appearance: auto;
-    background-image: none;
-  }
 }
 
 .channel-lanes {
@@ -1029,6 +948,10 @@ main {
 }
 .header {
   grid-area: header;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand page controls";
+  gap: clamp(8px, 2vw, 24px);
   background: var(--subpanel);
   padding: 14px clamp(18px, 3vw, 42px);
 }
@@ -1058,13 +981,32 @@ main {
   display: grid;
   margin: 0.75rem 0 1.75rem;
 }
+.workspace-list,
+.workspace-views {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
 .deck-rail .track-tabs a {
+  display: block;
   padding: 0.65rem;
 }
-.deck-rail .track-tabs a[aria-current="page"] {
+.deck-rail .track-tabs a[aria-current] {
+  color: var(--accent);
   background: var(--panel);
   text-decoration: none;
-  box-shadow: inset 2px 0 var(--accent);
+}
+.workspace-views {
+  margin: 0.25rem 0 0.4rem 0.65rem;
+  padding-inline-start: 0.5rem;
+  font-size: 0.85rem;
+}
+.deck-rail .workspace-views a[aria-current="page"] {
+  color: var(--selection-text);
+  background: var(--selection-bg);
+  font-weight: 600;
 }
 .deck-provenance {
   grid-area: provenance;
@@ -1108,36 +1050,72 @@ main {
   min-width: 0;
   padding: 1.25rem clamp(18px, 3vw, 42px) 2rem;
 }
-.deck-context {
+.header-page {
   display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--line);
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding-inline-start: clamp(0.5rem, 2vw, 1.5rem);
+  border-inline-start: 1px solid var(--line);
 }
-.overview-hero,
-.up-hero {
-  margin: 0.85rem 0 1rem;
-  padding: 0.75rem 0 1rem;
-  border-radius: 0;
-  background: linear-gradient(90deg, transparent 35%, var(--panel));
+.header-page-heading {
+  min-width: 0;
 }
-.overview-hero::before {
-  display: none;
+.header-page h1,
+.header-page-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: normal;
 }
-.overview-hero h1 {
-  font-size: clamp(25px, 3.5vw, 34px);
+.deck-context {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.header .brand { grid-area: brand; }
+.header-page { grid-area: page; }
+.header-controls { grid-area: controls; }
+@media (max-width: 760px) {
+  .header .brand { font-size: 0.85rem; }
+  .header-page .deck-context { font-size: 0.55rem; }
 }
 .readiness-version {
   margin: 1.4rem 0;
 }
-.card,
-.up-project-activity {
+.card {
   border-radius: 0;
 }
-.build-tile {
-  border-radius: 0;
+.calendar-legend {
+  margin: 0;
+  padding: 0.65rem 0 0;
+}
+.calendar-surface {
+  background: color-mix(in srgb, var(--panel) 55%, var(--background));
+}
+.calendar-surface .calendar-months th[scope="colgroup"] {
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.55rem;
+}
+.calendar-surface .month-boundary {
+  border-inline-start: 1px solid var(--line);
+}
+.data-table-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.85rem;
+  margin: 0 0 0.65rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.data-table-heading .data-table-title {
+  margin: 0;
+  color: var(--text);
+  font: 600 1.0625rem/1.3 ui-monospace, monospace;
 }
 .build-timeline thead,
 .up-activity-table thead,
@@ -1152,12 +1130,12 @@ main {
 .up-totals {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-  gap: 1px;
-  background: var(--line);
+  gap: 0.75rem 1.25rem;
+  border-block: 1px solid var(--line);
+  padding-block: 0.85rem;
 }
 .up-totals .up-stat {
-  background: var(--panel);
-  padding: 0.75rem;
+  padding: 0;
 }
 @media (max-width: 760px) {
   #root {
@@ -1170,9 +1148,11 @@ main {
     border-inline-end: 0;
   }
   .deck-rail .track-tabs {
+    margin: 0;
+  }
+  .workspace-views {
     display: flex;
     flex-wrap: wrap;
-    margin: 0;
   }
   .deck-rail .deck-kicker {
     display: none;

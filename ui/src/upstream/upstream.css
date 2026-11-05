@@ -6,15 +6,6 @@
   display: grid;
   gap: 1rem;
 }
-.up-hero {
-  margin: 0;
-}
-.up-hero .eyebrow {
-  color: var(--muted);
-}
-.up-totals {
-  margin-top: 1.5rem;
-}
 .up-totals .up-stat {
   min-width: 0;
   flex: 1 1 7rem;
@@ -56,7 +47,7 @@
 }
 .up-cards {
   display: grid;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 .up-card {
   min-width: 0;
@@ -73,10 +64,7 @@
 .up-project-activity {
   overflow-x: auto;
   min-width: 0;
-  margin-top: 0.65rem;
   padding: 0.75rem 1rem 0.5rem;
-  border-radius: var(--radius-control);
-  background: var(--subpanel);
 }
 .up-project-activity:focus-visible {
   outline: 2px solid var(--focus);
@@ -84,14 +72,9 @@
 }
 .up-activity-table {
   width: 100%;
-  min-width: 29rem;
+  min-width: 42rem;
   border-collapse: collapse;
   font-size: 0.8rem;
-}
-.up-activity-table caption {
-  text-align: left;
-  font-weight: 600;
-  padding-bottom: 0.5rem;
 }
 .up-activity-table th,
 .up-activity-table td {
@@ -102,7 +85,8 @@
 .up-activity-table tbody tr:last-child > * {
   border-bottom: 0;
 }
-.up-activity-table th:first-child {
+.up-activity-table th[rowspan],
+.up-activity-table th[scope="row"] {
   padding-inline-end: 0.65rem;
   text-align: left;
 }
@@ -115,7 +99,6 @@
   flex-wrap: wrap;
   gap: 0.35rem 1rem;
   margin: 0;
-  padding: 0;
   list-style: none;
   font-size: 0.75rem;
   color: var(--muted);
@@ -141,9 +124,6 @@
   margin: 0.2rem 0;
   font-size: 0.75rem;
 }
-.up-card:hover {
-  background: var(--control);
-}
 .up-card-head,
 .up-page-head {
   display: flex;
@@ -156,8 +136,7 @@
   margin: 0;
 }
 .up-card-head h2 a {
-  color: inherit;
-  text-decoration: none;
+  color: var(--link);
 }
 .up-repo {
   margin-left: auto;
@@ -215,27 +194,21 @@
 .up-tick {
   display: inline-grid;
   place-items: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 2rem;
+  min-height: 1.35rem;
   border: 0;
-  border-radius: 50%;
+  border-radius: 0;
   padding: 0;
   background: transparent;
   color: var(--muted);
-  font-size: 0.95rem;
-  font-weight: 650;
-  line-height: 1;
-  outline: 0;
+  vertical-align: middle;
 }
-.up-tick.up-good { color: var(--good); }
-.up-tick.up-warn { color: var(--warning); }
-.up-tick.up-bad,
-.up-tick.up-stall { color: var(--bad); }
-.up-tick.up-good,
-.up-tick.up-warn,
-.up-tick.up-bad {
-  background: color-mix(in srgb, currentColor 12%, transparent);
+.up-tick .build-outcome-bar {
+  width: 100%;
+  max-width: 2rem;
 }
+.up-activity-stall { color: var(--bad); }
+.up-activity-symbol { line-height: 1; }
 button.up-tick:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;

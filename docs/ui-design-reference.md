@@ -32,12 +32,27 @@ validation each retain their own meaning.
 
 - Share navigation, typography, spacing, and control styles across views.
   Use headings and spacing to show hierarchy.
-- Put dashboard navigation at the top of the desktop side rail and dataset
+- Use the selected ROCm version and engine to scope the build calendars.
+  Show each available track in its calendar heading. When the version already
+  provides the track context, omit the separate track control.
+- Use independent platform toggles with a filled and accessible pressed state.
+  Keep at least one platform selected, and keep unavailable platforms visible
+  and disabled. Determine platform availability from the version and engine
+  before applying search or date paging. Keep filter selections in the URL.
+- Group version and platform controls together, with search at the trailing
+  edge when space permits. Let the controls wrap at narrow widths. Use the
+  workspace rail for navigation between dashboard views. Place ROCm version
+  selection with the view filters. Show short version lists as visible choices. Keep the current title in the shared
+  header and the theme control at its trailing edge. Mark the focused build
+  date at its header and keep the column on the shared calendar surface.
+- Put workspace navigation at the top of the desktop side rail and dataset
   provenance at the bottom. At narrow widths, keep navigation above the
-  content and provenance below it.
-- Make the ROCm version the primary heading and place engine names in the
-  timeline header. In Upstream Health, group project metrics separately from
-  the dated activity table and share one symbol legend across projects.
+  content and provenance below it. Nest view links under their workspace
+  and use the shared filled selection style for the current view. Keep
+  keyboard focus visually distinct from the selected state.
+- Make the ROCm version the primary heading and place engine names above the
+  timeline surface. In Upstream Health, group project metrics separately from
+  the dated activity table. Place the CI legend beneath its own calendar.
 - Lay out related cards side by side when space permits and stack them on
   narrow screens. Keep timeline dates and build links readable at either width.
 - Preserve System, Light, and Dark preferences. Check text and controls against
@@ -58,19 +73,35 @@ validation each retain their own meaning.
 - Keep header controls quiet. Use a borderless theme icon with a visible focus
   state and make the active destination clear.
 - Keep version and project headings prominent. Give the engine label enough
-  weight to scan inside the timeline panel. Show **Latest Stable** for the
+  weight to scan above the timeline panel. Show **Latest Stable** for the
   configured anchor and **Nightly** for versions newer than it.
 - Keep the rail focused on dashboard navigation and dataset provenance. Treat
   additional destinations or selectors as separate design decisions.
 
 ## Evidence and status
 
+- Place each calendar’s legend directly below its table so it explains the
+  marks used there. Give calendar
+  tables a visible heading above their shared, low-contrast surface. Use the shared heading style
+  for the title, with the track, platform, or date window in smaller secondary
+  text beside it. Keep headings and table labels available to assistive tools.
+- Group consecutive UTC dates under a spanning month name. Show only the day
+  number in each column and carry a subtle divider through the month boundary.
+  Apply this pattern to Readiness Overview, Engine Builds, and Upstream CI
+  calendars. Preserve the full UTC date in the accessible labels.
+
 - Preserve the Readiness calendar's operating-system rows, month and day
   headers, and links to individual builds. In Upstream Health, keep metrics,
-  coverage notes, and daily CI activity in distinct groups.
-- Use status tokens consistently. Teal and a check indicate a qualified build,
-  rose and a cross indicate a failure, and the neutral unavailable symbol
-  indicates missing qualification evidence. In Upstream Health, the shared
+  coverage notes, and daily CI activity in distinct groups. Use the shared
+  header for the dashboard title and lead with the CI summary in the body.
+- Use compact, square-ended horizontal bars for build outcomes. Stack build
+  bars vertically within each date in Engine Builds. In the Overview, show
+  one bar per engine, track, platform, and UTC date using the latest build.
+  Keep the full set of builds in Engine Builds. A solid teal bar
+  indicates qualification, a half-filled amber bar indicates qualification
+  with warnings, a hollow rose bar indicates failure, and a dashed neutral bar
+  indicates missing evidence. Keep the text legend and descriptive build links.
+  In Upstream Health, the shared
   legend defines rate bands and distinguishes requested jobs that never ran
   from skipped jobs and days without collected evidence.
 - Let wide tables scroll inside their own labeled, keyboard-focusable regions.

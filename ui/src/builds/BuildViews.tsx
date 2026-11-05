@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { Build, Fetcher, Session } from "../data";
-import { buildDate, buildIdentity, calendarDays, exactBuildHref } from "../overview/buildTimeline";
+import { buildDate, buildIdentity, calendarDays, calendarMonthGroups, exactBuildHref, isCalendarMonthBoundary } from "../overview/buildTimeline";
+import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { Tooltip } from "../overview/Tooltip";
 import {
   comparisonKey, findExactQualificationBuild, MeasurementDetail,
@@ -14,7 +15,12 @@ import "./BuildViews.css";
 const outcomes = {
   pass: "Qualified", warn: "Qualified with warnings", fail: "Failed", unknown: "Evidence unavailable",
 };
-const dayLabel = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" });
+function OutcomeMark({ status }: { status: keyof typeof outcomes }) {
+  return <span className={status === "unknown" ? "build-evidence-missing" : `build-mark ${status}`}>
+    <BuildOutcomeIcon outcome={status === "unknown" ? null : status} />
+  </span>;
+}
+
 const platformName = (os: string) => os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 type Measurement = PerformanceData["measurements"][number];
 
@@ -70,24 +76,54 @@ function useBuildMeasurements(session: Session, history: Build[], fetcher: Fetch
 
 type ViewProps = { session: Session; history: Build[]; params: URLSearchParams; fetcher: Fetcher };
 
-export function EngineBuilds({ session, history, params, fetcher, onNavigate }: ViewProps & {
+function BuildFilter({ label, options, available, selected, onSelect }: {
+  label: string;
+  options: [[string, string], [string, string]];
+  available: readonly string[];
+  selected: string | null;
+  onSelect: (value: string | null) => void;
+}) {
+  return (
+    <fieldset className="build-filter-options">
+      <legend>{label}</legend>
+      {options.map(([value, name], index) => (
+        <button
+          key={value}
+          type="button"
+          aria-pressed={available.includes(value) && (selected === null || selected === value)}
+          disabled={!available.includes(value) || selected === value || available.length === 1}
+          onClick={() => onSelect(selected === null ? options[1 - index][0] : null)}
+        >
+          {name}
+        </button>
+      ))}
+    </fieldset>
+  );
+}
+
+export function EngineBuilds({ session, history, params, fetcher, onNavigate, versionFilter }: ViewProps & {
+  versionFilter: ReactNode;
   onNavigate: (params: URLSearchParams, replace?: boolean) => void;
 }) {
   const charts = useRef<HTMLElement>(null);
   const [inspected, setInspected] = useState<{ scope: string; build: Build }>();
   const scope = params.toString();
-  const channel = params.get("channel");
-  const platform = params.get("platform") ?? "all";
+  const platformParam = params.get("platform");
   const query = params.get("build_filter") ?? "";
   const focus = params.get("day");
   const selectedBuild = params.get("build");
   const source = params.get("source");
   const engineId = params.get("engine");
-  const channels = channel === "nightly" || channel === "stable" ? [channel] : ["stable", "nightly"];
+  const scopedBuilds = history.filter((build) => !engineId || build.engine === engineId);
+  const availablePlatforms = (["linux", "windows"] as const).filter((value) =>
+    scopedBuilds.some((build) => build.os === value),
+  );
+  const selectedPlatform = availablePlatforms.find((value) => value === platformParam) ?? null;
   const performance = useBuildMeasurements(session, history, fetcher);
   function next(changes: Record<string, string | null>) {
     const target = new URLSearchParams(params);
     target.set("view", "engine");
+    target.delete("channel");
     if (session.version) target.set("version", session.version);
     for (const [key, value] of Object.entries(changes)) {
       if (value === null) target.delete(key);
@@ -100,10 +136,8 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate }: 
     if (query) target.set("build_filter", query);
     return `?${target}`;
   }
-  const rows = history.filter((build) =>
-    (!engineId || build.engine === engineId) &&
-    (platform === "all" || build.os === platform) &&
-    channels.includes(build.channel) &&
+  const rows = scopedBuilds.filter((build) =>
+    (selectedPlatform === null || build.os === selectedPlatform) &&
     (!selectedBuild || (build.build_id === selectedBuild && (!source || source === build.source_id))) &&
     (!query || [build.build_id, build.tag, build.artifact, build.source_id].join(" ").toLowerCase().includes(query.toLowerCase()))
   );
@@ -113,6 +147,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate }: 
   const end = parsed && Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === windowEnd
     ? parsed : dates.length ? new Date(dates[dates.length - 1]) : null;
   const days = end ? calendarDays(end) : [];
+  const months = calendarMonthGroups(days);
   const older = dates.findLast((day) => day < days[0]);
   const newer = dates.find((day) => day > days[days.length - 1]);
   const newerEnd = newer ? new Date(Math.min(+new Date(dates[dates.length - 1]), +new Date(newer) + 13 * 86_400_000)).toISOString().slice(0, 10) : null;
@@ -131,31 +166,26 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate }: 
     for (const chart of charts.current?.querySelectorAll<HTMLElement>(".build-chart-scroll") ?? []) {
       chart.scrollLeft = chart.scrollWidth;
     }
-  }, [session, windowEnd, channel, platform, engineId, query]);
+  }, [session, windowEnd, platformParam, engineId, query]);
 
   const active = inspected?.scope === scope && rows.includes(inspected.build) ? inspected.build : null;
   return <section ref={charts} className="build-charts" aria-label="Engine build history">
-    <nav className="view-tabs" aria-label="Build channels">
-      {[["All tracks", null], ["Stable", "stable"], ["Nightly", "nightly"]].map(([label, value]) =>
-        <Link key={label} aria-current={(channel ?? null) === value ? "page" : undefined}
-          to={`?${next({ channel: value, day: null, through: null, build: null, source: null })}`}>{label}</Link>)}
-    </nav>
-    <div className="build-browser-toolbar">
-      <label>Find build <input type="search" value={query} placeholder="Package tag or build ID"
+    <div className="build-browser-toolbar build-filters">
+      {versionFilter}
+      <BuildFilter
+        label="Platforms"
+        options={[["linux", "Linux"], ["windows", "Windows"]]}
+        available={availablePlatforms}
+        selected={selectedPlatform}
+        onSelect={(value) => onNavigate(next({ platform: value }))}
+      />
+      <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, through: null, day: null }), true)} /></label>
-      <label>Platform <select aria-label="Platform" value={platform} onChange={(event) => onNavigate(next({ platform: event.target.value, through: null, day: null }))}>
-        <option value="all">All platforms</option><option value="linux">Linux</option><option value="windows">Windows</option>
-      </select></label>
     </div>
     {selectedBuild && <Link to={`?${next({ build: null, source: null, platform: null, day: null, through: null })}`}>Show all engine builds</Link>}
-    <div className="build-chart-legend">
-      {Object.entries(outcomes).map(([status, label]) => <span key={status}><i className={`build-tick ${status}`} aria-hidden="true" />{label}</span>)}
-      <span>• Matched model benchmark</span>
-    </div>
-    {performance.message && <p className="muted">{performance.message} {performance.retry && <button onClick={performance.retry}>Retry</button>}</p>}
-    {days.length > 0 && <nav className="build-chart-paging" aria-label="Build date range">
+    {performance.retry && <p className="muted">{performance.message} <button onClick={performance.retry}>Retry</button></p>}
+    {(older || newerEnd) && <nav className="build-chart-paging" aria-label="Browse build dates">
       {older && <Link to={`?${next({ through: older, day: null })}`}>← Older builds</Link>}
-      <span>{days[0]} – {days[days.length - 1]} UTC</span>
       {newerEnd && <Link to={`?${next({ through: newerEnd, day: null })}`}>Newer builds →</Link>}
     </nav>}
     {rows.length === 0 ? <p role="status">No retained builds match these filters.</p> :
@@ -164,14 +194,27 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate }: 
       <strong>{active.tag ?? active.build_id}</strong> · {outcomes[outcome(active)]} · {buildDate(active)} UTC
       <Link to={buildHref(active)}>Open build review</Link>
     </div>}
-    {channels.flatMap((trackChannel) => [...byTrack.values()].filter((track) => track.channel === trackChannel).map((track) => {
+    {(["stable", "nightly"] as const).flatMap((trackChannel) => [...byTrack.values()].filter((track) => track.channel === trackChannel).map((track) => {
       const engine = session.overview?.engines.find((item) => item.id === track.engine)?.label ?? track.engine;
-      return <section className="card build-chart-track" key={JSON.stringify([track.engine, track.channel, track.os])}>
-        <h2>{engine} · {track.channel === "stable" ? "Stable" : "Nightly"} · {platformName(track.os)}</h2>
-        <div className="build-chart-scroll" role="region" tabIndex={0} aria-label={`${engine} ${track.channel} ${platformName(track.os)} calendar`}>
+      return <section className="build-chart-track" key={JSON.stringify([track.engine, track.channel, track.os])}>
+        <div className="data-table-heading">
+          <h2 className="data-table-title">{engine}</h2>
+          <span>{track.channel === "stable" ? "Stable" : "Nightly"} · {platformName(track.os)}</span>
+        </div>
+        <div className="calendar-surface build-chart-scroll" role="region" tabIndex={0} aria-label={`${engine} ${track.channel} ${platformName(track.os)} calendar`}>
           <div className="build-chart-days">
-            {days.map((day) => <div key={day} className="build-chart-day" data-focused={day === focus || undefined}
+            {months.map((month, index) => (
+              <div
+                key={month.key}
+                className={index ? "build-chart-month month-boundary" : "build-chart-month"}
+                style={{ gridColumn: `span ${month.days}` }}
+              >
+                {month.label}
+              </div>
+            ))}
+            {days.map((day, index) => <div key={day} className={isCalendarMonthBoundary(days, index) ? "build-chart-day month-boundary" : "build-chart-day"} data-focused={day === focus || undefined}
               role="group" aria-label={`${day} UTC, ${track.days.get(day)?.length ?? 0} builds`}>
+              <time dateTime={day}>{Number(day.slice(8))}</time>
               <div className="build-chart-stack">
                 {[...(track.days.get(day) ?? [])].sort((a, b) => Date.parse(b.generated_at) - Date.parse(a.generated_at) ||
                   buildIdentity(a).localeCompare(buildIdentity(b))).map((build) => {
@@ -193,13 +236,17 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate }: 
                     content={<><strong>{build.tag ?? build.build_id}</strong><span>{outcomes[status]}</span>
                       {latest && <span>{latest.model} · {latest.scenario}{latest.metrics.tps_mean != null && ` · ${metricValue("tps_mean", latest.metrics.tps_mean)}`}</span>}
                       <small>{count ? `${count} matched model measurement${count === 1 ? "" : "s"}` : performance.message || "No matched benchmarks"}</small></>}>
-                    <i className={`build-tick ${status}`} aria-hidden="true" />{count > 0 && <span className="build-chart-bench" aria-hidden="true">•</span>}
+                    <OutcomeMark status={status} />{count > 0 && <span className="build-chart-bench" aria-hidden="true">•</span>}
                   </Tooltip>;
                 })}
               </div>
-              <time dateTime={day}>{dayLabel.format(new Date(day))}</time>
             </div>)}
           </div>
+        </div>
+        <div className="build-chart-legend calendar-legend" role="group" aria-label="Build status legend">
+          {(["pass", "warn", "fail", "unknown"] as const).map((status) => <span key={status}><OutcomeMark status={status} />{outcomes[status]}</span>)}
+          {days.some((day) => track.days.get(day)?.some((build) => performance.matches.has(build))) &&
+            <span>• Matched model benchmark</span>}
         </div>
       </section>;
     }))}

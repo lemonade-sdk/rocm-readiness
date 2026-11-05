@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import "./Tooltip.css";
 
 // Shared timing for application hover disclosures; not a user preference panel.
@@ -13,12 +13,14 @@ export function Tooltip({
   children,
   to,
   triggerClassName,
+  onLinkClick,
 }: {
   label: string;
   content: ReactNode;
   children: ReactNode;
   to?: string;
   triggerClassName?: string;
+  onLinkClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const id = useId();
   const container = useRef<HTMLSpanElement>(null);
@@ -122,6 +124,7 @@ export function Tooltip({
           className={triggerClassName}
           aria-label={label}
           aria-describedby={open ? id : undefined}
+          onClick={onLinkClick}
           onFocus={schedule}
           onBlur={close}
         >

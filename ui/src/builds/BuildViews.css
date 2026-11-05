@@ -1,0 +1,47 @@
+.build-charts, .build-review-panel { display: grid; gap: 1rem; }
+.build-chart-legend, .build-chart-paging { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.build-chart-legend { font-size: .85rem; }
+.build-chart-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.build-chart-track { padding: 1rem; min-width: 0; }
+.build-chart-track h2, .build-review-panel h2, .build-review-panel p { margin: 0; }
+.build-chart-scroll { overflow-x: auto; }
+.build-chart-days {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(3rem, 1fr));
+  width: max(100%, 42rem);
+  padding-block: .75rem .25rem;
+}
+.build-chart-day {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: stretch;
+  text-align: center;
+  min-width: 0;
+}
+.build-chart-day[data-focused] { background: var(--accent-surface); }
+.build-chart-day time { font-size: .75rem; padding-block: .3rem; border-top: 1px solid var(--line); }
+.build-chart-stack { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-height: 1.5rem; }
+.build-chart-mark { display: flex; align-items: center; gap: 2px; width: 2.75rem; height: 18px; justify-content: center; }
+.build-chart-bench { line-height: 1; }
+.build-tick { display: inline-block; box-sizing: border-box; width: 1.25rem; height: 8px; border-radius: 2px; }
+.build-tick.pass { background: var(--chart-pass); }
+.build-tick.warn { background: repeating-linear-gradient(135deg, var(--chart-warn) 0 2px, transparent 2px 4px); }
+.build-tick.fail { border: 2px solid var(--chart-fail); }
+.build-tick.unknown { border: 1px dashed var(--muted); }
+.build-review-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: 1rem; align-items: start; }
+.build-review-panel { padding: 1rem; }
+.build-review-panel dl { display: grid; grid-template-columns: 1fr auto; gap: .35rem 1rem; margin: 0; }
+.build-review-panel dd { margin: 0; }
+.build-review-bar { display: flex; gap: 2px; }
+.build-review-bar .build-tick { width: 0; height: 14px; }
+.build-review-cohort { display: grid; gap: .35rem; }
+.build-review-metric { display: grid; grid-template-columns: 1fr auto; gap: .15rem .5rem; }
+.build-review-metric small, .build-review-delta { grid-column: 1 / -1; }
+.build-review-delta { height: 12px; background: var(--line); position: relative; }
+.build-review-delta::after { content: ""; position: absolute; left: 50%; height: 100%; border-left: 1px solid var(--muted); }
+.build-review-delta i { position: absolute; height: 100%; background: var(--emphasis); }
+@media (pointer: coarse) {
+  .build-chart-mark { height: 44px; }
+}
+.build-chart-selection { display: flex; flex-wrap: wrap; gap: .5rem; padding: .65rem; border: 1px solid var(--line); }
+.build-chart-selection a { margin-inline-start: auto; }

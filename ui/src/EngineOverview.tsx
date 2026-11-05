@@ -24,7 +24,7 @@ function platformLabel(os: string) {
   return os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 }
 
-function BuildMark({ build }: { build: Build }) {
+function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number }) {
   const outcome = qualificationOutcome(build);
   const failureReasons = [
     ...(build.blocked_by ?? []),
@@ -39,10 +39,13 @@ function BuildMark({ build }: { build: Build }) {
       ? "Failed"
       : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
+  const dayLink = dayCount > 1
+    ? `?${new URLSearchParams({ view: "engine", version: build.rocm_version, engine: build.engine, channel: "nightly", platform: build.os, day: buildDate(build) })}`
+    : null;
   return (
     <Tooltip
-      to={exactBuildHref(build)}
-      label={label}
+      to={dayLink ?? exactBuildHref(build)}
+      label={dayLink ? `${dayCount} nightly builds on ${buildDate(build)} · ${platformLabel(build.os)} · latest ${status}` : label}
       triggerClassName={
         outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
       }
@@ -50,6 +53,7 @@ function BuildMark({ build }: { build: Build }) {
         <>
           <span className="build-tooltip-header">
             <strong className="comparison-title">
+              {dayLink && `${dayCount} builds · latest: `}
               {build.tag ?? "Build"} · {platformLabel(build.os)}
             </strong>
             <span className={`build-tooltip-status ${outcome ?? "unknown"}`}>
@@ -294,6 +298,7 @@ export function EngineOverview({
                                             <BuildMark
                                               key={buildIdentity(build)}
                                               build={build}
+                                              dayCount={channel === "nightly" && history !== null ? dayBuilds.length : 1}
                                             />
                                           ))}
                                       </div>

@@ -26,9 +26,9 @@ export function qualificationOutcome(build: Build): "pass" | "fail" | null {
   return null;
 }
 
-export function exactBuildHref(build: Build): string {
+export function exactBuildHref(build: Build, view = "build-review"): string {
   const query = new URLSearchParams({
-    view: "build",
+    view,
     version: build.rocm_version,
     engine: build.engine,
     channel: build.channel,

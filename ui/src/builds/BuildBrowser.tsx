@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Build, Session } from "../data";
+import { exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
 
 type BuildBrowserProps = {
@@ -121,7 +122,7 @@ function pinnedReport(build: Build): PinnedReport | string {
   return { url: build.report_url, commit, file };
 }
 
-function findSelectedBuild(
+export function findSelectedBuild(
   history: Build[] | null,
   buildId: string | null,
   platform: string,
@@ -532,6 +533,7 @@ function BuildDetail({ build, session }: { build: Build; session: Session }) {
         : null;
   return (
     <article className="build-browser-detail">
+      <a href={exactBuildHref(build)}>← Build review</a>
       <div className="build-browser-detail-heading">
         <div>
           <span className="build-browser-kicker">BUILD EVIDENCE</span>

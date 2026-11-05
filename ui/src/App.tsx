@@ -5,11 +5,11 @@ import {
   loadSession,
   loadVersion,
   loadHistory,
-  resolveDatasetPath,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
+import { BuildReview, EngineBuilds } from "./builds/BuildViews";
 import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
@@ -107,8 +107,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     return () => controller.abort();
   }, [version, track, view, refresh, fetcher]);
 
+  const needsHistory = track === "readiness" && view !== "overview";
   useEffect(() => {
-    if (track !== "readiness" || view === "overview" || !session?.overview)
+    if (!needsHistory || !session?.overview)
       return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
@@ -136,7 +137,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           });
       });
     return () => controller.abort();
-  }, [session, track, view, fetcher]);
+  }, [session, needsHistory, fetcher]);
 
   const selected = version ?? session?.version ?? "";
   const scopeMatches =
@@ -148,13 +149,20 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     "overview",
     "engine",
     "build",
+    "build-review",
+    "build-performance",
     "performance",
     "model",
   ].includes(view);
+  const buildView = ["build", "build-review", "build-performance"].includes(view);
   const href = (nextView: string, extras: Record<string, string> = {}) => {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
     next.set("view", nextView);
+    if (nextView === "engine") {
+      for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "build_filter"])
+        next.delete(key);
+    }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
     return `?${next}`;
   };
@@ -164,8 +172,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("build");
     next.delete("source");
     next.delete("model");
+    next.delete("day");
+    next.delete("through");
     if (next.get("compare") === value) next.delete("compare");
-    if (view === "build") next.set("view", "engine");
+    if (buildView) next.set("view", "engine");
     if (view === "model") next.set("view", "performance");
     setParams(next);
   };
@@ -195,7 +205,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.set("platform", value);
     next.delete("build");
     next.delete("source");
-    if (view === "build") next.set("view", "engine");
+    if (buildView) next.set("view", "engine");
     setParams(next);
   };
 
@@ -372,7 +382,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               >
                 <div>
                   {view !== "overview" && (
-                    <div className="eyebrow">ROCm / STABLE RELEASES</div>
+                    <div className="eyebrow">{view === "engine" || buildView ? "ROCm / BUILDS" : "ROCm / STABLE RELEASES"}</div>
                   )}
                   <h1>
                     {view === "overview"
@@ -381,7 +391,11 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         ? "llama.cpp builds"
                         : view === "build"
                           ? "Build evidence"
-                          : "Model performance"}
+                          : view === "build-review"
+                            ? "Build review"
+                            : view === "build-performance"
+                              ? "Performance evidence"
+                              : "Model performance"}
                   </h1>
                   <p>
                     {view === "overview"
@@ -404,7 +418,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 </Link>
                 <Link
                   aria-current={
-                    ["engine", "build"].includes(view) ? "page" : undefined
+                    view === "engine" || buildView ? "page" : undefined
                   }
                   to={href("engine")}
                 >
@@ -426,67 +440,31 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   onRetry={refreshData}
                 />
               )}
-              {["engine", "build"].includes(view) &&
-                (history?.session === session && history.error ? (
+              {(view === "engine" || buildView) && (
+                history?.session === session && history.error ? (
                   <div className="notice error" role="alert">
                     <p>{history.error}</p>
                     <button onClick={refreshData}>Retry history</button>
                   </div>
-                ) : (
+                ) : history?.session === session && history.builds ? (
                   <div onClick={handleLocalNavigation}>
-                    {view === "engine" && params.get("build") && (
-                      <div className="notice">
-                        <p>Selected stable build: {params.get("build")}</p>
-                        <Link
-                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
-                        >
-                          Show all engine builds
-                        </Link>
-                      </div>
-                    )}
-                    <BuildBrowser
+                    {view === "engine" ? <EngineBuilds
+                      session={session} history={history.builds} params={params} fetcher={fetcher}
+                      onNavigate={(next, replace) => setParams(next, { replace })}
+                    /> : view === "build" ? <BuildBrowser
                       session={session}
-                      history={
-                        history?.session === session
-                          ? (history.builds?.filter(
-                              (build) =>
-                                view !== "engine" ||
-                                !params.get("build") ||
-                                (build.build_id === params.get("build") &&
-                                  (!params.get("source") ||
-                                    build.source_id === params.get("source")) &&
-                                  (!params.get("engine") ||
-                                    build.engine === params.get("engine")) &&
-                                  (!params.get("channel") ||
-                                    build.channel === params.get("channel"))),
-                            ) ?? null)
-                          : null
-                      }
+                      history={history.builds.filter((build) =>
+                        (!params.get("engine") || build.engine === params.get("engine")) &&
+                        (!params.get("channel") || build.channel === params.get("channel")))}
                       platform={platform}
-                      selectedBuildId={
-                        view === "build" ? params.get("build") || "" : null
-                      }
-                      selectedSourceId={params.get("source") || null}
-                      query={params.get("build_filter") ?? ""}
-                      onQueryChange={(query) => {
-                        const next = new URLSearchParams(params);
-                        if (query) next.set("build_filter", query);
-                        else next.delete("build_filter");
-                        setParams(next, { replace: true });
-                      }}
+                      selectedBuildId={params.get("build") || ""}
+                      selectedSourceId={params.get("source")}
                       onPlatformChange={changePlatform}
-                      buildHref={(build) =>
-                        href("build", {
-                          build: build.build_id,
-                          platform: build.os,
-                          ...(build.source_id
-                            ? { source: build.source_id }
-                            : {}),
-                        })
-                      }
-                    />
+                      buildHref={(build) => href("build", { build: build.build_id, platform: build.os })}
+                    /> : <BuildReview session={session} history={history.builds} params={params} fetcher={fetcher} />}
                   </div>
-                ))}
+                ) : <p role="status">Loading retained build history…</p>
+              )}
               {["performance", "model"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView

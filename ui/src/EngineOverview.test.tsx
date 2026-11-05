@@ -301,8 +301,8 @@ it("shows the last nightly result per OS and day even when an earlier result pas
       generated_at: "2026-11-01T01:00:00Z" }),
   ]);
 
-  expect(screen.getByRole("link", { name: /linux-latest.*Failed/ }))
-    .toHaveAttribute("href", expect.stringContaining("build=linux-latest"));
+  expect(screen.getByRole("link", { name: /2 nightly builds on 2026-11-01.*latest Failed/ }))
+    .toHaveAttribute("href", expect.stringContaining("day=2026-11-01"));
   expect(screen.getByRole("link", { name: /linux-prior-day.*Qualified/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /windows-latest.*Qualified/ })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /linux-earlier/ })).not.toBeInTheDocument();

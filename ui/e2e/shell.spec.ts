@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("overview build marks open exact Page Two details", async ({ page }) => {
+test("overview build marks open the exact build review", async ({ page }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
   await expect(
     page
@@ -46,10 +46,9 @@ test("overview build marks open exact Page Two details", async ({ page }) => {
   await expect(page).toHaveURL(/view=build/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await page.getByRole("link", { name: "Show all engine builds" }).click();
   await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
 });
 
@@ -93,8 +92,10 @@ test("pins data, switches versions and restores scope through browser history", 
     .getByRole("link", { name: /^Open build linux-build / })
     .first()
     .click();
+  if (await page.evaluate(() => matchMedia("(hover: none) and (pointer: coarse)").matches))
+    await page.getByRole("link", { name: "Open build review", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
   expect(
     reads.filter((url) => url.endsWith("/main/data/latest.json")),
@@ -102,7 +103,7 @@ test("pins data, switches versions and restores scope through browser history", 
   const shared = page.url();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
   await expect(page).toHaveURL(shared);
   await page.goBack();
@@ -112,7 +113,7 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.goForward();
   await expect(page).toHaveURL(/build_filter=linux-build/);
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
   expect(
     reads

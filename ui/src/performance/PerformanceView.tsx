@@ -56,7 +56,7 @@ const performanceSchema = z.object({
 
 type Measurement = z.infer<typeof measurementSchema>;
 type SystemRecord = z.infer<typeof systemSchema>;
-type PerformanceData = {
+export type PerformanceData = {
   measurements: Measurement[];
   systems: Map<string, SystemRecord>;
 };
@@ -110,7 +110,7 @@ function metricName(name: string) {
   return metricInfo[name]?.label ?? name.replaceAll("_", " ");
 }
 
-function metricValue(name: string, value: number) {
+export function metricValue(name: string, value: number) {
   const unit = metricInfo[name]?.unit;
   return unit ? `${formatNumber(value)} ${unit}` : `${formatNumber(value)} (unit unavailable)`;
 }
@@ -119,7 +119,7 @@ function packageLabel(row: Measurement) {
   return row.engine_version ?? "Engine tag unavailable";
 }
 
-function stableMeasurements(data: PerformanceData) {
+export function stableMeasurements(data: PerformanceData) {
   return data.measurements.filter(
     (row) =>
       row.engine === "llamacpp" &&
@@ -132,13 +132,13 @@ function isQualificationCandidate(row: Measurement) {
   return Boolean(row.qualification_build_id);
 }
 
-async function readPerformance(session: Session, signal: AbortSignal): Promise<PerformanceData> {
+export async function readPerformance(session: Session, signal: AbortSignal, fetcher = fetch): Promise<PerformanceData> {
   const performance = session.overview?.performance;
   if (!performance || performance.status !== "available" || !performance.path) {
     throw new Error("This ROCm version has no published performance file.");
   }
   const url = resolveDatasetPath(session.indexUrl, performance.path);
-  const response = await fetch(url, {
+  const response = await fetcher(url, {
     cache: "no-store",
     signal,
     redirect: "error",
@@ -280,7 +280,7 @@ function recordFor(row: Measurement, systems: Map<string, SystemRecord>) {
     : undefined;
 }
 
-function comparisonKey(row: Measurement, systems: Map<string, SystemRecord>) {
+export function comparisonKey(row: Measurement, systems: Map<string, SystemRecord>) {
   const system = recordFor(row, systems);
   if (
     !system ||
@@ -522,7 +522,7 @@ function Qualification({
   );
 }
 
-function MeasurementDetail({
+export function MeasurementDetail({
   row,
   systems,
   history,

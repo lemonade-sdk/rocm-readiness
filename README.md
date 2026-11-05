@@ -38,3 +38,4 @@ data; failed runs preserve the last good pointer and report errors in sync statu
 - [Data publication](docs/data-publication.md): runtime files and ROCm directory names.
 - [JSON reference](docs/reference/README.md): field contracts, source mappings, and validation.
 - [Dashboard UI](ui/README.md): local browser preview, static build and UI checks.
+- [Signal Deck design language](docs/ui-design-reference.md) governs dashboard UI changes.

@@ -1,5 +1,11 @@
 .build-tile {
-  margin-top: 1.25rem;
+  margin-top: 0.65rem;
+  padding: 0.65rem clamp(8px, 2vw, 16px);
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--panel) 55%, var(--background));
+}
+.build-tile + .build-tile {
+  margin-top: 0.9rem;
 }
 .build-timeline-scroll {
   overflow-x: auto;
@@ -39,17 +45,20 @@
   align-items: center;
 }
 .build-mark {
-  display: inline-block;
+  display: inline-grid;
+  place-items: center;
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  border-radius: 3px;
+  border-radius: 50%;
+  text-decoration: none;
+  background: color-mix(in srgb, currentColor 12%, var(--panel));
 }
 .build-mark.pass {
-  background: var(--good);
+  color: var(--good);
 }
 .build-mark.fail {
-  background: var(--bad);
+  color: var(--bad);
 }
 .build-mark:focus-visible,
 .build-evidence-missing:focus-visible {
@@ -61,8 +70,11 @@
   min-width: 20px;
   text-align: center;
 }
-.build-timeline th[aria-current="date"] {
-  color: var(--yellow);
+.build-timeline thead th {
+  color: var(--muted);
+}
+.build-timeline thead th[aria-current="date"] {
+  color: var(--text);
   font-weight: 700;
 }
 .evidence-unavailable-icon {
@@ -78,7 +90,18 @@
   font-size: 0.65rem;
 }
 .readiness-version {
-  margin: 2rem 0;
+  margin: 2.5rem 0;
+}
+.readiness-version > h2 {
+  margin-bottom: 0.65rem;
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  line-height: 1.25;
+}
+.readiness-track {
+  color: var(--muted);
+  font-size: 0.58em;
+  font-weight: 500;
+  white-space: nowrap;
 }
 .build-timeline h5 {
   margin: 0;
@@ -110,7 +133,7 @@
 
 .build-tooltip-bubble {
   padding: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-panel);
   overflow: hidden;
 }
 .build-tooltip-bubble .build-tooltip-header {
@@ -162,12 +185,18 @@
   border-bottom: 0;
 }
 
-.build-timeline-card > .build-engine-heading {
+.build-table-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-bottom: 0.2rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.build-table-heading .build-engine-heading {
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: -0.025em;
+  color: var(--text);
+  font: 600 1.0625rem ui-monospace, monospace;
 }
 .build-timeline .os-column {
   vertical-align: bottom;

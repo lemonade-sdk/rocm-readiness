@@ -43,8 +43,9 @@ computed badge, forks and 14-day status strips. A project page
 
 ## Appearance
 
-The [dashboard design language](../docs/ui-design-reference.md) defines the
-palette and interaction guidance for both views.
+All dashboard UI changes follow [Signal Deck](../docs/ui-design-reference.md), with
+ROCm documentation blues, a side rail for dashboard navigation and dataset
+provenance, and tables with distinct symbols for qualification and CI outcomes.
 
 The dashboard follows the device's light/dark preference by default, including
 changes while it is open. Use the sun/moon control in the header to choose

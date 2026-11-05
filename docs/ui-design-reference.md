@@ -1,34 +1,40 @@
-# UI design reference
+# Dashboard design language
 
-The shell follows the refined local `output/lemonade-readiness.html` prototype
-referenced by milestone INDEX #20, titled **Lemonade Performance**. This note
-captures the applicable layout without importing the prototype's bundled
-historical dataset, scripts or deferred-engine panels.
+This reference governs the appearance of ROCm Readiness and Upstream Health,
+including their detail views. It supersedes the visual styling in the MVP1
+prototype and shell plan. Use **ROCm Readiness** as the dashboard identity
+and keep source and repository attribution visible where it belongs.
 
-```text
-Lemonade Performance                         stable llama.cpp | ROCm selector
-Breadcrumb                                   selected version
-Latest ingestion status                      refresh
+## Palette
 
-Selected ROCm heading                        release label
-Overview | Engine builds | Model performance
+| Role | Dark theme | Light theme |
+| --- | --- | --- |
+| Canvas | Black `#000000` | White `#FFFFFF` |
+| Raised surface | Neutral gray `#141414` | Neutral gray `#F5F5F5` |
+| Primary text | White `#FFFFFF` | Black `#000000` |
+| Secondary text | Gray `#B3B3B3` | Gray `#525252` |
+| Accent | Gold `#C1A968` | Gold `#C1A968` |
+| Text on gold | Black `#000000` | Black `#000000` |
 
-Qualified / retained builds   Latest checks passed / total   Historical measurements
+Keep surfaces neutral and use gold sparingly for active navigation and primary
+actions. In the light theme, give gold controls a dark boundary when the
+control needs one to be recognizable. Use dark text for links and a dark
+focus outline on light surfaces. On dark surfaces, gold can mark focus when
+it meets contrast against adjacent colors.
 
-Engine readiness
-  llama.cpp                                   explore builds
-  Linux latest package                        Windows latest package
-  checks / GPU targets / hardware evidence     checks / GPU targets / hardware evidence
+Keep status colors separate from the accent. Use labels or distinct symbols
+with color for pass, fail, skipped, and unavailable states. Keep missing
+qualification evidence neutral. Qualification, test outcomes, and hardware
+validation each retain their own meaning.
 
-Dataset revision and timestamp                pinned index / source repository
-```
+## Layout and interaction
 
-Preserved visual choices: warm charcoal background, layered olive-gray panels,
-muted secondary labels, lemon-yellow navigation accents, soft borders, rounded
-cards, and green/amber status accents with text labels. Platform cards sit side
-by side on wide screens and stack on narrow screens. Semantic links, native
-selects and visible focus rings support keyboard access.
-
-Readiness counts come from the selected version's JSON. Qualification, test
-outcome and hardware validation remain separate. Performance stays within the
-engine context; historical observations retain their date and package scope.
+- Share navigation, typography, spacing, and control styles across views.
+  Use headings and spacing to show hierarchy.
+- Lay out related cards side by side when space permits and stack them on
+  narrow screens. Keep timeline dates and build links readable at either width.
+- Preserve System, Light, and Dark preferences. Check text and controls against
+  their actual backgrounds in both themes. Use at least 4.5:1 contrast for
+  normal text and 3:1 for meaningful controls, icons, and focus indicators.
+- Verify visible keyboard focus, touch targets, and tooltip access by keyboard
+  and touch. Respect reduced-motion preferences.

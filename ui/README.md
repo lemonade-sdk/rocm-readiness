@@ -43,6 +43,9 @@ computed badge, forks and 14-day status strips. A project page
 
 ## Appearance
 
+The [dashboard design language](../docs/ui-design-reference.md) defines the
+palette and interaction guidance for both views.
+
 The dashboard follows the device's light/dark preference by default, including
 changes while it is open. Use the sun/moon control in the header to choose
 **System**, **Light**, or **Dark**. Explicit choices are saved in this browser;

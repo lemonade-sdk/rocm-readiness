@@ -205,6 +205,16 @@ def _compact_build(row, source_urls=None, strict=False, version=None, month=None
             "invalid previous build",
         )
     compact = {field: row.get(field) for field in BUILD_FIELDS}
+    compact.update(
+        (key, verdict)
+        for key, verdict in row.items()
+        if re.fullmatch(r"tier\d+", key, re.IGNORECASE) and isinstance(verdict, str)
+    )
+    tier_verdicts = row.get("tier_verdicts")
+    if isinstance(tier_verdicts, dict) and all(
+        isinstance(verdict, str) for verdict in tier_verdicts.values()
+    ):
+        compact["tier_verdicts"] = tier_verdicts
     summary = row.get("summary")
     if compact["blocking_tests"] is None and isinstance(summary, dict):
         compact["blocking_tests"] = summary.get("blocking_tests")

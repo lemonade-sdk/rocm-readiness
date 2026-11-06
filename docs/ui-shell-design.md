@@ -4,8 +4,9 @@
 
 Implement issue #14: a locally previewable browser shell for stable llama.cpp
 readiness. Readers select a ROCm version, navigate within that version, and see
-whether the published dataset is current and usable. Issue #20 and its referenced
-mockup govern the visual baseline; current issue criteria govern data behavior.
+whether the published dataset is current and usable. Issue #20 records the
+original mockup. The [dashboard design language](ui-design-reference.md) governs
+current appearance, and current issue criteria govern data behavior.
 
 ## Approach
 
@@ -13,7 +14,7 @@ Use React, TypeScript, Vite and React Router in a separate `ui/` directory.
 This is the implementer's recommendation, following the user's delegation of
 the stack choice. React provides reusable view components, TypeScript makes the
 dataset and navigation contracts explicit, and Vite supplies local preview and a
-static production build. Use plain CSS to preserve the existing mockup's styling.
+static production build. Use plain CSS for dashboard styling.
 
 Buildless JavaScript would reduce initial setup, but requires more manual
 coordination as the overview, build history and model views grow. A server-rendered

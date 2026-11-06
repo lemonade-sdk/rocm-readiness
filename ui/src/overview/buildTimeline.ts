@@ -26,9 +26,20 @@ export function qualificationOutcome(build: Build): "pass" | "fail" | null {
   return null;
 }
 
-export function exactBuildHref(build: Build): string {
+export function qualificationBuildHref(build: Build, scope: "package" | "day" = "package"): string {
+  const params = new URLSearchParams(exactBuildHref(build, "engine").slice(1));
+  if (scope === "day") {
+    params.delete("build");
+    params.delete("source");
+  }
+  params.set("day", buildDate(build));
+  params.set("focus", "day");
+  return `?${params}`;
+}
+
+export function exactBuildHref(build: Build, view = "build-review"): string {
   const query = new URLSearchParams({
-    view: "build",
+    view,
     version: build.rocm_version,
     engine: build.engine,
     channel: build.channel,
@@ -49,4 +60,21 @@ export function buildIdentity(build: Build): string {
     build.build_id,
     build.gfx_target,
   ]);
+}
+
+const calendarMonthLabel = new Intl.DateTimeFormat("en", { month: "long", timeZone: "UTC" });
+
+export function calendarMonthGroups(days: readonly string[]) {
+  const months: { key: string; label: string; days: number }[] = [];
+  for (const day of days) {
+    const key = day.slice(0, 7);
+    const previous = months.at(-1);
+    if (previous?.key === key) previous.days++;
+    else months.push({ key, label: calendarMonthLabel.format(new Date(day)), days: 1 });
+  }
+  return months;
+}
+
+export function isCalendarMonthBoundary(days: readonly string[], index: number) {
+  return index > 0 && days[index].slice(0, 7) !== days[index - 1].slice(0, 7);
 }

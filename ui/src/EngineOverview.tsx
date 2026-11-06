@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { Tooltip } from "./overview/Tooltip";
+import { useUtcToday } from "./overview/useUtcToday";
+import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
-import { EvidenceUnavailableIcon } from "./EvidenceUnavailableIcon";
+import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
 import {
   buildDate,
   buildIdentity,
   calendarDays,
-  exactBuildHref,
+  calendarMonthGroups,
+  isCalendarMonthBoundary,
+  qualificationBuildHref,
   qualificationOutcome,
 } from "./overview/buildTimeline";
 import "./overview/BuildTimeline.css";
@@ -24,8 +26,9 @@ function platformLabel(os: string) {
   return os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 }
 
-function BuildMark({ build }: { build: Build }) {
+function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number }) {
   const outcome = qualificationOutcome(build);
+  const mark = outcome === "pass" && build.overall === "warn" ? "warn" : outcome;
   const failureReasons = [
     ...(build.blocked_by ?? []),
     ...(build.blocking_tests ?? []),
@@ -41,21 +44,16 @@ function BuildMark({ build }: { build: Build }) {
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
   return (
     <Tooltip
-      to={exactBuildHref(build)}
-      label={label}
+      to={qualificationBuildHref(build, dayCount > 1 ? "day" : "package")}
+      label={`Open package qualification · ${label}${dayCount > 1 ? ` · ${dayCount} packages` : ""}`}
       triggerClassName={
         outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
       }
       content={
-        <>
-          <span className="build-tooltip-header">
-            <strong className="comparison-title">
-              {build.tag ?? "Build"} · {platformLabel(build.os)}
-            </strong>
-            <span className={`build-tooltip-status ${outcome ?? "unknown"}`}>
-              {status}
-            </span>
-          </span>
+        <TooltipContent
+          heading={<>{dayCount > 1 && `${dayCount} packages · latest: `}{build.tag ?? "Build"} · {platformLabel(build.os)}</>}
+          status={<span className={`build-tooltip-status ${outcome ?? "unknown"}`}>{status}</span>}
+        >
           <dl className="build-tooltip-details">
             {outcome === "fail" && (
               <>
@@ -98,10 +96,10 @@ function BuildMark({ build }: { build: Build }) {
             <dt>Build</dt>
             <dd>{build.build_id}</dd>
           </dl>
-        </>
+        </TooltipContent>
       }
     >
-      {outcome === null ? <EvidenceUnavailableIcon /> : null}
+      <BuildOutcomeIcon outcome={mark} />
     </Tooltip>
   );
 }
@@ -115,33 +113,10 @@ export function EngineOverview({
   emptyChannel,
 }: Props) {
   const EngineHeading = nested ? "h3" : "h2";
-  const TrackHeading = nested ? "h4" : "h3";
   const OSHeading = nested ? "h5" : "h4";
-  const [clock, setClock] = useState(() => new Date());
-  useEffect(() => {
-    if (now) return;
-    const timer = window.setInterval(() => setClock(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, [now]);
-  const days = calendarDays(now ?? clock);
-  const today = days.at(-1)!;
-  const months: { key: string; label: string; days: number }[] = [];
-  for (const day of days) {
-    const key = day.slice(0, 7),
-      prior = months.at(-1);
-    if (prior?.key === key) prior.days++;
-    else
-      months.push({
-        key,
-        label: new Intl.DateTimeFormat("en", {
-          month: "long",
-          timeZone: "UTC",
-        }).format(new Date(`${day}T00:00:00Z`)),
-        days: 1,
-      });
-  }
-  const monthBoundary = (index: number) =>
-    index > 0 && days[index].slice(0, 7) !== days[index - 1].slice(0, 7);
+  const today = useUtcToday(now);
+  const days = calendarDays(new Date(today));
+  const months = calendarMonthGroups(days);
 
   return (
     <section aria-label="Engine readiness" className="grid items-start gap-6">
@@ -173,13 +148,10 @@ export function EngineOverview({
         if (!channels.length && emptyChannel) channels.push(emptyChannel);
         return (
           <article
-            className="card engine-card build-timeline-card"
+            className="build-timeline-card"
             key={engine.id}
             aria-label={engine.label}
           >
-            <EngineHeading className="build-engine-heading">
-              {engine.label}
-            </EngineHeading>
             {channels.map((channel) => {
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,
@@ -196,14 +168,17 @@ export function EngineOverview({
                   className="build-tile"
                   aria-label={`${engine.label} ROCm ${version} ${channel}`}
                 >
-                  {channels.length > 1 && (
-                    <TrackHeading>
-                      {channel === "stable" ? "Stable" : "Nightly"}
-                    </TrackHeading>
-                  )}
+                  <div className="data-table-heading">
+                    <EngineHeading className="data-table-title">
+                      {engine.label}
+                    </EngineHeading>
+                    {channels.length > 1 && (
+                      <span>{channel === "stable" ? "Stable" : "Nightly"}</span>
+                    )}
+                  </div>
                   {platforms.length > 0 && (
                     <div
-                      className="build-timeline-scroll"
+                      className="build-timeline-scroll calendar-surface"
                       tabIndex={0}
                       role="region"
                       aria-label={`${engine.label} ${channel} build history`}
@@ -216,7 +191,7 @@ export function EngineOverview({
                           <colgroup key={month.key} span={month.days} />
                         ))}
                         <thead>
-                          <tr className="build-months">
+                          <tr className="calendar-months">
                             <th scope="col" rowSpan={2} className="os-column">
                               OS
                             </th>
@@ -240,7 +215,7 @@ export function EngineOverview({
                                 scope="col"
                                 key={day}
                                 className={
-                                  monthBoundary(index)
+                                  isCalendarMonthBoundary(days, index)
                                     ? "month-boundary"
                                     : undefined
                                 }
@@ -273,29 +248,28 @@ export function EngineOverview({
                                   const dayBuilds = rows.filter(
                                     (build) => buildDate(build) === day,
                                   );
-                                  const visibleBuilds =
-                                    channel === "nightly" ? dayBuilds.slice(-1) : dayBuilds;
+                                  const latestBuild = dayBuilds.at(-1);
+                                  const verdict = latestBuild ? qualificationOutcome(latestBuild) : null;
+                                  const cellStatus = verdict === "pass" && latestBuild?.overall === "warn" ? "warn" : verdict;
                                   return (
                                     <td
+                                      data-outcome={latestBuild ? cellStatus ?? "unreported" : undefined}
                                       key={day}
                                       className={
-                                        monthBoundary(index)
-                                          ? "month-boundary"
-                                          : undefined
+                                        isCalendarMonthBoundary(days, index)
+                                          ? "table-status month-boundary"
+                                          : "table-status"
                                       }
                                     >
                                       <div className="build-day">
-                                        {!visibleBuilds.length && (
-                                          <span className="build-no-data">
-                                            No data
-                                          </span>
+                                        {latestBuild ? (
+                                          <BuildMark
+                                            build={latestBuild}
+                                            dayCount={dayBuilds.length}
+                                          />
+                                        ) : (
+                                          <span className="build-no-data">No data</span>
                                         )}
-                                        {visibleBuilds.map((build) => (
-                                            <BuildMark
-                                              key={buildIdentity(build)}
-                                              build={build}
-                                            />
-                                          ))}
                                       </div>
                                     </td>
                                   );

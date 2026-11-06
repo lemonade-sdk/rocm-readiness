@@ -52,10 +52,10 @@ it("renders supplied catalog order without choosing a release anchor or filterin
     },
     fixtures,
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest Stable" });
   expect(
     screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
-  ).toEqual(["ROCm 10.1 · Latest stable", "ROCm 10.2", "ROCm 10.10"]);
+  ).toEqual(["ROCm 10.1 · Latest Stable", "ROCm 10.2 · Nightly", "ROCm 10.10 · Nightly"]);
   expect(
     within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
       "heading",
@@ -68,7 +68,7 @@ it("renders supplied catalog order without choosing a release anchor or filterin
 
 it("keeps other supplied tracks visible when one fails", async () => {
   mount(index, { [new URL("rocm/10.2/overview.json", indexUrl).href]: {} });
-  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest Stable" });
   expect(
     within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
       "alert",
@@ -83,7 +83,7 @@ it("labels legacy scope honestly and renders its supplied order without inventin
     screen.getByText(/older dataset does not declare/),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("heading", { name: /Latest stable/ }),
+    screen.queryByRole("heading", { name: /Latest Stable/ }),
   ).not.toBeInTheDocument();
 });
 
@@ -102,7 +102,7 @@ it("keeps the overview focused on qualification even when benchmark evidence exi
       },
     },
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest stable" });
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest Stable" });
   expect(
     result.container.querySelector(".build-mark.pass"),
   ).toBeInTheDocument();
@@ -152,5 +152,5 @@ it("keeps the qualification timeline when a release has recorded builds", async 
     }],
   });
   const chart = await screen.findByRole("region", { name: "llama.cpp stable build history" });
-  expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("view=build"));
+  expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("focus=day"));
 });

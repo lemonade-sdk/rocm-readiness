@@ -98,7 +98,11 @@ export function ReadinessOverview({
         >
           <h2>
             ROCm {row.version}
-            {row.version === stable ? " · Latest stable" : ""}
+            {row.version === stable ? (
+              <>{" · "}<span className="readiness-track">Latest Stable</span></>
+            ) : stable && row.version.localeCompare(stable, "en", { numeric: true }) > 0 ? (
+              <>{" · "}<span className="readiness-track">Nightly</span></>
+            ) : null}
           </h2>
           {row.error && (
             <div role="alert">

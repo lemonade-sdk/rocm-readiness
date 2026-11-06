@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("overview build marks open exact Page Two details", async ({ page }) => {
+test("overview build marks open qualification and the exact package review", async ({ page }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
   await expect(
     page
@@ -43,14 +43,23 @@ test("overview build marks open exact Page Two details", async ({ page }) => {
     .getByRole("region", { name: "ROCm 10.1", exact: true })
     .getByRole("link", { name: /b11972.*linux-build/ })
     .click();
+  await expect(page).toHaveURL(/focus=day/);
+  await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
+  const details = page.getByRole("button", { name: "Run details for b11972", exact: true }).first();
+  await details.hover();
+  const report = page.getByRole("link", { name: "Package report for linux-build", exact: true });
+  await report.hover();
+  await expect(report).toBeVisible();
+  await report.click();
+  await page.getByRole("link", { name: /Build review/ }).click();
   await expect(page).toHaveURL(/view=build/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build review", exact: true }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await page.getByRole("link", { name: "Show all engine builds" }).click();
-  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue("all");
+  await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("pins data, switches versions and restores scope through browser history", async ({
@@ -76,23 +85,22 @@ test("pins data, switches versions and restores scope through browser history", 
   await expect(page.getByLabel("ROCm version")).toHaveCount(0);
 
   await expect(page.locator(".build-legend")).toHaveCount(0);
-  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
-  await page.getByLabel("ROCm version").selectOption("10.2");
+  await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
+  await page.getByRole("group", { name: "ROCm version" }).getByRole("button", { name: "10.2", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp builds" }),
+    page.getByRole("heading", { name: "Build Qualification" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Engine builds", exact: true }).click();
+  await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "llama.cpp builds", exact: true }),
+    page.getByRole("heading", { name: "Build Qualification", exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Platform", { exact: true }).selectOption("linux");
+  await page.getByRole("button", { name: "Windows", exact: true }).click();
   await expect(page).toHaveURL(/platform=linux/);
+  await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.getByLabel("Find build").fill("linux-build");
   await expect(page).toHaveURL(/build_filter=linux-build/);
-  await page
-    .getByRole("link", { name: /^Open build linux-build / })
-    .first()
-    .click();
+  await page.getByRole("button", { name: "Run details for b11972", exact: true }).first().click();
+  await page.getByRole("link", { name: "Package report for linux-build", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Build evidence", exact: true }),
   ).toBeVisible();
@@ -106,11 +114,11 @@ test("pins data, switches versions and restores scope through browser history", 
   ).toBeVisible();
   await expect(page).toHaveURL(shared);
   await page.goBack();
-  await expect(page.getByLabel("Platform", { exact: true })).toHaveValue(
-    "linux",
-  );
+  await expect(page).toHaveURL(/view=engine.*platform=linux/);
+  await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.goForward();
-  await expect(page).toHaveURL(/build_filter=linux-build/);
+  await expect(page).toHaveURL(/view=build/);
   await expect(
     page.getByRole("heading", { name: "Build evidence", exact: true }),
   ).toBeVisible();
@@ -123,6 +131,37 @@ test("pins data, switches versions and restores scope through browser history", 
       )
       .every((url) => url.includes(`/${pointer.data_commit}/data/`)),
   ).toBe(true);
+});
+
+test("keeps the current UTC date visible when the selected version has no build today", async ({ page }) => {
+  await page.route(new URL("rocm/10.2/history/2026-10.json", indexUrl).href, (route) => {
+    const history = historyFixture("10.2");
+    return route.fulfill({ json: { ...history, builds: history.builds.map((build) => ({ ...build, channel: "nightly" })) } });
+  });
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("./?view=engine");
+  const trend = page.getByRole("region", { name: "Daily qualification charts" });
+  const stable = trend.getByRole("list", { name: "Stable packages by day · Linux" });
+  await expect(stable.getByRole("listitem")).toHaveCount(14);
+  const nightly = trend.getByRole("list", { name: "Nightly packages by day · Linux" });
+  await expect(nightly).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  await expect(page.getByRole("button", { name: "10.1", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "All versions" })).toHaveCount(0);
+  await expect(stable.locator("..").getByText("October", { exact: true })).toBeVisible();
+  await expect(stable.locator("..").getByText("November", { exact: true })).toBeVisible();
+  const today = stable.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux", exact: true });
+  await expect(today).toBeAttached();
+  await page.getByRole("button", { name: "10.2" }).click();
+  await expect(page).toHaveURL(/version=10.2/);
+  await expect(stable).toHaveCount(0);
+  const nightlyToday = nightly.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux", exact: true });
+  await expect(nightlyToday).toBeAttached();
+  await nightly.getByRole("link", { name: /Show Nightly packages for 2026-10-29 UTC.*Linux/ }).click();
+  await expect(page).toHaveURL(/day=2026-10-29/);
+  await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
+  await page.getByRole("link", { name: "Show all packages in this window" }).click();
+  await expect(nightlyToday).toBeAttached();
 });
 
 test("keeps usable data when ingestion fails or a refresh request fails", async ({

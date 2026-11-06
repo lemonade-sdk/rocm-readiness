@@ -9,7 +9,7 @@ import {
 import { MemoryRouter } from "react-router";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
-import { fixtureFetch, indexUrl, overview, pointer } from "./fixtures";
+import { fixtureFetch, historyFixture, indexUrl, overview, pointer } from "./fixtures";
 
 function mount(fetcher = fixtureFetch(), entry = "/") {
   return render(
@@ -24,20 +24,20 @@ it("omits engine and channel sections without build records", async () => {
   for (const name of ["vLLM", "Whisper", "Stable Diffusion"])
     expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
   expect(
-    screen.queryByRole("heading", { name: /Nightly/ }),
+    screen.queryByRole("heading", { name: "Nightly" }),
   ).not.toBeInTheDocument();
   expect(screen.queryByText("Coming soon")).not.toBeInTheDocument();
 });
 it("shows separate linked UI and active data versions without the tagline", async () => {
   mount();
   await screen.findByRole("heading", { name: "ROCm Readiness" });
-  const ui = screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ });
+  const ui = screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ });
   expect(ui.getAttribute("href")).toMatch(
     /^https:\/\/github.com\/lemonade-sdk\/rocm-readiness\/commit\/[a-f0-9]{40}$/,
   );
   expect(
     screen.getByRole("link", {
-      name: `Data ${pointer.data_commit.slice(0, 8)}`,
+      name: `Published data ${pointer.data_commit.slice(0, 8)}`,
     }),
   ).toHaveAttribute(
     "href",
@@ -49,10 +49,10 @@ it("keeps the UI version visible when initial data loading fails", async () => {
   mount(vi.fn().mockRejectedValue(new Error("Offline")));
   await screen.findByRole("alert");
   expect(
-    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+    screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ }),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("link", { name: /^Data / }),
+    screen.queryByRole("link", { name: /^Published data / }),
   ).not.toBeInTheDocument();
 });
 it("updates only the data version after a successful dataset refresh", async () => {
@@ -78,21 +78,21 @@ it("updates only the data version after a successful dataset refresh", async () 
   mount(fetcher);
   await screen.findByRole("button", { name: "Retry history" });
   const uiHref = screen
-    .getByRole("link", { name: /^UI [a-f0-9]{8}$/ })
+    .getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ })
     .getAttribute("href");
   advance = true;
   fireEvent.click(screen.getByRole("button", { name: "Retry history" }));
   expect(
-    await screen.findByRole("link", { name: "Data bbbbbbbb" }),
+    await screen.findByRole("link", { name: "Published data bbbbbbbb" }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: /^UI [a-f0-9]{8}$/ }),
+    screen.getByRole("link", { name: /^UI deployment [a-f0-9]{8}$/ }),
   ).toHaveAttribute("href", uiHref);
   expect(
-    screen.queryByRole("link", { name: "Data aaaaaaaa" }),
+    screen.queryByRole("link", { name: "Published data aaaaaaaa" }),
   ).not.toBeInTheDocument();
 });
-it("ignores legacy overview platform filters and links builds to scoped Page Two", async () => {
+it("ignores legacy overview platform filters and opens a stable build day and its package review", async () => {
   const data = overview();
   data.engines[0].latest_builds.push({
     ...data.engines[0].latest_builds[0],
@@ -121,27 +121,24 @@ it("ignores legacy overview platform filters and links builds to scoped Page Two
   ).getByRole("link", { name: /b11972.*linux-build/ });
   const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
   expect(Object.fromEntries(query)).toMatchObject({
-    view: "build",
+    view: "engine",
+    focus: "day",
     engine: "llamacpp",
     version: "10.1",
     platform: "linux",
     channel: "stable",
-    build: "linux-build",
-    source: "llamacpp-stable-qualification",
+    day: "2026-10-29",
   });
   fireEvent.click(link);
-  await screen.findByRole("heading", { name: "Build evidence" });
-  expect(
-    screen.queryByRole("link", { name: /Open build history-2 / }),
-  ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Engine builds" }));
-  fireEvent.click(
-    await screen.findByRole("link", { name: "Show all engine builds" }),
-  );
-  expect(
-    (await screen.findAllByRole("link", { name: /Open build history-2 / }))
-      .length,
-  ).toBeGreaterThan(0);
+  await screen.findByRole("heading", { name: "Package qualification" });
+  fireEvent.click((await screen.findAllByRole("button", { name: "Run details for b11972" }))[0]);
+  fireEvent.click(screen.getByRole("link", { name: "Package report for linux-build" }));
+  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
+  await screen.findByRole("heading", { name: "Build review" });
+  expect(await screen.findByRole("link", { name: "Build evidence" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Build Qualification" }));
+  expect((await screen.findAllByRole("columnheader", { name: "Windows" })).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("columnheader", { name: "Linux" }).length).toBeGreaterThan(0);
 });
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");
@@ -203,7 +200,7 @@ it("keeps the last good dataset visible after a refresh fails", async () => {
     screen.getByText(/Keeping the last usable dataset/),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: "Data aaaaaaaa" }),
+    screen.getByRole("link", { name: "Published data aaaaaaaa" }),
   ).toBeInTheDocument();
 });
 it("omits the normal status strip and refresh button", async () => {
@@ -260,24 +257,20 @@ it("does not show the old version under a newly selected version while loading",
         })
       : original(input),
   );
-  mount(fetcher, "/?view=engine");
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
-  fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.2" },
-  });
-  expect(
-    screen.queryByRole("heading", { name: "llama.cpp builds" }),
-  ).not.toBeInTheDocument();
+  mount(fetcher, "/?view=engine&version=10.1");
+  const history = await screen.findByRole("region", { name: "Build qualification history" });
+  fireEvent.click(within(history).getByRole("button", { name: "10.2" }));
   await waitFor(() => expect(resolve).toBeDefined());
-  fireEvent.change(screen.getByLabelText("ROCm version"), {
-    target: { value: "10.1" },
-  });
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
+  expect(
+    screen.queryByRole("region", { name: "Build qualification history" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "10.1" }));
+  await screen.findByRole("heading", { name: "Build Qualification" });
   await act(async () =>
     resolve(new Response(JSON.stringify(overview("10.2")))),
   );
   expect(
-    screen.getByRole("heading", { name: "llama.cpp builds" }),
+    screen.getByRole("heading", { name: "Build Qualification" }),
   ).toBeInTheDocument();
 });
 it("reopens shared engine scope and preserves filters in navigation", async () => {
@@ -286,11 +279,54 @@ it("reopens shared engine scope and preserves filters in navigation", async () =
     "/?version=10.2&view=engine&platform=linux&build=linux-build",
   );
   expect(
-    await screen.findByRole("heading", { name: "llama.cpp builds" }),
+    await screen.findByRole("heading", { name: "Build Qualification" }),
   ).toBeInTheDocument();
-  expect(screen.getByLabelText("Platform")).toHaveValue("linux");
-  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute(
-    "href",
-    expect.stringContaining("platform=linux"),
-  );
+  expect(await screen.findByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Windows" }));
+  expect(screen.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Linux" }));
+  expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("href", expect.stringContaining("platform=windows"));
+  expect(screen.getByRole("button", { name: "Windows" })).toBeDisabled();
+
+  expect(screen.queryByRole("group", { name: "Build track" })).not.toBeInTheDocument();
+});
+
+it("opens nightly qualification for a day and reviews an earlier failed package", async () => {
+  const history = historyFixture();
+  history.builds[0] = { ...history.builds[0], channel: "nightly", generated_at: "2026-10-29T15:00:00Z" };
+  history.builds[2] = { ...history.builds[2], channel: "nightly", tag: "failed-nightly", qualified: false, generated_at: "2026-10-29T12:00:00Z" };
+  mount(fixtureFetch({
+    [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: history,
+  }), "/?version=10.1&view=engine&channel=nightly&day=2026-10-29&platform=linux");
+  const matrix = within(await screen.findByRole("region", { name: "Qualification by release workflow run" }));
+  expect(matrix.getByRole("button", { name: "Run details for b11972" })).toBeInTheDocument();
+  expect(matrix.queryByRole("columnheader", { name: "Outcome" })).not.toBeInTheDocument();
+  fireEvent.click(within(matrix.getByRole("heading", { name: "failed-nightly" }).closest("section")!).getByRole("button", { name: "Package details for Linux" }));
+  fireEvent.click(screen.getByRole("link", { name: "Package report for history-2" }));
+  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
+  await screen.findByRole("heading", { name: "Build review" });
+  fireEvent.click(await screen.findByRole("link", { name: "Performance evidence" }));
+  await screen.findByRole("heading", { name: "Performance evidence" });
+  expect(screen.queryByRole("heading", { name: "Build review" })).not.toBeInTheDocument();
+});
+
+it("shows only the exact build's measurements in performance evidence", async () => {
+  const row = {
+    source_id: "lemonade-performance", engine: "llamacpp", channel: "stable",
+    backend: "rocm", engine_version: "b11972", model: "Matched model", scenario: "prompt",
+    measured_at: "2026-10-30T00:00:00Z", rocm_version: "10.1", package_os: "linux",
+    qualification_build_id: "linux-build", metrics: { tps_mean: 65 },
+  };
+  mount(fixtureFetch({
+    [new URL("rocm/10.1/performance.json", indexUrl).href]: {
+      schema_version: 2, systems: [],
+      measurements: [row, { ...row, model: "Different package", engine_version: "other" }],
+    },
+  }), "/?view=build-performance&version=10.1&build=linux-build&platform=linux");
+  expect(await screen.findByRole("heading", { name: "Matched model" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Different package" })).not.toBeInTheDocument();
 });

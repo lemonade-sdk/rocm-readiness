@@ -5,11 +5,11 @@ import {
   loadSession,
   loadVersion,
   loadHistory,
-  resolveDatasetPath,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
+import { BuildReview, EngineBuilds } from "./builds/BuildViews";
 import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
@@ -70,7 +70,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             setSession(current);
           }
         }
-        const selected = version ?? current.index.default_version;
+        const selected = version ?? (view === "engine" ? current.index.readiness?.stable_anchor : null) ?? current.index.default_version;
         if (
           track === "readiness" &&
           view !== "overview" &&
@@ -107,65 +107,75 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     return () => controller.abort();
   }, [version, track, view, refresh, fetcher]);
 
+  const needsHistory = track === "readiness" && view !== "overview";
   useEffect(() => {
-    if (track !== "readiness" || view === "overview" || !session?.overview)
-      return;
+    if (!needsHistory || !session?.overview) return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
-    loadHistory(session, fetcher, controller.signal)
-      .then((rows) => {
-        if (controller.signal.aborted) return;
-        const builds = rows;
-        const expected = session.overview!.engines.reduce(
-          (sum, engine) => sum + engine.build_count,
-          0,
-        );
-        if (builds.length !== expected)
-          throw new Error("Retained history count does not match the overview");
-        setHistory({ session, builds, error: null });
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted)
-          setHistory({
-            session,
-            builds: null,
-            error:
-              reason instanceof Error
-                ? reason.message
-                : "Unable to load build history",
-          });
+    async function load(current: Session) {
+      const builds = await loadHistory(current, fetcher, controller.signal);
+      if (controller.signal.aborted) return;
+      const expected = current.overview?.engines.reduce((sum, engine) => sum + engine.build_count, 0) ?? 0;
+      if (builds.length !== expected) throw new Error("Retained history count does not match the overview");
+      setHistory({ session: current, builds, error: null });
+    }
+    void load(session).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setHistory({
+        session,
+        builds: null,
+        error: reason instanceof Error ? reason.message : "Unable to load build history",
       });
+    });
     return () => controller.abort();
-  }, [session, track, view, fetcher]);
-
-  const selected = version ?? session?.version ?? "";
+  }, [session, needsHistory, fetcher]);
+  const currentHistory = history?.session === session ? history : null;
+  const selected = version ?? (view === "engine" ? session?.index.readiness?.stable_anchor ?? session?.index.default_version : null) ?? session?.version ?? "";
   const scopeMatches =
-    session && (view === "overview" || !version || session.version === version);
+    session && (view === "overview" || !selected || session.version === selected);
   const overview = scopeMatches ? session.overview : null;
   const platformValid =
-    view === "overview" || ["all", "linux", "windows"].includes(platform);
+    view === "overview" || ["all", "linux", "windows"].includes(platform) ||
+    (view === "engine" && platform === "none");
   const viewValid = [
     "overview",
     "engine",
     "build",
+    "build-review",
+    "build-performance",
     "performance",
     "model",
   ].includes(view);
+  const buildView = ["build", "build-review", "build-performance"].includes(view);
   const href = (nextView: string, extras: Record<string, string> = {}) => {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
     next.set("view", nextView);
+    if (nextView !== "engine" && next.get("platform") === "none") next.delete("platform");
+    if (nextView === "engine") {
+      next.delete("version");
+      for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit"])
+        next.delete(key);
+    }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
     return `?${next}`;
   };
   const changeVersion = (value: string) => {
     const next = new URLSearchParams(params);
-    next.set("version", value);
+    if (value) next.set("version", value);
+    else next.delete("version");
     next.delete("build");
     next.delete("source");
     next.delete("model");
+    next.delete("day");
+    next.delete("through");
+    next.delete("focus");
+    next.delete("package_identity");
+    next.delete("channel");
+    next.delete("tier");
+    next.delete("check");
+    next.delete("report_commit");
     if (next.get("compare") === value) next.delete("compare");
-    if (view === "build") next.set("view", "engine");
+    if (buildView) next.set("view", "engine");
     if (view === "model") next.set("view", "performance");
     setParams(next);
   };
@@ -195,9 +205,62 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.set("platform", value);
     next.delete("build");
     next.delete("source");
-    if (view === "build") next.set("view", "engine");
+    if (buildView) next.set("view", "engine");
     setParams(next);
   };
+
+  const hasViewData = overview || (view === "overview" && Boolean(session?.index.versions.length));
+  const showPageHeading = track === "readiness" && session && hasViewData &&
+    viewValid && platformValid;
+  const pageTitle =
+    track === "upstream" ? "Upstream Health" :
+    view === "engine" ? "Build Qualification" :
+    view === "build" ? "Build evidence" :
+    view === "build-review" ? "Build review" :
+    view === "build-performance" ? "Performance evidence" :
+    view === "performance" || view === "model" ? "Model performance" :
+    "ROCm Readiness";
+  const versionOptions = session?.index.versions ?? [];
+  const versionFilter = view === "engine" ? (
+    <fieldset className="build-filter-options">
+      <legend>ROCm version</legend>
+      {!session && <span className="muted">Loading…</span>}
+      {selected && !versionOptions.some((row) => row.rocm_version === selected) && (
+        <button type="button" aria-pressed="true" disabled>{selected} · unavailable</button>
+      )}
+      {versionOptions.map(({ rocm_version }) => (
+        <button
+          key={rocm_version}
+          type="button"
+          aria-pressed={selected === rocm_version}
+          onClick={() => { if (selected !== rocm_version) changeVersion(rocm_version); }}
+        >
+          {rocm_version}
+        </button>
+      ))}
+    </fieldset>
+  ) : (
+    <label>
+      ROCm version
+      <select
+        value={selected}
+        disabled={!session?.index.versions.length}
+        onChange={(event) => changeVersion(event.target.value)}
+      >
+        {!session && <option value="">Loading…</option>}
+        {version &&
+          session &&
+          !session.index.versions.some(
+            (row) => row.rocm_version === version,
+          ) && <option value={version}>{version} · unavailable</option>}
+        {session?.index.versions.map((row) => (
+          <option key={row.rocm_version} value={row.rocm_version}>
+            {row.rocm_version}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 
   return (
     <>
@@ -206,66 +269,51 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </a>
       <header className="header">
         <Link className="brand" to={href("overview")}>
-          <span className="brand-mark" aria-hidden="true">
-            ◒
-          </span>{" "}
-          Lemonade <span className="brand-light">Performance</span>
+          ROCm Readiness
+          <span className="deck-label">Signal Deck</span>
         </Link>
-        <nav className="track-tabs" aria-label="Dashboards">
-          <Link
-            aria-current={track === "readiness" ? "page" : undefined}
-            to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
-          >
-            ROCm readiness
-          </Link>
-          <Link
-            aria-current={track === "upstream" ? "page" : undefined}
-            to="?track=upstream"
-          >
-            Upstream health
-          </Link>
-        </nav>
-        <div className="header-controls">
-          {track === "readiness" && view !== "overview" && (
-            <label htmlFor="version">ROCm version</label>
-          )}
-          <select
-            hidden={track !== "readiness" || view === "overview"}
-            id="version"
-            value={selected}
-            disabled={!session?.index.versions.length}
-            onChange={(event) => changeVersion(event.target.value)}
-          >
-            {!session && <option value="">Loading…</option>}
-            {version &&
-              session &&
-              !session.index.versions.some(
-                (row) => row.rocm_version === version,
-              ) && <option value={version}>{version} · unavailable</option>}
-            {session?.index.versions.map((row) => (
-              <option key={row.rocm_version} value={row.rocm_version}>
-                {row.rocm_version}
-              </option>
-            ))}
-          </select>
-          <ThemeControl />
-        </div>
-      </header>
-      <main id="main" tabIndex={-1}>
-        {track === "readiness" && view !== "overview" && (
-          <div className="topline">
-            <nav aria-label="Breadcrumb">
-              <Link to={href("overview")}>ROCm readiness</Link>
-              {view !== "overview" && (
-                <>
-                  <span aria-hidden="true">/</span>
-                  <Link to={href("engine")}>llama.cpp</Link>
-                </>
-              )}
-              {selected && <span className="muted">/ {selected}</span>}
-            </nav>
+        <div className="header-page">
+          <div className="header-page-heading">
+            {showPageHeading || (track === "upstream" && !params.get("project")) ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
+            <div className="deck-context">
+              {track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}
+            </div>
           </div>
-        )}
+        </div>
+        <div className="header-controls"><ThemeControl /></div>
+      </header>
+      <aside className="deck-rail" aria-label="Workspaces">
+        <div className="deck-kicker">Workspaces</div>
+        <nav className="track-tabs" aria-label="Dashboards">
+          <ul className="workspace-list">
+            <li>
+              <Link
+                aria-current={track === "readiness" ? "true" : undefined}
+                to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}
+              >
+                ROCm readiness
+              </Link>
+              {track === "readiness" && (
+                <ul className="workspace-views" aria-label="Dashboard views">
+                  <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
+                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Build Qualification</Link></li>
+                  <li><Link aria-current={view === "performance" || view === "model" ? "page" : undefined} to={href("performance")}>Model performance</Link></li>
+                </ul>
+              )}
+            </li>
+            <li>
+              <Link aria-current={track === "upstream" ? "page" : undefined} to="?track=upstream">
+                Upstream health
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <main id="main" tabIndex={-1}>
+        {track === "readiness" && view !== "overview" &&
+          (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
+            <div className="build-browser-toolbar build-filters">{versionFilter}</div>
+          )}
         {liveSync?.status === "failed" && (
           <div className="notice warning">
             <strong>Latest ingestion failed</strong>
@@ -345,7 +393,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </div>
           )}
         {track === "readiness" &&
-          overview &&
+          hasViewData &&
           (!viewValid || !platformValid) && (
             <div className="notice" role="alert">
               <h1>Unavailable view or platform</h1>
@@ -362,63 +410,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           )}
         {track === "readiness" &&
           session &&
-          (overview ||
-            (view === "overview" && session.index.versions.length > 0)) &&
+          hasViewData &&
           viewValid &&
           platformValid && (
             <>
-              <div
-                className={view === "overview" ? "hero overview-hero" : "hero"}
-              >
-                <div>
-                  {view !== "overview" && (
-                    <div className="eyebrow">ROCm / STABLE RELEASES</div>
-                  )}
-                  <h1>
-                    {view === "overview"
-                      ? "ROCm Readiness"
-                      : view === "engine"
-                        ? "llama.cpp builds"
-                        : view === "build"
-                          ? "Build evidence"
-                          : "Model performance"}
-                  </h1>
-                  <p>
-                    {view === "overview"
-                      ? "See ROCm builds and the qualification evidence available for their archives."
-                      : "Build qualification and model performance, grounded in published evidence."}
-                  </p>
-                </div>
-                {view !== "overview" && (
-                  <span className="release-pill">
-                    ROCm {overview?.rocm_version ?? selected}
-                  </span>
-                )}
-              </div>
-              <nav className="view-tabs" aria-label="Dashboard views">
-                <Link
-                  aria-current={view === "overview" ? "page" : undefined}
-                  to={href("overview")}
-                >
-                  Overview
-                </Link>
-                <Link
-                  aria-current={
-                    ["engine", "build"].includes(view) ? "page" : undefined
-                  }
-                  to={href("engine")}
-                >
-                  Engine builds
-                </Link>
-                <Link
-                  aria-current={
-                    ["performance", "model"].includes(view) ? "page" : undefined
-                  }
-                  to={href("performance")}
-                >
-                  Model performance
-                </Link>
-              </nav>
               {view === "overview" && (
                 <ReadinessOverview
                   session={session}
@@ -426,67 +421,34 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   onRetry={refreshData}
                 />
               )}
-              {["engine", "build"].includes(view) &&
-                (history?.session === session && history.error ? (
+              {(view === "engine" || buildView) && (
+                currentHistory?.error ? (
                   <div className="notice error" role="alert">
-                    <p>{history.error}</p>
+                    <p>{currentHistory.error}</p>
                     <button onClick={refreshData}>Retry history</button>
                   </div>
-                ) : (
+                ) : currentHistory?.builds ? (
                   <div onClick={handleLocalNavigation}>
-                    {view === "engine" && params.get("build") && (
-                      <div className="notice">
-                        <p>Selected stable build: {params.get("build")}</p>
-                        <Link
-                          to={`?${new URLSearchParams({ version: selected, view: "engine", engine: "llamacpp" })}`}
-                        >
-                          Show all engine builds
-                        </Link>
-                      </div>
-                    )}
-                    <BuildBrowser
+                    {view === "engine" ? <EngineBuilds
+                      session={session} history={currentHistory.builds} params={params} fetcher={fetcher}
+                      versionFilter={versionFilter}
+                      onNavigate={(next, replace) => setParams(next, { replace })}
+                    /> : view === "build" ? <BuildBrowser
                       session={session}
-                      history={
-                        history?.session === session
-                          ? (history.builds?.filter(
-                              (build) =>
-                                view !== "engine" ||
-                                !params.get("build") ||
-                                (build.build_id === params.get("build") &&
-                                  (!params.get("source") ||
-                                    build.source_id === params.get("source")) &&
-                                  (!params.get("engine") ||
-                                    build.engine === params.get("engine")) &&
-                                  (!params.get("channel") ||
-                                    build.channel === params.get("channel"))),
-                            ) ?? null)
-                          : null
-                      }
+                      history={currentHistory.builds.filter((build) =>
+                        (!params.get("engine") || build.engine === params.get("engine")) &&
+                        (!params.get("channel") || build.channel === params.get("channel")))}
                       platform={platform}
-                      selectedBuildId={
-                        view === "build" ? params.get("build") || "" : null
-                      }
-                      selectedSourceId={params.get("source") || null}
-                      query={params.get("build_filter") ?? ""}
-                      onQueryChange={(query) => {
-                        const next = new URLSearchParams(params);
-                        if (query) next.set("build_filter", query);
-                        else next.delete("build_filter");
-                        setParams(next, { replace: true });
-                      }}
+                      selectedBuildId={params.get("build") || ""}
+                      selectedSourceId={params.get("source")}
+                      selectedTierId={params.get("tier")} selectedCheckIndex={params.get("check")}
+                      selectedReportCommit={params.get("report_commit")}
                       onPlatformChange={changePlatform}
-                      buildHref={(build) =>
-                        href("build", {
-                          build: build.build_id,
-                          platform: build.os,
-                          ...(build.source_id
-                            ? { source: build.source_id }
-                            : {}),
-                        })
-                      }
-                    />
+                      buildHref={(build) => href("build", { build: build.build_id, platform: build.os })}
+                    /> : <BuildReview session={session} history={currentHistory.builds} params={params} fetcher={fetcher} />}
                   </div>
-                ))}
+                ) : <p role="status">Loading retained build history…</p>
+              )}
               {["performance", "model"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView
@@ -514,45 +476,59 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               )}
             </>
           )}
-        <footer>
-          <div>
-            <p>
-              {uiCommit ? (
+      </main>
+      <footer className="deck-provenance" aria-label="Dashboard provenance">
+        <div className="deck-kicker">About this data</div>
+        {session && (
+          <div className="provenance-updated">
+            <span>Data updated</span>
+            <time dateTime={session.index.generated_at}>
+              {date(session.index.generated_at)}
+            </time>
+          </div>
+        )}
+        <div className="provenance-group">
+          <div className="provenance-label">Revisions</div>
+          <div className="provenance-links">
+            {uiCommit ? (
+              <span>
+                UI deployment (
                 <a
                   href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${uiCommit}`}
-                  title={`UI commit ${uiCommit}`}
+                  aria-label={`UI deployment ${uiCommit.slice(0, 8)}`}
+                  title={uiCommit}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  UI {uiCommit.slice(0, 8)}
+                  {uiCommit.slice(0, 8)}
                 </a>
-              ) : (
-                <span>UI version unavailable</span>
-              )}
-              {session ? (
-                <>
-                  {" · "}
-                  {session.pointer.data_commit ? (
-                    <a
-                      href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
-                      title={`Data commit ${session.pointer.data_commit}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Data {session.pointer.data_commit.slice(0, 8)}
-                    </a>
-                  ) : (
-                    <span>Local dataset preview</span>
-                  )}
-                  {" · "}
-                  <time dateTime={session.index.generated_at}>
-                    Data updated {date(session.index.generated_at)}
-                  </time>
-                </>
-              ) : null}
-            </p>
+                )
+              </span>
+            ) : (
+              <span>UI deployment revision unavailable</span>
+            )}
+            {session && (session.pointer.data_commit ? (
+              <span>
+                Published data (
+                <a
+                  href={`https://github.com/lemonade-sdk/rocm-readiness/commit/${session.pointer.data_commit}`}
+                  aria-label={`Published data ${session.pointer.data_commit.slice(0, 8)}`}
+                  title={session.pointer.data_commit}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {session.pointer.data_commit.slice(0, 8)}
+                </a>
+                )
+              </span>
+            ) : (
+              <span>Local dataset preview</span>
+            ))}
           </div>
-          <div className="footer-links">
+        </div>
+        <div className="provenance-group">
+          <div className="provenance-label">References</div>
+          <div className="provenance-links">
             {session && (
               <a href={session.indexUrl} target="_blank" rel="noreferrer">
                 Pinned dataset
@@ -566,8 +542,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               Source repository ↗
             </a>
           </div>
-        </footer>
-      </main>
+        </div>
+      </footer>
     </>
   );
 }

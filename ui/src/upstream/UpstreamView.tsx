@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Fetcher, Session } from "../data";
+import { Tooltip, TooltipContent } from "../overview/Tooltip";
+import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
+import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import {
   CATEGORIES,
   cellState,
@@ -167,7 +170,26 @@ function Forks({ project }: { project: Project }) {
   );
 }
 
-/** One thin tick per day, coloured by that day's pass rate. */
+const activityStates = {
+  good: { glyph: "✓", label: "95–100% passed" },
+  warn: { glyph: "△", label: "80–<95% passed" },
+  bad: { glyph: "×", label: "Below 80% passed" },
+  stall: { glyph: "□", label: "Requested, no runs" },
+  skip: { glyph: "↷", label: "Skipped" },
+  idle: { glyph: "–", label: "No collected evidence" },
+  none: { glyph: "○", label: "No pass or fail result" },
+} as const;
+
+const activityOutcomes = { good: "pass", warn: "warn", bad: "fail", stall: "fail", skip: "skip", idle: "unreported", none: "not_applicable" } as const;
+
+function ActivityMark({ state }: { state: keyof typeof activityStates }) {
+  if (state === "good" || state === "warn" || state === "bad") {
+    return <BuildOutcomeIcon outcome={state === "good" ? "pass" : state === "bad" ? "fail" : "warn"} />;
+  }
+  return <span className={`up-activity-symbol up-activity-${state}`} aria-hidden="true">{activityStates[state].glyph}</span>;
+}
+
+/** One outcome mark per day, with its counts available in the label. */
 export function Ticks({
   days,
   cellOf,
@@ -189,19 +211,25 @@ export function Ticks({
           <button
             key={day}
             type="button"
-            className={`up-tick up-${state}`}
+            className="up-tick table-status"
+            data-outcome={activityOutcomes[state]}
             title={text}
             aria-label={text}
             onClick={() => onPick(day)}
-          />
+          >
+            <ActivityMark state={state} />
+          </button>
         ) : (
           <span
             key={day}
             role="img"
-            className={`up-tick up-${state}`}
+            className="up-tick table-status"
+            data-outcome={activityOutcomes[state]}
             title={text}
             aria-label={text}
-          />
+          >
+            <ActivityMark state={state} />
+          </span>
         );
       })}
     </div>
@@ -303,6 +331,7 @@ function ProjectGrid({
   onNavigate: (next: URLSearchParams) => void;
 }) {
   const last14 = windowDays(overview, 14);
+  const months = calendarMonthGroups(last14);
   const all = overview.projects.flatMap((p) => p.jobs);
   const totals = rate(all);
   const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
@@ -310,6 +339,7 @@ function ProjectGrid({
   const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
+      <h2 className="up-summary-heading">CI summary</h2>
       <div className="up-totals">
         <Stat value={overview.projects.length} label="projects" />
         <Stat value={all.length} label="configured client jobs" />
@@ -325,13 +355,14 @@ function ProjectGrid({
         configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
         targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
       </p>
+      <h2 className="up-projects-heading">Projects</h2>
       <div className="up-cards">
         {overview.projects.map((project) => {
           const r = rate(project.jobs);
           return (
             <article
               key={project.id}
-              className="card up-card"
+              className="up-card"
               onClick={() =>
                 onNavigate(query(params, { project: project.id, lens: null }))
               }
@@ -359,6 +390,7 @@ function ProjectGrid({
               {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
                 <>
+                  <h3 className="up-section-heading">Project metrics</h3>
                   <div className="up-kpis">
                     <Stat
                       value={r.pct === null ? "–" : `${r.pct}%`}
@@ -377,22 +409,75 @@ function ProjectGrid({
                       />
                     )}
                   </div>
-                  {CATEGORIES.map((category) => {
-                    const jobs = project.jobs.filter(
-                      (j) => j.category === category,
-                    );
-                    if (!jobs.length) return null;
-                    return (
-                      <div className="up-strip" key={category}>
-                        <span className="up-strip-label">{category}</span>
-                        <Ticks
-                          days={last14}
-                          cellOf={(d) => sumCells(jobs, d)}
-                          label={`${project.label} ${category}, last 14 days`}
-                        />
-                      </div>
-                    );
-                  })}
+                  <div className="data-table-heading">
+                    <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
+                    <span>Last 14 days</span>
+                  </div>
+                  <div
+                    className="up-project-activity calendar-surface"
+                    role="region"
+                    aria-label={`${project.label} activity calendar`}
+                    tabIndex={0}
+                  >
+                    <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
+                      <colgroup><col /></colgroup>
+                      {months.map((month) => <colgroup key={month.key} span={month.days} />)}
+                      <thead>
+                        <tr className="calendar-months">
+                          <th scope="col" rowSpan={2}>Category</th>
+                          {months.map((month, index) => (
+                            <th key={month.key} scope="colgroup" colSpan={month.days}
+                              className={index ? "month-boundary" : undefined}
+                              aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
+                              {month.label}
+                            </th>
+                          ))}
+                        </tr>
+                        <tr>
+                          {last14.map((day, index) => (
+                            <th key={day} scope="col" aria-label={`${day} UTC`}
+                              className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
+                              <time dateTime={day}>{Number(day.slice(8))}</time>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {CATEGORIES.map((category) => {
+                          const jobs = project.jobs.filter((job) => job.category === category);
+                          if (!jobs.length) return null;
+                          return (
+                            <tr key={category}>
+                              <th scope="row">{category}</th>
+                              {last14.map((day, index) => {
+                                const cell = sumCells(jobs, day);
+                                const state = cellState(cell);
+                                const text = describe(day, cell);
+                                return (
+                                  <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
+                                    <Tooltip floating label={text} triggerClassName="up-tick"
+                                      content={<TooltipContent heading={day} status={activityStates[state].label}>
+                                        <span>{text}</span>
+                                      </TooltipContent>}>
+                                      <ActivityMark state={state} />
+                                    </Tooltip>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+                    {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
+                      <li key={state}>
+                        <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
+                        {activityStates[state].label}
+                      </li>
+                    ))}
+                  </ul>
                 </>
               ) : (
                 <p className="muted">

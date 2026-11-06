@@ -1,0 +1,70 @@
+.qualification-matrix {
+  min-width: 0;
+}
+
+.qualification-matrix h2 {
+  margin-block: 0 .75rem;
+  font-size: 1.25rem;
+}
+
+.qualification-releases { display: grid; gap: .75rem; }
+.qualification-release { min-width: 0; }
+.qualification-release-heading { margin-block-end: .5rem; }
+.qualification-release-heading h3 { margin: .15rem 0 0; font-size: 1.35rem; line-height: 1.2; }
+.qualification-heading-label {
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.qualification-table-scroll { overflow-x: auto; }
+.qualification-table { width: 100%; border-collapse: collapse; table-layout: fixed; text-align: start; }
+.qualification-table[data-multiple-platforms] { min-width: 32rem; }
+.qualification-table :is(th, td) { padding: .4rem .65rem; text-align: start; vertical-align: top; border-bottom: 1px solid var(--line); }
+.qualification-table thead th { color: var(--muted); font: 600 .75rem ui-monospace, monospace; }
+.qualification-family-column { width: 6.5rem; }
+.qualification-table tbody th { font: 600 .9rem ui-monospace, monospace; }
+.qualification-table td { background: var(--subpanel); }
+.qualification-table td + td { border-inline-start: 1px solid var(--line); }
+.qualification-shared-details { margin-block-end: .25rem; font-size: .8rem; }
+.qualification-archive + .qualification-archive { margin-block-start: .55rem; padding-block-start: .55rem; border-top: 1px solid var(--line); }
+.qualification-table td[data-selected] { box-shadow: inset 2px 0 var(--accent); }
+.qualification-tier-summaries { display: grid; gap: 2px; padding: 0; margin: 0; list-style: none; }
+.qualification-tier-summaries li { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .4rem; font-size: .8rem; }
+.qualification-tier-summaries li > .comparison-tooltip { min-inline-size: 1.8rem; }
+.qualification-check-strip { display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px; }
+.qualification-check-strip > .comparison-tooltip { flex: 0 0 clamp(1.45rem, calc(var(--qualification-check-width) - 2px), 6rem); display: flex; }
+.qualification-check-strip :is(a, button) { display: grid; place-items: stretch; inline-size: 100%; min-block-size: 1.45rem; text-decoration: none; }
+.qualification-check-strip :is(a, button):hover { outline: 1px solid var(--muted); }
+.qualification-check-block { display: inline-grid; place-items: center; min-inline-size: 1.25rem; min-block-size: 1.45rem; }
+.qualification-check-fallback { display: inline-flex; align-items: center; gap: .35rem; }
+.qualification-tooltip-count { display: contents; }
+@media (pointer: coarse) {
+  .qualification-check-strip > .comparison-tooltip { flex-basis: clamp(1.5rem, calc(var(--qualification-check-width) - 2px), 6rem); }
+  .qualification-check-strip :is(a, button) { min-block-size: 1.5rem; }
+}
+
+.qualification-check-legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; padding: 0; list-style: none; font-size: .8rem; }
+.qualification-check-legend li { display: inline-flex; align-items: center; gap: .35rem; }
+
+
+.qualification-popup-packages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-block-size: min(45vh, 22rem);
+  overflow-y: auto;
+}
+.qualification-popup-packages > li { padding-block: .5rem; border-top: 1px solid var(--line); }
+.qualification-popup-packages a { display: inline-block; margin-block-end: .25rem; }
+
+.qualification-runtime { margin: .35rem 0 0; font-size: .75rem; }
+
+.qualification-compiled-targets { display: grid; gap: .2rem; margin-block-start: .45rem; font-size: .75rem; }
+.qualification-compiled-targets ul { display: flex; flex-wrap: wrap; gap: .15rem .55rem; margin: 0; padding: 0; list-style: none; }
+
+.qualification-stable-table .qualification-family-column { width: 10rem; }
+.qualification-release-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; }
+.qualification-release-heading > .qualification-heading-label { flex-basis: 100%; }
+.qualification-publishing { display: flex; flex-wrap: wrap; gap: .15rem .65rem; margin: .25rem 0 0; padding: 0; list-style: none; color: var(--muted); font: .7rem/1.35 system-ui, sans-serif; }

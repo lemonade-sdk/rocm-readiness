@@ -40,7 +40,7 @@
 .build-browser-empty {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   padding: 22px;
 }
 
@@ -80,7 +80,7 @@
 }
 
 .build-browser-status.status-warn {
-  color: var(--yellow);
+  color: var(--warning);
 }
 
 .build-browser-status.status-fail {
@@ -149,7 +149,7 @@
 .build-browser-report-error {
   background: var(--error);
   border: 1px solid var(--error-line);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   display: grid;
   gap: 10px;
   padding: 15px;
@@ -172,9 +172,8 @@
 }
 
 .build-browser-tier {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
 }
 
 .build-browser-table-wrap {
@@ -220,7 +219,7 @@
 }
 
 .build-browser-table-wrap summary {
-  color: var(--yellow);
+  color: var(--text);
   cursor: pointer;
 }
 
@@ -253,7 +252,13 @@
   color: inherit;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 9px 12px;
   max-width: 100%;
+}
+
+.build-browser-table-wrap tr[aria-current="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  scroll-margin-block-start: 6rem;
 }

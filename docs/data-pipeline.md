@@ -47,9 +47,10 @@ performance records are rebuilt from current producer snapshots.
 | llama.cpp nightly qualification | [lemonade-sdk/llamacpp-rocm · qualification-data](https://github.com/lemonade-sdk/llamacpp-rocm/tree/qualification-data) | [qualification/index.json](https://github.com/lemonade-sdk/llamacpp-rocm/blob/qualification-data/qualification/index.json) |
 | Model performance | [lemonade-sdk/lemonade · benchmark-data](https://github.com/lemonade-sdk/lemonade/tree/benchmark-data) | [leaderboard.json](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json) |
 
-llama.cpp ingests stable ROCm builds from `lemonade-sdk/llama.cpp` and their model
-results from Lemonade's `benchmark-data` branch. `include_forks: ["llamacpp-rocm-stable"]`
-selects those results before association.
+The Lemonade leaderboard allowlist selects `llamacpp-rocm-stable` and
+`llamacpp-rocm-nightly` before package attribution. Both channels contribute
+model measurements to the per-ROCm-version dataset. Detailed execution reports
+are collected for the stable fork.
 
 ## Qualification feed contracts
 
@@ -74,7 +75,7 @@ reports use `qualified`.
 | Source | File ingested | Data retained |
 | --- | --- | --- |
 | `lemonade-sdk/llama.cpp` · `qualification-data` | [qualification/index.json](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts, test counts, GPU coverage, hardware-validation flags, dates, and evidence links |
-| `lemonade-sdk/lemonade` · `benchmark-data` | [leaderboard.json](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json) | Stable llama.cpp models, workloads, quantization, throughput/latency/VRAM metrics, hardware, available accuracy results, benchmark dates/run links, and engine tag/package/ROCm associations |
+| `lemonade-sdk/lemonade` · `benchmark-data` | [leaderboard.json](https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json) | Stable and nightly llama.cpp models, workloads, quantization, throughput/latency/VRAM metrics, hardware, available accuracy results, benchmark dates/run links, and engine tag/package/ROCm associations |
 
 ## Adding or changing a source
 

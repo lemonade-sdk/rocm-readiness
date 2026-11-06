@@ -9,7 +9,7 @@
   border: 0;
   border-radius: 4px;
   padding: 0;
-  cursor: help;
+  cursor: pointer;
   text-align: inherit;
   text-decoration: underline dotted;
   text-underline-offset: 4px;
@@ -83,3 +83,23 @@
 .comparison-table tbody tr:last-child td {
   border-bottom: 0;
 }
+
+.comparison-bubble:has(.structured-tooltip) { padding: 0; overflow: hidden; }
+.comparison-bubble .structured-tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: 16px 18px;
+}
+.structured-tooltip-header strong { font-size: 1rem; }
+.comparison-bubble .structured-tooltip-body {
+  display: grid;
+  gap: .35rem;
+  padding: 12px 18px;
+  background: var(--subpanel);
+  border-top: 1px solid var(--line);
+}
+.structured-tooltip-body:has(.build-tooltip-details) { display: block; padding: 0; border: 0; }
+.structured-tooltip-body dl:not(.build-tooltip-details) { display: grid; grid-template-columns: auto 1fr; gap: .35rem .85rem; margin: 0; }
+.structured-tooltip-body dl:not(.build-tooltip-details) dd { margin: 0; text-align: end; }

@@ -203,10 +203,8 @@
   color: var(--muted);
   vertical-align: middle;
 }
-.up-tick .build-outcome-bar {
-  width: 100%;
-  max-width: 2rem;
-}
+.up-activity-table td :is(.up-tick, .comparison-tooltip) { width: 100%; color: inherit; }
+.up-activity-table td .up-tick { text-decoration: none; }
 .up-activity-stall { color: var(--bad); }
 .up-activity-symbol { line-height: 1; }
 button.up-tick:focus-visible {

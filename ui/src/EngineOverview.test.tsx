@@ -27,7 +27,7 @@ function mount(builds: Build[], history: Build[] | null = builds) {
   );
 }
 
-it("rolls up stable builds to the latest exact-build link per day", () => {
+it("rolls up stable builds to the latest status and a day focus link", () => {
   mount([
     build({
       build_id: "first",
@@ -44,10 +44,11 @@ it("rolls up stable builds to the latest exact-build link per day", () => {
   expect(screen.queryByRole("link", { name: /b1.*first/ })).not.toBeInTheDocument();
   const link = screen.getByRole("link", { name: /b2.*second.*Fail/ });
   const params = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
-  expect(params.get("view")).toBe("build-review");
-  expect(params.get("build")).toBe("second");
+  expect(params.get("view")).toBe("engine");
+  expect(params.get("focus")).toBe("day");
+  expect(params.get("day")).toBe("2026-11-01");
   expect(params.get("platform")).toBe("linux");
-  expect(params.get("source")).toBe("llamacpp-stable-qualification");
+  expect(params.get("channel")).toBe("stable");
 });
 
 it("shows only the last fourteen UTC dates and leaves no-build dates empty", () => {
@@ -284,8 +285,11 @@ it("shows the last nightly result per OS and day even when an earlier result pas
       generated_at: "2026-11-01T01:00:00Z" }),
   ]);
 
-  expect(screen.getByRole("link", { name: /2 nightly builds on 2026-11-01.*latest Failed/ }))
-    .toHaveAttribute("href", expect.stringContaining("day=2026-11-01"));
+  const dayLink = screen.getByRole("link", { name: /linux-latest.*Failed.*2 packages/ });
+  const params = new URL(dayLink.getAttribute("href")!, "https://example.test").searchParams;
+  expect(params.get("day")).toBe("2026-11-01");
+  expect(params.get("platform")).toBe("linux");
+  expect(params.has("build")).toBe(false);
   expect(screen.getByRole("link", { name: /linux-prior-day.*Qualified/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /windows-latest.*Qualified/ })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /linux-earlier/ })).not.toBeInTheDocument();

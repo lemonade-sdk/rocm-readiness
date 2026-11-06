@@ -1,26 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import type { Build, Fetcher, Session } from "../data";
-import { buildDate, buildIdentity, calendarDays, calendarMonthGroups, exactBuildHref, isCalendarMonthBoundary } from "../overview/buildTimeline";
-import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
-import { Tooltip } from "../overview/Tooltip";
+import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
+import { useUtcToday } from "../overview/useUtcToday";
 import {
   comparisonKey, findExactQualificationBuild, MeasurementDetail,
-  metricValue, readPerformance, stableMeasurements,
+  metricValue, readPerformance, stableMeasurements, systemSummary,
 } from "../performance/PerformanceView";
 import type { PerformanceData } from "../performance/PerformanceView";
 import { findSelectedBuild } from "./BuildBrowser";
+import { QualificationCharts } from "./QualificationCharts";
+import { QualificationMatrix } from "./QualificationMatrix";
 import "./BuildViews.css";
 
 const outcomes = {
   pass: "Qualified", warn: "Qualified with warnings", fail: "Failed", unknown: "Evidence unavailable",
 };
-function OutcomeMark({ status }: { status: keyof typeof outcomes }) {
-  return <span className={status === "unknown" ? "build-evidence-missing" : `build-mark ${status}`}>
-    <BuildOutcomeIcon outcome={status === "unknown" ? null : status} />
-  </span>;
-}
-
 const platformName = (os: string) => os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 type Measurement = PerformanceData["measurements"][number];
 
@@ -76,6 +71,49 @@ function useBuildMeasurements(session: Session, history: Build[], fetcher: Fetch
 
 type ViewProps = { session: Session; history: Build[]; params: URLSearchParams; fetcher: Fetcher };
 
+function packageLabel(build: Build) {
+  return build.gfx_family ?? build.artifact ?? build.gfx_target ?? build.build_id;
+}
+
+function DayPerformance({ builds, performance }: {
+  builds: Build[];
+  performance: ReturnType<typeof useBuildMeasurements>;
+}) {
+  const systems = performance.data?.systems;
+  const candidates = builds.flatMap((build) => (performance.matches.get(build) ?? []).flatMap((row) => {
+    const key = systems && comparisonKey(row, systems);
+    return key && row.metrics.tps_mean > 0 ? [{ build, row, key }] : [];
+  })).sort((a, b) => Date.parse(b.row.measured_at) - Date.parse(a.row.measured_at));
+  const reference = candidates[0];
+  const matched = new Map<Build, Measurement>();
+  for (const { build, row, key } of candidates) {
+    if (key === reference?.key && !matched.has(build)) matched.set(build, row);
+  }
+  const max = Math.max(0, ...[...matched.values()].map((row) => row.metrics.tps_mean));
+  return <section className="build-day-performance" aria-labelledby="day-performance">
+    <h2 id="day-performance">Reference-model performance</h2>
+    {reference && systems ? <>
+      <p className="muted">{[reference.row.model, reference.row.scenario, reference.row.quant,
+        `${reference.row.context_size} context tokens`, `${reference.row.input_tokens} input tokens`,
+        systemSummary(reference.row, systems)].join(" · ")}</p>
+      <ul>{[...matched].map(([build, row]) => <li key={buildIdentity(build)}>
+        <Link to={exactBuildHref(build, "build-performance")}>{build.tag ?? build.build_id} · {packageLabel(build)}</Link>
+        <span>Throughput {metricValue("tps_mean", row.metrics.tps_mean)}</span>
+        <meter min={0} max={max} value={row.metrics.tps_mean} aria-label="Throughput relative to the fastest package in this comparison" />
+        <span>First token {row.metrics.ttft_ms_mean == null ? "Unavailable" : metricValue("ttft_ms_mean", row.metrics.ttft_ms_mean)}</span>
+        <span>Peak VRAM {row.metrics.vram_peak_gb == null ? "Unavailable" : metricValue("vram_peak_gb", row.metrics.vram_peak_gb)}</span>
+        <time dateTime={row.measured_at}>{row.measured_at.slice(0, 10)} UTC</time>
+      </li>)}</ul>
+      {matched.size < builds.length && <p className="muted">{builds.length - matched.size} packages have no verified measurement for this comparison.</p>}
+    </> : <p className="muted">{performance.message.startsWith("Loading") || performance.retry
+      ? performance.message
+      : builds.some((build) => build.channel === "nightly")
+        ? "Nightly benchmark coverage is unavailable."
+        : "No verified package matches for a comparable benchmark in this release scope."}</p>}
+    {performance.retry && <button onClick={performance.retry}>Retry performance</button>}
+  </section>;
+}
+
 function BuildFilter({ label, options, available, selected, onSelect }: {
   label: string;
   options: [[string, string], [string, string]];
@@ -91,7 +129,7 @@ function BuildFilter({ label, options, available, selected, onSelect }: {
           key={value}
           type="button"
           aria-pressed={available.includes(value) && (selected === null || selected === value)}
-          disabled={!available.includes(value) || selected === value || available.length === 1}
+          disabled={!available.includes(value) || selected === value || (selected === null && available.length === 1)}
           onClick={() => onSelect(selected === null ? options[1 - index][0] : null)}
         >
           {name}
@@ -101,75 +139,79 @@ function BuildFilter({ label, options, available, selected, onSelect }: {
   );
 }
 
+function FocusedPerformance({ session, history, builds, fetcher }: Omit<ViewProps, "params"> & { builds: Build[] }) {
+  const performance = useBuildMeasurements(session, history, fetcher);
+  return <DayPerformance builds={builds} performance={performance} />;
+}
+
 export function EngineBuilds({ session, history, params, fetcher, onNavigate, versionFilter }: ViewProps & {
   versionFilter: ReactNode;
   onNavigate: (params: URLSearchParams, replace?: boolean) => void;
 }) {
-  const charts = useRef<HTMLElement>(null);
-  const [inspected, setInspected] = useState<{ scope: string; build: Build }>();
-  const scope = params.toString();
+  const today = useUtcToday();
   const platformParam = params.get("platform");
   const query = params.get("build_filter") ?? "";
   const focus = params.get("day");
+  const channel = params.get("channel");
   const selectedBuild = params.get("build");
   const source = params.get("source");
+  const packageIdentity = params.get("package_identity");
   const engineId = params.get("engine");
   const scopedBuilds = history.filter((build) => !engineId || build.engine === engineId);
   const availablePlatforms = (["linux", "windows"] as const).filter((value) =>
     scopedBuilds.some((build) => build.os === value),
   );
-  const selectedPlatform = availablePlatforms.find((value) => value === platformParam) ?? null;
-  const performance = useBuildMeasurements(session, history, fetcher);
+  const selectedPlatform = platformParam === "linux" || platformParam === "windows" ? platformParam : null;
+  const visiblePlatforms = (["windows", "linux"] as const).filter((os) =>
+    availablePlatforms.includes(os) && (selectedPlatform === null || os === selectedPlatform),
+  );
+  const filtered = scopedBuilds.filter((build) =>
+    (selectedPlatform === null || build.os === selectedPlatform) &&
+    (!query || [build.build_id, build.tag, build.artifact, build.gfx_family, build.source_id].join(" ").toLowerCase().includes(query.toLowerCase())),
+  );
+  const selectedCandidates = selectedBuild ? scopedBuilds.filter((build) =>
+    build.build_id === selectedBuild && (!source || build.source_id === source) &&
+    (!packageIdentity || buildIdentity(build) === packageIdentity) &&
+    (!channel || build.channel === channel) && (!platformParam || platformParam === "all" || build.os === platformParam) &&
+    (!focus || buildDate(build) === focus),
+  ) : [];
+  const selected = selectedCandidates.length === 1 ? selectedCandidates[0] : null;
+  const focusedDay = focus ?? (selected && params.get("focus") !== "package" ? buildDate(selected) : null);
+  const latestDays = calendarDays(new Date(today));
+  const windowEnd = params.get("through") ?? (focusedDay && focusedDay < latestDays[0] ? focusedDay : null);
+  const parsed = windowEnd && /^\d{4}-\d{2}-\d{2}$/.test(windowEnd) ? new Date(windowEnd) : null;
+  const end = parsed && Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === windowEnd
+    && windowEnd < today ? windowEnd : today;
+  const days = end === today ? latestDays : calendarDays(new Date(end));
+  const dates = [...new Set(filtered.map(buildDate))].sort();
+  const older = dates.findLast((day) => day < days[0]);
+  const newer = dates.find((day) => day > end && day <= today);
+  const newerEnd = newer ? new Date(+new Date(newer) + (READINESS_WINDOW_DAYS - 1) * 86_400_000).toISOString().slice(0, 10) : null;
+  const nextWindow = newerEnd && newerEnd < today ? newerEnd : null;
+  const stable = session.index.readiness?.stable_anchor;
+  const trendTrack = stable && session.version
+    ? session.version.localeCompare(stable, "en", { numeric: true }) > 0 ? "nightly" : "stable"
+    : history[0]?.channel ?? "stable";
+  const trendBuilds = filtered.filter((build) => days.includes(buildDate(build)));
+  const rows = focusedDay ? filtered.filter((build) =>
+    buildDate(build) === focusedDay && (!channel || build.channel === channel),
+  ) : trendBuilds;
+
   function next(changes: Record<string, string | null>) {
     const target = new URLSearchParams(params);
     target.set("view", "engine");
-    target.delete("channel");
-    if (session.version) target.set("version", session.version);
     for (const [key, value] of Object.entries(changes)) {
       if (value === null) target.delete(key);
       else target.set(key, value);
     }
     return target;
   }
-  function buildHref(build: Build) {
-    const target = new URLSearchParams(exactBuildHref(build).slice(1));
-    if (query) target.set("build_filter", query);
-    return `?${target}`;
-  }
-  const rows = scopedBuilds.filter((build) =>
-    (selectedPlatform === null || build.os === selectedPlatform) &&
-    (!selectedBuild || (build.build_id === selectedBuild && (!source || source === build.source_id))) &&
-    (!query || [build.build_id, build.tag, build.artifact, build.source_id].join(" ").toLowerCase().includes(query.toLowerCase()))
-  );
-  const dates = [...new Set(rows.map(buildDate))].sort();
-  const windowEnd = params.get("through") ?? focus;
-  const parsed = windowEnd && /^\d{4}-\d{2}-\d{2}$/.test(windowEnd) ? new Date(windowEnd) : null;
-  const end = parsed && Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === windowEnd
-    ? parsed : dates.length ? new Date(dates[dates.length - 1]) : null;
-  const days = end ? calendarDays(end) : [];
-  const months = calendarMonthGroups(days);
-  const older = dates.findLast((day) => day < days[0]);
-  const newer = dates.find((day) => day > days[days.length - 1]);
-  const newerEnd = newer ? new Date(Math.min(+new Date(dates[dates.length - 1]), +new Date(newer) + 13 * 86_400_000)).toISOString().slice(0, 10) : null;
-  const byTrack = new Map<string, { engine: string; os: string; channel: Build["channel"]; days: Map<string, Build[]> }>();
-  for (const build of rows) {
-    const key = JSON.stringify([build.engine, build.channel, build.os]);
-    const track = byTrack.get(key) ?? { engine: build.engine, os: build.os, channel: build.channel, days: new Map<string, Build[]>() };
-    const date = buildDate(build);
-    const builds = track.days.get(date) ?? [];
-    builds.push(build);
-    track.days.set(date, builds);
-    byTrack.set(key, track);
+
+  function windowLink(through: string | null) {
+    return `?${next({ through, focus: null, day: null, channel: null, build: null, source: null, package_identity: null })}`;
   }
 
-  useEffect(() => {
-    for (const chart of charts.current?.querySelectorAll<HTMLElement>(".build-chart-scroll") ?? []) {
-      chart.scrollLeft = chart.scrollWidth;
-    }
-  }, [session, windowEnd, platformParam, engineId, query]);
-
-  const active = inspected?.scope === scope && rows.includes(inspected.build) ? inspected.build : null;
-  return <section ref={charts} className="build-charts" aria-label="Engine build history">
+  return <section className="build-charts" aria-label="Build qualification history">
     <div className="build-browser-toolbar build-filters">
       {versionFilter}
       <BuildFilter
@@ -177,79 +219,26 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
         options={[["linux", "Linux"], ["windows", "Windows"]]}
         available={availablePlatforms}
         selected={selectedPlatform}
-        onSelect={(value) => onNavigate(next({ platform: value }))}
+        onSelect={(value) => onNavigate(next({ platform: value, build: null, source: null, package_identity: null }))}
       />
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
-        onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, through: null, day: null }), true)} /></label>
+        onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>
     </div>
-    {selectedBuild && <Link to={`?${next({ build: null, source: null, platform: null, day: null, through: null })}`}>Show all engine builds</Link>}
-    {performance.retry && <p className="muted">{performance.message} <button onClick={performance.retry}>Retry</button></p>}
-    {(older || newerEnd) && <nav className="build-chart-paging" aria-label="Browse build dates">
-      {older && <Link to={`?${next({ through: older, day: null })}`}>← Older builds</Link>}
-      {newerEnd && <Link to={`?${next({ through: newerEnd, day: null })}`}>Newer builds →</Link>}
+    <QualificationCharts platforms={visiblePlatforms} builds={trendBuilds} track={trendTrack} days={days} today={today} focusedDay={focusedDay ?? undefined}
+      dayHref={(day, track, os) => `?${next({ day, channel: track, platform: os, focus: "day", build: null, source: null, package_identity: null })}`} />
+    {(older || end < today) && <nav className="build-chart-paging" aria-label="Browse qualification dates">
+      {older && <Link to={windowLink(older)}>← Older builds</Link>}
+      {end < today && <Link to={windowLink(nextWindow)}>{nextWindow ? "Newer builds →" : "Back to latest dates →"}</Link>}
     </nav>}
-    {rows.length === 0 ? <p role="status">No retained builds match these filters.</p> :
-      !rows.some((build) => days.includes(buildDate(build))) && <p role="status">No retained builds in this date range.</p>}
-    {active && <div className="build-chart-selection" aria-live="polite">
-      <strong>{active.tag ?? active.build_id}</strong> · {outcomes[outcome(active)]} · {buildDate(active)} UTC
-      <Link to={buildHref(active)}>Open build review</Link>
-    </div>}
-    {(["stable", "nightly"] as const).flatMap((trackChannel) => [...byTrack.values()].filter((track) => track.channel === trackChannel).map((track) => {
-      const engine = session.overview?.engines.find((item) => item.id === track.engine)?.label ?? track.engine;
-      return <section className="build-chart-track" key={JSON.stringify([track.engine, track.channel, track.os])}>
-        <div className="data-table-heading">
-          <h2 className="data-table-title">{engine}</h2>
-          <span>{track.channel === "stable" ? "Stable" : "Nightly"} · {platformName(track.os)}</span>
-        </div>
-        <div className="calendar-surface build-chart-scroll" role="region" tabIndex={0} aria-label={`${engine} ${track.channel} ${platformName(track.os)} calendar`}>
-          <div className="build-chart-days">
-            {months.map((month, index) => (
-              <div
-                key={month.key}
-                className={index ? "build-chart-month month-boundary" : "build-chart-month"}
-                style={{ gridColumn: `span ${month.days}` }}
-              >
-                {month.label}
-              </div>
-            ))}
-            {days.map((day, index) => <div key={day} className={isCalendarMonthBoundary(days, index) ? "build-chart-day month-boundary" : "build-chart-day"} data-focused={day === focus || undefined}
-              role="group" aria-label={`${day} UTC, ${track.days.get(day)?.length ?? 0} builds`}>
-              <time dateTime={day}>{Number(day.slice(8))}</time>
-              <div className="build-chart-stack">
-                {[...(track.days.get(day) ?? [])].sort((a, b) => Date.parse(b.generated_at) - Date.parse(a.generated_at) ||
-                  buildIdentity(a).localeCompare(buildIdentity(b))).map((build) => {
-                  const status = outcome(build);
-                  const observations = performance.matches.get(build);
-                  const count = observations?.length ?? 0;
-                  const latest = observations?.reduce<Measurement | undefined>((prior, row) =>
-                    !prior || Date.parse(row.measured_at) > Date.parse(prior.measured_at) ? row : prior, undefined);
-                  const label = `Open build ${build.build_id} · ${build.tag ?? build.build_id} · ${outcomes[status]}`;
-                  return <Tooltip key={buildIdentity(build)} to={buildHref(build)} label={label}
-                    triggerClassName="build-chart-mark"
-                    onLinkClick={(event) => {
-                      if (event.detail > 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey &&
-                        !event.altKey && window.matchMedia("(hover: none) and (pointer: coarse)").matches) {
-                        event.preventDefault();
-                        setInspected({ scope, build });
-                      }
-                    }}
-                    content={<><strong>{build.tag ?? build.build_id}</strong><span>{outcomes[status]}</span>
-                      {latest && <span>{latest.model} · {latest.scenario}{latest.metrics.tps_mean != null && ` · ${metricValue("tps_mean", latest.metrics.tps_mean)}`}</span>}
-                      <small>{count ? `${count} matched model measurement${count === 1 ? "" : "s"}` : performance.message || "No matched benchmarks"}</small></>}>
-                    <OutcomeMark status={status} />{count > 0 && <span className="build-chart-bench" aria-hidden="true">•</span>}
-                  </Tooltip>;
-                })}
-              </div>
-            </div>)}
-          </div>
-        </div>
-        <div className="build-chart-legend calendar-legend" role="group" aria-label="Build status legend">
-          {(["pass", "warn", "fail", "unknown"] as const).map((status) => <span key={status}><OutcomeMark status={status} />{outcomes[status]}</span>)}
-          {days.some((day) => track.days.get(day)?.some((build) => performance.matches.has(build))) &&
-            <span>• Matched model benchmark</span>}
-        </div>
-      </section>;
-    }))}
+    {focusedDay && <Link to={windowLink(end === today ? null : end)}>Show all packages in this window</Link>}
+    {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
+    {rows.length === 0 ? <p role="status">No retained packages match this scope.</p> : <QualificationMatrix
+      builds={rows}
+      fetcher={fetcher}
+      selected={selected && rows.includes(selected) ? selected : null}
+    />}
+    {focusedDay && rows.length > 0 &&
+      <FocusedPerformance session={session} history={history} builds={rows} fetcher={fetcher} />}
   </section>;
 }
 
@@ -345,8 +334,7 @@ export function BuildReview({ session, history, params, fetcher }: ViewProps) {
   </section>;
   return <section className="build-charts">
     <div><h2>{build.tag ?? build.build_id}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {buildDate(build)} UTC</p>
-      <Link to={`?${new URLSearchParams({ view: "engine", version: build.rocm_version, engine: build.engine,
-        channel: build.channel, platform: build.os, day: buildDate(build) })}`}>View this build in the calendar</Link></div>
+      <Link to={qualificationBuildHref(build)}>View package qualification</Link></div>
     <div className="build-review-panels">
       <CheckBars build={build} />
       <PerformanceSummary rows={rows} build={build} performance={performance} />

@@ -32,9 +32,10 @@ validation each retain their own meaning.
 
 - Share navigation, typography, spacing, and control styles across views.
   Use headings and spacing to show hierarchy.
-- Use the selected ROCm version and engine to scope the build calendars.
-  Show each available track in its calendar heading. When the version already
-  provides the track context, omit the separate track control.
+- Use the selected ROCm version and engine to scope the qualification history.
+  Show one ROCm version at a time and default to the configured stable anchor.
+  Show only the selected release’s track in the trend and identify the track
+  and ROCm version for each package.
 - Use independent platform toggles with a filled and accessible pressed state.
   Keep at least one platform selected, and keep unavailable platforms visible
   and disabled. Determine platform availability from the version and engine
@@ -43,8 +44,7 @@ validation each retain their own meaning.
   edge when space permits. Let the controls wrap at narrow widths. Use the
   workspace rail for navigation between dashboard views. Place ROCm version
   selection with the view filters. Show short version lists as visible choices. Keep the current title in the shared
-  header and the theme control at its trailing edge. Mark the focused build
-  date at its header and keep the column on the shared calendar surface.
+  header and the theme control at its trailing edge. Label the selected date and platform above the package history.
 - Put workspace navigation at the top of the desktop side rail and dataset
   provenance at the bottom. At narrow widths, keep navigation above the
   content and provenance below it. Nest view links under their workspace
@@ -70,6 +70,11 @@ validation each retain their own meaning.
   rules within data tables where they help track rows or date groups. Keep
   panel fills close to the canvas and reserve decorative treatment for the
   shared page header.
+- Give parent sections a larger heading and more space above and below it.
+  Place a short label beside a nested technical identifier when its role would
+  otherwise be unclear. In package qualification, keep the build heading above
+  its Nightly packages, with GPU family before the OS columns. For Stable
+  shared archives, use a single table with Build as the first column.
 - Keep header controls quiet. Use a borderless theme icon with a visible focus
   state and make the active destination clear.
 - Keep version and project headings prominent. Give the engine label enough
@@ -85,22 +90,37 @@ validation each retain their own meaning.
   tables a visible heading above their shared, low-contrast surface. Use the shared heading style
   for the title, with the track, platform, or date window in smaller secondary
   text beside it. Keep headings and table labels available to assistive tools.
+- End the default ROCm Readiness calendars on the current UTC date, even
+  when there are no builds that day. Mark today's date with stronger neutral type.
+  Build Qualification also opens historical windows through paging or a date link.
 - Group consecutive UTC dates under a spanning month name. Show only the day
   number in each column and carry a subtle divider through the month boundary.
-  Apply this pattern to Readiness Overview, Engine Builds, and Upstream CI
-  calendars. Preserve the full UTC date in the accessible labels.
+  Apply this pattern to Readiness Overview and Upstream CI calendars. Preserve the full UTC date in the accessible labels.
 
+- Lead Build Qualification with daily stacked outcome bars for the selected release track. Put day numbers below the bars and month groups below the days.
+  Use separate labeled Windows and Linux charts with the same package-count scale.
+  Show publishing by OS beside each build.
+- Group packages by release workflow run, then GPU family when reported, then
+  platform. List compiled Stable GPU targets by OS in the build-number popup.
+  Show the runtime-validated target separately.
+  Put the date and run ID in the build tooltip. Overview links preserve the
+  selected package and its UTC date, version, track, engine, and platform.
+  Use short platform or GPU package labels and compact tinted check cells with distinct glyphs.
+  Use the shared padded tooltip header and body for tier and check details.
+  Keep the tooltip open while the pointer or keyboard focus is within its trigger
+  or panel. List the visible platform packages and report links in the GPU-family panel,
+  or under the platform heading for shared archives. Size check cells from the
+  longest tier in the package and keep that width across its tier rows.
+  An individual check opens the same check in the exact package report.
+- Compare benchmark results only within one compatible workload and hardware
+  cohort using verified package matches.
 - Preserve the Readiness calendar's operating-system rows, month and day
   headers, and links to individual builds. In Upstream Health, keep metrics,
   coverage notes, and daily CI activity in distinct groups. Use the shared
   header for the dashboard title and lead with the CI summary in the body.
-- Use compact, square-ended horizontal bars for build outcomes. Stack build
-  bars vertically within each date in Engine Builds. In the Overview, show
-  one bar per engine, track, platform, and UTC date using the latest build.
-  Keep the full set of builds in Engine Builds. A solid teal bar
-  indicates qualification, a half-filled amber bar indicates qualification
-  with warnings, a hollow rose bar indicates failure, and a dashed neutral bar
-  indicates missing evidence. Keep the text legend and descriptive build links.
+- Use tinted status cells with distinct glyphs for table evidence. Show the latest
+  build per engine, track, platform, and UTC date in Overview. Keep individual
+  packages available in Build Qualification. Reserve stacked bars for trends.
   In Upstream Health, the shared
   legend defines rate bands and distinguishes requested jobs that never ran
   from skipped jobs and days without collected evidence.

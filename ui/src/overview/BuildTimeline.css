@@ -52,14 +52,7 @@
   flex-shrink: 0;
   text-decoration: none;
 }
-.build-outcome-bar {
-  display: block;
-  flex: none;
-}
-.build-outcome-bar.pass { color: var(--good); }
-.build-outcome-bar.warn { color: var(--warning); }
-.build-outcome-bar.fail { color: var(--bad); }
-.build-outcome-bar.unknown { color: var(--muted); }
+.build-day > .comparison-tooltip, .build-day .build-mark, .build-day .build-evidence-missing { width: 100%; color: inherit; }
 .build-mark:focus-visible,
 .build-evidence-missing:focus-visible {
   outline: 2px solid var(--text);
@@ -94,12 +87,12 @@
 }
 .readiness-version > h2 {
   margin-bottom: 0.65rem;
-  font-size: clamp(1.55rem, 3vw, 2rem);
+  font-size: clamp(1.35rem, 2.2vw, 1.65rem);
   line-height: 1.25;
 }
 .readiness-track {
   color: var(--muted);
-  font-size: 0.58em;
+  font-size: 0.7em;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -109,7 +102,6 @@
 }
 
 .build-tooltip-bubble {
-  pointer-events: none;
   z-index: 100;
   overflow-wrap: anywhere;
 }
@@ -129,17 +121,6 @@
   padding: 0;
   border-radius: var(--radius-panel);
   overflow: hidden;
-}
-.build-tooltip-bubble .build-tooltip-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
-}
-.build-tooltip-bubble .comparison-title {
-  margin: 0;
-  font-size: 16px;
 }
 .build-tooltip-status {
   flex-shrink: 0;

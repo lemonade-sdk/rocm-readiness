@@ -92,7 +92,7 @@ it("updates only the data version after a successful dataset refresh", async () 
     screen.queryByRole("link", { name: "Published data aaaaaaaa" }),
   ).not.toBeInTheDocument();
 });
-it("ignores legacy overview platform filters and links a stable build to its review", async () => {
+it("ignores legacy overview platform filters and opens a stable build day and its package review", async () => {
   const data = overview();
   data.engines[0].latest_builds.push({
     ...data.engines[0].latest_builds[0],
@@ -121,25 +121,24 @@ it("ignores legacy overview platform filters and links a stable build to its rev
   ).getByRole("link", { name: /b11972.*linux-build/ });
   const query = new URLSearchParams(link.getAttribute("href")!.split("?")[1]);
   expect(Object.fromEntries(query)).toMatchObject({
-    view: "build-review",
+    view: "engine",
+    focus: "day",
     engine: "llamacpp",
     version: "10.1",
     platform: "linux",
     channel: "stable",
-    build: "linux-build",
-    source: "llamacpp-stable-qualification",
+    day: "2026-10-29",
   });
   fireEvent.click(link);
+  await screen.findByRole("heading", { name: "Package qualification" });
+  fireEvent.click((await screen.findAllByRole("button", { name: "Run details for b11972" }))[0]);
+  fireEvent.click(screen.getByRole("link", { name: "Package report for linux-build" }));
+  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
   await screen.findByRole("heading", { name: "Build review" });
   expect(await screen.findByRole("link", { name: "Build evidence" })).toBeInTheDocument();
-  expect(
-    screen.queryByRole("link", { name: /Open build history-2 / }),
-  ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Engine builds" }));
-  expect(
-    (await screen.findAllByRole("link", { name: /Open build history-2 / }))
-      .length,
-  ).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("link", { name: "Build Qualification" }));
+  expect((await screen.findAllByRole("columnheader", { name: "Windows" })).length).toBeGreaterThan(0);
+  expect(screen.getAllByRole("columnheader", { name: "Linux" }).length).toBeGreaterThan(0);
 });
 it("opens an empty version query as the catalog default", async () => {
   mount(fixtureFetch(), "/?version=");
@@ -258,20 +257,20 @@ it("does not show the old version under a newly selected version while loading",
         })
       : original(input),
   );
-  mount(fetcher, "/?view=engine");
-  const history = await screen.findByRole("region", { name: "Engine build history" });
+  mount(fetcher, "/?view=engine&version=10.1");
+  const history = await screen.findByRole("region", { name: "Build qualification history" });
   fireEvent.click(within(history).getByRole("button", { name: "10.2" }));
   await waitFor(() => expect(resolve).toBeDefined());
   expect(
-    screen.queryByRole("region", { name: "Engine build history" }),
+    screen.queryByRole("region", { name: "Build qualification history" }),
   ).not.toBeInTheDocument();
   fireEvent.click(await screen.findByRole("button", { name: "10.1" }));
-  await screen.findByRole("heading", { name: "llama.cpp builds" });
+  await screen.findByRole("heading", { name: "Build Qualification" });
   await act(async () =>
     resolve(new Response(JSON.stringify(overview("10.2")))),
   );
   expect(
-    screen.getByRole("heading", { name: "llama.cpp builds" }),
+    screen.getByRole("heading", { name: "Build Qualification" }),
   ).toBeInTheDocument();
 });
 it("reopens shared engine scope and preserves filters in navigation", async () => {
@@ -280,7 +279,7 @@ it("reopens shared engine scope and preserves filters in navigation", async () =
     "/?version=10.2&view=engine&platform=linux&build=linux-build",
   );
   expect(
-    await screen.findByRole("heading", { name: "llama.cpp builds" }),
+    await screen.findByRole("heading", { name: "Build Qualification" }),
   ).toBeInTheDocument();
   expect(await screen.findByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
@@ -296,18 +295,19 @@ it("reopens shared engine scope and preserves filters in navigation", async () =
   expect(screen.queryByRole("group", { name: "Build track" })).not.toBeInTheDocument();
 });
 
-it("opens a nightly day stack and reviews an earlier failed build", async () => {
+it("opens nightly qualification for a day and reviews an earlier failed package", async () => {
   const history = historyFixture();
   history.builds[0] = { ...history.builds[0], channel: "nightly", generated_at: "2026-10-29T15:00:00Z" };
-  history.builds[2] = { ...history.builds[2], channel: "nightly", qualified: false, generated_at: "2026-10-29T12:00:00Z" };
+  history.builds[2] = { ...history.builds[2], channel: "nightly", tag: "failed-nightly", qualified: false, generated_at: "2026-10-29T12:00:00Z" };
   mount(fixtureFetch({
     [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: history,
   }), "/?version=10.1&view=engine&channel=nightly&day=2026-10-29&platform=linux");
-  const stack = within(await screen.findByRole("group", { name: "2026-10-29 UTC, 2 builds" }));
-  const builds = stack.getAllByRole("link");
-  expect(builds[0]).toHaveAccessibleName(/linux-build.*Qualified/);
-  expect(builds[1]).toHaveAccessibleName(/history-2.*Failed/);
-  fireEvent.click(builds[1]);
+  const matrix = within(await screen.findByRole("region", { name: "Qualification by release workflow run" }));
+  expect(matrix.getByRole("button", { name: "Run details for b11972" })).toBeInTheDocument();
+  expect(matrix.queryByRole("columnheader", { name: "Outcome" })).not.toBeInTheDocument();
+  fireEvent.click(within(matrix.getByRole("heading", { name: "failed-nightly" }).closest("section")!).getByRole("button", { name: "Package details for Linux" }));
+  fireEvent.click(screen.getByRole("link", { name: "Package report for history-2" }));
+  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
   await screen.findByRole("heading", { name: "Build review" });
   fireEvent.click(await screen.findByRole("link", { name: "Performance evidence" }));
   await screen.findByRole("heading", { name: "Performance evidence" });

@@ -152,5 +152,5 @@ it("keeps the qualification timeline when a release has recorded builds", async 
     }],
   });
   const chart = await screen.findByRole("region", { name: "llama.cpp stable build history" });
-  expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("view=build"));
+  expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("focus=day"));
 });

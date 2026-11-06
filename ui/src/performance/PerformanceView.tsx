@@ -387,7 +387,7 @@ export function findExactQualificationBuild(
   return matches.length === 1 ? matches[0] : undefined;
 }
 
-function systemSummary(row: Measurement, systems: Map<string, SystemRecord>) {
+export function systemSummary(row: Measurement, systems: Map<string, SystemRecord>) {
   if (!row.system_id) return "Hardware metadata unavailable";
   const system = recordFor(row, systems);
   if (!system) return `Hardware record unavailable (${row.system_id})`;

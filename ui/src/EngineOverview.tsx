@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Tooltip } from "./overview/Tooltip";
+import { useUtcToday } from "./overview/useUtcToday";
+import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
 import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
 import {
@@ -8,7 +8,7 @@ import {
   calendarDays,
   calendarMonthGroups,
   isCalendarMonthBoundary,
-  exactBuildHref,
+  qualificationBuildHref,
   qualificationOutcome,
 } from "./overview/buildTimeline";
 import "./overview/BuildTimeline.css";
@@ -28,6 +28,7 @@ function platformLabel(os: string) {
 
 function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number }) {
   const outcome = qualificationOutcome(build);
+  const mark = outcome === "pass" && build.overall === "warn" ? "warn" : outcome;
   const failureReasons = [
     ...(build.blocked_by ?? []),
     ...(build.blocking_tests ?? []),
@@ -41,27 +42,18 @@ function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number })
       ? "Failed"
       : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
-  const dayLink = dayCount > 1
-    ? `?${new URLSearchParams({ view: "engine", version: build.rocm_version, engine: build.engine, channel: "nightly", platform: build.os, day: buildDate(build) })}`
-    : null;
   return (
     <Tooltip
-      to={dayLink ?? exactBuildHref(build)}
-      label={dayLink ? `${dayCount} nightly builds on ${buildDate(build)} · ${platformLabel(build.os)} · latest ${status}` : label}
+      to={qualificationBuildHref(build, dayCount > 1 ? "day" : "package")}
+      label={`Open package qualification · ${label}${dayCount > 1 ? ` · ${dayCount} packages` : ""}`}
       triggerClassName={
         outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
       }
       content={
-        <>
-          <span className="build-tooltip-header">
-            <strong className="comparison-title">
-              {dayLink && `${dayCount} builds · latest: `}
-              {build.tag ?? "Build"} · {platformLabel(build.os)}
-            </strong>
-            <span className={`build-tooltip-status ${outcome ?? "unknown"}`}>
-              {status}
-            </span>
-          </span>
+        <TooltipContent
+          heading={<>{dayCount > 1 && `${dayCount} packages · latest: `}{build.tag ?? "Build"} · {platformLabel(build.os)}</>}
+          status={<span className={`build-tooltip-status ${outcome ?? "unknown"}`}>{status}</span>}
+        >
           <dl className="build-tooltip-details">
             {outcome === "fail" && (
               <>
@@ -104,10 +96,10 @@ function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number })
             <dt>Build</dt>
             <dd>{build.build_id}</dd>
           </dl>
-        </>
+        </TooltipContent>
       }
     >
-      <BuildOutcomeIcon outcome={outcome} />
+      <BuildOutcomeIcon outcome={mark} />
     </Tooltip>
   );
 }
@@ -122,14 +114,8 @@ export function EngineOverview({
 }: Props) {
   const EngineHeading = nested ? "h3" : "h2";
   const OSHeading = nested ? "h5" : "h4";
-  const [clock, setClock] = useState(() => new Date());
-  useEffect(() => {
-    if (now) return;
-    const timer = window.setInterval(() => setClock(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, [now]);
-  const days = calendarDays(now ?? clock);
-  const today = days.at(-1)!;
+  const today = useUtcToday(now);
+  const days = calendarDays(new Date(today));
   const months = calendarMonthGroups(days);
 
   return (
@@ -263,20 +249,23 @@ export function EngineOverview({
                                     (build) => buildDate(build) === day,
                                   );
                                   const latestBuild = dayBuilds.at(-1);
+                                  const verdict = latestBuild ? qualificationOutcome(latestBuild) : null;
+                                  const cellStatus = verdict === "pass" && latestBuild?.overall === "warn" ? "warn" : verdict;
                                   return (
                                     <td
+                                      data-outcome={latestBuild ? cellStatus ?? "unreported" : undefined}
                                       key={day}
                                       className={
                                         isCalendarMonthBoundary(days, index)
-                                          ? "month-boundary"
-                                          : undefined
+                                          ? "table-status month-boundary"
+                                          : "table-status"
                                       }
                                     >
                                       <div className="build-day">
                                         {latestBuild ? (
                                           <BuildMark
                                             build={latestBuild}
-                                            dayCount={channel === "nightly" && history !== null ? dayBuilds.length : 1}
+                                            dayCount={dayBuilds.length}
                                           />
                                         ) : (
                                           <span className="build-no-data">No data</span>

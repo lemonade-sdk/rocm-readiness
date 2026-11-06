@@ -256,3 +256,9 @@
   padding: 9px 12px;
   max-width: 100%;
 }
+
+.build-browser-table-wrap tr[aria-current="true"] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  scroll-margin-block-start: 6rem;
+}

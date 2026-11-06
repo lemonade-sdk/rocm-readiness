@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Fetcher, Session } from "../data";
+import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import {
@@ -179,6 +180,8 @@ const activityStates = {
   none: { glyph: "○", label: "No pass or fail result" },
 } as const;
 
+const activityOutcomes = { good: "pass", warn: "warn", bad: "fail", stall: "fail", skip: "skip", idle: "unreported", none: "not_applicable" } as const;
+
 function ActivityMark({ state }: { state: keyof typeof activityStates }) {
   if (state === "good" || state === "warn" || state === "bad") {
     return <BuildOutcomeIcon outcome={state === "good" ? "pass" : state === "bad" ? "fail" : "warn"} />;
@@ -208,7 +211,8 @@ export function Ticks({
           <button
             key={day}
             type="button"
-            className="up-tick"
+            className="up-tick table-status"
+            data-outcome={activityOutcomes[state]}
             title={text}
             aria-label={text}
             onClick={() => onPick(day)}
@@ -219,7 +223,8 @@ export function Ticks({
           <span
             key={day}
             role="img"
-            className="up-tick"
+            className="up-tick table-status"
+            data-outcome={activityOutcomes[state]}
             title={text}
             aria-label={text}
           >
@@ -449,15 +454,13 @@ function ProjectGrid({
                                 const state = cellState(cell);
                                 const text = describe(day, cell);
                                 return (
-                                  <td key={day} className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
-                                    <span
-                                      className="up-tick"
-                                      role="img"
-                                      aria-label={text}
-                                      title={text}
-                                    >
+                                  <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
+                                    <Tooltip floating label={text} triggerClassName="up-tick"
+                                      content={<TooltipContent heading={day} status={activityStates[state].label}>
+                                        <span>{text}</span>
+                                      </TooltipContent>}>
                                       <ActivityMark state={state} />
-                                    </span>
+                                    </Tooltip>
                                   </td>
                                 );
                               })}
@@ -470,7 +473,7 @@ function ProjectGrid({
                   <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
                     {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
                       <li key={state}>
-                        <span className="up-tick" aria-hidden="true"><ActivityMark state={state} /></span>
+                        <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
                         {activityStates[state].label}
                       </li>
                     ))}

@@ -70,7 +70,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             setSession(current);
           }
         }
-        const selected = version ?? current.index.default_version;
+        const selected = version ?? (view === "engine" ? current.index.readiness?.stable_anchor : null) ?? current.index.default_version;
         if (
           track === "readiness" &&
           view !== "overview" &&
@@ -109,39 +109,29 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
 
   const needsHistory = track === "readiness" && view !== "overview";
   useEffect(() => {
-    if (!needsHistory || !session?.overview)
-      return;
+    if (!needsHistory || !session?.overview) return;
     const controller = new AbortController();
     setHistory({ session, builds: null, error: null });
-    loadHistory(session, fetcher, controller.signal)
-      .then((rows) => {
-        if (controller.signal.aborted) return;
-        const builds = rows;
-        const expected = session.overview!.engines.reduce(
-          (sum, engine) => sum + engine.build_count,
-          0,
-        );
-        if (builds.length !== expected)
-          throw new Error("Retained history count does not match the overview");
-        setHistory({ session, builds, error: null });
-      })
-      .catch((reason: unknown) => {
-        if (!controller.signal.aborted)
-          setHistory({
-            session,
-            builds: null,
-            error:
-              reason instanceof Error
-                ? reason.message
-                : "Unable to load build history",
-          });
+    async function load(current: Session) {
+      const builds = await loadHistory(current, fetcher, controller.signal);
+      if (controller.signal.aborted) return;
+      const expected = current.overview?.engines.reduce((sum, engine) => sum + engine.build_count, 0) ?? 0;
+      if (builds.length !== expected) throw new Error("Retained history count does not match the overview");
+      setHistory({ session: current, builds, error: null });
+    }
+    void load(session).catch((reason: unknown) => {
+      if (!controller.signal.aborted) setHistory({
+        session,
+        builds: null,
+        error: reason instanceof Error ? reason.message : "Unable to load build history",
       });
+    });
     return () => controller.abort();
   }, [session, needsHistory, fetcher]);
-
-  const selected = version ?? session?.version ?? "";
+  const currentHistory = history?.session === session ? history : null;
+  const selected = version ?? (view === "engine" ? session?.index.readiness?.stable_anchor ?? session?.index.default_version : null) ?? session?.version ?? "";
   const scopeMatches =
-    session && (view === "overview" || !version || session.version === version);
+    session && (view === "overview" || !selected || session.version === selected);
   const overview = scopeMatches ? session.overview : null;
   const platformValid =
     view === "overview" || ["all", "linux", "windows"].includes(platform) ||
@@ -162,7 +152,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.set("view", nextView);
     if (nextView !== "engine" && next.get("platform") === "none") next.delete("platform");
     if (nextView === "engine") {
-      for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "build_filter"])
+      next.delete("version");
+      for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit"])
         next.delete(key);
     }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
@@ -170,12 +161,19 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   };
   const changeVersion = (value: string) => {
     const next = new URLSearchParams(params);
-    next.set("version", value);
+    if (value) next.set("version", value);
+    else next.delete("version");
     next.delete("build");
     next.delete("source");
     next.delete("model");
     next.delete("day");
     next.delete("through");
+    next.delete("focus");
+    next.delete("package_identity");
+    next.delete("channel");
+    next.delete("tier");
+    next.delete("check");
+    next.delete("report_commit");
     if (next.get("compare") === value) next.delete("compare");
     if (buildView) next.set("view", "engine");
     if (view === "model") next.set("view", "performance");
@@ -211,12 +209,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     setParams(next);
   };
 
-  const showPageHeading = track === "readiness" && session &&
-    (overview || (view === "overview" && session.index.versions.length > 0)) &&
+  const hasViewData = overview || (view === "overview" && Boolean(session?.index.versions.length));
+  const showPageHeading = track === "readiness" && session && hasViewData &&
     viewValid && platformValid;
   const pageTitle =
     track === "upstream" ? "Upstream Health" :
-    view === "engine" ? "llama.cpp builds" :
+    view === "engine" ? "Build Qualification" :
     view === "build" ? "Build evidence" :
     view === "build-review" ? "Build review" :
     view === "build-performance" ? "Performance evidence" :
@@ -298,7 +296,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {track === "readiness" && (
                 <ul className="workspace-views" aria-label="Dashboard views">
                   <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
-                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Engine builds</Link></li>
+                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Build Qualification</Link></li>
                   <li><Link aria-current={view === "performance" || view === "model" ? "page" : undefined} to={href("performance")}>Model performance</Link></li>
                 </ul>
               )}
@@ -313,7 +311,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </aside>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
-          (view !== "engine" || history?.session !== session || !history?.builds || !overview || !platformValid) && (
+          (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
         {liveSync?.status === "failed" && (
@@ -395,7 +393,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </div>
           )}
         {track === "readiness" &&
-          overview &&
+          hasViewData &&
           (!viewValid || !platformValid) && (
             <div className="notice" role="alert">
               <h1>Unavailable view or platform</h1>
@@ -412,8 +410,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           )}
         {track === "readiness" &&
           session &&
-          (overview ||
-            (view === "overview" && session.index.versions.length > 0)) &&
+          hasViewData &&
           viewValid &&
           platformValid && (
             <>
@@ -425,28 +422,30 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 />
               )}
               {(view === "engine" || buildView) && (
-                history?.session === session && history.error ? (
+                currentHistory?.error ? (
                   <div className="notice error" role="alert">
-                    <p>{history.error}</p>
+                    <p>{currentHistory.error}</p>
                     <button onClick={refreshData}>Retry history</button>
                   </div>
-                ) : history?.session === session && history.builds ? (
+                ) : currentHistory?.builds ? (
                   <div onClick={handleLocalNavigation}>
                     {view === "engine" ? <EngineBuilds
-                      session={session} history={history.builds} params={params} fetcher={fetcher}
+                      session={session} history={currentHistory.builds} params={params} fetcher={fetcher}
                       versionFilter={versionFilter}
                       onNavigate={(next, replace) => setParams(next, { replace })}
                     /> : view === "build" ? <BuildBrowser
                       session={session}
-                      history={history.builds.filter((build) =>
+                      history={currentHistory.builds.filter((build) =>
                         (!params.get("engine") || build.engine === params.get("engine")) &&
                         (!params.get("channel") || build.channel === params.get("channel")))}
                       platform={platform}
                       selectedBuildId={params.get("build") || ""}
                       selectedSourceId={params.get("source")}
+                      selectedTierId={params.get("tier")} selectedCheckIndex={params.get("check")}
+                      selectedReportCommit={params.get("report_commit")}
                       onPlatformChange={changePlatform}
                       buildHref={(build) => href("build", { build: build.build_id, platform: build.os })}
-                    /> : <BuildReview session={session} history={history.builds} params={params} fetcher={fetcher} />}
+                    /> : <BuildReview session={session} history={currentHistory.builds} params={params} fetcher={fetcher} />}
                   </div>
                 ) : <p role="status">Loading retained build history…</p>
               )}

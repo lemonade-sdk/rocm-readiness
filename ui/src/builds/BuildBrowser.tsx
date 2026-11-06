@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Build, Session } from "../data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Build, Fetcher, Session } from "../data";
 import { exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
 
@@ -9,6 +9,9 @@ type BuildBrowserProps = {
   platform: string;
   selectedBuildId: string | null;
   selectedSourceId?: string | null;
+  selectedTierId?: string | null;
+  selectedCheckIndex?: string | null;
+  selectedReportCommit?: string | null;
   buildHref: (build: Build) => string;
   onPlatformChange: (platform: string) => void;
   query?: string;
@@ -23,22 +26,40 @@ type PinnedReport = {
   file: string;
 };
 
-type ProducerReport = {
+type QualificationCheck = {
+  index: number;
+  id: string;
+  name: string;
+  status: string;
+  evidence: JsonRecord;
+};
+
+type QualificationTier = {
+  id: string;
+  name: string;
+  verdict: string;
+  counts: Record<string, number>;
+  checks: QualificationCheck[];
+};
+
+export type QualificationReport = {
   raw: JsonRecord;
   build: JsonRecord;
-  tiers: JsonRecord;
+  tiers: QualificationTier[];
 };
+
+type CheckSelection = { tier: string; index: string; commit: string | null };
 
 type ReportState =
   | { state: "idle" }
   | { state: "loading" }
-  | { state: "ready"; report: ProducerReport }
+  | { state: "ready"; report: QualificationReport }
   | { state: "error"; message: string };
 
 const reportUrlPattern =
-  /^https:\/\/raw\.githubusercontent\.com\/lemonade-sdk\/llama\.cpp\/([a-f0-9]{40})\/qualification\/reports\/([A-Za-z0-9][A-Za-z0-9_.-]*\.json)$/;
+  /^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_][A-Za-z0-9_.-]*)\/([a-f0-9]{40})\/qualification\/reports\/([A-Za-z0-9][A-Za-z0-9_.-]*\.json)$/;
 const sourceUrlPattern =
-  /^https:\/\/raw\.githubusercontent\.com\/lemonade-sdk\/llama\.cpp\/([a-f0-9]{40})\/qualification\/index\.json$/;
+  /^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_][A-Za-z0-9_.-]*)\/([a-f0-9]{40})\/qualification\/index\.json$/;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -110,15 +131,16 @@ function pinnedReport(build: Build): PinnedReport | string {
     return "This retained build has no producer report URL.";
   const match = build.report_url.match(reportUrlPattern);
   if (!match)
-    return "The producer report URL is not a pinned llama.cpp qualification report.";
-  const [, commit, file] = match;
-  if (file !== `${build.build_id}.json`)
+    return "The producer report URL is not a pinned qualification report.";
+  const [, repository, commit, file] = match;
+  const producerId = build.channel === "nightly" ? build.build_id.replace(/@\d+$/, "") : build.build_id;
+  if (file !== `${build.build_id}.json` && file !== `${producerId}.json`)
     return "The pinned report filename does not match the selected feed build ID.";
-  if (build.source_url) {
-    const source = build.source_url.match(sourceUrlPattern);
-    if (!source || source[1] !== commit)
-      return "The selected feed source does not match the pinned producer report commit.";
-  }
+  const source = build.source_url?.match(sourceUrlPattern);
+  const legacyRepository = repository === "lemonade-sdk/llama.cpp" ||
+    (build.channel === "nightly" && repository === "lemonade-sdk/llamacpp-rocm");
+  if (build.source_url ? source?.[1] !== repository || source[2] !== commit : !legacyRepository)
+    return "The selected feed source does not match the pinned producer report commit.";
   return { url: build.report_url, commit, file };
 }
 
@@ -153,6 +175,36 @@ export function findSelectedBuild(
   return { kind: "selected", build: matches[0] };
 }
 
+export function qualificationCheckHref(build: Build, tierId: string, checkIndex: number | string): string {
+  const params = new URLSearchParams(exactBuildHref(build, "build").slice(1));
+  params.set("tier", tierId);
+  params.set("check", typeof checkIndex === "number" ? String(checkIndex) : `id:${checkIndex}`);
+  const reference = pinnedReport(build);
+  if (typeof reference !== "string") params.set("report_commit", reference.commit);
+  return `?${params}`;
+}
+
+function qualificationTiers(tiers: JsonRecord): QualificationTier[] {
+  return Object.entries(tiers).flatMap(([id, tier]) => {
+    if (!isRecord(tier)) return [];
+    const counts: Record<string, number> = {};
+    if (isRecord(tier.counts)) {
+      for (const [key, value] of Object.entries(tier.counts)) {
+        if (typeof value === "number" && Number.isInteger(value) && value >= 0) counts[key] = value;
+      }
+    }
+    const tests: unknown[] = Array.isArray(tier.tests) ? tier.tests : [];
+    const checks = tests.flatMap((test, index) => isRecord(test) ? [{
+      index,
+      id: text(test.id) ?? `${id}.${index + 1}`,
+      name: text(test.name) ?? "Unnamed test",
+      status: status(test.status),
+      evidence: test,
+    }] : []);
+    return [{ id, name: text(tier.tier_name) ?? id, verdict: status(tier.status), counts, checks }];
+  });
+}
+
 function reportMetadata(
   report: JsonRecord,
   build: Build,
@@ -184,6 +236,9 @@ function reportMetadata(
     throw new Error(
       "Producer report run ID does not match the selected feed row.",
     );
+  const reportAttempt = reportBuild.run_attempt;
+  if (build.run_attempt != null && reportAttempt != null && String(reportAttempt) !== String(build.run_attempt))
+    throw new Error("Producer report attempt does not match the selected feed row.");
   const reportUpstreamSha = text(reportBuild.upstream_sha);
   if (
     build.upstream_sha &&
@@ -198,7 +253,21 @@ function reportMetadata(
     throw new Error("Producer report is missing tier evidence.");
   if (!pinned.commit || !pinned.file)
     throw new Error("Pinned producer report metadata is incomplete.");
-  return { raw: report, build: reportBuild, tiers };
+  return { raw: report, build: reportBuild, tiers: qualificationTiers(tiers) };
+}
+
+export async function readQualificationReport(
+  build: Build,
+  signal: AbortSignal,
+  fetcher: Fetcher = fetch,
+): Promise<QualificationReport> {
+  const reference = pinnedReport(build);
+  if (typeof reference === "string") throw new Error(reference);
+  const response = await fetcher(reference.url, { cache: "no-store", signal });
+  if (!response.ok) throw new Error(`Producer report request failed: HTTP ${response.status}.`);
+  const raw: unknown = await response.json();
+  if (!isRecord(raw)) throw new Error("Producer report is not valid JSON evidence.");
+  return reportMetadata(raw, build, reference);
 }
 
 function summary(value: unknown): string | null {
@@ -239,9 +308,24 @@ function evidence(test: JsonRecord, label: string, keys: string[]) {
   ) : null;
 }
 
-function ReportTests({ tiers }: { tiers: JsonRecord }) {
-  const entries = Object.entries(tiers).filter(([, tier]) => isRecord(tier));
-  if (!entries.length)
+function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selection?: CheckSelection }) {
+  const focusedRow = useRef<HTMLTableRowElement>(null);
+  const checkId = selection?.index.startsWith("id:") ? selection.index.slice(3) : null;
+  const matches = checkId == null ? [] : tiers.flatMap((tier) =>
+    tier.id.toLowerCase() === selection?.tier.toLowerCase() || selection?.tier === "Other checks"
+      ? tier.checks.filter((check) => check.id === checkId).map((check) => ({ tier: tier.id, index: String(check.index) }))
+      : [],
+  );
+  const selectedTier = checkId == null ? selection?.tier : matches.length === 1 ? matches[0].tier : undefined;
+  const selectedIndex = checkId == null ? selection?.index : matches.length === 1 ? matches[0].index : undefined;
+  const hasSelectedCheck = tiers.some((tier) => tier.id === selectedTier &&
+    tier.checks.some((check) => String(check.index) === selectedIndex));
+
+  useEffect(() => {
+    focusedRow.current?.focus();
+  }, [selectedTier, selectedIndex, tiers]);
+
+  if (!tiers.length && !selection)
     return (
       <p className="build-browser-muted">
         No producer test tiers were recorded.
@@ -249,32 +333,29 @@ function ReportTests({ tiers }: { tiers: JsonRecord }) {
     );
   return (
     <div className="build-browser-tiers">
-      {entries.map(([tierId, rawTier]) => {
-        const tier = rawTier as JsonRecord;
-        const tests = Array.isArray(tier.tests)
-          ? tier.tests.filter(isRecord)
-          : [];
+      {selection && !hasSelectedCheck && <p role="status">This check is unavailable in the pinned report.</p>}
+      {tiers.map((tier) => {
         return (
-          <section className="build-browser-tier" key={tierId}>
+          <section className="build-browser-tier" key={tier.id}>
             <div className="build-browser-tier-heading">
               <div>
-                <span className="build-browser-kicker">{tierId}</span>
-                <h3>{text(tier.tier_name) ?? tierId}</h3>
+                <span className="build-browser-kicker">{tier.id}</span>
+                <h3>{tier.name}</h3>
               </div>
               <span
-                className={`build-browser-status status-${status(tier.status)}`}
+                className={`build-browser-status status-${tier.verdict}`}
               >
-                {status(tier.status)}
+                {tier.verdict}
               </span>
             </div>
-            {isRecord(tier.counts) && (
+            {Object.keys(tier.counts).length > 0 && (
               <p className="build-browser-muted">
                 {Object.entries(tier.counts)
                   .map(([name, count]) => `${name}: ${summary(count)}`)
                   .join(" · ")}
               </p>
             )}
-            {tests.length ? (
+            {tier.checks.length ? (
               <div className="build-browser-table-wrap">
                 <table>
                   <thead>
@@ -287,17 +368,17 @@ function ReportTests({ tiers }: { tiers: JsonRecord }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {tests.map((test, index) => {
-                      const id = text(test.id) ?? `${tierId}.${index + 1}`;
-                      const details = isRecord(test.details)
-                        ? test.details
-                        : null;
+                    {tier.checks.map((check) => {
+                      const test = check.evidence;
+                      const focused = tier.id === selectedTier && String(check.index) === selectedIndex;
+                      const details = isRecord(test.details) ? test.details : null;
                       const error = summary(test.error ?? test.reason);
                       return (
-                        <tr key={id}>
+                        <tr key={check.index} ref={focused ? focusedRow : undefined}
+                          tabIndex={focused ? -1 : undefined} aria-current={focused ? "true" : undefined}>
                           <th scope="row">
-                            <strong>{id}</strong>{" "}
-                            {text(test.name) ?? "Unnamed test"}
+                            <strong>{check.id}</strong>{" "}
+                            {check.name}
                             {evidence(test, "Compatibility", ["compatibility"])}
                             {evidence(test, "Runtime", ["runtime"])}
                             {evidence(test, "GPU offload", [
@@ -314,9 +395,9 @@ function ReportTests({ tiers }: { tiers: JsonRecord }) {
                           </th>
                           <td>
                             <span
-                              className={`build-browser-status status-${status(test.status)}`}
+                              className={`build-browser-status status-${check.status}`}
                             >
-                              {status(test.status)}
+                              {check.status}
                             </span>
                           </td>
                           <td>
@@ -342,11 +423,11 @@ function ReportTests({ tiers }: { tiers: JsonRecord }) {
   );
 }
 
-function ReportEvidence({ report }: { report: ProducerReport }) {
+function ReportEvidence({ report, selection }: { report: QualificationReport; selection?: CheckSelection }) {
   const promotion = isRecord(report.raw.promotion)
     ? report.raw.promotion
     : null;
-  const blockedBy = promotion ? summary(promotion.blocked_by) : null;
+  const blockedBy = summary(promotion?.blocked_by ?? report.raw.blocked_by);
   const reportGfx = isRecord(report.raw.gfx) ? report.raw.gfx : null;
   const requested = Array.isArray(reportGfx?.requested)
     ? reportGfx.requested.length
@@ -398,7 +479,7 @@ function ReportEvidence({ report }: { report: ProducerReport }) {
           </dd>
         </div>
       </dl>
-      <ReportTests tiers={report.tiers} />
+      <ReportTests tiers={report.tiers} selection={selection} />
     </section>
   );
 }
@@ -480,7 +561,11 @@ function BuildList({
   );
 }
 
-function BuildDetail({ build, session }: { build: Build; session: Session }) {
+function BuildDetail({ build, session, selection }: {
+  build: Build;
+  session: Session;
+  selection?: CheckSelection;
+}) {
   const [retry, setRetry] = useState(0);
   const reportReference = useMemo(() => pinnedReport(build), [build]);
   const [reportState, setReportState] = useState<ReportState>({
@@ -496,18 +581,7 @@ function BuildDetail({ build, session }: { build: Build; session: Session }) {
     setReportState({ state: "loading" });
     void (async () => {
       try {
-        const response = await fetch(reportReference.url, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok)
-          throw new Error(
-            `Producer report request failed: HTTP ${response.status}.`,
-          );
-        const raw: unknown = await response.json();
-        if (!isRecord(raw))
-          throw new Error("Producer report is not valid JSON evidence.");
-        const report = reportMetadata(raw, build, reportReference);
+        const report = await readQualificationReport(build, controller.signal);
         if (!controller.signal.aborted)
           setReportState({ state: "ready", report });
       } catch (reason) {
@@ -525,10 +599,12 @@ function BuildDetail({ build, session }: { build: Build; session: Session }) {
   }, [build, reportReference, retry]);
 
   const url = typeof reportReference === "string" ? null : reportReference.url;
+  const checkRevisionMismatch = selection?.commit != null &&
+    (typeof reportReference === "string" || selection.commit !== reportReference.commit);
   const feedSource =
     typeof reportReference === "string" || !build.source_url
       ? null
-      : build.source_url.match(sourceUrlPattern)?.[1] === reportReference.commit
+      : build.source_url.match(sourceUrlPattern)?.[2] === reportReference.commit
         ? build.source_url
         : null;
   return (
@@ -564,6 +640,14 @@ function BuildDetail({ build, session }: { build: Build; session: Session }) {
         <div>
           <dt>Platform</dt>
           <dd>{displayPlatform(build.os)}</dd>
+        </div>
+        <div>
+          <dt>Package archive</dt>
+          <dd>{build.artifact ?? "Not recorded"}</dd>
+        </div>
+        <div>
+          <dt>ROCm SDK</dt>
+          <dd>{build.producer_rocm_version ?? build.rocm_version}</dd>
         </div>
         <div>
           <dt>Compiled targets</dt>
@@ -603,7 +687,12 @@ function BuildDetail({ build, session }: { build: Build; session: Session }) {
         </div>
       )}
       {reportState.state === "ready" && (
-        <ReportEvidence report={reportState.report} />
+        <>
+          {checkRevisionMismatch && (
+            <p role="status">This check link points to a different producer report revision.</p>
+          )}
+          <ReportEvidence report={reportState.report} selection={checkRevisionMismatch ? undefined : selection} />
+        </>
       )}
     </article>
   );
@@ -615,6 +704,9 @@ export function BuildBrowser({
   platform,
   selectedBuildId,
   selectedSourceId,
+  selectedTierId,
+  selectedCheckIndex,
+  selectedReportCommit = null,
   buildHref,
   onPlatformChange,
   query = "",
@@ -650,7 +742,9 @@ export function BuildBrowser({
     >
       <div className="build-browser-toolbar">
         <div>
-          <span className="build-browser-kicker">STABLE · LLAMA.CPP</span>
+          {selection?.kind === "selected" && (
+            <span className="build-browser-kicker">{selection.build.channel} · {session.overview?.engines.find((engine) => engine.id === selection.build.engine)?.label ?? selection.build.engine}</span>
+          )}
           <h2 id="retained-builds-heading">
             {selectedBuildId === null
               ? "Retained builds"
@@ -701,6 +795,9 @@ export function BuildBrowser({
           key={`${selection.build.source_id ?? "unknown"}-${selection.build.os}-${selection.build.build_id}-${selection.build.report_url ?? "no-report"}`}
           build={selection.build}
           session={session}
+          selection={selectedTierId != null && selectedCheckIndex != null
+            ? { tier: selectedTierId, index: selectedCheckIndex, commit: selectedReportCommit }
+            : undefined}
         />
       ) : (
         <div className="build-browser-empty" role="alert">

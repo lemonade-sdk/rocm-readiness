@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { BuildBrowser } from "./BuildBrowser";
+import { BuildBrowser, qualificationCheckHref } from "./BuildBrowser";
 import {
   buildFixture,
   producerReport,
@@ -208,6 +208,61 @@ describe("BuildBrowser", () => {
     mount({ history: [build], selectedBuildId: build.build_id });
     expect(await screen.findByText("T0.1")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("opens the exact check in a future producer tier even when check IDs repeat", async () => {
+    const repository = "https://raw.githubusercontent.com/example/vllm-rocm/" + "d".repeat(40);
+    const build = buildFixture({
+      build_id: "future-package",
+      engine: "vllm",
+      source_url: `${repository}/qualification/index.json`,
+      report_url: `${repository}/qualification/reports/future-package.json`,
+    });
+    fetchMock.mockResolvedValue(response(producerReport(build, { tiers: {
+      tier3: {
+        tier_name: "Extended compatibility",
+        status: "warn",
+        counts: { warn: 1, not_applicable: 1 },
+        tests: [
+          { id: "T3.1", name: "First host", status: "warn" },
+          null,
+          { id: "T3.1", name: "Second host", status: "not_applicable" },
+        ],
+      },
+    } })));
+    const params = new URLSearchParams(qualificationCheckHref(build, "tier3", 2));
+    expect(params.get("source")).toBe(build.source_id);
+    expect(params.get("build")).toBe(build.build_id);
+    expect(params.get("report_commit")).toBe("d".repeat(40));
+    mount({
+      history: [build],
+      selectedBuildId: build.build_id,
+      selectedTierId: params.get("tier"),
+      selectedCheckIndex: params.get("check"),
+      selectedReportCommit: params.get("report_commit"),
+    });
+
+    const selected = await screen.findByRole("row", { name: /Second host/ });
+    expect(selected).toHaveFocus();
+    expect(selected).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("row", { name: /First host/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByText("not_applicable")).toBeInTheDocument();
+  });
+
+  it("does not select a test ordinal in a different report revision", async () => {
+    const build = buildFixture();
+    fetchMock.mockResolvedValue(response(producerReport(build)));
+
+    mount({
+      history: [build],
+      selectedBuildId: build.build_id,
+      selectedTierId: "tier0",
+      selectedCheckIndex: "0",
+      selectedReportCommit: "d".repeat(40),
+    });
+
+    expect(await screen.findByText("This check link points to a different producer report revision.")).toHaveAttribute("role", "status");
+    expect(screen.getByRole("row", { name: /archive contents/ })).not.toHaveAttribute("aria-current");
   });
 
   it("rejects a report whose metadata does not match the selected feed row", async () => {

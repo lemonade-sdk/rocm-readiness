@@ -117,7 +117,17 @@ const indexSchema = z.object({
     }),
   ),
 });
-const buildSchema = z.object({
+const buildSchema = z.preprocess((value) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return value;
+  const row = value as Record<string, unknown>;
+  const numberedTiers = Object.fromEntries(Object.entries(row).filter(([key, verdict]) =>
+    /^tier\d+$/i.test(key) && typeof verdict === "string",
+  ));
+  if (Object.keys(numberedTiers).length === 0) return value;
+  const explicit = row.tier_verdicts;
+  if (explicit != null && (typeof explicit !== "object" || Array.isArray(explicit))) return value;
+  return { ...row, tier_verdicts: { ...numberedTiers, ...explicit } };
+}, z.object({
   build_id: z.string(),
   engine: z.string(),
   channel: z.enum(["stable", "nightly"]),
@@ -136,6 +146,7 @@ const buildSchema = z.object({
   blocked_by: z.array(z.string()).nullable().optional(),
   blocking_tests: z.array(z.string()).nullable().optional(),
   results: z.record(z.string(), z.string()).nullable().optional(),
+  tier_verdicts: z.record(z.string(), z.string()).nullable().optional(),
   generated_at: time,
   qualified: z.boolean().nullable().optional(),
   version_qualified: z.boolean().nullable().optional(),
@@ -150,7 +161,7 @@ const buildSchema = z.object({
     .object({ requested: count, present: count, missing: z.array(z.string()) })
     .nullable()
     .optional(),
-});
+}));
 const historySchema = z.object({
   schema_version: z.literal(2),
   rocm_version: z.string(),

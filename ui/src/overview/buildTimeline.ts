@@ -26,6 +26,17 @@ export function qualificationOutcome(build: Build): "pass" | "fail" | null {
   return null;
 }
 
+export function qualificationBuildHref(build: Build, scope: "package" | "day" = "package"): string {
+  const params = new URLSearchParams(exactBuildHref(build, "engine").slice(1));
+  if (scope === "day") {
+    params.delete("build");
+    params.delete("source");
+  }
+  params.set("day", buildDate(build));
+  params.set("focus", "day");
+  return `?${params}`;
+}
+
 export function exactBuildHref(build: Build, view = "build-review"): string {
   const query = new URLSearchParams({
     view,

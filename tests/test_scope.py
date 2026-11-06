@@ -47,7 +47,7 @@ class ScopeTests(unittest.TestCase):
             if url.endswith("qualification/index.json"):
                 return fixture("llama.json")
             if url.endswith("leaderboard.json"):
-                return fixture("performance.json")
+                return {"by_model_scenario": {}, "history": {}, "systems": []}
             if "/git/trees/" in url:
                 return {"truncated": False, "tree": []}
             raise AssertionError(url)
@@ -142,6 +142,18 @@ class ScopeTests(unittest.TestCase):
         data["by_model_scenario"]["model|context-32k"][-1]["fork_repo"] = "wrong/repo"
         with self.assertRaisesRegex(ValueError, "producer identity"):
             normalize_performance(source, data)
+
+    def test_production_performance_selects_nightly_latest_and_history(self):
+        config, _ = load_config(json.loads(Path("sources.json").read_text()))
+        source = next(s for s in config["sources"] if s["id"] == "lemonade-performance")
+        rows = normalize_performance(source, fixture("performance.json"))
+        self.assertEqual(
+            {(row["kind"], row["channel"], row["engine_repository"]) for row in rows},
+            {
+                ("latest", "nightly", "lemonade-sdk/llamacpp-rocm"),
+                ("history", "nightly", "lemonade-sdk/llamacpp-rocm"),
+            },
+        )
 
     def test_missing_fork_identity_fails_instead_of_being_filtered_out(self):
         source = fixture("performance-source.json")

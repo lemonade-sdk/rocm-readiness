@@ -51,10 +51,17 @@
           "channel": "stable",
           "backend": "rocm",
           "repository": "lemonade-sdk/llama.cpp"
+        },
+        "llamacpp-rocm-nightly": {
+          "engine": "llamacpp",
+          "channel": "nightly",
+          "backend": "rocm",
+          "repository": "lemonade-sdk/llamacpp-rocm"
         }
       },
       "include_forks": [
-        "llamacpp-rocm-stable"
+        "llamacpp-rocm-stable",
+        "llamacpp-rocm-nightly"
       ],
       "type": "readiness",
       "project": "lemonade",

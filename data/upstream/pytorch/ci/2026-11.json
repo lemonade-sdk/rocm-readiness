@@ -3152,6 +3152,24 @@
       "queue_seconds": 15,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-t5v4n",
       "url": "https://github.com/pytorch/pytorch/actions/runs/42274008130/job/128101037822"
+    },
+    {
+      "job": "rx7900-build",
+      "run_id": "42291456501",
+      "job_id": "128145793082",
+      "attempt": 1,
+      "day": "2026-11-06",
+      "created_at": "2026-11-06T20:48:29Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "275e96b871837516ee90eeba1ab1fa026f6a5367",
+      "status": "in_progress",
+      "conclusion": null,
+      "state": "running",
+      "failed_step": null,
+      "queue_seconds": 153,
+      "runner": "mt-l-x86iavx512-8-64-gwn6p-runner-pgtk7",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/42291456501/job/128145793082"
     }
   ],
   "scanned_runs": [

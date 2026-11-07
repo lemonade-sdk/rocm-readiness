@@ -1162,13 +1162,13 @@ main {
   }
 }
 
-/* Evidence status uses the same foreground and low-contrast fill in every table. */
-.table-status[data-outcome="pass"] { --status-ink: var(--good); }
-.table-status[data-outcome="warn"] { --status-ink: var(--warning); }
-.table-status[data-outcome="fail"] { --status-ink: var(--bad); }
+/* Known outcomes have a stronger tint; missing and skipped evidence stays quiet. */
+.table-status[data-outcome="pass"] { --status-ink: var(--good); --status-tint: 28%; }
+.table-status[data-outcome="warn"] { --status-ink: var(--warning); --status-tint: 28%; }
+.table-status[data-outcome="fail"] { --status-ink: var(--bad); --status-tint: 28%; }
 .table-status:is([data-outcome="pass"], [data-outcome="warn"], [data-outcome="fail"],
   [data-outcome="skip"], [data-outcome="not_applicable"], [data-outcome="unreported"]) {
-  background: color-mix(in srgb, var(--status-ink, var(--muted)) 16%, var(--subpanel));
+  background: color-mix(in srgb, var(--status-ink, var(--muted)) var(--status-tint, 16%), var(--subpanel));
   color: var(--status-ink, var(--muted));
 }
 .table-status-glyph { font: 700 .8rem/1 ui-monospace, monospace; }

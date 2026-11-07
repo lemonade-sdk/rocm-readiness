@@ -27,6 +27,9 @@ Keep status colors separate from the accent. Use labels or distinct symbols
 with color for pass, fail, skipped, and unavailable states. Keep missing
 qualification evidence neutral. Qualification, test outcomes, and hardware
 validation each retain their own meaning.
+Use a 28% status-color tint for pass, warning, and failure table cells so build
+outcomes are easy to scan. Keep skipped and unavailable cells at a quieter 16%
+neutral tint, and retain the existing status foregrounds in both themes.
 
 ## Layout and interaction
 

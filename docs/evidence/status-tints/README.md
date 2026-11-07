@@ -1,8 +1,8 @@
 # Status tint comparison
 
-The images compare the original 16% tint with the updated 28% tint for pass,
-warning, and failure cells. Each image places **before above after**, at the
-same scale, in the same theme.
+The images compare the original 16% tint with the updated 38% dark-mode tint
+and 28% light-mode tint for pass, warning, and failure cells. Each image places
+**before above after**, at the same scale, in the same theme.
 
 - [Light theme comparison](light-comparison.png)
 - [Dark theme comparison](dark-comparison.png)

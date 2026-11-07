@@ -996,6 +996,156 @@
         "verdict": "passed",
         "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42253820671/job/128015543475"
       }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "42386977370",
+      "job_id": "128446317728",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T15:33:44Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "fdfc913c515ad749cedd84a118e7c23a05ac1c65",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000040620",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42386977370/job/128446317728",
+      "pr": {
+        "number": 2284,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2284",
+        "author": "daniandtheweb",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42336633529/job/128294914082"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "42386977370",
+      "job_id": "128446317543",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T15:33:44Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "fdfc913c515ad749cedd84a118e7c23a05ac1c65",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000040615",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42386977370/job/128446317543",
+      "pr": {
+        "number": 2284,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2284",
+        "author": "daniandtheweb",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42336633529/job/128294913987"
+      }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "42389452485",
+      "job_id": "128453745485",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T16:04:40Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "b1f5a51a1ed98d89fef3013d2a1151a50d4b77ed",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000040644",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42389452485/job/128453745485",
+      "pr": {
+        "number": 2286,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2286",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42386083008/job/128443629610"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "42389452485",
+      "job_id": "128453745512",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T16:04:40Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "b1f5a51a1ed98d89fef3013d2a1151a50d4b77ed",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000040645",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42389452485/job/128453745512",
+      "pr": {
+        "number": 2286,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2286",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42386083008/job/128443629653"
+      }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "42389887876",
+      "job_id": "128455056828",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T16:09:51Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "9234ad822a376a4724638467736118ed61d68ee9",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 176,
+      "runner": "GitHub Actions 1000040655",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42389887876/job/128455056828",
+      "pr": {
+        "number": 2285,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2285",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42387266462/job/128447186887"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "42389887876",
+      "job_id": "128455056795",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T16:09:51Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "9234ad822a376a4724638467736118ed61d68ee9",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 185,
+      "runner": "GitHub Actions 1000040656",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42389887876/job/128455056795",
+      "pr": {
+        "number": 2285,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2285",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/42387266462/job/128447186580"
+      }
     }
   ],
   "scanned_runs": [
@@ -1097,6 +1247,9 @@
     "41892885076#1@2026-11-04",
     "42066103401#1@2026-11-05",
     "42079879034#1@2026-11-05",
-    "42257310526#1@2026-11-06"
+    "42257310526#1@2026-11-06",
+    "42386977370#1@2026-11-07",
+    "42389452485#1@2026-11-07",
+    "42389887876#1@2026-11-07"
   ]
 }

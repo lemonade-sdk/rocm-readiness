@@ -3314,6 +3314,60 @@
       "queue_seconds": 13,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-fbnjh",
       "url": "https://github.com/pytorch/pytorch/actions/runs/42340055168/job/128309449375"
+    },
+    {
+      "job": "rx7900-build",
+      "run_id": "42374132796",
+      "job_id": "128408198226",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T12:48:56Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "29e8991c6c1129c3c56c1ba4c5d967a927fbcaa4",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 9,
+      "runner": "mt-l-x86iavx512-8-64-hlcrq-runner-hmh9b",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/42374132796/job/128408198226"
+    },
+    {
+      "job": "rx7900-tests",
+      "run_id": "42374132796",
+      "job_id": "128411946886",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T12:48:56Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "29e8991c6c1129c3c56c1ba4c5d967a927fbcaa4",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 23,
+      "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-tlmsf",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/42374132796/job/128411946886"
+    },
+    {
+      "job": "rx7900-tests",
+      "run_id": "42374132796",
+      "job_id": "128411946928",
+      "attempt": 1,
+      "day": "2026-11-07",
+      "created_at": "2026-11-07T12:48:56Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "29e8991c6c1129c3c56c1ba4c5d967a927fbcaa4",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-5jkg7",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/42374132796/job/128411946928"
     }
   ],
   "scanned_runs": [
@@ -3460,6 +3514,7 @@
     "42274008130#1@2026-11-06",
     "42291456501#1@2026-11-06",
     "42307390724#1@2026-11-06",
-    "42340055168#1@2026-11-07"
+    "42340055168#1@2026-11-07",
+    "42374132796#1@2026-11-07"
   ]
 }

@@ -244,11 +244,17 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
     });
   }
 
+  const checkLegend = <ul className="qualification-check-legend" aria-label="Check outcomes">
+      {(Object.keys(outcomes) as Outcome[]).map((state) => <li key={state}>
+        <span className="table-status qualification-check-block" data-outcome={state} aria-hidden="true"><BuildOutcomeIcon outcome={state} /></span>{outcomes[state]}
+      </li>)}
+    </ul>;
+
   return <section aria-labelledby={title} className="qualification-matrix">
     <h2 id={title}>Package qualification</h2>
     {builds.length === 0 ? <p role="status">No retained packages match this scope.</p> :
       <div className="qualification-releases" role="region" aria-label="Qualification by release workflow run">
-        {sharedStable ? <div className="qualification-table-scroll" role="region" aria-label="Stable packages by build" tabIndex={0}>
+        {sharedStable ? <><div className="qualification-table-scroll" role="region" aria-label="Stable packages by build" tabIndex={0}>
           <table className="qualification-table qualification-stable-table" data-multiple-platforms={platforms.length > 1 || undefined}>
             <thead><tr>
               <th scope="col" className="qualification-family-column">Build</th>
@@ -262,7 +268,8 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
               {platformCells(packages, false)}
             </tr>)}</tbody>
           </table>
-        </div> : [...runs].map(([key, packages]) => {
+        </div>
+        {checkLegend}</> : [...runs].map(([key, packages]) => {
           const [build] = packages;
           const release = build.tag ?? "Unreported";
           const families = new Map<string, Build[]>();
@@ -306,13 +313,10 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
                 </tbody>
               </table>
             </div>
+            {checkLegend}
           </section>;
         })}
       </div>}
-    {builds.length > 0 && <ul className="qualification-check-legend" aria-label="Check outcomes">
-      {(Object.keys(outcomes) as Outcome[]).map((state) => <li key={state}>
-        <span className="table-status qualification-check-block" data-outcome={state} aria-hidden="true"><BuildOutcomeIcon outcome={state} /></span>{outcomes[state]}
-      </li>)}
-    </ul>}
+
   </section>;
 }

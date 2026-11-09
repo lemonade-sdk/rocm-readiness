@@ -170,6 +170,17 @@ function Forks({ project }: { project: Project }) {
   );
 }
 
+function ProjectSources({ project }: { project: Project }) {
+  return (
+    <div className="up-sources" role="group" aria-label={`${project.label} source repositories`}>
+      <a className="up-repo" aria-label={`Repository: ${project.repository}`} href={GH + project.repository} target="_blank" rel="noreferrer">
+        <span className="muted">Repository:</span>{" "}{project.repository}
+      </a>
+      <Forks project={project} />
+    </div>
+  );
+}
+
 const activityStates = {
   good: { glyph: "✓", label: "95–100% passed" },
   warn: { glyph: "△", label: "80–<95% passed" },
@@ -363,9 +374,6 @@ function ProjectGrid({
             <article
               key={project.id}
               className="up-card"
-              onClick={() =>
-                onNavigate(query(params, { project: project.id, lens: null }))
-              }
             >
               <div className="up-card-head">
                 <h2>
@@ -383,9 +391,8 @@ function ProjectGrid({
                   </a>
                 </h2>
                 <Badge project={project} />
-                <Forks project={project} />
-                <span className="muted up-repo">{project.repository}</span>
               </div>
+              <ProjectSources project={project} />
               {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
               {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
@@ -607,7 +614,7 @@ function ProjectPage({
       aria-label={`${project.label} upstream health`}
       className="up-page"
     >
-      <div className="up-page-head">
+      <nav className="up-page-nav" aria-label="Project navigation">
         <a
           href={`?${query(params, { project: null, lens: null })}`}
           onClick={(e) => {
@@ -617,19 +624,17 @@ function ProjectPage({
         >
           ‹ All projects
         </a>
-        <h1>{project.label}</h1>
-        <Badge project={project} />
-        <p className="muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
-        <Forks project={project} />
-        <a
-          className="muted up-repo"
-          href={GH + project.repository}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {project.repository}
-        </a>
-      </div>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{project.label}</span>
+      </nav>
+      <header className="up-project-header">
+        <div className="up-page-head">
+          <h1>{project.label}</h1>
+          <Badge project={project} />
+        </div>
+        <ProjectSources project={project} />
+        <p className="up-rule muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
+      </header>
       <div className="up-kpis up-kpis-page">
         <Stat
           value={r.pct === null ? "–" : `${r.pct}%`}
@@ -658,19 +663,6 @@ function ProjectPage({
             {r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}
           </span>
         </div>
-      )}
-      {findings.length > 0 && (
-        <details className="up-findings">
-          <summary>
-            Project-wide: {findings.length}{" "}
-            {findings.length > 1 ? "findings" : "finding"}
-          </summary>
-          {findings.map((f) => (
-            <p key={f.head}>
-              <strong>{f.head}</strong> {f.body}
-            </p>
-          ))}
-        </details>
       )}
       {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       {!project.coverage.complete && !project.coverage.error && (
@@ -759,6 +751,19 @@ function ProjectPage({
           </section>
         </div>
       </div>
+      {findings.length > 0 && (
+        <details className="up-findings">
+          <summary>
+            Project-wide: {findings.length}{" "}
+            {findings.length > 1 ? "findings" : "finding"}
+          </summary>
+          {findings.map((f) => (
+            <p key={f.head}>
+              <strong>{f.head}</strong> {f.body}
+            </p>
+          ))}
+        </details>
+      )}
       <details className="card up-panel up-jobs">
         <summary>
           <h2>
@@ -895,8 +900,9 @@ function DayPanel({
                 target="_blank"
                 rel="noreferrer"
                 title="Open the job log"
+                aria-label={`Job log at ${run.created_at.slice(11, 16)} UTC · ${run.state}`}
               >
-                {run.created_at.slice(11, 16)}
+                Job log · <time dateTime={run.created_at}>{run.created_at.slice(11, 16)}</time> UTC
               </a>
               {jobs.length > 1 && (
                 <span className="up-run-job">{label[run.job]}</span>
@@ -908,8 +914,9 @@ function DayPanel({
                   target="_blank"
                   rel="noreferrer"
                   title="Open the commit"
+                  aria-label={`Commit ${run.sha.slice(0, 8)}`}
                 >
-                  {run.sha.slice(0, 8)}
+                  Commit {run.sha.slice(0, 8)}
                 </a>
               )}
               {run.ref && run.ref !== project.default_branch && (
@@ -933,7 +940,7 @@ function DayPanel({
                   rel="noreferrer"
                   className="up-run-step"
                 >
-                  {run.failed_step ?? run.state}
+                  {run.failed_step ? `Failed step: ${run.failed_step}` : run.state}
                 </a>
               )}
             </li>
@@ -964,41 +971,43 @@ function Platforms({ project }: { project: Project }) {
         Platforms <span className="muted">project-wide configured targets</span>
       </h2>
       <p className="muted">Configured targets and distribution do not verify physical hardware or published artifacts.</p>
-      <table className="up-table">
-        <thead>
-          <tr>
-            <th />
-            <th>Built in CI</th>
-            <th>Configured test target observed</th>
-            <th>Configured distribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(["linux", "windows"] as const).map((os) => {
-            const p = project.platforms[os];
-            return (
-              <tr key={os}>
-                <th scope="row">{os === "linux" ? "Linux" : "Windows"}</th>
-                {cell(
-                  p.built,
-                  p.built_rate !== null ? `${p.built_rate}%` : null,
-                )}
-                {cell(
-                  p.tested,
-                  p.tested_rate !== null ? `${p.tested_rate}%` : null,
-                  !p.tested && !!p.shipped && project.coverage.complete && project.jobs.length > 0,
-                )}
-                <td
-                  className="muted"
-                  title={p.shipped ?? undefined}
-                >
-                  {p.shipped ?? "–"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="up-table-scroll" role="region" aria-label="Platform coverage table" tabIndex={0}>
+        <table className="up-table">
+          <thead>
+            <tr>
+              <th />
+              <th>Built in CI</th>
+              <th>Configured test target observed</th>
+              <th>Configured distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(["linux", "windows"] as const).map((os) => {
+              const p = project.platforms[os];
+              return (
+                <tr key={os}>
+                  <th scope="row">{os === "linux" ? "Linux" : "Windows"}</th>
+                  {cell(
+                    p.built,
+                    p.built_rate !== null ? `${p.built_rate}%` : null,
+                  )}
+                  {cell(
+                    p.tested,
+                    p.tested_rate !== null ? `${p.tested_rate}%` : null,
+                    !p.tested && !!p.shipped && project.coverage.complete && project.jobs.length > 0,
+                  )}
+                  <td
+                    className="muted"
+                    title={p.shipped ?? undefined}
+                  >
+                    {p.shipped ?? "–"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -1017,61 +1026,63 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
         Merge gate{" "}
         <span className="muted">{complete ? "the job on the commit that merged" : "collected evidence on the commit that merged; incomplete"}</span>
       </h2>
-      <table className="up-table">
-        <thead>
-          <tr>
-            <th>Job</th>
-            <th title="pull requests merged">Merged</th>
-            <th title="green on the merged commit">Passed</th>
-            <th title="red on the merged commit, merged anyway">Red</th>
-            <th title="never ran on the pull request">No run</th>
-            <th title="historical pull request result is unknown">Unknown</th>
-            <th title="no run or unknown result on the pull request, then failed on main">
-              Broke main
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {gated.map((job) => {
-            const g = job.gate!;
-            return (
-              <tr key={job.id}>
-                <th scope="row">{job.label}</th>
-                <td>{g.merged}</td>
-                <td>{g.passed}</td>
-                <td>
-                  {g.failed ? (
-                    <button
-                      type="button"
-                      className="up-link bad"
-                      onClick={() => setList({ job: job.id, kind: "red" })}
-                    >
-                      {g.failed}
-                    </button>
-                  ) : (
-                    0
-                  )}
-                </td>
-                <td>{g.not_triggered}</td>
-                <td>{g.no_result}</td>
-                <td>
-                  {g.escaped.length ? (
-                    <button
-                      type="button"
-                      className="up-link"
-                      onClick={() => setList({ job: job.id, kind: "escaped" })}
-                    >
-                      {g.escaped.length}
-                    </button>
-                  ) : (
-                    0
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="up-table-scroll" role="region" aria-label="Merge gate results table" tabIndex={0}>
+        <table className="up-table">
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th title="pull requests merged">Merged</th>
+              <th title="green on the merged commit">Passed</th>
+              <th title="red on the merged commit, merged anyway">Red</th>
+              <th title="never ran on the pull request">No run</th>
+              <th title="historical pull request result is unknown">Unknown</th>
+              <th title="no run or unknown result on the pull request, then failed on main">
+                Broke main
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {gated.map((job) => {
+              const g = job.gate!;
+              return (
+                <tr key={job.id}>
+                  <th scope="row">{job.label}</th>
+                  <td>{g.merged}</td>
+                  <td>{g.passed}</td>
+                  <td>
+                    {g.failed ? (
+                      <button
+                        type="button"
+                        className="up-link bad"
+                        onClick={() => setList({ job: job.id, kind: "red" })}
+                      >
+                        {g.failed}
+                      </button>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                  <td>{g.not_triggered}</td>
+                  <td>{g.no_result}</td>
+                  <td>
+                    {g.escaped.length ? (
+                      <button
+                        type="button"
+                        className="up-link"
+                        onClick={() => setList({ job: job.id, kind: "escaped" })}
+                      >
+                        {g.escaped.length}
+                      </button>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {shown && list && (
         <div
           className="up-daypanel"

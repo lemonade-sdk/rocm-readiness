@@ -138,3 +138,9 @@ with the other dashboard for shared navigation, spacing, and status conventions.
 Check table semantics, keyboard focus, touch targets, and evidence links where
 the change affects them. Update this reference when intentionally changing a
 shared convention.
+
+Upstream Health uses dedicated project pages. Keep the All projects navigation
+above the project header, group repository and fork links below project identity,
+and use explicit links to open projects rather than making entire cards clickable.
+Place daily activity before project-wide coverage and findings. Evidence links
+identify job logs and commits; allow their rows to wrap at narrow widths.

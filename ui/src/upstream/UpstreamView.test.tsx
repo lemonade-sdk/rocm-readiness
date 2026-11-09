@@ -80,11 +80,11 @@ it("opens a day's runs with links to the job, the commit and the pull request", 
     name: "Runs on 2026-10-27",
   });
   await within(panel).findByText("10:00");
-  expect(within(panel).getByRole("link", { name: "10:00" })).toHaveAttribute(
+  expect(within(panel).getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
   );
-  expect(within(panel).getByRole("link", { name: "aaaaaaaa" })).toHaveAttribute(
+  expect(within(panel).getByRole("link", { name: "Commit aaaaaaaa" })).toHaveAttribute(
     "href",
     `https://github.com/ggml-org/llama.cpp/commit/${"a".repeat(40)}`,
   );
@@ -353,4 +353,19 @@ it("distinguishes missing checks from unknown historical results and escaped fai
   fireEvent.click(within(row).getByRole("button", { name: "2" }));
   expect(within(region).getByText("historical result unknown")).toBeInTheDocument();
   expect(within(region).getByText("never ran on the pull request")).toBeInTheDocument();
+});
+
+it("separates source links from project navigation and provides a return path", async () => {
+  mount();
+  const heading = await screen.findByRole("heading", { name: "llama.cpp" });
+  const card = heading.closest("article")!;
+  expect(within(card).getByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp");
+  fireEvent.click(within(card).getByText("Project metrics"));
+  expect(screen.queryByRole("heading", { level: 1, name: "llama.cpp" })).not.toBeInTheDocument();
+  fireEvent.click(within(heading).getByRole("link"));
+  await screen.findByRole("heading", { level: 1, name: "llama.cpp" });
+  const navigation = screen.getByRole("navigation", { name: "Project navigation" });
+  fireEvent.click(within(navigation).getByRole("link", { name: /All projects/ }));
+  await screen.findByRole("heading", { name: "Projects" });
+  expect(screen.queryByRole("heading", { level: 1, name: "llama.cpp" })).not.toBeInTheDocument();
 });

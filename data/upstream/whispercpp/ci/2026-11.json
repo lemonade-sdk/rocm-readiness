@@ -252,6 +252,56 @@
         "verdict": "passed",
         "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42384326803/job/128438483682"
       }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "42622000996",
+      "job_id": "129176244860",
+      "attempt": 1,
+      "day": "2026-11-09",
+      "created_at": "2026-11-09T13:02:36Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "bd9e1a12352fa57e448bdea6a0649aa9c24c64aa",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 592,
+      "runner": "ephemeral-devlab-x2-la03-s04-d02-129176244860",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42622000996/job/129176244860",
+      "pr": {
+        "number": 4158,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4158",
+        "author": "DrMkdaddy",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42461252641/job/129064713132"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "42622000996",
+      "job_id": "129176244546",
+      "attempt": 1,
+      "day": "2026-11-09",
+      "created_at": "2026-11-09T13:02:36Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "bd9e1a12352fa57e448bdea6a0649aa9c24c64aa",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 25,
+      "runner": "ephemeral-devlab-x2-la03-s05-d03-129176244546",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42622000996/job/129176244546",
+      "pr": {
+        "number": 4158,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4158",
+        "author": "DrMkdaddy",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42461252641/job/129064713112"
+      }
     }
   ],
   "scanned_runs": [

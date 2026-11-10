@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
+import { PerformanceIndicator } from "../performance/PerformanceIndicator";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
 import { measurementIdentity, metricValue, type PerformanceData } from "../performance/PerformanceView";
@@ -127,9 +128,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
       </ul>
     </TooltipContent>}>
     {heading}
-    {hasPerformance && <svg className="qualification-performance-indicator" aria-hidden="true" viewBox="0 0 16 16">
-      <path d="M2 13V8m6 5V3m6 10V6" />
-    </svg>}
+    {hasPerformance && <PerformanceIndicator />}
   </Tooltip>;
 }
 

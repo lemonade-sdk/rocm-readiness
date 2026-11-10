@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBuildMeasurements } from "./useBuildMeasurements";
+import { PerformanceIndicator } from "../performance/PerformanceIndicator";
 import type { Build, Fetcher, Session } from "../data";
 import { exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
 
 type BuildBrowserProps = {
+  fetcher?: Fetcher;
   session: Session;
   history: Build[] | null;
   platform: string;
@@ -484,12 +487,22 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
   );
 }
 
+export function BuildPerformanceLink({ build }: { build: Build }) {
+  return <a className="build-performance-indicator" href={exactBuildHref(build, "build-performance")}
+    aria-label={`Performance for ${build.tag ?? build.build_id} on ${displayPlatform(build.os)}`}
+    title="Performance data available">
+    <PerformanceIndicator />
+  </a>;
+}
+
 function BuildList({
   builds,
   buildHref,
+  measuredBuilds,
 }: {
   builds: Build[];
   buildHref: (build: Build) => string;
+  measuredBuilds: ReadonlyMap<Build, unknown>;
 }) {
   if (!builds.length)
     return (
@@ -510,10 +523,11 @@ function BuildList({
               <span className="build-browser-kicker">
                 {displayPlatform(build.os)}
               </span>
-              <h3>
+              <h3 aria-label={build.tag ?? build.build_id}>
                 <a aria-label={buildLinkLabel(build)} href={buildHref(build)}>
                   {build.tag ?? build.build_id}
                 </a>
+                {measuredBuilds.has(build) && <BuildPerformanceLink build={build} />}
               </h3>
             </div>
             <span
@@ -561,9 +575,10 @@ function BuildList({
   );
 }
 
-function BuildDetail({ build, session, selection }: {
+function BuildDetail({ build, session, selection, hasPerformance }: {
   build: Build;
   session: Session;
+  hasPerformance: boolean;
   selection?: CheckSelection;
 }) {
   const [retry, setRetry] = useState(0);
@@ -613,7 +628,7 @@ function BuildDetail({ build, session, selection }: {
       <div className="build-browser-detail-heading">
         <div>
           <span className="build-browser-kicker">BUILD EVIDENCE</span>
-          <h2>{build.tag ?? build.build_id}</h2>
+          <h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{hasPerformance && <BuildPerformanceLink build={build} />}</h2>
           <p>
             {displayPlatform(build.os)} · {date(build.generated_at)}
           </p>
@@ -700,6 +715,7 @@ function BuildDetail({ build, session, selection }: {
 
 export function BuildBrowser({
   session,
+  fetcher = fetch,
   history,
   platform,
   selectedBuildId,
@@ -712,6 +728,7 @@ export function BuildBrowser({
   query = "",
   onQueryChange,
 }: BuildBrowserProps) {
+  const performance = useBuildMeasurements(session, history, fetcher);
   const platforms = useMemo(
     () => [...new Set(history?.map((build) => build.os) ?? [])].sort(),
     [history],
@@ -790,11 +807,12 @@ export function BuildBrowser({
           <p>Retry the published-data load to inspect retained builds.</p>
         </div>
       ) : selectedBuildId === null ? (
-        <BuildList builds={listedBuilds} buildHref={buildHref} />
+        <BuildList builds={listedBuilds} buildHref={buildHref} measuredBuilds={performance.matches} />
       ) : selection?.kind === "selected" ? (
         <BuildDetail
           key={`${selection.build.source_id ?? "unknown"}-${selection.build.os}-${selection.build.build_id}-${selection.build.report_url ?? "no-report"}`}
           build={selection.build}
+          hasPerformance={performance.matches.has(selection.build)}
           session={session}
           selection={selectedTierId != null && selectedCheckIndex != null
             ? { tier: selectedTierId, index: selectedCheckIndex, commit: selectedReportCommit }

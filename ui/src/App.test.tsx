@@ -351,6 +351,11 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
   fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
   expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: /^Builds$/ }));
+  const indicatorLink = await screen.findByRole("link", { name: "Performance for b11972 on Linux" });
+  expect(screen.getAllByRole("link", { name: /Performance for b11972/ })).toHaveLength(1);
+  fireEvent.click(indicatorLink);
+  expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
 });
 
 

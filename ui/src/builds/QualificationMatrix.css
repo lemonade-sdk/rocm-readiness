@@ -74,17 +74,7 @@
 .qualification-release-heading > .qualification-heading-label { flex-basis: 100%; }
 .qualification-publishing { display: flex; flex-wrap: wrap; gap: .15rem .65rem; margin: .25rem 0 0; padding: 0; list-style: none; color: var(--muted); font: .7rem/1.35 system-ui, sans-serif; }
 
-.qualification-performance-indicator {
-  width: .85rem;
-  height: .85rem;
-  margin-inline-start: .35rem;
-  vertical-align: -.1rem;
-  color: var(--accent);
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  fill: none;
-}
+
 .qualification-performance-details { display: grid; gap: .35rem; margin-block-start: .9rem; }
 
 .qualification-performance-scroll { overflow-x: auto; max-width: 100%; }

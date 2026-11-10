@@ -445,6 +445,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                       versionFilter={versionFilter}
                       onNavigate={(next, replace) => setParams(next, { replace })}
                     /> : view === "build" ? <BuildBrowser
+                      fetcher={fetcher}
                       session={session}
                       history={currentHistory.builds.filter((build) =>
                         (!params.get("engine") || build.engine === params.get("engine")) &&

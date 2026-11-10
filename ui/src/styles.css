@@ -1182,3 +1182,17 @@ main {
 
 
 .platform-logo { display: inline-block; width: 1.1rem; height: 1.1rem; object-fit: contain; vertical-align: -.15em; flex-shrink: 0; }
+
+.qualification-performance-indicator {
+  width: .85rem;
+  height: .85rem;
+  margin-inline-start: .35rem;
+  vertical-align: -.1rem;
+  color: var(--accent);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+}
+.build-performance-indicator { display: inline-flex; align-items: center; vertical-align: middle; text-decoration: none; }
+.build-performance-indicator:hover { color: var(--text); }

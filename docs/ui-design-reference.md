@@ -133,6 +133,9 @@ neutral tint, and retain the existing status foregrounds in both themes.
   producer's millisecond values. Model names link to the exact displayed
   observation on Performance, preserving package and benchmark identity in the URL.
   Provide a path back to all observations for that model.
+  Show the same matched-performance glyph on qualification build/family labels,
+  entries in Builds, and selected build headings. Only verified package matches
+  establish the indicator; build indicators link to that package's Performance data.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the

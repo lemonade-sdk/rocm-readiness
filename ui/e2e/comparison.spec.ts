@@ -71,7 +71,7 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
   expect(href).toContain("channel=stable");
   await failed.click();
   await page.getByRole("button", { name: "Run details for b-failed", exact: true }).click();
-  await page.getByRole("link", { name: "Package report for failed", exact: true }).click();
+  await page.getByRole("link", { name: "Build details for Linux package failed", exact: true }).click();
   await page.getByRole("link", { name: /Build review/ }).click();
   await expect(
     page.getByRole("heading", { name: "Build details", exact: true }),

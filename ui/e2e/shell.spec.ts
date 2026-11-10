@@ -47,7 +47,7 @@ test("overview build marks open qualification and the exact package review", asy
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
   const details = page.getByRole("button", { name: "Run details for b11972", exact: true }).first();
   await details.hover();
-  const report = page.getByRole("link", { name: "Package report for linux-build", exact: true });
+  const report = page.getByRole("link", { name: "Build details for Linux package linux-build", exact: true });
   await report.hover();
   await expect(report).toBeVisible();
   await report.click();
@@ -100,7 +100,7 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.getByLabel("Find build").fill("linux-build");
   await expect(page).toHaveURL(/build_filter=linux-build/);
   await page.getByRole("button", { name: "Run details for b11972", exact: true }).first().click();
-  await page.getByRole("link", { name: "Package report for linux-build", exact: true }).click();
+  await page.getByRole("link", { name: "Build details for Linux package linux-build", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();

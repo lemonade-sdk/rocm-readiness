@@ -116,7 +116,9 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Escape and outside dismissal, and a visible close control for interactive panels.
   Keep the tooltip open while the pointer or keyboard focus is within its trigger
   or panel. Size package popups to their content within the viewport. Show visible
-  platform packages in two columns on wide screens and stack them on mobile.
+  platform packages in one compact column, separated by headings and thin rules.
+  Use dense metadata and tables with full model names; keep detailed inspection
+  in the Build details and Performance details pages.
   Put report and measurement links in parentheses beside their section headings.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,

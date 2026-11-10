@@ -54,6 +54,10 @@ function tierLabel(id: string) {
 
 const checkOrder = new Intl.Collator("en", { numeric: true });
 
+function buildRepository(build: Build) {
+  return build.source_url?.match(/^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/[a-f0-9]{40}\/qualification\/index\.json$/)?.[1];
+}
+
 function PackageDetails({ heading, packages, coverageFetcher, run, performanceMeasurements }: {
   heading: string;
   packages: Build[];
@@ -87,10 +91,13 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
   return <Tooltip floating interactive contentClassName="qualification-popup" label={`${run ? `Run details for ${heading}` : `Package details for ${heading}`}${hasPerformance ? " · Performance data available" : ""}`}
     onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
-      {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>{run.run_id ?? "Unreported"}</dd></dl>}
-      <ul className="qualification-popup-packages" data-multiple-platforms={new Set(packages.map((build) => build.os)).size > 1 || undefined}>
+      {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>
+        {run.run_id && buildRepository(run) ? <a href={`https://github.com/${buildRepository(run)}/actions/runs/${encodeURIComponent(run.run_id)}`} target="_blank" rel="noreferrer">{run.run_id} ↗</a> : run.run_id ?? "Unreported"}
+      </dd></dl>}
+      <ul className="qualification-popup-packages">
         {[...packages].sort((a, b) => (a.os === "windows" ? 0 : 1) - (b.os === "windows" ? 0 : 1)).map((build) => {
           const targets = evidence?.get(build);
+          const repository = buildRepository(build);
           const measurements = performanceMeasurements?.get(build) ?? [];
           const models = new Map<string, PerformanceData["measurements"][number]>();
           for (const row of [...measurements].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at))) {
@@ -98,11 +105,18 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
           }
           return <li key={buildIdentity(build)}>
             <h4 className="qualification-platform-heading">
-              {platformName(build.os)} <small>(<Link to={exactBuildHref(build, "build")} aria-label={`Package report for ${build.build_id}`}>report</Link>)</small>
+              {platformName(build.os)} <small>(<Link to={exactBuildHref(build, "build")} aria-label={`Build details for ${platformName(build.os)} package ${build.build_id}`}>Build details</Link>)</small>
             </h4>
-            <dl className="qualification-package-metadata"><dt>Build ID</dt><dd>{build.build_id}</dd>{build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}</dl>
+            <dl className="qualification-package-metadata">
+              <dt>Build ID</dt><dd>{build.build_id}</dd>
+              <dt>ROCm SDK</dt><dd>{build.producer_rocm_version ?? build.rocm_version}</dd>
+              {build.published === true && build.tag && repository && <><dt>Release</dt><dd><a href={`https://github.com/${repository}/releases/tag/${encodeURIComponent(build.tag)}`} target="_blank" rel="noreferrer">{build.tag} ↗</a></dd></>}
+              {build.upstream_sha && <><dt>Upstream SHA</dt><dd>{build.engine === "llamacpp" ? <a href={`https://github.com/ggml-org/llama.cpp/commit/${encodeURIComponent(build.upstream_sha)}`} target="_blank" rel="noreferrer"><code title={build.upstream_sha}>{build.upstream_sha.slice(0, 12)} ↗</code></a> : <code title={build.upstream_sha}>{build.upstream_sha.slice(0, 12)}</code>}</dd></>}
+              {!run && build.run_id && repository && <><dt>Workflow run</dt><dd><a href={`https://github.com/${repository}/actions/runs/${encodeURIComponent(build.run_id)}`} target="_blank" rel="noreferrer">{build.run_id} ↗</a></dd></>}
+              {build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}
+            </dl>
             {models.size > 0 && <div className="qualification-performance-details">
-              <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")} aria-label={`View ${measurements.length} matched ${measurements.length === 1 ? "measurement" : "measurements"} →`}>{measurements.length} measurements</Link>)</small></h5>
+              <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")} aria-label={`Performance details for ${platformName(build.os)} package ${build.build_id}`}>Performance details</Link>)</small></h5>
               <span className="muted">Latest observation per model</span>
               <div className="qualification-performance-scroll">
                 <table className="qualification-performance-table">

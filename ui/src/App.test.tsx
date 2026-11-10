@@ -132,7 +132,7 @@ it("ignores legacy overview platform filters and opens a stable build day and it
   fireEvent.click(link);
   await screen.findByRole("heading", { name: "Package qualification" });
   fireEvent.click((await screen.findAllByRole("button", { name: "Run details for b11972" }))[0]);
-  fireEvent.click(screen.getByRole("link", { name: "Package report for linux-build" }));
+  fireEvent.click(screen.getByRole("link", { name: "Build details for Linux package linux-build" }));
   fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
   await screen.findByRole("heading", { name: "Build details" });
   expect(await screen.findByRole("link", { name: "Build evidence" })).toBeInTheDocument();
@@ -306,7 +306,7 @@ it("opens nightly qualification for a day and reviews an earlier failed package"
   expect(matrix.getByRole("button", { name: "Run details for b11972" })).toBeInTheDocument();
   expect(matrix.queryByRole("columnheader", { name: "Outcome" })).not.toBeInTheDocument();
   fireEvent.click(within(matrix.getByRole("heading", { name: "failed-nightly" }).closest("section")!).getByRole("button", { name: "Package details for Linux" }));
-  fireEvent.click(screen.getByRole("link", { name: "Package report for history-2" }));
+  fireEvent.click(screen.getByRole("link", { name: "Build details for Linux package history-2" }));
   fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
   await screen.findByRole("heading", { name: "Build details" });
   fireEvent.click(await screen.findByRole("link", { name: "Performance evidence" }));
@@ -341,9 +341,9 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   const indicator = await screen.findByRole("button", { name: channel === "stable"
     ? "Run details for b11972 · Performance data available"
     : "Package details for gfx1151 · Performance data available" });
-  expect(screen.queryByRole("link", { name: "View 1 matched measurement →" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /^Performance details for Linux package/ })).not.toBeInTheDocument();
   fireEvent.click(indicator);
-  const measurementLink = await screen.findByRole("link", { name: "View 1 matched measurement →" });
+  const measurementLink = await screen.findByRole("link", { name: /^Performance details for Linux package/ });
   expect(screen.getByText("65 tok/s")).toBeInTheDocument();
   expect(measurementLink).toHaveAttribute("href", expect.stringContaining("view=build-performance"));
   fireEvent.click(measurementLink);

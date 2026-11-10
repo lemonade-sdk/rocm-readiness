@@ -56,7 +56,11 @@
   display: grid;
   gap: .65rem;
 }
-.qualification-popup-packages > li { min-width: 0; padding-block: .65rem; }
+.qualification-popup-packages > li {
+  min-width: 0;
+  padding-block: .8rem .65rem;
+  border-top: 2px solid color-mix(in srgb, var(--text) 35%, var(--subpanel));
+}
 .qualification-popup-packages > li + li { margin-block-start: .5rem; }
 .qualification-popup-packages a { display: inline; }
 
@@ -124,3 +128,9 @@
 .qualification-popup-packages { align-items: start; }
 .qualification-popup .structured-tooltip-header { padding: .65rem .8rem; }
 .qualification-popup .structured-tooltip-header strong { font: 600 .95rem system-ui, sans-serif; }
+
+
+.qualification-popup :is(.qualification-performance-details, .qualification-compiled-targets) {
+  padding-block-start: .65rem;
+  border-top: 1px solid var(--line);
+}

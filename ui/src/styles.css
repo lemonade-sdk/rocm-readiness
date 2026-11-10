@@ -1130,16 +1130,6 @@ main {
 .up-activity-table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--control) 45%, transparent);
 }
-.up-totals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-  gap: 0.75rem 1.25rem;
-  border-block: 1px solid var(--line);
-  padding-block: 0.85rem;
-}
-.up-totals .up-stat {
-  padding: 0;
-}
 @media (max-width: 760px) {
   #root {
     grid-template-columns: minmax(0, 1fr);

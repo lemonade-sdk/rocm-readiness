@@ -104,7 +104,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.screenshot({ path: testInfo.outputPath("project.png"), fullPage: true });
       await navigation.getByRole("link", { name: /All projects/ }).click();
       await expect(page).not.toHaveURL(/project=/);
-      await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Upstream projects" })).toBeVisible();
     });
   }
 }

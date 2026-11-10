@@ -358,7 +358,7 @@ it("separates source links from project navigation and provides a return path", 
   const card = heading.closest("article")!;
   expect(within(card).queryByRole("link", { name: /Repository:/ })).not.toBeInTheDocument();
   expect(within(card).queryByText(/fork/)).not.toBeInTheDocument();
-  fireEvent.click(within(card).getByText("Project metrics"));
+  fireEvent.click(within(card).getByRole("group", { name: "CI metrics" }));
   expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
   expect(within(heading).getByRole("link", { name: "llama.cpp" })).toBeInTheDocument();
   expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
@@ -368,7 +368,7 @@ it("separates source links from project navigation and provides a return path", 
   expect(screen.queryByRole("table", { name: "Daily CI activity" })).not.toBeInTheDocument();
   const navigation = screen.getByRole("navigation", { name: "Project navigation" });
   fireEvent.click(within(navigation).getByRole("link", { name: /All projects/ }));
-  await screen.findByRole("heading", { name: "Projects" });
+  await screen.findByRole("region", { name: "Upstream projects" });
   expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
 });
 
@@ -384,7 +384,7 @@ it("uses workspace sub-pages and retains project scope between overview and acti
   fireEvent.click(within(screen.getByRole("group", { name: "Project" })).getByRole("button", { name: "vLLM" }));
   await screen.findByRole("heading", { level: 2, name: "vLLM" });
   fireEvent.click(within(views).getByRole("link", { name: "Overview" }));
-  await screen.findByRole("heading", { name: "Projects" });
+  await screen.findByRole("region", { name: "Upstream projects" });
   fireEvent.click(within(views).getByRole("link", { name: "CI Activity" }));
   expect(within(await screen.findByRole("group", { name: "Project" })).getByRole("button", { name: "vLLM" })).toHaveAttribute("aria-pressed", "true");
 });

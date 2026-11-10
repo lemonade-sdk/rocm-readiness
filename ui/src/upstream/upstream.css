@@ -6,18 +6,6 @@
   display: grid;
   gap: 1rem;
 }
-.up-totals .up-stat {
-  min-width: 0;
-  flex: 1 1 7rem;
-  padding: 0;
-}
-.up-totals .up-stat strong {
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-}
-.up-projects-heading {
-  margin-top: 0.5rem;
-}
-.up-totals,
 .up-kpis {
   display: flex;
   flex-wrap: wrap;
@@ -47,24 +35,18 @@
 }
 .up-cards {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 .up-card {
   min-width: 0;
-  cursor: pointer;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.4rem;
   align-content: start;
-}
-.up-section-heading {
-  margin: 0.75rem 0 0;
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 .up-project-activity {
   overflow-x: auto;
   min-width: 0;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.35rem 0.75rem;
 }
 .up-project-activity:focus-visible {
   outline: 2px solid var(--focus);
@@ -97,7 +79,7 @@
 .up-activity-key {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
+  gap: 0.2rem 0.65rem;
   margin: 0;
   list-style: none;
   font-size: 0.75rem;
@@ -108,17 +90,12 @@
   align-items: center;
   gap: 0.25rem;
 }
-.up-card .up-kpis {
-  align-self: center;
-  gap: 0.5rem;
+.up-activity-key.calendar-legend {
+  padding: 0;
 }
-.up-card .up-stat {
-  min-width: 0;
-  flex: 1 1 6rem;
-  padding: 0.4rem 0.6rem;
-}
-.up-card .up-stat strong {
-  font-size: 1.25rem;
+.up-activity-key .up-tick {
+  width: 1.25rem;
+  min-height: 1rem;
 }
 .up-empty-chart {
   margin: 0.2rem 0;
@@ -558,9 +535,10 @@ button.up-tick {
   min-width: 0;
 }
 .up-card {
-  cursor: auto;
-  padding-block: 1.25rem;
-  border-top: 1px solid var(--line);
+  padding-block: 0.75rem;
+}
+.up-card + .up-card {
+  border-block-start: 1px solid var(--line);
 }
 .up-card-head {
   justify-content: space-between;
@@ -714,14 +692,14 @@ button.up-tick {
   min-width: 26rem;
 }
 
-/* Overview cards show summaries; activity and evidence live on project pages. */
+/* Stack the overview so each project calendar can use the available width. */
 .up-cards {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 .up-card-head h2 {
   color: var(--text);
-  font-size: 1.3rem;
+  font-size: 1.25rem;
 }
 .up-card-footer {
   margin-top: 0.5rem;
@@ -772,7 +750,7 @@ button.up-tick {
 .up-detail-activity {
   display: grid;
   min-width: 0;
-  gap: 0.75rem;
+  gap: 0.35rem;
 }
 @media (max-width: 1279px) {
   .up-cards {
@@ -780,11 +758,6 @@ button.up-tick {
   }
 }
 
-.up-projects-heading {
-  margin: 1.5rem 0 0;
-  font-size: clamp(1.6rem, 2.5vw, 2rem);
-  line-height: 1.2;
-}
 .up-selected-day { color: var(--muted); font-size: 0.85rem; }
 .up-selected-day strong { color: var(--text); }
 
@@ -812,12 +785,16 @@ button.up-tick {
   outline-offset: 4px;
 }
 .up-card .up-kpis {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.25rem 1rem;
 }
 .up-card .up-stat {
-  align-content: start;
-  gap: 0.25rem;
-  padding: 0.4rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.3rem;
+  min-width: 0;
+  padding: 0;
+}
+.up-card .up-stat strong {
+  font-size: 0.875rem;
 }

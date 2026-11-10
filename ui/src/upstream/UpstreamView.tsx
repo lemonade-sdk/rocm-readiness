@@ -344,24 +344,8 @@ function ProjectGrid({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
-  const all = overview.projects.flatMap((p) => p.jobs);
-  const totals = rate(all);
-  const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
-  const quiet = overview.projects.reduce((n, p) => n + p.kpis.not_running, 0);
-  const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <div className="up-totals" role="group" aria-label="CI summary">
-        <Stat value={overview.projects.length} label="projects" />
-        <Stat value={all.length} label="configured client jobs" />
-        <Stat
-          value={totals.pct === null ? "–" : `${totals.pct}%`}
-          label={complete ? "passed on main" : "of collected results passed on main"}
-        />
-        <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
-        <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
-      </div>
-      <h2 className="up-projects-heading">Projects</h2>
       <div className="up-cards">
         {overview.projects.map((project) => {
           const r = rate(project.jobs);
@@ -387,27 +371,24 @@ function ProjectGrid({
                 <Badge project={project} />
               </div>
               {project.jobs.length ? (
-                <>
-                  <h3 className="up-section-heading">Project metrics</h3>
-                  <div className="up-kpis">
+                <div className="up-kpis" role="group" aria-label="CI metrics">
+                  <Stat
+                    value={r.pct === null ? "–" : `${r.pct}%`}
+                    label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
+                  />
+                  <Stat
+                    value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
+                    label="tests not running"
+                    bad={project.coverage.complete && project.kpis.not_running > 0}
+                  />
+                  {project.jobs.some((j) => j.gate) && (
                     <Stat
-                      value={r.pct === null ? "–" : `${r.pct}%`}
-                      label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
+                      value={project.kpis.merged_red}
+                      label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
+                      bad={project.kpis.merged_red > 0}
                     />
-                    <Stat
-                      value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
-                      label="tests not running"
-                      bad={project.coverage.complete && project.kpis.not_running > 0}
-                    />
-                    {project.jobs.some((j) => j.gate) && (
-                      <Stat
-                        value={project.kpis.merged_red}
-                        label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
-                        bad={project.kpis.merged_red > 0}
-                      />
-                    )}
-                  </div>
-                </>
+                  )}
+                </div>
               ) : (
                 <p className="muted">
                   No conclusion about upstream support can be drawn from the configured coverage.
@@ -428,17 +409,13 @@ function ProjectActivity({ project, jobs, days, params }: { project: Project; jo
   const months = calendarMonthGroups(last14);
   return (
     <section className="up-detail-activity" aria-label="Daily CI activity">
-    <div className="data-table-heading">
-      <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
-      <span>Last 14 days</span>
-    </div>
     <div
       className="up-project-activity calendar-surface"
       role="region"
       aria-label={`${project.label} activity calendar`}
       tabIndex={0}
     >
-      <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
+      <table className="up-activity-table" aria-label="Daily CI activity">
         <colgroup><col /></colgroup>
         {months.map((month) => <colgroup key={month.key} span={month.days} />)}
         <thead>

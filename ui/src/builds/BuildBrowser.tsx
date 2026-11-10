@@ -747,10 +747,11 @@ export function BuildBrowser({
           )}
           <h2 id="retained-builds-heading">
             {selectedBuildId === null
-              ? "Retained builds"
-              : "Selected retained build"}
+              ? "Build details"
+              : "Selected build details"}
           </h2>
         </div>
+        {selectedBuildId !== null && <a href={`?version=${encodeURIComponent(session.version ?? "")}&view=build`}>All build details</a>}
         {selectedBuildId === null && (
           <label>
             Find build

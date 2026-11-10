@@ -119,11 +119,10 @@ function packageLabel(row: Measurement) {
   return row.engine_version ?? "Engine tag unavailable";
 }
 
-export function stableMeasurements(data: PerformanceData) {
+export function rocmMeasurements(data: PerformanceData) {
   return data.measurements.filter(
     (row) =>
       row.engine === "llamacpp" &&
-      row.channel === "stable" &&
       row.backend === "rocm",
   );
 }
@@ -175,10 +174,11 @@ async function loadHistoryIfNeeded(
   session: Session,
   rows: Measurement[],
   signal: AbortSignal,
+  fetcher = fetch,
 ): Promise<HistoryState> {
   if (!rows.some(isQualificationCandidate)) return { builds: null, error: null };
   try {
-    return { builds: await loadHistory(session, fetch, signal), error: null };
+    return { builds: await loadHistory(session, fetcher, signal), error: null };
   } catch (reason) {
     if (signal.aborted || isAbort(reason)) throw reason;
     return { builds: null, error: errorMessage(reason, "Unable to load qualification history.") };
@@ -189,9 +189,10 @@ async function loadViewData(
   session: Session,
   compareVersion: string | null,
   signal: AbortSignal,
+  fetcher = fetch,
 ): Promise<{ data: PerformanceData; history: HistoryState; comparison: ComparisonState }> {
-  const data = await readPerformance(session, signal);
-  const history = await loadHistoryIfNeeded(session, stableMeasurements(data), signal);
+  const data = await readPerformance(session, signal, fetcher);
+  const history = await loadHistoryIfNeeded(session, rocmMeasurements(data), signal, fetcher);
   if (!compareVersion) return { data, history, comparison: { kind: "none" } };
   if (compareVersion === session.version) {
     return {
@@ -205,12 +206,12 @@ async function loadViewData(
     };
   }
   try {
-    const other = await loadVersion(session, compareVersion, fetch, signal);
+    const other = await loadVersion(session, compareVersion, fetcher, signal);
     if (other.overview?.performance.status !== "available") {
       return { data, history, comparison: { kind: "unmeasured", version: compareVersion } };
     }
-    const otherData = await readPerformance(other, signal);
-    const otherHistory = await loadHistoryIfNeeded(other, stableMeasurements(otherData), signal);
+    const otherData = await readPerformance(other, signal, fetcher);
+    const otherHistory = await loadHistoryIfNeeded(other, rocmMeasurements(otherData), signal, fetcher);
     return {
       data,
       history,
@@ -372,7 +373,7 @@ export function findExactQualificationBuild(
     if (
       build.build_id !== row.qualification_build_id ||
       build.engine !== row.engine ||
-      build.channel !== "stable" ||
+      build.channel !== row.channel ||
       build.rocm_version !== row.rocm_version ||
       build.os !== row.package_os ||
       build.tag !== row.engine_version
@@ -449,6 +450,10 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
         <dd>{row.package_os ?? "Not recorded"}</dd>
       </div>
       <div>
+        <dt>Channel</dt>
+        <dd>{row.channel}</dd>
+      </div>
+      <div>
         <dt>Engine package</dt>
         <dd>
           {row.package_url ? (
@@ -506,7 +511,7 @@ function Qualification({
   }
   const build = findExactQualificationBuild(row, history.builds);
   if (!build) {
-    return <p className="performance-provenance">No matching stable qualification history record</p>;
+    return <p className="performance-provenance">No matching qualification history record</p>;
   }
   const outcome =
     build.qualified === true
@@ -537,7 +542,7 @@ export function MeasurementDetail({
     <article className="performance-observation">
       <div className="performance-observation-heading">
         <div>
-          <span className="eyebrow">STABLE LLAMA.CPP OBSERVATION</span>
+          <span className="eyebrow">LLAMA.CPP ROCM OBSERVATION</span>
           <h3>{row.model}</h3>
         </div>
         <time dateTime={row.measured_at}>{formatDate(row.measured_at)}</time>
@@ -568,7 +573,7 @@ function Comparison({
     return (
       <section className="performance-comparison" aria-live="polite">
         <h2>ROCm {comparison.version} comparison</h2>
-        <p>ROCm {comparison.version} has no recorded stable llama.cpp measurements.</p>
+        <p>ROCm {comparison.version} has no recorded llama.cpp ROCm measurements.</p>
       </section>
     );
   }
@@ -582,14 +587,14 @@ function Comparison({
   }
 
   const selectedRows = filterRows(
-    stableMeasurements(current),
+    rocmMeasurements(current),
     filters.model,
     filters.system,
     filters.workload,
     filters.platform,
   );
   const otherRows = filterRows(
-    stableMeasurements(comparison.data),
+    rocmMeasurements(comparison.data),
     filters.model,
     filters.system,
     filters.workload,
@@ -688,7 +693,9 @@ export function PerformanceView({
   params,
   onNavigate,
   buildHref,
+  fetcher = fetch,
 }: {
+  fetcher?: typeof fetch;
   session: Session;
   params: URLSearchParams;
   onNavigate: (params: URLSearchParams) => void;
@@ -705,7 +712,7 @@ export function PerformanceView({
     if (!overview || overview.performance.status !== "available" || !performancePath) return;
     const controller = new AbortController();
     setState({ kind: "loading" });
-    loadViewData(session, compareVersion, controller.signal)
+    loadViewData(session, compareVersion, controller.signal, fetcher)
       .then((loaded) => {
         if (!controller.signal.aborted) setState({ kind: "ready", ...loaded });
       })
@@ -715,7 +722,7 @@ export function PerformanceView({
         }
       });
     return () => controller.abort();
-  }, [session, overview, performancePath, compareVersion, retry]);
+  }, [session, overview, performancePath, compareVersion, retry, fetcher]);
 
   const isModelView = params.get("view") === "model";
   const model = params.get("model");
@@ -723,9 +730,20 @@ export function PerformanceView({
   const workload = params.get("workload");
   const platform = params.get("platform") ?? "all";
   const filters = { model, system, workload, platform };
+  const selectedBuild = params.get("build");
+  const selectedSource = params.get("source");
+  const selectedChannel = params.get("channel");
+  const selectedEngine = params.get("engine");
   const allRows = useMemo(
-    () => (state.kind === "ready" ? stableMeasurements(state.data) : []),
-    [state],
+    () => state.kind === "ready" ? rocmMeasurements(state.data).filter((row) => {
+      if (!selectedBuild) return true;
+      const build = findExactQualificationBuild(row, state.history.builds);
+      return build?.build_id === selectedBuild &&
+        (!selectedSource || build.source_id === selectedSource) &&
+        (!selectedChannel || build.channel === selectedChannel) &&
+        (!selectedEngine || build.engine === selectedEngine);
+    }) : [],
+    [state, selectedBuild, selectedSource, selectedChannel, selectedEngine],
   );
   const rows = useMemo(
     () => filterRows(allRows, model, system, workload, platform),
@@ -777,9 +795,9 @@ export function PerformanceView({
     <section className="performance-view" aria-labelledby="performance-heading">
       <div className="performance-heading">
         <div>
-          <span className="eyebrow">STABLE LLAMA.CPP · HISTORICAL MEASUREMENTS</span>
+          <span className="eyebrow">LLAMA.CPP ROCM · HISTORICAL MEASUREMENTS</span>
           <h2 id="performance-heading">
-            {isModelView && model ? model : "Model performance"}
+            {isModelView && model ? model : "Performance details"}
           </h2>
         </div>
         {isModelView && (
@@ -794,6 +812,10 @@ export function PerformanceView({
           </a>
         )}
       </div>
+      {selectedBuild && <p className="performance-build-scope">
+        Package {allRows[0]?.engine_version ?? selectedBuild}
+        {" · "}<a href={`?version=${encodeURIComponent(session.version)}&view=performance`}>All performance data</a>
+      </p>}
       <p className="performance-intro">
         Each row is a recorded historical measurement. Its package tag and date belong to that
         observation and do not establish the performance of the current build.
@@ -895,7 +917,7 @@ export function PerformanceView({
                     buildHref={buildHref}
                   />
                 ))}
-                {!rows.length && <p>No stable measurements match this model and these filters.</p>}
+                {!rows.length && <p>No measurements match this model and these filters.</p>}
               </div>
             ) : (
               <p>Select a model to inspect its recorded observations.</p>
@@ -944,10 +966,10 @@ export function PerformanceView({
                     })}
                 </tbody>
               </table>
-              {!rows.length && <p>No stable llama.cpp ROCm measurements match these filters.</p>}
+              {!rows.length && <p>No llama.cpp ROCm measurements match these filters.</p>}
             </div>
           )}
-          <Comparison current={state.data} comparison={state.comparison} filters={filters} />
+          <Comparison current={{ ...state.data, measurements: allRows }} comparison={state.comparison} filters={filters} />
         </>
       )}
     </section>

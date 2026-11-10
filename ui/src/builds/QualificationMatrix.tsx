@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import type { Build, Fetcher } from "../data";
+import { metricValue, type PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity, exactBuildHref } from "../overview/buildTimeline";
@@ -53,11 +54,12 @@ function tierLabel(id: string) {
 
 const checkOrder = new Intl.Collator("en", { numeric: true });
 
-function PackageDetails({ heading, packages, coverageFetcher, run }: {
+function PackageDetails({ heading, packages, coverageFetcher, run, performanceMeasurements }: {
   heading: string;
   packages: Build[];
   coverageFetcher?: Fetcher;
   run?: Build;
+  performanceMeasurements?: Map<Build, PerformanceData["measurements"]>;
 }) {
   const [inspect, setInspect] = useState(false);
   const [coverage, setCoverage] = useState<{ packages: Build[]; targets: Map<Build, string[]> }>();
@@ -80,19 +82,43 @@ function PackageDetails({ heading, packages, coverageFetcher, run }: {
     return () => controller.abort();
   }, [packages, inspect, coverageFetcher]);
 
+  const hasPerformance = packages.some((build) => performanceMeasurements?.get(build)?.length);
   const evidence = coverage?.packages === packages ? coverage.targets : undefined;
-  return <Tooltip floating interactive label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
+  return <Tooltip floating interactive label={`${run ? `Run details for ${heading}` : `Package details for ${heading}`}${hasPerformance ? " · Performance data available" : ""}`}
     onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
       {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>{run.run_id ?? "Unreported"}</dd></dl>}
       <ul className="qualification-popup-packages">
         {packages.map((build) => {
           const targets = evidence?.get(build);
+          const measurements = performanceMeasurements?.get(build) ?? [];
+          const models = new Map<string, PerformanceData["measurements"][number]>();
+          for (const row of [...measurements].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at))) {
+            if (!models.has(row.model)) models.set(row.model, row);
+          }
           return <li key={buildIdentity(build)}>
             <Link to={exactBuildHref(build, "build")} aria-label={`Package report for ${build.build_id}`}>
               {platformName(build.os)} report →
             </Link>
             <dl><dt>Build ID</dt><dd>{build.build_id}</dd>{build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}</dl>
+            {models.size > 0 && <div className="qualification-performance-details">
+              <strong>Model performance</strong>
+              <span className="muted">Latest observation per model</span>
+              <div className="qualification-performance-scroll">
+                <table className="qualification-performance-table">
+                  <thead><tr><th>Model</th><th>TTFT</th><th>TPS</th><th>VRAM</th></tr></thead>
+                  <tbody>{[...models].sort(([a], [b]) => a.localeCompare(b)).map(([model, row]) =>
+                    <tr key={model}>
+                      <th scope="row" title={`${model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}>{model}</th>
+                      {(["ttft_ms_mean", "tps_mean", "vram_peak_gb"] as const).map((metric) =>
+                        <td key={metric}>{row.metrics[metric] == null ? "—" : metricValue(metric, row.metrics[metric])}</td>)}
+                    </tr>)}</tbody>
+                </table>
+              </div>
+              <Link to={exactBuildHref(build, "build-performance")}>
+                View {measurements.length} matched {measurements.length === 1 ? "measurement" : "measurements"} →
+              </Link>
+            </div>}
             {coverageFetcher && <div className="qualification-compiled-targets">
               <strong>Compiled GPU targets</strong>
               {targets?.length ? <ul aria-label="Compiled GPU targets">
@@ -107,6 +133,9 @@ function PackageDetails({ heading, packages, coverageFetcher, run }: {
       </ul>
     </TooltipContent>}>
     {heading}
+    {hasPerformance && <svg className="qualification-performance-indicator" aria-hidden="true" viewBox="0 0 16 16">
+      <path d="M2 13V8m6 5V3m6 10V6" />
+    </svg>}
   </Tooltip>;
 }
 
@@ -182,10 +211,11 @@ function PackageCell({ build, selected, fetcher }: {
   </div>;
 }
 
-export function QualificationMatrix({ builds, fetcher, selected }: {
+export function QualificationMatrix({ builds, fetcher, selected, performanceMeasurements }: {
   builds: Build[];
   fetcher: Fetcher;
   selected: Build | null;
+  performanceMeasurements?: Map<Build, PerformanceData["measurements"]>;
 }) {
   const title = useId();
   const selectedId = selected ? buildIdentity(selected) : null;
@@ -239,6 +269,7 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
         </div>}
         {matches.map((item) => <div key={buildIdentity(item)} className="qualification-archive">
           <PackageCell build={item} fetcher={fetcher} selected={buildIdentity(item) === selectedId} />
+
         </div>)}
       </td>;
     });
@@ -262,7 +293,7 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
             </tr></thead>
             <tbody>{[...runs].map(([key, packages]) => <tr key={key}>
               <th scope="row">
-                <PackageDetails heading={packages[0].tag ?? "Unreported"} packages={packages} coverageFetcher={fetcher} run={packages[0]} />
+                <PackageDetails heading={packages[0].tag ?? "Unreported"} packages={packages} coverageFetcher={fetcher} run={packages[0]} performanceMeasurements={performanceMeasurements} />
                 {publishing(packages)}
               </th>
               {platformCells(packages, false)}
@@ -305,7 +336,7 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
                   {[...families].sort(([a], [b]) => checkOrder.compare(a, b)).map(([family, members]) =>
                     <tr key={family}>
                       {showFamilies && <th scope="row">
-                        {family ? <PackageDetails heading={family} packages={members} /> : "Shared archive"}
+                        {family ? <PackageDetails heading={family} packages={members} performanceMeasurements={performanceMeasurements} /> : "Shared archive"}
                       </th>}
                       {platformCells(members, showFamilies && !family)}
                     </tr>

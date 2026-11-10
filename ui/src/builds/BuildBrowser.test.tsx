@@ -70,7 +70,7 @@ describe("BuildBrowser", () => {
     const { onPlatformChange } = mount();
 
     expect(
-      screen.getByRole("heading", { name: "Retained builds" }),
+      screen.getByRole("heading", { name: "Build details" }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("b10000").length).toBeGreaterThan(0);
     expect(screen.getAllByText("b10001").length).toBeGreaterThan(0);

@@ -212,6 +212,30 @@ describe("PerformanceView", () => {
     expect(findExactQualificationBuild(row, [first, second])).toBeUndefined();
   });
 
+  it("shows nightly metrics and links the exact nightly qualification build", async () => {
+    const row = measurement({
+      channel: "nightly",
+      fork_id: "llamacpp-rocm-nightly",
+      engine_repository: "lemonade-sdk/llamacpp-rocm",
+      qualification_build_id: "build-100",
+      package_url: "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b100/llama-b100-ubuntu-rocm-gfx1151-x64.tar.gz",
+    });
+    renderView([row], {
+      query: "version=10.1&view=model&model=Model+A",
+      history: [historyBuild({
+        channel: "nightly",
+        artifact: "llama-b100-ubuntu-rocm-gfx1151-x64.tar.gz",
+        source_url: "https://raw.githubusercontent.com/lemonade-sdk/llamacpp-rocm/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/qualification/index.json",
+      })],
+    });
+
+    expect(await screen.findByText("12 tok/s")).toBeInTheDocument();
+    expect(screen.getByText("nightly", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open matching package record" }))
+      .toHaveAttribute("href", "?view=build&build=build-100&platform=linux");
+    expect(findExactQualificationBuild(row, [historyBuild()])).toBeUndefined();
+  });
+
   it("compares deterministic latest observations only when exact hardware and workload identities match", async () => {
     renderView(
       [measurement({ metrics: { tg_tps: 12 }, measured_at: "2026-10-29T13:00:00Z" })],
@@ -340,7 +364,7 @@ describe("PerformanceView", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByText("No matching stable qualification history record"),
+        screen.getByText("No matching qualification history record"),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText("Package qualification: Qualified")).not.toBeInTheDocument();

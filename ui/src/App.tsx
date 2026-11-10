@@ -6,6 +6,7 @@ import {
   loadVersion,
   loadHistory,
 } from "./data";
+import { exactBuildHref } from "./overview/buildTimeline";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
@@ -145,7 +146,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     "performance",
     "model",
   ].includes(view);
-  const buildView = ["build", "build-review", "build-performance"].includes(view);
+  const buildView = ["build", "build-review"].includes(view);
   const href = (nextView: string, extras: Record<string, string> = {}) => {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
@@ -154,6 +155,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     if (nextView === "engine") {
       next.delete("version");
       for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit"])
+        next.delete(key);
+    }
+    if (["build", "performance"].includes(nextView)) {
+      for (const key of ["build", "source", "engine", "channel", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit", "model", "system", "workload", "compare"])
         next.delete(key);
     }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
@@ -175,8 +180,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("check");
     next.delete("report_commit");
     if (next.get("compare") === value) next.delete("compare");
-    if (buildView) next.set("view", "engine");
-    if (view === "model") next.set("view", "performance");
+    if (buildView) next.set("view", "build");
+    if (view === "model" || view === "build-performance") next.set("view", "performance");
     setParams(next);
   };
   const refreshData = () => setRefresh((value) => value + 1);
@@ -205,7 +210,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.set("platform", value);
     next.delete("build");
     next.delete("source");
-    if (buildView) next.set("view", "engine");
+    if (buildView) next.set("view", "build");
     setParams(next);
   };
 
@@ -215,10 +220,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const pageTitle =
     track === "upstream" ? "Upstream Health" :
     view === "engine" ? "Build Qualification" :
-    view === "build" ? "Build evidence" :
-    view === "build-review" ? "Build review" :
-    view === "build-performance" ? "Performance evidence" :
-    view === "performance" || view === "model" ? "Model performance" :
+    view === "build" ? "Build details" :
+    view === "build-review" ? "Build details" :
+    view === "build-performance" ? "Performance details" :
+    view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
   const versionOptions = session?.index.versions ?? [];
   const versionFilter = view === "engine" ? (
@@ -296,8 +301,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {track === "readiness" && (
                 <ul className="workspace-views" aria-label="Dashboard views">
                   <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
-                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Build Qualification</Link></li>
-                  <li><Link aria-current={view === "performance" || view === "model" ? "page" : undefined} to={href("performance")}>Model performance</Link></li>
+                  <li>
+                    <Link aria-current={view === "engine" ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
+                    <ul className="workspace-views workspace-build-details" aria-label="Build Qualification pages">
+                      <li><Link aria-current={buildView ? "page" : undefined} to={href("build")}>Build details</Link></li>
+                      <li><Link aria-current={["performance", "model", "build-performance"].includes(view) ? "page" : undefined} to={href("performance")}>Performance details</Link></li>
+                    </ul>
+                  </li>
                 </ul>
               )}
             </li>
@@ -439,19 +449,22 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                         (!params.get("engine") || build.engine === params.get("engine")) &&
                         (!params.get("channel") || build.channel === params.get("channel")))}
                       platform={platform}
-                      selectedBuildId={params.get("build") || ""}
+                      selectedBuildId={params.get("build")}
+                      query={params.get("build_filter") ?? ""}
+                      onQueryChange={(value) => { const next = new URLSearchParams(params); next.set("build_filter", value); setParams(next, { replace: true }); }}
                       selectedSourceId={params.get("source")}
                       selectedTierId={params.get("tier")} selectedCheckIndex={params.get("check")}
                       selectedReportCommit={params.get("report_commit")}
                       onPlatformChange={changePlatform}
-                      buildHref={(build) => href("build", { build: build.build_id, platform: build.os })}
+                      buildHref={(build) => exactBuildHref(build, "build")}
                     /> : <BuildReview session={session} history={currentHistory.builds} params={params} fetcher={fetcher} />}
                   </div>
                 ) : <p role="status">Loading retained build history…</p>
               )}
-              {["performance", "model"].includes(view) && (
+              {["performance", "model", "build-performance"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView
+                    fetcher={fetcher}
                     session={session}
                     params={params}
                     onNavigate={(next) => setParams(next)}

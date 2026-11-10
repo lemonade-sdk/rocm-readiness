@@ -55,7 +55,7 @@ test("overview build marks open qualification and the exact package review", asy
   await expect(page).toHaveURL(/view=build/);
   await expect(page).toHaveURL(/build=linux-build/);
   await expect(
-    page.getByRole("heading", { name: "Build review", exact: true }),
+    page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
   await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -102,7 +102,7 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.getByRole("button", { name: "Run details for b11972", exact: true }).first().click();
   await page.getByRole("link", { name: "Package report for linux-build", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();
   expect(
     reads.filter((url) => url.endsWith("/main/data/latest.json")),
@@ -110,7 +110,7 @@ test("pins data, switches versions and restores scope through browser history", 
   const shared = page.url();
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();
   await expect(page).toHaveURL(shared);
   await page.goBack();
@@ -120,7 +120,7 @@ test("pins data, switches versions and restores scope through browser history", 
   await page.goForward();
   await expect(page).toHaveURL(/view=build/);
   await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
+    page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();
   expect(
     reads

@@ -74,7 +74,7 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
   await page.getByRole("link", { name: "Package report for failed", exact: true }).click();
   await page.getByRole("link", { name: /Build review/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Build review", exact: true }),
+    page.getByRole("heading", { name: "Build details", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "b-failed", exact: true }),

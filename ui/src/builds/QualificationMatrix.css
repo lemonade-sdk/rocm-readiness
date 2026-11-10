@@ -68,3 +68,21 @@
 .qualification-release-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; }
 .qualification-release-heading > .qualification-heading-label { flex-basis: 100%; }
 .qualification-publishing { display: flex; flex-wrap: wrap; gap: .15rem .65rem; margin: .25rem 0 0; padding: 0; list-style: none; color: var(--muted); font: .7rem/1.35 system-ui, sans-serif; }
+
+.qualification-performance-indicator {
+  width: .85rem;
+  height: .85rem;
+  margin-inline-start: .35rem;
+  vertical-align: -.1rem;
+  color: var(--accent);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+}
+.qualification-performance-details { display: grid; gap: .3rem; margin-block: .4rem; }
+
+.qualification-performance-scroll { overflow-x: auto; max-width: 100%; }
+.qualification-performance-table { border-collapse: collapse; font-size: .7rem; width: 100%; }
+.qualification-performance-table :is(th, td) { padding: .25rem .3rem; text-align: end; white-space: nowrap; border-bottom: 1px solid var(--line); }
+.qualification-performance-table th:first-child { text-align: start; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; }

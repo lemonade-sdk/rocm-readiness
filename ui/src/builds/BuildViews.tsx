@@ -4,8 +4,8 @@ import type { Build, Fetcher, Session } from "../data";
 import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
 import { useUtcToday } from "../overview/useUtcToday";
 import {
-  comparisonKey, findExactQualificationBuild, MeasurementDetail,
-  metricValue, readPerformance, stableMeasurements, systemSummary,
+  comparisonKey, findExactQualificationBuild,
+  metricValue, readPerformance, rocmMeasurements, systemSummary,
 } from "../performance/PerformanceView";
 import type { PerformanceData } from "../performance/PerformanceView";
 import { findSelectedBuild } from "./BuildBrowser";
@@ -48,7 +48,7 @@ function useBuildMeasurements(session: Session, history: Build[], fetcher: Fetch
       byId.set(build.build_id, candidates);
     }
     const matched = new Map<Build, Measurement[]>();
-    for (const row of data ? stableMeasurements(data) : []) {
+    for (const row of data ? rocmMeasurements(data) : []) {
       const build = findExactQualificationBuild(row, byId.get(row.qualification_build_id ?? "") ?? []);
       if (!build) continue;
       const rows = matched.get(build) ?? [];
@@ -139,16 +139,12 @@ function BuildFilter({ label, options, available, selected, onSelect }: {
   );
 }
 
-function FocusedPerformance({ session, history, builds, fetcher }: Omit<ViewProps, "params"> & { builds: Build[] }) {
-  const performance = useBuildMeasurements(session, history, fetcher);
-  return <DayPerformance builds={builds} performance={performance} />;
-}
-
 export function EngineBuilds({ session, history, params, fetcher, onNavigate, versionFilter }: ViewProps & {
   versionFilter: ReactNode;
   onNavigate: (params: URLSearchParams, replace?: boolean) => void;
 }) {
   const today = useUtcToday();
+  const performance = useBuildMeasurements(session, history, fetcher);
   const platformParam = params.get("platform");
   const query = params.get("build_filter") ?? "";
   const focus = params.get("day");
@@ -236,9 +232,10 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       builds={rows}
       fetcher={fetcher}
       selected={selected && rows.includes(selected) ? selected : null}
+      performanceMeasurements={performance.matches}
     />}
     {focusedDay && rows.length > 0 &&
-      <FocusedPerformance session={session} history={history} builds={rows} fetcher={fetcher} />}
+      <DayPerformance builds={rows} performance={performance} />}
   </section>;
 }
 
@@ -324,14 +321,6 @@ export function BuildReview({ session, history, params, fetcher }: ViewProps) {
   if (selection?.kind !== "selected") return <p role="alert">{selection?.message ?? "Build unavailable"}</p>;
   const { build } = selection;
   const rows = performance.matches.get(build) ?? [];
-  if (params.get("view") === "build-performance") return <section className="performance-view">
-    <Link to={exactBuildHref(build)}>← Build review</Link>
-    <h2>{build.tag ?? build.build_id}</h2>
-    {rows.length === 0 && <p>{performance.message || "No matched benchmarks for this build"}</p>}
-    {performance.retry && <button onClick={performance.retry}>Retry performance</button>}
-    {rows.map((row, index) => <MeasurementDetail key={index} row={row} systems={performance.data!.systems}
-      history={{ builds: history, error: null }} buildHref={() => exactBuildHref(build, "build")} />)}
-  </section>;
   return <section className="build-charts">
     <div><h2>{build.tag ?? build.build_id}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {buildDate(build)} UTC</p>
       <Link to={qualificationBuildHref(build)}>View package qualification</Link></div>

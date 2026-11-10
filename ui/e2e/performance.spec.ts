@@ -125,3 +125,58 @@ for (const compatible of [true, false]) {
     },
   );
 }
+
+test("anchors package performance popups and keeps model names readable", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
+  const original = historyFixture();
+  const history = {
+    ...original,
+    builds: original.builds.map((build, index) => ({
+      ...build, tag: index < 2 ? "b100" : build.tag,
+      run_id: index < 2 ? "123" : undefined,
+    })),
+  };
+  const data = measurements("10.1");
+  const model = "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF";
+  const performance = {
+    ...data,
+    measurements: [{
+      ...data.measurements[0], model, channel: "stable",
+      engine_repository: "lemonade-sdk/llama.cpp",
+      fork_id: "llamacpp-rocm-stable",
+      package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-ubuntu-rocm-10.1-x64.tar.gz",
+      metrics: { ...data.measurements[0].metrics, tps_mean: 12 },
+      qualification_build_id: "linux-build",
+    }],
+  };
+  await page.route("https://raw.githubusercontent.com/**", async (route) => {
+    const url = route.request().url();
+    if (url.endsWith("/main/data/latest.json")) return route.fulfill({ json: pointer });
+    if (url === indexUrl) return route.fulfill({ json: index });
+    if (url.endsWith("/rocm/10.1/overview.json")) return route.fulfill({ json: overview() });
+    if (url.endsWith("/rocm/10.1/history/2026-10.json")) return route.fulfill({ json: history });
+    if (url.endsWith("/rocm/10.1/performance.json")) return route.fulfill({ json: performance });
+    return route.fulfill({ status: 404, body: "{}" });
+  });
+  await page.goto("./?version=10.1&view=engine&platform=all");
+  const trigger = page.getByRole("button", { name: "Run details for b100 · Performance data available", exact: true });
+  await trigger.focus();
+  const popup = page.getByRole("dialog");
+  await expect(popup).toBeVisible();
+  await expect(popup.locator(".tooltip-arrow")).toBeVisible();
+  await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
+  await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
+  const name = popup.getByRole("rowheader", { name: model, exact: true });
+  await name.scrollIntoViewIfNeeded();
+  expect(await name.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  const box = await popup.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await page.keyboard.press("Escape");
+  await expect(popup).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await expect(popup).toBeVisible();
+  await popup.getByRole("button", { name: "Close popup" }).click();
+  await expect(popup).toHaveCount(0);
+});

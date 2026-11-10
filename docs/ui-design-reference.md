@@ -111,8 +111,15 @@ neutral tint, and retain the existing status foregrounds in both themes.
   selected package and its UTC date, version, track, engine, and platform.
   Use short platform or GPU package labels and compact tinted check cells with distinct glyphs.
   Use the shared padded tooltip header and body for tier and check details.
+  Use Floating UI for anchored tooltips and interactive package popups, with an
+  arrow to the trigger, viewport-aware positioning, keyboard and touch access,
+  Escape and outside dismissal, and a visible close control for interactive panels.
   Keep the tooltip open while the pointer or keyboard focus is within its trigger
-  or panel. List the visible platform packages and report links in the GPU-family panel,
+  or panel. Size package popups to their content within the viewport. Show visible
+  platform packages in two columns on wide screens and stack them on mobile.
+  Put report and measurement links in parentheses beside their section headings.
+  Show full model names, wrapping on narrow screens, and a visible scroll cue when
+  more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the
   longest tier in the package and keep that width across its tier rows.
   An individual check opens the same check in the exact package report.

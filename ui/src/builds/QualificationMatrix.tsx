@@ -84,12 +84,12 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
 
   const hasPerformance = packages.some((build) => performanceMeasurements?.get(build)?.length);
   const evidence = coverage?.packages === packages ? coverage.targets : undefined;
-  return <Tooltip floating interactive label={`${run ? `Run details for ${heading}` : `Package details for ${heading}`}${hasPerformance ? " · Performance data available" : ""}`}
+  return <Tooltip floating interactive contentClassName="qualification-popup" label={`${run ? `Run details for ${heading}` : `Package details for ${heading}`}${hasPerformance ? " · Performance data available" : ""}`}
     onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
       {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>{run.run_id ?? "Unreported"}</dd></dl>}
-      <ul className="qualification-popup-packages">
-        {packages.map((build) => {
+      <ul className="qualification-popup-packages" data-multiple-platforms={new Set(packages.map((build) => build.os)).size > 1 || undefined}>
+        {[...packages].sort((a, b) => (a.os === "windows" ? 0 : 1) - (b.os === "windows" ? 0 : 1)).map((build) => {
           const targets = evidence?.get(build);
           const measurements = performanceMeasurements?.get(build) ?? [];
           const models = new Map<string, PerformanceData["measurements"][number]>();
@@ -97,12 +97,12 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
             if (!models.has(row.model)) models.set(row.model, row);
           }
           return <li key={buildIdentity(build)}>
-            <Link to={exactBuildHref(build, "build")} aria-label={`Package report for ${build.build_id}`}>
-              {platformName(build.os)} report →
-            </Link>
-            <dl><dt>Build ID</dt><dd>{build.build_id}</dd>{build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}</dl>
+            <h4 className="qualification-platform-heading">
+              {platformName(build.os)} <small>(<Link to={exactBuildHref(build, "build")} aria-label={`Package report for ${build.build_id}`}>report</Link>)</small>
+            </h4>
+            <dl className="qualification-package-metadata"><dt>Build ID</dt><dd>{build.build_id}</dd>{build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}</dl>
             {models.size > 0 && <div className="qualification-performance-details">
-              <strong>Model performance</strong>
+              <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")} aria-label={`View ${measurements.length} matched ${measurements.length === 1 ? "measurement" : "measurements"} →`}>{measurements.length} measurements</Link>)</small></h5>
               <span className="muted">Latest observation per model</span>
               <div className="qualification-performance-scroll">
                 <table className="qualification-performance-table">
@@ -115,12 +115,9 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
                     </tr>)}</tbody>
                 </table>
               </div>
-              <Link to={exactBuildHref(build, "build-performance")}>
-                View {measurements.length} matched {measurements.length === 1 ? "measurement" : "measurements"} →
-              </Link>
             </div>}
             {coverageFetcher && <div className="qualification-compiled-targets">
-              <strong>Compiled GPU targets</strong>
+              <h5>Compiled GPU targets</h5>
               {targets?.length ? <ul aria-label="Compiled GPU targets">
                 {targets.map((target) => <li key={target}><code>{target}</code></li>)}
               </ul> : <span className="muted">{!evidence ? "Loading…" : targets ? "None recorded" :

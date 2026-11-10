@@ -44,6 +44,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Keep at least one platform selected, and keep unavailable platforms visible
   and disabled. Determine platform availability from the version and engine
   before applying search or date paging. Keep filter selections in the URL.
+  Pair platform labels with the Windows mark or Linux Tux in filters and package
+  headings. Hover must preserve the fill of selected filters.
 - Group version and platform controls together, with search at the trailing
   edge when space permits. Let the controls wrap at narrow widths. Use the
   workspace rail for navigation between dashboard views. Place ROCm version
@@ -123,6 +125,9 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Use dense metadata and tables with full model names; keep detailed inspection
   in the Build details and Performance details pages.
   Put report and measurement links in parentheses beside their section headings.
+  Allow sorting the model table by Model, TTFT, TPS and VRAM, with an indicated
+  direction and unavailable values last. Display TTFT in seconds, converting the
+  producer's millisecond values.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the

@@ -76,8 +76,8 @@ const metricInfo: Record<string, { label: string; unit: string }> = {
   tps_p95: { label: "P95 throughput", unit: "tok/s" },
   tg_tps: { label: "Token generation throughput", unit: "tok/s" },
   pp_tps: { label: "Prompt processing throughput", unit: "tok/s" },
-  ttft_ms_mean: { label: "Mean time to first token", unit: "ms" },
-  ttft_ms_best: { label: "Best time to first token", unit: "ms" },
+  ttft_ms_mean: { label: "Mean time to first token", unit: "s" },
+  ttft_ms_best: { label: "Best time to first token", unit: "s" },
   vram_peak_gb: { label: "Peak VRAM", unit: "GB" },
 };
 const missingSystemFilter = "__missing_hardware__";
@@ -112,7 +112,8 @@ function metricName(name: string) {
 
 export function metricValue(name: string, value: number) {
   const unit = metricInfo[name]?.unit;
-  return unit ? `${formatNumber(value)} ${unit}` : `${formatNumber(value)} (unit unavailable)`;
+  const displayed = name.startsWith("ttft_ms_") ? value / 1000 : value;
+  return unit ? `${formatNumber(displayed)} ${unit}` : `${formatNumber(displayed)} (unit unavailable)`;
 }
 
 function packageLabel(row: Measurement) {

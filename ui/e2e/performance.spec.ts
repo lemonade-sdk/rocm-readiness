@@ -138,16 +138,21 @@ test("anchors package performance popups and keeps model names readable", async 
   };
   const data = measurements("10.1");
   const model = "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF";
-  const performance = {
-    ...data,
-    measurements: [{
+  const measured = {
       ...data.measurements[0], model, channel: "stable",
       engine_repository: "lemonade-sdk/llama.cpp",
       fork_id: "llamacpp-rocm-stable",
       package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-ubuntu-rocm-10.1-x64.tar.gz",
-      metrics: { ...data.measurements[0].metrics, tps_mean: 12 },
+      metrics: { ttft_ms_mean: 10000, tps_mean: 12, vram_peak_gb: 16 },
       qualification_build_id: "linux-build",
-    }],
+  };
+  const performance = {
+    ...data,
+    measurements: [
+      measured,
+      { ...measured, model: "A small model", metrics: { ttft_ms_mean: 2000, tps_mean: 100, vram_peak_gb: 1 } },
+      { ...measured, model: "Z missing metrics", metrics: {} },
+    ],
   };
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
     const url = route.request().url();
@@ -159,6 +164,12 @@ test("anchors package performance popups and keeps model names readable", async 
     return route.fulfill({ status: 404, body: "{}" });
   });
   await page.goto("./?version=10.1&view=engine&platform=all");
+  const platforms = page.getByRole("group", { name: "Platforms", exact: true });
+  await expect(platforms.locator("img")).toHaveCount(2);
+  const windows = platforms.getByRole("button", { name: "Windows", exact: true });
+  const selectedBackground = await windows.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await windows.hover();
+  expect(await windows.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(selectedBackground);
   const trigger = page.getByRole("button", { name: "Run details for b100 · Performance data available", exact: true });
   await trigger.focus();
   const popup = page.getByRole("dialog");
@@ -166,6 +177,18 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(popup.locator(".tooltip-arrow")).toBeVisible();
   await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
   await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
+  const modelRows = popup.locator(".qualification-performance-table tbody tr");
+  await popup.getByRole("button", { name: "Sort by TPS", exact: true }).click();
+  await expect(modelRows.first()).toContainText("A small model");
+  await popup.getByRole("button", { name: "Sort by TPS", exact: true }).click();
+  await expect(modelRows.first()).toContainText(model);
+  await expect(modelRows.last()).toContainText("Z missing metrics");
+  await popup.getByRole("button", { name: "Sort by TTFT", exact: true }).click();
+  await expect(modelRows.first()).toContainText("2 s");
+  await popup.getByRole("button", { name: "Sort by TTFT", exact: true }).click();
+  await expect(modelRows.first()).toContainText("10 s");
+  await popup.getByRole("button", { name: "Sort by VRAM", exact: true }).click();
+  await expect(modelRows.first()).toContainText("A small model");
   const name = popup.getByRole("rowheader", { name: model, exact: true });
   await name.scrollIntoViewIfNeeded();
   expect(await name.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);

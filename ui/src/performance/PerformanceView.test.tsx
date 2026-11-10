@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Build, Session } from "../data";
 import { index, indexUrl, overview, pointer } from "../fixtures";
-import { findExactQualificationBuild, PerformanceView } from "./PerformanceView";
+import { findExactQualificationBuild, metricValue, PerformanceView } from "./PerformanceView";
 
 type Measurement = {
   source_id?: string;
@@ -195,6 +195,12 @@ function renderView(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("PerformanceView", () => {
+  it("converts source TTFT milliseconds to seconds for display", () => {
+    expect(metricValue("ttft_ms_mean", 20817.47)).toBe("20.82 s");
+    expect(metricValue("ttft_ms_best", 250)).toBe("0.25 s");
+    expect(metricValue("tps_mean", 65)).toBe("65 tok/s");
+  });
+
   it("requires one exact qualification history record rather than choosing the first matching source", () => {
     const row = measurement({ qualification_build_id: "build-100" });
     const first = historyBuild({

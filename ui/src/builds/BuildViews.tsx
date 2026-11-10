@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
+import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher, Session } from "../data";
 import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
 import { useUtcToday } from "../overview/useUtcToday";
@@ -132,7 +133,7 @@ function BuildFilter({ label, options, available, selected, onSelect }: {
           disabled={!available.includes(value) || selected === value || (selected === null && available.length === 1)}
           onClick={() => onSelect(selected === null ? options[1 - index][0] : null)}
         >
-          {name}
+          <PlatformIcon platform={value} />{name}
         </button>
       ))}
     </fieldset>

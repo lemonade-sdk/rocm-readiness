@@ -134,3 +134,19 @@
   padding-block-start: .65rem;
   border-top: 1px solid var(--line);
 }
+
+.qualification-performance-table thead button {
+  min-height: 1.6rem;
+  padding: .1rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline dotted;
+  text-underline-offset: .2rem;
+}
+.qualification-performance-table thead button:hover { color: var(--accent); }
+.comparison-bubble .performance-sort-arrow { display: inline; }
+.qualification-platform-heading > .platform-logo { margin-inline-end: .2rem; }

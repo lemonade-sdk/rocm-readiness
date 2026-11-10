@@ -1179,3 +1179,6 @@ main {
 .workspace-build-details {
   margin-inline-start: .65rem;
 }
+
+
+.platform-logo { display: inline-block; width: 1.1rem; height: 1.1rem; object-fit: contain; vertical-align: -.15em; flex-shrink: 0; }

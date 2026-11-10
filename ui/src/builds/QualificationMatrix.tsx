@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
+import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
 import { metricValue, type PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
@@ -99,13 +100,9 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
           const targets = evidence?.get(build);
           const repository = buildRepository(build);
           const measurements = performanceMeasurements?.get(build) ?? [];
-          const models = new Map<string, PerformanceData["measurements"][number]>();
-          for (const row of [...measurements].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at))) {
-            if (!models.has(row.model)) models.set(row.model, row);
-          }
           return <li key={buildIdentity(build)}>
             <h4 className="qualification-platform-heading">
-              {platformName(build.os)} <small>(<Link to={exactBuildHref(build, "build")} aria-label={`Build details for ${platformName(build.os)} package ${build.build_id}`}>Build details</Link>)</small>
+              <PlatformIcon platform={build.os} /> {platformName(build.os)} <small>(<Link to={exactBuildHref(build, "build")} aria-label={`Build details for ${platformName(build.os)} package ${build.build_id}`}>Build details</Link>)</small>
             </h4>
             <dl className="qualification-package-metadata">
               <dt>Build ID</dt><dd>{build.build_id}</dd>
@@ -115,21 +112,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
               {!run && build.run_id && repository && <><dt>Workflow run</dt><dd><a href={`https://github.com/${repository}/actions/runs/${encodeURIComponent(build.run_id)}`} target="_blank" rel="noreferrer">{build.run_id} ↗</a></dd></>}
               {build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}
             </dl>
-            {models.size > 0 && <div className="qualification-performance-details">
-              <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")} aria-label={`Performance details for ${platformName(build.os)} package ${build.build_id}`}>Performance details</Link>)</small></h5>
-              <span className="muted">Latest observation per model</span>
-              <div className="qualification-performance-scroll">
-                <table className="qualification-performance-table">
-                  <thead><tr><th>Model</th><th>TTFT</th><th>TPS</th><th>VRAM</th></tr></thead>
-                  <tbody>{[...models].sort(([a], [b]) => a.localeCompare(b)).map(([model, row]) =>
-                    <tr key={model}>
-                      <th scope="row" title={`${model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}>{model}</th>
-                      {(["ttft_ms_mean", "tps_mean", "vram_peak_gb"] as const).map((metric) =>
-                        <td key={metric}>{row.metrics[metric] == null ? "—" : metricValue(metric, row.metrics[metric])}</td>)}
-                    </tr>)}</tbody>
-                </table>
-              </div>
-            </div>}
+            {measurements.length > 0 && <PackagePerformance build={build} measurements={measurements} />}
             {coverageFetcher && <div className="qualification-compiled-targets">
               <h5>Compiled GPU targets</h5>
               {targets?.length ? <ul aria-label="Compiled GPU targets">
@@ -148,6 +131,54 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
       <path d="M2 13V8m6 5V3m6 10V6" />
     </svg>}
   </Tooltip>;
+}
+
+type PerformanceColumn = "model" | "ttft_ms_mean" | "tps_mean" | "vram_peak_gb";
+const performanceColumns: [PerformanceColumn, string][] = [
+  ["model", "Model"], ["ttft_ms_mean", "TTFT"], ["tps_mean", "TPS"], ["vram_peak_gb", "VRAM"],
+];
+
+function PackagePerformance({ build, measurements }: {
+  build: Build;
+  measurements: PerformanceData["measurements"];
+}) {
+  const [sort, setSort] = useState<{ column: PerformanceColumn; descending: boolean }>({ column: "model", descending: false });
+  const models = new Map<string, PerformanceData["measurements"][number]>();
+  for (const row of [...measurements].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at))) {
+    if (!models.has(row.model)) models.set(row.model, row);
+  }
+  const rows = [...models.values()].sort((a, b) => {
+    if (sort.column === "model") return (sort.descending ? -1 : 1) * a.model.localeCompare(b.model);
+    const left = a.metrics[sort.column];
+    const right = b.metrics[sort.column];
+    if (left == null) return right == null ? a.model.localeCompare(b.model) : 1;
+    if (right == null) return -1;
+    return (sort.descending ? right - left : left - right) || a.model.localeCompare(b.model);
+  });
+  function changeSort(column: PerformanceColumn) {
+    setSort({ column, descending: sort.column === column ? !sort.descending : column === "tps_mean" });
+  }
+  return <div className="qualification-performance-details">
+    <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")}
+      aria-label={`Performance details for ${platformName(build.os)} package ${build.build_id}`}>Performance details</Link>)</small></h5>
+    <span className="muted">Latest observation per model</span>
+    <div className="qualification-performance-scroll">
+      <table className="qualification-performance-table">
+        <thead><tr>{performanceColumns.map(([column, label]) =>
+          <th key={column} scope="col" aria-sort={sort.column === column ? sort.descending ? "descending" : "ascending" : undefined}
+            title={column === "vram_peak_gb" ? "Maximum reported GPU memory in use across benchmark runs" : undefined}>
+            <button type="button" onClick={() => changeSort(column)} aria-label={`Sort by ${label}`}>
+              {label}{sort.column === column && <span className="performance-sort-arrow" aria-hidden="true">{sort.descending ? " ↓" : " ↑"}</span>}
+            </button>
+          </th>)}</tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.model}>
+          <th scope="row" title={`${row.model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}>{row.model}</th>
+          {(["ttft_ms_mean", "tps_mean", "vram_peak_gb"] as const).map((metric) =>
+            <td key={metric}>{row.metrics[metric] == null ? "—" : metricValue(metric, row.metrics[metric])}</td>)}
+        </tr>)}</tbody>
+      </table>
+    </div>
+  </div>;
 }
 
 function PackageCell({ build, selected, fetcher }: {

@@ -1,10 +1,8 @@
 .comparison-bubble.performance-preview-popup { width: max-content; max-width: min(68rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px)); }
 .performance-preview-trigger { display: inline-flex; vertical-align: middle; text-decoration: none; }
 .performance-preview { font-size: .7rem; }
-.performance-preview-platforms { display: flex; flex-wrap: wrap; margin: 0; padding: 0; border: 0; gap: .35rem; }
-.performance-preview-platforms legend { font-size: .7rem; color: var(--muted); margin-bottom: .35rem; }
+.performance-preview-platforms { display: flex; flex-wrap: wrap; margin: 0 0 .5rem; padding: 0; border: 0; gap: .35rem; }
 .performance-preview-platforms button { font-size: .7rem; min-height: 30px; }
-.performance-preview-caption { margin: .5rem 0 .75rem; }
 .performance-chart {
   display: grid;
   grid-template-columns: minmax(12rem, max-content) 14rem 14rem;
@@ -15,20 +13,24 @@
   display: grid;
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
-  gap: .35rem .75rem;
+  gap: .2rem .75rem;
   align-items: center;
 }
-.performance-chart-headings { padding-bottom: .4rem; border-bottom: 1px solid var(--line); }
+.performance-chart-headings { padding-bottom: .25rem; border-bottom: 1px solid var(--line); }
 .performance-chart-headings small { margin-top: 0; }
-.performance-chart-model { padding-block: .4rem; border-bottom: 1px solid var(--line); }
+.performance-chart-model { padding-block: .2rem; border-bottom: 1px solid var(--line); }
 .performance-chart-model-name { overflow-wrap: anywhere; font-weight: 600; }
 .performance-chart-bars { display: grid; gap: .2rem; }
-.performance-chart-platform { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: .3rem; align-items: center; }
-.performance-chart-platform .platform-logo { width: .9rem; height: .9rem; }
+.performance-chart-platform { display: grid; align-items: center; }
+.performance-chart-platform:has(.performance-chart-platform-label) {
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  gap: .25rem;
+}
+.performance-chart-platform-label { color: var(--muted); font-size: .65rem; }
 .comparison-bubble a.performance-chart-track {
   position: relative;
   display: block;
-  height: 1.5rem;
+  height: 1.15rem;
   background: var(--panel);
   text-decoration: none;
   overflow: hidden;

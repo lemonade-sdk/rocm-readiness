@@ -28,6 +28,8 @@ it("shows proportional bars and marks an unmeasured OS unavailable", async () =>
   expect(windows).toHaveAttribute("title", "Unavailable");
   expect(within(popup).getByRole("button", { name: /^Linux$/ })).toHaveAttribute("aria-pressed", "true");
   const ttft = within(popup).getByRole("group", { name: "Model A · TTFT" });
+  expect(popup.querySelectorAll(".performance-preview-platforms .platform-logo")).toHaveLength(2);
+  expect(popup.querySelectorAll(".performance-chart .platform-logo")).toHaveLength(0);
   expect(ttft).toHaveTextContent("1 s");
   expect(ttft.querySelector(".performance-chart-fill")).toHaveStyle({ width: "50%" });
   expect(within(popup).getByText("Higher is better")).toBeInTheDocument();

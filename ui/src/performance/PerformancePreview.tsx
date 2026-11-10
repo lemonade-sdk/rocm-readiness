@@ -57,8 +57,7 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
     setSelection(selection === "both" ? os === "windows" ? "linux" : "windows" : "both");
   }
   return <div className="performance-preview">
-    <fieldset className="build-filter-options performance-preview-platforms">
-      <legend>Measurement platforms</legend>
+    <fieldset className="build-filter-options performance-preview-platforms" aria-label="Measurement platforms">
       {platforms.map((os) => <span key={os} className="performance-preview-platform-choice"
         title={!available.includes(os) ? "Unavailable" : undefined}><button type="button"
         disabled={!available.includes(os)}
@@ -68,7 +67,6 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
         <PlatformIcon platform={os} />{os === "windows" ? "Windows" : "Linux"}
       </button></span>)}
     </fieldset>
-    <p className="muted performance-preview-caption">Latest observation per model and OS</p>
     <div className="performance-chart">
     <div className="performance-chart-headings">
       <span>Model</span>
@@ -89,7 +87,9 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
               const maximum = maxima.get(key) ?? 0;
               const width = value == null || maximum === 0 ? 0 : value / maximum * 100;
               return <div className="performance-chart-platform" key={os}>
-                <span title={os === "windows" ? "Windows" : "Linux"}><PlatformIcon platform={os} /></span>
+                {visible.length > 1 && <span className="performance-chart-platform-label">
+                  {os === "windows" ? "Windows" : "Linux"}
+                </span>}
                 {entry && value != null ? <Link className="performance-chart-track" data-platform={os}
                   to={observationHref(entry)}
                   aria-label={`${model} · ${os} · ${label} ${metricValue(key, value)} · ${direction}`}

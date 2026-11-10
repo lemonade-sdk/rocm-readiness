@@ -61,6 +61,9 @@
   color: var(--selection-text);
   background: var(--selection-bg);
 }
+.build-filter-options button[aria-pressed="true"]:hover:enabled {
+  background: color-mix(in srgb, var(--selection-bg) 92%, var(--selection-text));
+}
 .build-filter-options button:disabled { cursor: default; }
 .build-filter-options button:disabled[aria-pressed="true"] { opacity: 1; }
 .build-search {

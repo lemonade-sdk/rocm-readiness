@@ -45,7 +45,7 @@ neutral tint, and retain the existing status foregrounds in both themes.
   and disabled. Determine platform availability from the version and engine
   before applying search or date paging. Keep filter selections in the URL.
   Pair platform labels with the Windows mark or Linux Tux in filters and package
-  headings. Hover must preserve the fill of selected filters.
+  headings. Selected filters use a subtle hover tint while retaining their selected fill and text contrast.
 - Group version and platform controls together, with search at the trailing
   edge when space permits. Let the controls wrap at narrow widths. Use the
   workspace rail for navigation between dashboard views. Place ROCm version

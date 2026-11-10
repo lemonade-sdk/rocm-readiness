@@ -168,8 +168,11 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(platforms.locator("img")).toHaveCount(2);
   const windows = platforms.getByRole("button", { name: "Windows", exact: true });
   const selectedBackground = await windows.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const selectedText = await windows.evaluate((element) => getComputedStyle(element).color);
   await windows.hover();
-  expect(await windows.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(selectedBackground);
+  expect(await windows.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(selectedBackground);
+  expect(await windows.evaluate((element) => getComputedStyle(element).color)).toBe(selectedText);
+  await expect(windows).toHaveAttribute("aria-pressed", "true");
   const trigger = page.getByRole("button", { name: "Run details for b100 · Performance data available", exact: true });
   await trigger.focus();
   const popup = page.getByRole("dialog");

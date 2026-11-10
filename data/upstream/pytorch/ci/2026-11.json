@@ -4711,9 +4711,9 @@
       "event": "schedule",
       "ref": "main",
       "sha": "e231c7d8ada5ac7a7c72db99aeebb26c0c6215fd",
-      "status": "in_progress",
-      "conclusion": null,
-      "state": "running",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
       "failed_step": null,
       "queue_seconds": 20,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-lcfqd",
@@ -4907,6 +4907,7 @@
     "42818876218#1@2026-11-10",
     "42837804021#1@2026-11-10",
     "42858358920#1@2026-11-10",
-    "42878912145#1@2026-11-10"
+    "42878912145#1@2026-11-10",
+    "42898803762#1@2026-11-10"
   ]
 }

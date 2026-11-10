@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
-import { metricValue, type PerformanceData } from "../performance/PerformanceView";
+import { measurementIdentity, metricValue, type PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity, exactBuildHref } from "../overview/buildTimeline";
@@ -158,6 +158,12 @@ function PackagePerformance({ build, measurements }: {
   function changeSort(column: PerformanceColumn) {
     setSort({ column, descending: sort.column === column ? !sort.descending : column === "tps_mean" });
   }
+  function observationHref(row: PerformanceData["measurements"][number]) {
+    const query = new URLSearchParams(exactBuildHref(build, "model").slice(1));
+    query.set("model", row.model);
+    query.set("observation", measurementIdentity(row));
+    return `?${query}`;
+  }
   return <div className="qualification-performance-details">
     <h5>Model performance <small>(<Link to={exactBuildHref(build, "build-performance")}
       aria-label={`Performance details for ${platformName(build.os)} package ${build.build_id}`}>Performance details</Link>)</small></h5>
@@ -172,7 +178,7 @@ function PackagePerformance({ build, measurements }: {
             </button>
           </th>)}</tr></thead>
         <tbody>{rows.map((row) => <tr key={row.model}>
-          <th scope="row" title={`${row.model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}>{row.model}</th>
+          <th scope="row" title={`${row.model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}><Link to={observationHref(row)}>{row.model}</Link></th>
           {(["ttft_ms_mean", "tps_mean", "vram_peak_gb"] as const).map((metric) =>
             <td key={metric}>{row.metrics[metric] == null ? "—" : metricValue(metric, row.metrics[metric])}</td>)}
         </tr>)}</tbody>

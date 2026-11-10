@@ -54,7 +54,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
 - Put workspace navigation at the top of the desktop side rail and dataset
   provenance at the bottom. At narrow widths, keep navigation above the
   content and provenance below it. Nest view links under their workspace
-  and use the shared filled selection style for the current view. Keep
+  and use the shared filled selection style for the current view.
+  Label the Build Qualification subpages Builds and Performance. Keep
   keyboard focus visually distinct from the selected state.
 - Make the ROCm version the primary heading and place engine names above the
   timeline surface. In Upstream Health, group project metrics separately from
@@ -127,7 +128,9 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Put report and measurement links in parentheses beside their section headings.
   Allow sorting the model table by Model, TTFT, TPS and VRAM, with an indicated
   direction and unavailable values last. Display TTFT in seconds, converting the
-  producer's millisecond values.
+  producer's millisecond values. Model names link to the exact displayed
+  observation on Performance, preserving package and benchmark identity in the URL.
+  Provide a path back to all observations for that model.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the

@@ -333,7 +333,7 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
     [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: history,
   }), "/?view=build-performance&version=10.1&build=linux-build&platform=linux");
   expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Performance details" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
   fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
   expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Different package" })).not.toBeInTheDocument();
@@ -348,7 +348,7 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   expect(measurementLink).toHaveAttribute("href", expect.stringContaining("view=build-performance"));
   fireEvent.click(measurementLink);
   expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Performance details" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
   fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
   expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
 });
@@ -359,11 +359,11 @@ it("nests build and performance details under Build Qualification and opens thei
     [new URL("rocm/10.1/performance.json", indexUrl).href]: { schema_version: 2, measurements: [], systems: [] },
   }));
   const navigation = await screen.findByRole("list", { name: "Build Qualification pages" });
-  fireEvent.click(within(navigation).getByRole("link", { name: "Build details" }));
+  fireEvent.click(within(navigation).getByRole("link", { name: "Builds" }));
   expect(await screen.findByRole("heading", { name: "Build details", level: 2 })).toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox", { name: "Find build" }), { target: { value: "does-not-exist" } });
   expect(await screen.findByRole("heading", { name: "No retained builds match this platform" })).toBeInTheDocument();
-  fireEvent.click(within(navigation).getByRole("link", { name: "Performance details" }));
+  fireEvent.click(within(navigation).getByRole("link", { name: "Performance" }));
   expect(await screen.findByRole("heading", { name: "Performance details", level: 1 })).toBeInTheDocument();
   expect(await screen.findByRole("combobox", { name: "Model" })).toBeInTheDocument();
 });

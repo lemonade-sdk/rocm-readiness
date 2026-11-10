@@ -26,6 +26,8 @@ const measurementSchema = z.object({
   context_size: nullableCount,
   input_tokens: nullableCount,
   measured_at: timestamp,
+  run_id: z.union([z.string(), z.number().int().nonnegative()]).nullable().optional(),
+  run_url: z.string().regex(/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/actions\/runs\/[0-9]+$/).nullable().optional(),
   rocm_version: nullableText,
   package_os: nullableText,
   package_url: z.string().url().nullable().optional(),
@@ -314,6 +316,13 @@ export function comparisonKey(row: Measurement, systems: Map<string, SystemRecor
   ]);
 }
 
+export function measurementIdentity(row: Measurement) {
+  return JSON.stringify([
+    row.source_id, row.fork_id, row.engine_version, row.model, row.scenario,
+    row.quant, row.measured_at, row.run_id == null ? null : String(row.run_id),
+  ]);
+}
+
 function measurementTieBreaker(row: Measurement) {
   return JSON.stringify([
     row.measured_at,
@@ -466,6 +475,10 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
           )}
         </dd>
       </div>
+      {row.run_url && <div>
+        <dt>Benchmark run</dt>
+        <dd><a href={row.run_url} target="_blank" rel="noreferrer">{row.run_id ?? "Open benchmark run"} ↗</a></dd>
+      </div>}
       <div>
         <dt>Measured</dt>
         <dd>{formatDate(row.measured_at)}</dd>
@@ -731,6 +744,7 @@ export function PerformanceView({
   const workload = params.get("workload");
   const platform = params.get("platform") ?? "all";
   const filters = { model, system, workload, platform };
+  const observation = params.get("observation");
   const selectedBuild = params.get("build");
   const selectedSource = params.get("source");
   const selectedChannel = params.get("channel");
@@ -747,8 +761,10 @@ export function PerformanceView({
     [state, selectedBuild, selectedSource, selectedChannel, selectedEngine],
   );
   const rows = useMemo(
-    () => filterRows(allRows, model, system, workload, platform),
-    [allRows, model, system, workload, platform],
+    () => filterRows(allRows, model, system, workload, platform).filter(
+      (row) => !observation || measurementIdentity(row) === observation,
+    ),
+    [allRows, model, system, workload, platform, observation],
   );
   const models = useMemo(
     () => [...new Set(allRows.map((row) => row.model))].sort((left, right) => left.localeCompare(right)),
@@ -771,8 +787,9 @@ export function PerformanceView({
     }
     return next;
   };
-  const navigate = (changes: Record<string, string | null>) => onNavigate(nextParams(changes));
-  const modelHref = (modelId: string) => `?${nextParams({ view: "model", model: modelId }).toString()}`;
+  const navigate = (changes: Record<string, string | null>) =>
+    onNavigate(nextParams({ observation: null, ...changes }));
+  const modelHref = (modelId: string) => `?${nextParams({ view: "model", model: modelId, observation: null }).toString()}`;
 
   if (!overview || session.version === null) {
     return (
@@ -813,6 +830,9 @@ export function PerformanceView({
           </a>
         )}
       </div>
+      {observation && <p className="performance-build-scope">
+        Selected benchmark observation · <a href={`?${nextParams({ observation: null }).toString()}`}>All observations for this model</a>
+      </p>}
       {selectedBuild && <p className="performance-build-scope">
         Package {allRows[0]?.engine_version ?? selectedBuild}
         {" · "}<a href={`?version=${encodeURIComponent(session.version)}&view=performance`}>All performance data</a>

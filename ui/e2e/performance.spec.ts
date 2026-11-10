@@ -145,11 +145,16 @@ test("anchors package performance popups and keeps model names readable", async 
       package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-ubuntu-rocm-10.1-x64.tar.gz",
       metrics: { ttft_ms_mean: 10000, tps_mean: 12, vram_peak_gb: 16 },
       qualification_build_id: "linux-build",
+      run_id: "12345",
+      run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12345",
   };
   const performance = {
     ...data,
     measurements: [
       measured,
+      { ...measured, measured_at: "2026-10-28T12:00:00Z", run_id: "12344",
+        run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12344",
+        metrics: { ttft_ms_mean: 20000, tps_mean: 5, vram_peak_gb: 16 } },
       { ...measured, model: "A small model", metrics: { ttft_ms_mean: 2000, tps_mean: 100, vram_peak_gb: 1 } },
       { ...measured, model: "Z missing metrics", metrics: {} },
     ],
@@ -205,4 +210,15 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(popup).toBeVisible();
   await popup.getByRole("button", { name: "Close popup" }).click();
   await expect(popup).toHaveCount(0);
+  await trigger.click();
+  await popup.getByRole("link", { name: model, exact: true }).click();
+  await expect(page.getByRole("link", { name: "Performance", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".performance-observation")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "12345 ↗", exact: true })).toHaveAttribute("href",
+    "https://github.com/lemonade-sdk/lemonade/actions/runs/12345");
+  await expect(page.locator(".performance-observation")).toContainText("10 s");
+  await page.reload();
+  await expect(page.locator(".performance-observation")).toHaveCount(1);
+  await page.getByRole("link", { name: "All observations for this model", exact: true }).click();
+  await expect(page.locator(".performance-observation")).toHaveCount(2);
 });

@@ -158,7 +158,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         next.delete(key);
     }
     if (["build", "performance"].includes(nextView)) {
-      for (const key of ["build", "source", "engine", "channel", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit", "model", "system", "workload", "compare"])
+      for (const key of ["build", "source", "engine", "channel", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit", "model", "system", "workload", "compare", "observation"])
         next.delete(key);
     }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
@@ -171,6 +171,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("build");
     next.delete("source");
     next.delete("model");
+    next.delete("observation");
     next.delete("day");
     next.delete("through");
     next.delete("focus");
@@ -304,8 +305,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   <li>
                     <Link aria-current={view === "engine" ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
                     <ul className="workspace-views workspace-build-details" aria-label="Build Qualification pages">
-                      <li><Link aria-current={buildView ? "page" : undefined} to={href("build")}>Build details</Link></li>
-                      <li><Link aria-current={["performance", "model", "build-performance"].includes(view) ? "page" : undefined} to={href("performance")}>Performance details</Link></li>
+                      <li><Link aria-current={buildView ? "page" : undefined} to={href("build")}>Builds</Link></li>
+                      <li><Link aria-current={["performance", "model", "build-performance"].includes(view) ? "page" : undefined} to={href("performance")}>Performance</Link></li>
                     </ul>
                   </li>
                 </ul>

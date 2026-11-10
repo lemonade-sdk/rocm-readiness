@@ -1177,6 +1177,5 @@ main {
 .table-status-glyph { font: 700 .8rem/1 ui-monospace, monospace; }
 
 .workspace-build-details {
-  border-inline-start: 1px solid var(--line);
   margin-inline-start: .65rem;
 }

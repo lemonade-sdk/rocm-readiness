@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBuildMeasurements } from "./useBuildMeasurements";
-import { PerformanceIndicator } from "../performance/PerformanceIndicator";
+import { matchedPerformanceObservations, PerformancePreview } from "../performance/PerformancePreview";
+import type { PerformanceData } from "../performance/PerformanceView";
 import type { Build, Fetcher, Session } from "../data";
 import { exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
@@ -487,12 +488,12 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
   );
 }
 
-export function BuildPerformanceLink({ build }: { build: Build }) {
-  return <a className="build-performance-indicator" href={exactBuildHref(build, "build-performance")}
-    aria-label={`Performance for ${build.tag ?? build.build_id} on ${displayPlatform(build.os)}`}
-    title="Performance data available">
-    <PerformanceIndicator />
-  </a>;
+export function BuildPerformancePreview({ build, measurements }: {
+  build: Build;
+  measurements: ReadonlyMap<Build, PerformanceData["measurements"]>;
+}) {
+  return <PerformancePreview heading={build.gfx_family ? `${build.tag ?? build.build_id} · ${build.gfx_family}` : build.tag ?? build.build_id}
+    observations={matchedPerformanceObservations([build], measurements)} />;
 }
 
 function BuildList({
@@ -502,7 +503,7 @@ function BuildList({
 }: {
   builds: Build[];
   buildHref: (build: Build) => string;
-  measuredBuilds: ReadonlyMap<Build, unknown>;
+  measuredBuilds: ReadonlyMap<Build, PerformanceData["measurements"]>;
 }) {
   if (!builds.length)
     return (
@@ -527,7 +528,7 @@ function BuildList({
                 <a aria-label={buildLinkLabel(build)} href={buildHref(build)}>
                   {build.tag ?? build.build_id}
                 </a>
-                {measuredBuilds.has(build) && <BuildPerformanceLink build={build} />}
+                {measuredBuilds.has(build) && <BuildPerformancePreview build={build} measurements={measuredBuilds} />}
               </h3>
             </div>
             <span
@@ -575,10 +576,11 @@ function BuildList({
   );
 }
 
-function BuildDetail({ build, session, selection, hasPerformance }: {
+function BuildDetail({ build, session, selection, hasPerformance, performanceMeasurements }: {
   build: Build;
   session: Session;
   hasPerformance: boolean;
+  performanceMeasurements: ReadonlyMap<Build, PerformanceData["measurements"]>;
   selection?: CheckSelection;
 }) {
   const [retry, setRetry] = useState(0);
@@ -628,7 +630,7 @@ function BuildDetail({ build, session, selection, hasPerformance }: {
       <div className="build-browser-detail-heading">
         <div>
           <span className="build-browser-kicker">BUILD EVIDENCE</span>
-          <h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{hasPerformance && <BuildPerformanceLink build={build} />}</h2>
+          <h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{hasPerformance && <BuildPerformancePreview build={build} measurements={performanceMeasurements} />}</h2>
           <p>
             {displayPlatform(build.os)} · {date(build.generated_at)}
           </p>
@@ -813,6 +815,7 @@ export function BuildBrowser({
           key={`${selection.build.source_id ?? "unknown"}-${selection.build.os}-${selection.build.build_id}-${selection.build.report_url ?? "no-report"}`}
           build={selection.build}
           hasPerformance={performance.matches.has(selection.build)}
+          performanceMeasurements={performance.matches}
           session={session}
           selection={selectedTierId != null && selectedCheckIndex != null
             ? { tier: selectedTierId, index: selectedCheckIndex, commit: selectedReportCommit }

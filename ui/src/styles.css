@@ -1194,5 +1194,3 @@ main {
   stroke-linecap: round;
   fill: none;
 }
-.build-performance-indicator { display: inline-flex; align-items: center; vertical-align: middle; text-decoration: none; }
-.build-performance-indicator:hover { color: var(--text); }

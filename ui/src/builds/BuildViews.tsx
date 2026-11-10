@@ -8,7 +8,7 @@ import {
   comparisonKey, metricValue, systemSummary,
 } from "../performance/PerformanceView";
 import type { PerformanceData } from "../performance/PerformanceView";
-import { BuildPerformanceLink, findSelectedBuild } from "./BuildBrowser";
+import { BuildPerformancePreview, findSelectedBuild } from "./BuildBrowser";
 import { QualificationCharts } from "./QualificationCharts";
 import { useBuildMeasurements } from "./useBuildMeasurements";
 import { QualificationMatrix } from "./QualificationMatrix";
@@ -279,7 +279,7 @@ export function BuildReview({ session, history, params, fetcher }: ViewProps) {
   const { build } = selection;
   const rows = performance.matches.get(build) ?? [];
   return <section className="build-charts">
-    <div><h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{rows.length > 0 && <BuildPerformanceLink build={build} />}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {buildDate(build)} UTC</p>
+    <div><h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{rows.length > 0 && <BuildPerformancePreview build={build} measurements={performance.matches} />}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {buildDate(build)} UTC</p>
       <Link to={qualificationBuildHref(build)}>View package qualification</Link></div>
     <div className="build-review-panels">
       <CheckBars build={build} />

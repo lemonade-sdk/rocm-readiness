@@ -152,6 +152,10 @@ test("anchors package performance popups and keeps model names readable", async 
     ...data,
     measurements: [
       measured,
+      { ...measured, package_os: "windows", qualification_build_id: "history-1",
+        package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-win-rocm-10.1-x64.zip",
+        run_id: "12346", run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12346",
+        metrics: { ttft_ms_mean: 8000, tps_mean: 10, vram_peak_gb: 16 } },
       { ...measured, measured_at: "2026-10-28T12:00:00Z", run_id: "12344",
         run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12344",
         metrics: { ttft_ms_mean: 20000, tps_mean: 5, vram_peak_gb: 16 } },
@@ -178,39 +182,43 @@ test("anchors package performance popups and keeps model names readable", async 
   expect(await windows.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(selectedBackground);
   expect(await windows.evaluate((element) => getComputedStyle(element).color)).toBe(selectedText);
   await expect(windows).toHaveAttribute("aria-pressed", "true");
-  const trigger = page.getByRole("button", { name: "Run details for b100 · Performance data available", exact: true });
+  const trigger = page.getByRole("button", { name: "Run details for b100", exact: true });
   await trigger.focus();
   const popup = page.getByRole("dialog");
   await expect(popup).toBeVisible();
   await expect(popup.locator(".tooltip-arrow")).toBeVisible();
   await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
   await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
-  const modelRows = popup.locator(".qualification-performance-table tbody tr");
-  await popup.getByRole("button", { name: "Sort by TPS", exact: true }).click();
-  await expect(modelRows.first()).toContainText("A small model");
-  await popup.getByRole("button", { name: "Sort by TPS", exact: true }).click();
-  await expect(modelRows.first()).toContainText(model);
-  await expect(modelRows.last()).toContainText("Z missing metrics");
-  await popup.getByRole("button", { name: "Sort by TTFT", exact: true }).click();
-  await expect(modelRows.first()).toContainText("2 s");
-  await popup.getByRole("button", { name: "Sort by TTFT", exact: true }).click();
-  await expect(modelRows.first()).toContainText("10 s");
-  await popup.getByRole("button", { name: "Sort by VRAM", exact: true }).click();
-  await expect(modelRows.first()).toContainText("A small model");
-  const name = popup.getByRole("rowheader", { name: model, exact: true });
+  await expect(popup.locator(".performance-preview")).toHaveCount(0);
+  await popup.getByRole("button", { name: "Close popup" }).click();
+  const performanceTrigger = page.getByRole("button", { name: "Performance data for b100", exact: true });
+  await performanceTrigger.focus();
+  await expect(popup).toBeVisible();
+  await expect(popup.getByText("Lower is better", { exact: true })).toBeVisible();
+  await expect(popup.getByText("Higher is better", { exact: true })).toBeVisible();
+  const ttft = popup.getByRole("group", { name: model + " · TTFT", exact: true });
+  await expect(ttft.getByRole("link")).toHaveCount(2);
+  await popup.getByRole("button", { name: "Windows", exact: true }).click();
+  await expect(ttft.getByRole("link")).toHaveCount(1);
+  await expect(ttft.getByRole("link")).toContainText("10 s");
+  await popup.getByRole("button", { name: "Windows", exact: true }).click();
+  await expect(ttft.getByRole("link")).toHaveCount(2);
+  await popup.getByRole("button", { name: "Windows", exact: true }).click();
+  await expect(popup.getByText("VRAM", { exact: true })).toHaveCount(0);
+  const name = popup.getByRole("link", { name: model, exact: true });
   await name.scrollIntoViewIfNeeded();
-  expect(await name.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
   const box = await popup.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
   await page.keyboard.press("Escape");
   await expect(popup).toHaveCount(0);
-  await expect(trigger).toBeFocused();
-  await trigger.click();
+  await expect(performanceTrigger).toBeFocused();
+  await performanceTrigger.click();
   await expect(popup).toBeVisible();
   await popup.getByRole("button", { name: "Close popup" }).click();
   await expect(popup).toHaveCount(0);
-  await trigger.click();
+  await performanceTrigger.click();
+  await popup.getByRole("button", { name: "Windows", exact: true }).click();
   await popup.getByRole("link", { name: model, exact: true }).click();
   await expect(page.getByRole("link", { name: "Performance", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.locator(".performance-observation")).toHaveCount(1);

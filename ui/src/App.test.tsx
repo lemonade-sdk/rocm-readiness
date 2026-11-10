@@ -339,8 +339,8 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   expect(screen.queryByRole("heading", { name: "Different package" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: /^Build Qualification$/ }));
   const indicator = await screen.findByRole("button", { name: channel === "stable"
-    ? "Run details for b11972 · Performance data available"
-    : "Package details for gfx1151 · Performance data available" });
+    ? "Performance data for b11972"
+    : "Performance data for gfx1151" });
   expect(screen.queryByRole("link", { name: /^Performance details for Linux package/ })).not.toBeInTheDocument();
   fireEvent.click(indicator);
   const measurementLink = await screen.findByRole("link", { name: /^Performance details for Linux package/ });
@@ -352,9 +352,10 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
   expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: /^Builds$/ }));
-  const indicatorLink = await screen.findByRole("link", { name: "Performance for b11972 on Linux" });
-  expect(screen.getAllByRole("link", { name: /Performance for b11972/ })).toHaveLength(1);
-  fireEvent.click(indicatorLink);
+  const buildIndicator = await screen.findByRole("button", { name: /^Performance data for b11972/ });
+  expect(screen.getAllByRole("button", { name: /^Performance data for b11972/ })).toHaveLength(1);
+  fireEvent.click(buildIndicator);
+  fireEvent.click(await screen.findByRole("link", { name: /^Performance details for Linux package/ }));
   expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
 });
 

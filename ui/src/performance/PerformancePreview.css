@@ -1,0 +1,53 @@
+.comparison-bubble.performance-preview-popup { width: max-content; max-width: min(68rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px)); }
+.performance-preview-trigger { display: inline-flex; vertical-align: middle; text-decoration: none; }
+.performance-preview { font-size: .7rem; }
+.performance-preview-platforms { display: flex; flex-wrap: wrap; margin: 0; padding: 0; border: 0; gap: .35rem; }
+.performance-preview-platforms legend { font-size: .7rem; color: var(--muted); margin-bottom: .35rem; }
+.performance-preview-platforms button { font-size: .7rem; min-height: 30px; }
+.performance-preview-caption { margin: .5rem 0 .75rem; }
+.performance-chart {
+  display: grid;
+  grid-template-columns: minmax(12rem, max-content) 14rem 14rem;
+  column-gap: .75rem;
+}
+.performance-chart-models { display: contents; }
+.performance-chart-headings, .performance-chart-model {
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
+  gap: .35rem .75rem;
+  align-items: center;
+}
+.performance-chart-headings { padding-bottom: .4rem; border-bottom: 1px solid var(--line); }
+.performance-chart-headings small { margin-top: 0; }
+.performance-chart-model { padding-block: .4rem; border-bottom: 1px solid var(--line); }
+.performance-chart-model-name { overflow-wrap: anywhere; font-weight: 600; }
+.performance-chart-bars { display: grid; gap: .2rem; }
+.performance-chart-platform { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: .3rem; align-items: center; }
+.performance-chart-platform .platform-logo { width: .9rem; height: .9rem; }
+.comparison-bubble a.performance-chart-track {
+  position: relative;
+  display: block;
+  height: 1.5rem;
+  background: var(--panel);
+  text-decoration: none;
+  overflow: hidden;
+}
+.comparison-bubble a.performance-chart-track::after { content: none; }
+.comparison-bubble .performance-chart-fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 35%, var(--subpanel)); }
+.performance-chart-track[data-platform="windows"] .performance-chart-fill { background: color-mix(in srgb, var(--accent) 20%, var(--subpanel)); border-top: 1px solid var(--accent); }
+.comparison-bubble .performance-chart-value { position: absolute; inset: 0 .3rem 0 auto; display: flex; align-items: center; font-variant-numeric: tabular-nums; }
+.performance-chart-track:hover { outline: 1px solid var(--muted); }
+.performance-chart-unavailable { font-size: .65rem; }
+@media (max-width: 900px) {
+  .performance-chart { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .performance-chart-headings > span:first-child { display: none; }
+  .performance-chart-model-name { grid-column: 1 / -1; }
+  .comparison-bubble.performance-preview-popup { width: min(42rem, calc(100vw - 24px)); }
+}
+
+.performance-preview-details { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .65rem; }
+.performance-preview-platforms button:disabled .platform-logo { filter: grayscale(1); }
+
+.comparison-bubble .performance-preview-platform-choice { display: inline-flex; }
+.performance-preview-platform-choice > button:disabled { pointer-events: none; }

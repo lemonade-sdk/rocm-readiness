@@ -128,14 +128,18 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Put report and measurement links in parentheses beside their section headings.
   Tooltip links inherit the surrounding text color with a faint dotted underline
   and a small navigation arrow. Strengthen the underline on hover or keyboard focus.
-  Allow sorting the model table by Model, TTFT, TPS and VRAM, with an indicated
-  direction and unavailable values last. Display TTFT in seconds, converting the
-  producer's millisecond values. Model names link to the exact displayed
-  observation on Performance, preserving package and benchmark identity in the URL.
-  Provide a path back to all observations for that model.
+  Performance glyphs open their own graph popup, separate from build metadata.
+  Show horizontal TTFT and TPS bars on independent shared scales, retaining full
+  model labels and values inside the graph tracks. Label lower TTFT and higher
+  TPS as better. Display TTFT in seconds, converting producer milliseconds.
+  Use the latest observation per model and OS. Platform bars expose workload,
+  hardware and timestamp context and link to that exact observation.
+  Windows/Linux toggles can show either platform or paired bars. Gray out
+  unmeasured platforms with an Unavailable hover label. Keep VRAM out of this preview.
   Show the same matched-performance glyph on qualification build/family labels,
   entries in Builds, and selected build headings. Only verified package matches
-  establish the indicator; build indicators link to that package's Performance data.
+  establish the indicator. Pair OS packages only within the same qualification
+  run, source, release track and GPU family.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the

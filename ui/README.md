@@ -31,8 +31,15 @@ refresh only the upstream view with `scripts/upstream.py`. See
 
 The header switches between **ROCm readiness** and **Upstream health**
 (`?track=upstream`). Upstream health shows one card per project with its
-computed badge, forks and 14-day status strips. A project page
-(`&project=<id>`) has a filter (`&lens=<stack or gfx target>`) that filters job-derived numbers and charts. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
+computed badge and aligned summary metrics in flat project sections. Project
+headings link to CI Activity, where source repositories, forks and collection
+notices are shown.
+Nested sidebar links switch between Overview (`&view=overview`) and CI Activity
+(`&view=ci`). Overview shows one project per row with a 14-day activity calendar. Selecting a
+day opens its UTC date and category in CI Activity, including after reload.
+CI Activity uses the shared Project, Platform and Stack / target filter controls
+and contains daily run counts and detailed evidence. Project headings use the primary text color. A project
+activity page (`&view=ci&project=<id>`, with legacy `&project=<id>` URLs supported) has a filter (`&lens=<stack or gfx target>`) that filters job-derived numbers and charts. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
 
 - per-day diverging bars (passes up, failures down);
 - day panels linking each run's job log, commit and pull request;

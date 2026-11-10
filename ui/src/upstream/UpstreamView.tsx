@@ -16,6 +16,7 @@ import {
   windowDays,
 } from "./data";
 import type { Cell, Job, Project, Run, UpstreamOverview } from "./data";
+import "../builds/BuildViews.css";
 import "./upstream.css";
 
 const GH = "https://github.com/";
@@ -106,26 +107,28 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
       </div>
     );
   const data = state.data;
-  const selected = data.projects.find((p) => p.id === params.get("project"));
-  if (params.get("project") && !selected)
+  const activity = params.get("view") === "ci" || (!params.has("view") && params.has("project"));
+  const selected = data.projects.find((p) => p.id === params.get("project")) ??
+    (!params.has("project") ? data.projects[0] : undefined);
+  if (activity && params.get("project") && !selected)
     return (
       <div className="notice" role="alert">
         <h1>Unknown project</h1>
-        <a href={`?${query(params, { project: null, lens: null })}`}>
+        <a href={`?${query(params, { view: "overview", project: null, lens: null })}`}>
           Back to all projects
         </a>
       </div>
     );
-  return selected ? (
-    <ProjectPage
-      key={selected.id}
-      overview={data}
-      project={selected}
-      session={session}
-      fetcher={fetcher}
-      params={params}
-      onNavigate={onNavigate}
-    />
+  return activity && selected ? (
+      <ProjectPage
+        key={selected.id}
+        overview={data}
+        project={selected}
+        session={session}
+        fetcher={fetcher}
+        params={params}
+        onNavigate={onNavigate}
+      />
   ) : (
     <ProjectGrid overview={data} params={params} onNavigate={onNavigate} />
   );
@@ -167,6 +170,17 @@ function Forks({ project }: { project: Project }) {
         ))}
       </ul>
     </details>
+  );
+}
+
+function ProjectSources({ project }: { project: Project }) {
+  return (
+    <div className="up-sources" role="group" aria-label={`${project.label} source repositories`}>
+      <a className="up-repo" aria-label={`Repository: ${project.repository}`} href={GH + project.repository} target="_blank" rel="noreferrer">
+        <span className="muted">Repository:</span>{" "}{project.repository}
+      </a>
+      <Forks project={project} />
+    </div>
   );
 }
 
@@ -330,32 +344,8 @@ function ProjectGrid({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
-  const last14 = windowDays(overview, 14);
-  const months = calendarMonthGroups(last14);
-  const all = overview.projects.flatMap((p) => p.jobs);
-  const totals = rate(all);
-  const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
-  const quiet = overview.projects.reduce((n, p) => n + p.kpis.not_running, 0);
-  const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <h2 className="up-summary-heading">CI summary</h2>
-      <div className="up-totals">
-        <Stat value={overview.projects.length} label="projects" />
-        <Stat value={all.length} label="configured client jobs" />
-        <Stat
-          value={totals.pct === null ? "–" : `${totals.pct}%`}
-          label={complete ? "passed on main" : "of collected results passed on main"}
-        />
-        <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
-        <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
-      </div>
-      <p className="up-rule muted">
-        Upstream means a test on the default branch ran on{" "}
-        configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
-        targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
-      </p>
-      <h2 className="up-projects-heading">Projects</h2>
       <div className="up-cards">
         {overview.projects.map((project) => {
           const r = rate(project.jobs);
@@ -363,131 +353,128 @@ function ProjectGrid({
             <article
               key={project.id}
               className="up-card"
-              onClick={() =>
-                onNavigate(query(params, { project: project.id, lens: null }))
-              }
             >
               <div className="up-card-head">
                 <h2>
-                  <a
-                    href={`?${query(params, { project: project.id, lens: null })}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onNavigate(
-                        query(params, { project: project.id, lens: null }),
-                      );
-                    }}
-                  >
-                    {project.label}
-                  </a>
+                <a
+                  className="up-project-link"
+                  href={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null })}`}
+                  onClick={(event) => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    onNavigate(query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null }));
+                  }}
+                >
+                  {project.label}
+                </a>
                 </h2>
                 <Badge project={project} />
-                <Forks project={project} />
-                <span className="muted up-repo">{project.repository}</span>
               </div>
-              {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
-              {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
-                <>
-                  <h3 className="up-section-heading">Project metrics</h3>
-                  <div className="up-kpis">
+                <div className="up-kpis" role="group" aria-label="CI metrics">
+                  <Stat
+                    value={r.pct === null ? "–" : `${r.pct}%`}
+                    label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
+                  />
+                  <Stat
+                    value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
+                    label="tests not running"
+                    bad={project.coverage.complete && project.kpis.not_running > 0}
+                  />
+                  {project.jobs.some((j) => j.gate) && (
                     <Stat
-                      value={r.pct === null ? "–" : `${r.pct}%`}
-                      label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
+                      value={project.kpis.merged_red}
+                      label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
+                      bad={project.kpis.merged_red > 0}
                     />
-                    <Stat
-                      value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
-                      label="tests not running"
-                      bad={project.coverage.complete && project.kpis.not_running > 0}
-                    />
-                    {project.jobs.some((j) => j.gate) && (
-                      <Stat
-                        value={project.kpis.merged_red}
-                        label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
-                        bad={project.kpis.merged_red > 0}
-                      />
-                    )}
-                  </div>
-                  <div className="data-table-heading">
-                    <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
-                    <span>Last 14 days</span>
-                  </div>
-                  <div
-                    className="up-project-activity calendar-surface"
-                    role="region"
-                    aria-label={`${project.label} activity calendar`}
-                    tabIndex={0}
-                  >
-                    <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
-                      <colgroup><col /></colgroup>
-                      {months.map((month) => <colgroup key={month.key} span={month.days} />)}
-                      <thead>
-                        <tr className="calendar-months">
-                          <th scope="col" rowSpan={2}>Category</th>
-                          {months.map((month, index) => (
-                            <th key={month.key} scope="colgroup" colSpan={month.days}
-                              className={index ? "month-boundary" : undefined}
-                              aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
-                              {month.label}
-                            </th>
-                          ))}
-                        </tr>
-                        <tr>
-                          {last14.map((day, index) => (
-                            <th key={day} scope="col" aria-label={`${day} UTC`}
-                              className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
-                              <time dateTime={day}>{Number(day.slice(8))}</time>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {CATEGORIES.map((category) => {
-                          const jobs = project.jobs.filter((job) => job.category === category);
-                          if (!jobs.length) return null;
-                          return (
-                            <tr key={category}>
-                              <th scope="row">{category}</th>
-                              {last14.map((day, index) => {
-                                const cell = sumCells(jobs, day);
-                                const state = cellState(cell);
-                                const text = describe(day, cell);
-                                return (
-                                  <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
-                                    <Tooltip floating label={text} triggerClassName="up-tick"
-                                      content={<TooltipContent heading={day} status={activityStates[state].label}>
-                                        <span>{text}</span>
-                                      </TooltipContent>}>
-                                      <ActivityMark state={state} />
-                                    </Tooltip>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
-                    {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
-                      <li key={state}>
-                        <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
-                        {activityStates[state].label}
-                      </li>
-                    ))}
-                  </ul>
-                </>
+                  )}
+                </div>
               ) : (
                 <p className="muted">
                   No conclusion about upstream support can be drawn from the configured coverage.
                 </p>
               )}
+              {project.jobs.length > 0 && <ProjectActivity project={project} jobs={project.jobs} days={windowDays(overview, 14)} params={params} />}
+
             </article>
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function ProjectActivity({ project, jobs, days, params }: { project: Project; jobs: Job[]; days: string[]; params: URLSearchParams }) {
+  const last14 = days;
+  const months = calendarMonthGroups(last14);
+  return (
+    <section className="up-detail-activity" aria-label="Daily CI activity">
+    <div
+      className="up-project-activity calendar-surface"
+      role="region"
+      aria-label={`${project.label} activity calendar`}
+      tabIndex={0}
+    >
+      <table className="up-activity-table" aria-label="Daily CI activity">
+        <colgroup><col /></colgroup>
+        {months.map((month) => <colgroup key={month.key} span={month.days} />)}
+        <thead>
+          <tr className="calendar-months">
+            <th scope="col" rowSpan={2}>Category</th>
+            {months.map((month, index) => (
+              <th key={month.key} scope="colgroup" colSpan={month.days}
+                className={index ? "month-boundary" : undefined}
+                aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
+                {month.label}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {last14.map((day, index) => (
+              <th key={day} scope="col" aria-label={`${day} UTC`}
+                className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
+                <time dateTime={day}>{Number(day.slice(8))}</time>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {CATEGORIES.map((category) => {
+            const group = jobs.filter((job) => job.category === category);
+            if (!group.length) return null;
+            return (
+              <tr key={category}>
+                <th scope="row">{category}</th>
+                {last14.map((day, index) => {
+                  const cell = sumCells(group, day);
+                  const state = cellState(cell);
+                  const text = describe(day, cell);
+                  return (
+                    <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
+                      <Tooltip floating label={text} triggerClassName="up-tick"
+                        to={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day, activity: `cat:${category}` })}`}
+                        content={<TooltipContent heading={day} status={activityStates[state].label}>
+                          <span>{text}</span>
+                        </TooltipContent>}>
+                        <ActivityMark state={state} />
+                      </Tooltip>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+      {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
+        <li key={state}>
+          <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
+          {activityStates[state].label}
+        </li>
+      ))}
+    </ul>
     </section>
   );
 }
@@ -539,7 +526,11 @@ function ProjectPage({
   onNavigate: (next: URLSearchParams) => void;
 }) {
   const lens = params.get("lens") ?? "all";
-  const jobs = project.jobs.filter(keepJob(lens));
+  const scopedJobs = project.jobs.filter(keepJob(lens));
+  const platforms = [...new Set(scopedJobs.map((job) => job.os))];
+  const requestedPlatform = params.get("platform");
+  const platform = requestedPlatform && platforms.includes(requestedPlatform as "linux" | "windows") ? requestedPlatform : null;
+  const jobs = scopedJobs.filter((job) => platform === null || job.os === platform);
   const stacks = [...new Set(project.jobs.map((j) => j.stack))].sort();
   const targets = [
     ...new Set(
@@ -552,11 +543,12 @@ function ProjectPage({
     rows: Run[] | null;
     error: string | null;
   }>({ rows: null, error: null });
-  const [open, setOpen] = useState<{
-    key: string;
-    day: string;
-    jobs: string[];
-  } | null>(null);
+  const selectedDay = params.get("day");
+  const open = selectedDay && allDays.includes(selectedDay)
+    ? { key: params.get("activity") ?? "all", day: selectedDay, jobs: [] as string[] }
+    : null;
+  const setOpen = (next: { key: string; day: string; jobs: string[] } | null) =>
+    onNavigate(query(params, { day: next?.day ?? null, activity: next?.key ?? null }));
   const r = rate(jobs);
   const red = mergedRed(jobs);
   const quiet = jobs.filter(notRunning).length;
@@ -594,7 +586,7 @@ function ProjectPage({
   }, [jobs]);
 
   const setLens = (value: string) =>
-    onNavigate(query(params, { lens: value === "all" ? null : value }));
+    onNavigate(query(params, { lens: value === "all" ? null : value, platform: null }));
   const pick = (key: string, day: string, ids: string[]) =>
     setOpen(
       open && open.key === key && open.day === day
@@ -607,29 +599,27 @@ function ProjectPage({
       aria-label={`${project.label} upstream health`}
       className="up-page"
     >
-      <div className="up-page-head">
+      <nav className="up-page-nav" aria-label="Project navigation">
         <a
-          href={`?${query(params, { project: null, lens: null })}`}
+          href={`?${query(params, { view: "overview", project: null, lens: null })}`}
           onClick={(e) => {
             e.preventDefault();
-            onNavigate(query(params, { project: null, lens: null }));
+            onNavigate(query(params, { view: "overview", project: null, lens: null }));
           }}
         >
           ‹ All projects
         </a>
-        <h1>{project.label}</h1>
-        <Badge project={project} />
-        <p className="muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
-        <Forks project={project} />
-        <a
-          className="muted up-repo"
-          href={GH + project.repository}
-          target="_blank"
-          rel="noreferrer"
-        >
-          {project.repository}
-        </a>
-      </div>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{project.label}</span>
+      </nav>
+      <header className="up-project-header">
+        <div className="up-page-head">
+          <h2>{project.label}</h2>
+          <Badge project={project} />
+        </div>
+        <ProjectSources project={project} />
+        <p className="up-rule muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
+      </header>
       <div className="up-kpis up-kpis-page">
         <Stat
           value={r.pct === null ? "–" : `${r.pct}%`}
@@ -640,38 +630,40 @@ function ProjectPage({
           <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
       </div>
-      {(stacks.length > 1 || targets.length > 1) && (
-        <div className="up-filter" role="group" aria-label="Filter">
-          <span className="muted">Filter</span>
+      <div className="build-browser-toolbar build-filters" role="group" aria-label="Filter">
+        <fieldset className="build-filter-options">
+          <legend>Project</legend>
+          {overview.projects.map((item) => (
+            <button key={item.id} type="button" aria-pressed={project.id === item.id}
+              onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, platform: null, day: null, activity: null }))}>
+              {item.label}
+            </button>
+          ))}
+        </fieldset>
+        <fieldset className="build-filter-options">
+          <legend>Platform</legend>
+          {(["linux", "windows"] as const).map((os) => {
+            const available = platforms.includes(os);
+            return <button key={os} type="button" aria-pressed={available && (platform === null || platform === os)}
+              disabled={!available || platform === os || platforms.length === 1}
+              onClick={() => onNavigate(query(params, { platform: platform === null ? (os === "linux" ? "windows" : "linux") : null }))}>
+              {os === "linux" ? "Linux" : "Windows"}
+            </button>;
+          })}
+        </fieldset>
+        <fieldset className="build-filter-options">
+          <legend>Stack / target</legend>
           {["all", ...stacks, ...targets].map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={lens === value}
-              onClick={() => setLens(value)}
-            >
+            <button key={value} type="button" aria-pressed={lens === value} onClick={() => setLens(value)}>
               {value === "all" ? "Everything AMD" : value}
             </button>
           ))}
-          <span className="muted up-filter-sum">
-            {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
-            {r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}
-          </span>
-        </div>
-      )}
-      {findings.length > 0 && (
-        <details className="up-findings">
-          <summary>
-            Project-wide: {findings.length}{" "}
-            {findings.length > 1 ? "findings" : "finding"}
-          </summary>
-          {findings.map((f) => (
-            <p key={f.head}>
-              <strong>{f.head}</strong> {f.body}
-            </p>
-          ))}
-        </details>
-      )}
+        </fieldset>
+        <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
+      </div>
+      {open && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
+      {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} days={allDays} runs={runs}
+        onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
       {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       {!project.coverage.complete && !project.coverage.error && (
         <p className="notice">
@@ -690,8 +682,8 @@ function ProjectPage({
             </h2>
             {CATEGORIES.map((category) => {
               const group = jobs.filter((j) => j.category === category);
-              if (!group.length) return null;
               const key = `cat:${category}`;
+              if (!group.length && open?.key !== key) return null;
               return (
                 <div key={category} className="up-daychart">
                   <h3 title={group.map((j) => j.label).join(", ")}>
@@ -759,6 +751,19 @@ function ProjectPage({
           </section>
         </div>
       </div>
+      {findings.length > 0 && (
+        <details className="up-findings">
+          <summary>
+            Project-wide: {findings.length}{" "}
+            {findings.length > 1 ? "findings" : "finding"}
+          </summary>
+          {findings.map((f) => (
+            <p key={f.head}>
+              <strong>{f.head}</strong> {f.body}
+            </p>
+          ))}
+        </details>
+      )}
       <details className="card up-panel up-jobs">
         <summary>
           <h2>
@@ -895,8 +900,9 @@ function DayPanel({
                 target="_blank"
                 rel="noreferrer"
                 title="Open the job log"
+                aria-label={`Job log at ${run.created_at.slice(11, 16)} UTC · ${run.state}`}
               >
-                {run.created_at.slice(11, 16)}
+                Job log · <time dateTime={run.created_at}>{run.created_at.slice(11, 16)}</time> UTC
               </a>
               {jobs.length > 1 && (
                 <span className="up-run-job">{label[run.job]}</span>
@@ -908,8 +914,9 @@ function DayPanel({
                   target="_blank"
                   rel="noreferrer"
                   title="Open the commit"
+                  aria-label={`Commit ${run.sha.slice(0, 8)}`}
                 >
-                  {run.sha.slice(0, 8)}
+                  Commit {run.sha.slice(0, 8)}
                 </a>
               )}
               {run.ref && run.ref !== project.default_branch && (
@@ -933,7 +940,7 @@ function DayPanel({
                   rel="noreferrer"
                   className="up-run-step"
                 >
-                  {run.failed_step ?? run.state}
+                  {run.failed_step ? `Failed step: ${run.failed_step}` : run.state}
                 </a>
               )}
             </li>
@@ -964,41 +971,43 @@ function Platforms({ project }: { project: Project }) {
         Platforms <span className="muted">project-wide configured targets</span>
       </h2>
       <p className="muted">Configured targets and distribution do not verify physical hardware or published artifacts.</p>
-      <table className="up-table">
-        <thead>
-          <tr>
-            <th />
-            <th>Built in CI</th>
-            <th>Configured test target observed</th>
-            <th>Configured distribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(["linux", "windows"] as const).map((os) => {
-            const p = project.platforms[os];
-            return (
-              <tr key={os}>
-                <th scope="row">{os === "linux" ? "Linux" : "Windows"}</th>
-                {cell(
-                  p.built,
-                  p.built_rate !== null ? `${p.built_rate}%` : null,
-                )}
-                {cell(
-                  p.tested,
-                  p.tested_rate !== null ? `${p.tested_rate}%` : null,
-                  !p.tested && !!p.shipped && project.coverage.complete && project.jobs.length > 0,
-                )}
-                <td
-                  className="muted"
-                  title={p.shipped ?? undefined}
-                >
-                  {p.shipped ?? "–"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="up-table-scroll" role="region" aria-label="Platform coverage table" tabIndex={0}>
+        <table className="up-table">
+          <thead>
+            <tr>
+              <th />
+              <th>Built in CI</th>
+              <th>Configured test target observed</th>
+              <th>Configured distribution</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(["linux", "windows"] as const).map((os) => {
+              const p = project.platforms[os];
+              return (
+                <tr key={os}>
+                  <th scope="row">{os === "linux" ? "Linux" : "Windows"}</th>
+                  {cell(
+                    p.built,
+                    p.built_rate !== null ? `${p.built_rate}%` : null,
+                  )}
+                  {cell(
+                    p.tested,
+                    p.tested_rate !== null ? `${p.tested_rate}%` : null,
+                    !p.tested && !!p.shipped && project.coverage.complete && project.jobs.length > 0,
+                  )}
+                  <td
+                    className="muted"
+                    title={p.shipped ?? undefined}
+                  >
+                    {p.shipped ?? "–"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -1017,61 +1026,63 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
         Merge gate{" "}
         <span className="muted">{complete ? "the job on the commit that merged" : "collected evidence on the commit that merged; incomplete"}</span>
       </h2>
-      <table className="up-table">
-        <thead>
-          <tr>
-            <th>Job</th>
-            <th title="pull requests merged">Merged</th>
-            <th title="green on the merged commit">Passed</th>
-            <th title="red on the merged commit, merged anyway">Red</th>
-            <th title="never ran on the pull request">No run</th>
-            <th title="historical pull request result is unknown">Unknown</th>
-            <th title="no run or unknown result on the pull request, then failed on main">
-              Broke main
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {gated.map((job) => {
-            const g = job.gate!;
-            return (
-              <tr key={job.id}>
-                <th scope="row">{job.label}</th>
-                <td>{g.merged}</td>
-                <td>{g.passed}</td>
-                <td>
-                  {g.failed ? (
-                    <button
-                      type="button"
-                      className="up-link bad"
-                      onClick={() => setList({ job: job.id, kind: "red" })}
-                    >
-                      {g.failed}
-                    </button>
-                  ) : (
-                    0
-                  )}
-                </td>
-                <td>{g.not_triggered}</td>
-                <td>{g.no_result}</td>
-                <td>
-                  {g.escaped.length ? (
-                    <button
-                      type="button"
-                      className="up-link"
-                      onClick={() => setList({ job: job.id, kind: "escaped" })}
-                    >
-                      {g.escaped.length}
-                    </button>
-                  ) : (
-                    0
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="up-table-scroll" role="region" aria-label="Merge gate results table" tabIndex={0}>
+        <table className="up-table">
+          <thead>
+            <tr>
+              <th>Job</th>
+              <th title="pull requests merged">Merged</th>
+              <th title="green on the merged commit">Passed</th>
+              <th title="red on the merged commit, merged anyway">Red</th>
+              <th title="never ran on the pull request">No run</th>
+              <th title="historical pull request result is unknown">Unknown</th>
+              <th title="no run or unknown result on the pull request, then failed on main">
+                Broke main
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {gated.map((job) => {
+              const g = job.gate!;
+              return (
+                <tr key={job.id}>
+                  <th scope="row">{job.label}</th>
+                  <td>{g.merged}</td>
+                  <td>{g.passed}</td>
+                  <td>
+                    {g.failed ? (
+                      <button
+                        type="button"
+                        className="up-link bad"
+                        onClick={() => setList({ job: job.id, kind: "red" })}
+                      >
+                        {g.failed}
+                      </button>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                  <td>{g.not_triggered}</td>
+                  <td>{g.no_result}</td>
+                  <td>
+                    {g.escaped.length ? (
+                      <button
+                        type="button"
+                        className="up-link"
+                        onClick={() => setList({ job: job.id, kind: "escaped" })}
+                      >
+                        {g.escaped.length}
+                      </button>
+                    ) : (
+                      0
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       {shown && list && (
         <div
           className="up-daypanel"

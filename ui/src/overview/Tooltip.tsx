@@ -23,7 +23,7 @@ export function TooltipContent({ heading, status, children }: {
 
 export function Tooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen,
-  interactive = false, contentClassName,
+  interactive = false, contentClassName, initialOpen = false,
 }: {
   label: string;
   content: ReactNode;
@@ -33,10 +33,11 @@ export function Tooltip({
   onLinkClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
   onOpen?: () => void;
   interactive?: boolean;
+  initialOpen?: boolean;
   floating?: boolean;
   contentClassName?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const arrowRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLSpanElement>(null);

@@ -132,10 +132,7 @@ it("ignores legacy overview platform filters and opens a stable build day and it
   fireEvent.click(link);
   await screen.findByRole("heading", { name: "Package qualification" });
   fireEvent.click((await screen.findAllByRole("button", { name: "Run details for b11972" }))[0]);
-  fireEvent.click(screen.getByRole("link", { name: "Build details for Linux package linux-build" }));
-  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
-  await screen.findByRole("heading", { name: "Build details" });
-  expect(await screen.findByRole("link", { name: "Build evidence" })).toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).getByText("linux-build")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Build Qualification" }));
   expect((await screen.findAllByRole("columnheader", { name: "Windows" })).length).toBeGreaterThan(0);
   expect(screen.getAllByRole("columnheader", { name: "Linux" }).length).toBeGreaterThan(0);
@@ -306,12 +303,7 @@ it("opens nightly qualification for a day and reviews an earlier failed package"
   expect(matrix.getByRole("button", { name: "Run details for b11972" })).toBeInTheDocument();
   expect(matrix.queryByRole("columnheader", { name: "Outcome" })).not.toBeInTheDocument();
   fireEvent.click(within(matrix.getByRole("heading", { name: "failed-nightly" }).closest("section")!).getByRole("button", { name: "Package details for Linux" }));
-  fireEvent.click(screen.getByRole("link", { name: "Build details for Linux package history-2" }));
-  fireEvent.click(await screen.findByRole("link", { name: /Build review/ }));
-  await screen.findByRole("heading", { name: "Build details" });
-  fireEvent.click(await screen.findByRole("link", { name: "Performance evidence" }));
-  await screen.findByRole("heading", { name: "Performance details", level: 1 });
-  expect(screen.queryByRole("heading", { name: "Build details" })).not.toBeInTheDocument();
+  expect(within(screen.getByRole("dialog")).getByText("history-2")).toBeInTheDocument();
 });
 
 it.each(["stable", "nightly"] as const)("shows only the exact %s build's measurements in performance evidence", async (channel) => {
@@ -351,24 +343,21 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
   fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
   expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: /^Builds$/ }));
-  const buildIndicator = await screen.findByRole("button", { name: /^Performance data for b11972/ });
-  expect(screen.getAllByRole("button", { name: /^Performance data for b11972/ })).toHaveLength(1);
-  fireEvent.click(buildIndicator);
-  fireEvent.click(await screen.findByRole("link", { name: /^Performance details for Linux package/ }));
-  expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
+
 });
 
 
-it("nests build and performance details under Build Qualification and opens their default browsers", async () => {
+it("opens legacy build links in Build Qualification and keeps Performance in its navigation", async () => {
   mount(fixtureFetch({
     [new URL("rocm/10.1/performance.json", indexUrl).href]: { schema_version: 2, measurements: [], systems: [] },
-  }));
+  }), "/?view=build&version=10.1&build=linux-build&platform=linux");
   const navigation = await screen.findByRole("list", { name: "Build Qualification pages" });
-  fireEvent.click(within(navigation).getByRole("link", { name: "Builds" }));
-  expect(await screen.findByRole("heading", { name: "Build details", level: 2 })).toBeInTheDocument();
+  expect(within(navigation).queryByRole("link", { name: "Builds" })).not.toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Build Qualification", level: 1 })).toBeInTheDocument();
+  expect(within(await screen.findByRole("dialog")).getByText("linux-build")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Close popup" }));
   fireEvent.change(screen.getByRole("searchbox", { name: "Find build" }), { target: { value: "does-not-exist" } });
-  expect(await screen.findByRole("heading", { name: "No retained builds match this platform" })).toBeInTheDocument();
+  expect(await screen.findByText("No retained packages match this scope.")).toBeInTheDocument();
   fireEvent.click(within(navigation).getByRole("link", { name: "Performance" }));
   expect(await screen.findByRole("heading", { name: "Performance details", level: 1 })).toBeInTheDocument();
   expect(await screen.findByRole("combobox", { name: "Model" })).toBeInTheDocument();

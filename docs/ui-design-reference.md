@@ -55,7 +55,7 @@ neutral tint, and retain the existing status foregrounds in both themes.
   provenance at the bottom. At narrow widths, keep navigation above the
   content and provenance below it. Nest view links under their workspace
   and use the shared filled selection style for the current view.
-  Label the Build Qualification subpages Builds and Performance. Keep
+  Nest Performance under Build Qualification. Keep
   keyboard focus visually distinct from the selected state.
 - Make the ROCm version the primary heading and place engine names above the
   timeline surface. In Upstream Health, group project metrics separately from
@@ -113,7 +113,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Put the date and run ID in the build tooltip. Overview links preserve the
   selected package and its UTC date, version, track, engine, and platform.
   Use short platform or GPU package labels and compact tinted check cells with distinct glyphs.
-  Use the shared padded tooltip header and body for tier and check details.
+  Use plain tier labels. Show each check’s pinned evidence in a tooltip anchored
+  to its outcome block.
   Use Floating UI for anchored tooltips and interactive package popups, with an
   arrow to the trigger, viewport-aware positioning, keyboard and touch access,
   Escape and outside dismissal, and a visible close control for interactive panels.
@@ -123,9 +124,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   heading typeface, and clearly weighted subsection headings to establish hierarchy.
   Separate platform sections with stronger horizontal rules and subsections with
   lighter horizontal rules. Avoid vertical heading rules and borders around nested navigation.
-  Use dense metadata and tables with full model names; keep detailed inspection
-  in the Build details and Performance details pages.
-  Put report and measurement links in parentheses beside their section headings.
+  Show package metadata, the pinned producer summary, and provenance links in
+  the package popup. Keep full model names in performance tables.
   Tooltip links inherit the surrounding text color with a faint dotted underline
   and a small navigation arrow. Strengthen the underline on hover or keyboard focus.
   Performance glyphs open their own graph popup, separate from build metadata.
@@ -137,14 +137,14 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Windows/Linux toggles can show either platform or paired bars. Gray out
   unmeasured platforms with an Unavailable hover label. Keep VRAM out of this preview.
   Show the same matched-performance glyph on qualification build/family labels,
-  entries in Builds, and selected build headings. Only verified package matches
+  and selected build headings. Only verified package matches
   establish the indicator. Pair OS packages only within the same qualification
   run, source, release track and GPU family.
   Show full model names, wrapping on narrow screens, and a visible scroll cue when
   more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the
   longest tier in the package and keep that width across its tier rows.
-  An individual check opens the same check in the exact package report.
+  Existing check links open the matching check tooltip for the exact package.
 - Compare benchmark results only within one compatible workload and hardware
   cohort using verified package matches.
 - Preserve the Readiness calendar's operating-system rows, month and day

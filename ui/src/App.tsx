@@ -6,12 +6,10 @@ import {
   loadVersion,
   loadHistory,
 } from "./data";
-import { exactBuildHref } from "./overview/buildTimeline";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
-import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
@@ -146,7 +144,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     "performance",
     "model",
   ].includes(view);
-  const buildView = ["build", "build-review"].includes(view);
+  const qualificationView = view === "engine" || view === "build";
+  const buildView = view === "build-review";
   const href = (nextView: string, extras: Record<string, string> = {}) => {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
@@ -181,7 +180,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("check");
     next.delete("report_commit");
     if (next.get("compare") === value) next.delete("compare");
-    if (buildView) next.set("view", "build");
+    if (buildView || qualificationView) next.set("view", "engine");
     if (view === "model" || view === "build-performance") next.set("view", "performance");
     setParams(next);
   };
@@ -205,29 +204,19 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       setParams(new URLSearchParams(query.slice(1)));
     }
   };
-  const changePlatform = (value: string) => {
-    const next = new URLSearchParams(params);
-    next.set("version", selected);
-    next.set("platform", value);
-    next.delete("build");
-    next.delete("source");
-    if (buildView) next.set("view", "build");
-    setParams(next);
-  };
 
   const hasViewData = overview || (view === "overview" && Boolean(session?.index.versions.length));
   const showPageHeading = track === "readiness" && session && hasViewData &&
     viewValid && platformValid;
   const pageTitle =
     track === "upstream" ? "Upstream Health" :
-    view === "engine" ? "Build Qualification" :
-    view === "build" ? "Build details" :
+    qualificationView ? "Build Qualification" :
     view === "build-review" ? "Build details" :
     view === "build-performance" ? "Performance details" :
     view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
   const versionOptions = session?.index.versions ?? [];
-  const versionFilter = view === "engine" ? (
+  const versionFilter = qualificationView ? (
     <fieldset className="build-filter-options">
       <legend>ROCm version</legend>
       {!session && <span className="muted">Loading…</span>}
@@ -303,9 +292,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                 <ul className="workspace-views" aria-label="Dashboard views">
                   <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
                   <li>
-                    <Link aria-current={view === "engine" ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
+                    <Link aria-current={qualificationView ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
                     <ul className="workspace-views workspace-build-details" aria-label="Build Qualification pages">
-                      <li><Link aria-current={buildView ? "page" : undefined} to={href("build")}>Builds</Link></li>
                       <li><Link aria-current={["performance", "model", "build-performance"].includes(view) ? "page" : undefined} to={href("performance")}>Performance</Link></li>
                     </ul>
                   </li>
@@ -432,7 +420,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   onRetry={refreshData}
                 />
               )}
-              {(view === "engine" || buildView) && (
+              {(qualificationView || buildView) && (
                 currentHistory?.error ? (
                   <div className="notice error" role="alert">
                     <p>{currentHistory.error}</p>
@@ -440,25 +428,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   </div>
                 ) : currentHistory?.builds ? (
                   <div onClick={handleLocalNavigation}>
-                    {view === "engine" ? <EngineBuilds
+                    {qualificationView ? <EngineBuilds
                       session={session} history={currentHistory.builds} params={params} fetcher={fetcher}
                       versionFilter={versionFilter}
                       onNavigate={(next, replace) => setParams(next, { replace })}
-                    /> : view === "build" ? <BuildBrowser
-                      fetcher={fetcher}
-                      session={session}
-                      history={currentHistory.builds.filter((build) =>
-                        (!params.get("engine") || build.engine === params.get("engine")) &&
-                        (!params.get("channel") || build.channel === params.get("channel")))}
-                      platform={platform}
-                      selectedBuildId={params.get("build")}
-                      query={params.get("build_filter") ?? ""}
-                      onQueryChange={(value) => { const next = new URLSearchParams(params); next.set("build_filter", value); setParams(next, { replace: true }); }}
-                      selectedSourceId={params.get("source")}
-                      selectedTierId={params.get("tier")} selectedCheckIndex={params.get("check")}
-                      selectedReportCommit={params.get("report_commit")}
-                      onPlatformChange={changePlatform}
-                      buildHref={(build) => exactBuildHref(build, "build")}
                     /> : <BuildReview session={session} history={currentHistory.builds} params={params} fetcher={fetcher} />}
                   </div>
                 ) : <p role="status">Loading retained build history…</p>

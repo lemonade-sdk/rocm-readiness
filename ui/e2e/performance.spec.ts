@@ -187,8 +187,8 @@ test("anchors package performance popups and keeps model names readable", async 
   const popup = page.getByRole("dialog");
   await expect(popup).toBeVisible();
   await expect(popup.locator(".tooltip-arrow")).toBeVisible();
-  await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
-  await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
+  await expect(popup.getByRole("heading", { name: "Windows", exact: true })).toBeVisible();
+  await expect(popup.getByRole("heading", { name: "Linux", exact: true })).toBeVisible();
   await expect(popup.locator(".performance-preview")).toHaveCount(0);
   await popup.getByRole("button", { name: "Close popup" }).click();
   const performanceTrigger = page.getByRole("button", { name: "Performance data for b100", exact: true });

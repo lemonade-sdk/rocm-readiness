@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useBuildMeasurements } from "./useBuildMeasurements";
 import { matchedPerformanceObservations, PerformancePreview } from "../performance/PerformancePreview";
 import type { PerformanceData } from "../performance/PerformanceView";
 import type { Build, Fetcher, Session } from "../data";
-import { exactBuildHref } from "../overview/buildTimeline";
+import { buildIdentity, exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
 
 type BuildBrowserProps = {
@@ -130,7 +130,7 @@ function compiledTargets(build: Build) {
   return `${build.gfx.present} of ${build.gfx.requested} requested targets compiled${missing}`;
 }
 
-function pinnedReport(build: Build): PinnedReport | string {
+export function pinnedReport(build: Build): PinnedReport | string {
   if (!build.report_url)
     return "This retained build has no producer report URL.";
   const match = build.report_url.match(reportUrlPattern);
@@ -179,10 +179,11 @@ export function findSelectedBuild(
   return { kind: "selected", build: matches[0] };
 }
 
-export function qualificationCheckHref(build: Build, tierId: string, checkIndex: number | string): string {
+export function qualificationCheckHref(build: Build, tierId: string, checkIndex?: number | string): string {
   const params = new URLSearchParams(exactBuildHref(build, "build").slice(1));
+  params.set("package_identity", buildIdentity(build));
   params.set("tier", tierId);
-  params.set("check", typeof checkIndex === "number" ? String(checkIndex) : `id:${checkIndex}`);
+  if (checkIndex != null) params.set("check", typeof checkIndex === "number" ? String(checkIndex) : `id:${checkIndex}`);
   const reference = pinnedReport(build);
   if (typeof reference !== "string") params.set("report_commit", reference.commit);
   return `?${params}`;
@@ -312,6 +313,30 @@ function evidence(test: JsonRecord, label: string, keys: string[]) {
   ) : null;
 }
 
+export function QualificationCheckEvidence({ evidence: test }: { evidence: JsonRecord }) {
+  const reason = summary(test.error ?? test.reason);
+  const details = isRecord(test.details) ? test.details : {};
+  return <dl>
+    {typeof test.gating === "boolean" && <><dt>Scope</dt><dd>{test.gating ? "Gating" : "Informational"}</dd></>}
+    {(typeof test.duration_ms === "number" || typeof test.duration_seconds === "number") &&
+      <><dt>Duration</dt><dd>{duration(test)}</dd></>}
+    {reason && <><dt>Reason / error</dt><dd>{reason}</dd></>}
+    {Object.entries({
+      compatibility: test.compatibility,
+      runtime: test.runtime,
+      gpu_offload: test.gpu_offload,
+      gpu_proof: test.gpu_proof,
+      requested_offload_line: test.requested_offload_line,
+      ...details,
+    }).map(([key, value]) => {
+      const rendered = summary(value);
+      return rendered && <div key={key} className="qualification-tooltip-count">
+        <dt>{key.replaceAll("_", " ")}</dt><dd>{rendered}</dd>
+      </div>;
+    })}
+  </dl>;
+}
+
 function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selection?: CheckSelection }) {
   const focusedRow = useRef<HTMLTableRowElement>(null);
   const checkId = selection?.index.startsWith("id:") ? selection.index.slice(3) : null;
@@ -427,7 +452,7 @@ function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selecti
   );
 }
 
-function ReportEvidence({ report, selection }: { report: QualificationReport; selection?: CheckSelection }) {
+export function ReportEvidence({ report, selection, summaryOnly = false }: { report: QualificationReport; selection?: CheckSelection; summaryOnly?: boolean }) {
   const promotion = isRecord(report.raw.promotion)
     ? report.raw.promotion
     : null;
@@ -439,15 +464,16 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
   const present = Array.isArray(reportGfx?.present_in_binary)
     ? reportGfx.present_in_binary.length
     : null;
+  const heading = useId();
   return (
     <section
       className="build-browser-report"
-      aria-labelledby="producer-report-heading"
+      aria-labelledby={heading}
     >
       <div className="build-browser-tier-heading">
         <div>
           <span className="build-browser-kicker">PINNED PRODUCER REPORT</span>
-          <h3 id="producer-report-heading">Qualification evidence</h3>
+          <h3 id={heading}>Qualification evidence</h3>
         </div>
         <span
           className={`build-browser-status status-${status(report.raw.overall)}`}
@@ -483,7 +509,7 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
           </dd>
         </div>
       </dl>
-      <ReportTests tiers={report.tiers} selection={selection} />
+      {!summaryOnly && <ReportTests tiers={report.tiers} selection={selection} />}
     </section>
   );
 }

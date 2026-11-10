@@ -31,8 +31,8 @@
 .qualification-archive + .qualification-archive { margin-block-start: .55rem; padding-block-start: .55rem; border-top: 1px solid var(--line); }
 .qualification-table td[data-selected] { box-shadow: inset 2px 0 var(--accent); }
 .qualification-tier-summaries { display: grid; gap: 2px; padding: 0; margin: 0; list-style: none; }
-.qualification-tier-summaries li { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .4rem; font-size: .8rem; }
-.qualification-tier-summaries li > .comparison-tooltip { min-inline-size: 1.8rem; }
+.qualification-tier-summaries li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: .4rem; font-size: .8rem; }
+.qualification-tier-summaries li > code { overflow-wrap: anywhere; }
 .qualification-check-strip { display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px; }
 .qualification-check-strip > .comparison-tooltip { flex: 0 0 clamp(1.45rem, calc(var(--qualification-check-width) - 2px), 6rem); display: flex; }
 .qualification-check-strip :is(a, button) { display: grid; place-items: stretch; inline-size: 100%; min-block-size: 1.45rem; text-decoration: none; }
@@ -58,10 +58,9 @@
 }
 .qualification-popup-packages > li {
   min-width: 0;
-  padding-block: .8rem .65rem;
+  padding-block: .55rem 0;
   border-top: 2px solid color-mix(in srgb, var(--text) 35%, var(--subpanel));
 }
-.qualification-popup-packages > li + li { margin-block-start: .5rem; }
 .qualification-popup-packages a { display: inline; }
 
 .qualification-runtime { margin: .35rem 0 0; font-size: .75rem; }
@@ -90,16 +89,12 @@
 .qualification-popup :is(h4, h5) small { display: inline; margin: 0; font: 400 .7rem system-ui, sans-serif; letter-spacing: normal; text-transform: none; }
 .qualification-popup :is(h4, h5) a { font-weight: 500; }
 .qualification-popup h5 { margin: 0 0 .15rem; font: 650 .8rem/1.35 system-ui, sans-serif; color: var(--text); }
-.qualification-popup .qualification-package-metadata { font: .7rem/1.35 ui-monospace, monospace; gap: .15rem .65rem; }
-.qualification-package-metadata dt { color: var(--muted); }
-.qualification-package-metadata dd { max-inline-size: 28rem; overflow-wrap: anywhere; }
 .qualification-popup .qualification-compiled-targets {
   margin-block-start: .9rem;
   gap: .35rem;
 }
 @media (max-width: 700px) {
   .qualification-popup .structured-tooltip-body { padding: .65rem; }
-  .qualification-package-metadata dd { max-inline-size: 10rem; }
 }
 
 .qualification-popup .qualification-compiled-targets ul { max-inline-size: 30rem; }
@@ -114,3 +109,45 @@
 }
 
 .qualification-platform-heading > .platform-logo { margin-inline-end: .2rem; }
+
+.qualification-releases > .qualification-check-legend { margin: 0; }
+.qualification-release + .qualification-release { margin-block-start: .25rem; }
+.qualification-table thead th { background: var(--panel); }
+.qualification-table tbody th { border-inline-end: 1px solid var(--line); }
+
+.qualification-popup .structured-tooltip-body {
+  --qualification-label-width: clamp(6rem, 28vw, 10rem);
+  overflow-wrap: anywhere;
+}
+.qualification-popup .structured-tooltip-body dl:not(.build-tooltip-details) {
+  grid-template-columns: var(--qualification-label-width) minmax(0, 1fr);
+  gap: 0 .65rem;
+  font: .75rem/1.35 system-ui, sans-serif;
+}
+.qualification-popup .structured-tooltip-body dl :is(dt, dd) {
+  padding-block: .24rem;
+  border-bottom: 1px solid var(--line);
+}
+.qualification-popup .structured-tooltip-body dl dt {
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.qualification-popup .structured-tooltip-body dl dd {
+  max-inline-size: 32rem;
+  text-align: start;
+  font: inherit;
+}
+.qualification-popup .build-browser-report-summary > div { display: contents; }
+.qualification-popup .build-browser-report { gap: .35rem; padding-block-start: .55rem; }
+.qualification-popup .build-browser-report h3 { margin: 0; font-size: .85rem; }
+.qualification-popup .build-browser-report .build-browser-kicker { display: none; }
+.qualification-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem 1rem;
+  margin: .45rem 0 0;
+  padding: 0;
+  list-style: none;
+}

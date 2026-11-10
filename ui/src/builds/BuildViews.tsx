@@ -107,6 +107,8 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   const focus = params.get("day");
   const channel = params.get("channel");
   const selectedBuild = params.get("build");
+  const tier = params.get("tier");
+  const check = params.get("check");
   const source = params.get("source");
   const packageIdentity = params.get("package_identity");
   const engineId = params.get("engine");
@@ -189,6 +191,9 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       builds={rows}
       fetcher={fetcher}
       selected={selected && rows.includes(selected) ? selected : null}
+      openPackage={params.get("view") === "build" && !check}
+      checkLink={tier && check ? { tier, check, revision: params.get("report_commit") } : undefined}
+      dataCommit={session.pointer.data_commit}
       performanceMeasurements={performance.matches}
     />}
     {focusedDay && rows.length > 0 &&

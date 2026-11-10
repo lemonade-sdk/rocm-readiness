@@ -139,8 +139,21 @@ Check table semantics, keyboard focus, touch targets, and evidence links where
 the change affects them. Update this reference when intentionally changing a
 shared convention.
 
-Upstream Health uses dedicated project pages. Keep the All projects navigation
-above the project header, group repository and fork links below project identity,
-and use explicit links to open projects rather than making entire cards clickable.
-Place daily activity before project-wide coverage and findings. Evidence links
-identify job logs and commits; allow their rows to wrap at narrow widths.
+Upstream Health mirrors the Readiness workspace navigation with nested **Overview**
+and **CI Activity** pages and the shared active-page treatment. Overview presents
+rolled-up project metrics and 14-day activity calendars in flat sections with
+primary-text headings, spacing and subtle rules. Use one project per row at all
+widths, with a prominent Projects section heading. Keep the summary compact;
+coverage explanations belong with the project evidence rather than above Projects.
+Do not use rounded project containers or generic View details controls. Project
+headings are neutral primary-text links to that project's CI Activity page; do not
+repeat navigation beneath the calendar. Keep repository/fork information and
+collection notices in CI Activity. Overview keeps aligned project metrics and
+clickable daily activity, retaining unknown/incomplete evidence semantics. CI Activity reuses Build Qualification's grouped filter controls and selected
+states: Project, Platform, and Stack / target. Disable platforms without configured
+jobs; retain at least one available platform. Preserve project/filter context when
+switching sidebar pages. Overview day links open the exact UTC date and category
+in CI Activity; retain that selection in the URL through reload and browser history. Keep
+legacy project-only URLs working. Place daily activity before project-wide
+coverage and findings, with job-log, commit and pull-request evidence available
+in run drill-downs. Keep wide tables independently keyboard-scrollable.

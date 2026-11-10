@@ -35,27 +35,24 @@ it("shows one card per project with its computed upstream badge", async () => {
   expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
   expect(screen.getByRole("link", { name: "Upstream health" })).toHaveAttribute(
     "aria-current",
-    "page",
+    "true",
   );
 });
 
 it("lists forks with links without opening the project", async () => {
-  mount();
-  const card = (
-    await screen.findByRole("heading", { name: "llama.cpp" })
-  ).closest("article")!;
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  const card = screen.getByRole("region", { name: "llama.cpp upstream health" });
   fireEvent.click(within(card).getByText("1 fork"));
   expect(
     within(card).getByRole("link", { name: "lemonade-sdk/llama.cpp" }),
   ).toHaveAttribute("href", "https://github.com/lemonade-sdk/llama.cpp");
-  expect(
-    screen.queryByRole("group", { name: "Filter" }),
-  ).not.toBeInTheDocument();
+  expect(screen.getByRole("group", { name: "Project" })).toBeInTheDocument();
 });
 
 it("opens a project page whose filter drives the headline numbers", async () => {
   mount("/?track=upstream&project=llamacpp");
-  await screen.findByRole("heading", { level: 1, name: "llama.cpp" });
+  await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
   expect(screen.getByText("of 12 results on main passed")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "vulkan" }));
   expect(
@@ -69,7 +66,7 @@ it("opens a project page whose filter drives the headline numbers", async () => 
 
 it("opens a day's runs with links to the job, the commit and the pull request", async () => {
   mount("/?track=upstream&project=llamacpp");
-  await screen.findByRole("heading", { level: 1, name: "llama.cpp" });
+  await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
   const perDay = screen.getByRole("region", { name: "Per day" });
   fireEvent.click(
     within(perDay).getByRole("button", {
@@ -291,7 +288,7 @@ it('shows unknown rather than unobserved not-running counts in incomplete projec
 
 it('does not describe uncollected runs as absent in incomplete project details', async () => {
   mount('/?track=upstream&project=llamacpp', incompleteFetch());
-  await screen.findByRole('heading', { level: 1, name: 'llama.cpp' });
+  await screen.findByRole('heading', { level: 2, name: 'llama.cpp' });
   expect(screen.getByText('tests not running').parentElement).toHaveTextContent('Unknown');
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
@@ -359,13 +356,61 @@ it("separates source links from project navigation and provides a return path", 
   mount();
   const heading = await screen.findByRole("heading", { name: "llama.cpp" });
   const card = heading.closest("article")!;
-  expect(within(card).getByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp");
+  expect(within(card).queryByRole("link", { name: /Repository:/ })).not.toBeInTheDocument();
+  expect(within(card).queryByText(/fork/)).not.toBeInTheDocument();
   fireEvent.click(within(card).getByText("Project metrics"));
-  expect(screen.queryByRole("heading", { level: 1, name: "llama.cpp" })).not.toBeInTheDocument();
-  fireEvent.click(within(heading).getByRole("link"));
-  await screen.findByRole("heading", { level: 1, name: "llama.cpp" });
+  expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
+  expect(within(heading).getByRole("link", { name: "llama.cpp" })).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
+  fireEvent.click(within(heading).getByRole("link", { name: "llama.cpp" }));
+  expect(await screen.findByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp");
+  await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
+  expect(screen.queryByRole("table", { name: "Daily CI activity" })).not.toBeInTheDocument();
   const navigation = screen.getByRole("navigation", { name: "Project navigation" });
   fireEvent.click(within(navigation).getByRole("link", { name: /All projects/ }));
   await screen.findByRole("heading", { name: "Projects" });
-  expect(screen.queryByRole("heading", { level: 1, name: "llama.cpp" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
+});
+
+it("uses workspace sub-pages and retains project scope between overview and activity", async () => {
+  mount("/?track=upstream");
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  const views = screen.getByRole("list", { name: "Upstream health views" });
+  expect(within(views).getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+  expect(screen.queryByRole("link", { name: /View .* details/ })).not.toBeInTheDocument();
+  fireEvent.click(within(views).getByRole("link", { name: "CI Activity" }));
+  await screen.findByRole("group", { name: "Project" });
+  expect(screen.getByRole("heading", { level: 1, name: "CI Activity" })).toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("group", { name: "Project" })).getByRole("button", { name: "vLLM" }));
+  await screen.findByRole("heading", { level: 2, name: "vLLM" });
+  fireEvent.click(within(views).getByRole("link", { name: "Overview" }));
+  await screen.findByRole("heading", { name: "Projects" });
+  fireEvent.click(within(views).getByRole("link", { name: "CI Activity" }));
+  expect(within(await screen.findByRole("group", { name: "Project" })).getByRole("button", { name: "vLLM" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("opens overview activity on the selected UTC day with platform filters", async () => {
+  mount();
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  expect(screen.queryByText(/Upstream means a test/)).not.toBeInTheDocument();
+  fireEvent.click(within(card).getByRole("link", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  expect(await screen.findByRole("region", { name: "Runs on 2026-10-27" })).toBeInTheDocument();
+  const platforms = screen.getByRole("group", { name: "Platform" });
+  expect(within(platforms).getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(platforms).getByRole("button", { name: "Windows" })).toBeDisabled();
+});
+
+it("filters platform evidence while keeping at least one platform selected", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[1].os = "windows";
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const platforms = await screen.findByRole("group", { name: "Platform" });
+  fireEvent.click(within(platforms).getByRole("button", { name: "Windows" }));
+  expect(await screen.findByText("of 4 results on main passed")).toBeInTheDocument();
+  expect(within(platforms).getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
+  expect(within(platforms).getByRole("button", { name: "Linux" })).toBeDisabled();
+  fireEvent.click(within(platforms).getByRole("button", { name: "Windows" }));
+  expect(await screen.findByText("of 12 results on main passed")).toBeInTheDocument();
 });

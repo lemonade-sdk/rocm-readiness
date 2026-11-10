@@ -132,11 +132,8 @@
   gap: 0.5rem;
 }
 .up-card-head h2,
-.up-page-head h1 {
+.up-page-head h2 {
   margin: 0;
-}
-.up-card-head h2 a {
-  color: var(--link);
 }
 .up-repo {
   margin-left: auto;
@@ -242,9 +239,6 @@ button.up-tick {
   background: var(--chart-track);
 }
 .up-filter {
-  position: sticky;
-  top: 0;
-  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -691,9 +685,6 @@ button.up-tick {
   .up-cols > div:last-child {
     grid-template-columns: minmax(0, 1fr);
   }
-  .up-filter {
-    position: static;
-  }
   .up-filter button {
     min-height: 2.25rem;
   }
@@ -721,4 +712,112 @@ button.up-tick {
 }
 .up-table-scroll .up-table {
   min-width: 26rem;
+}
+
+/* Overview cards show summaries; activity and evidence live on project pages. */
+.up-cards {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.up-card-head h2 {
+  color: var(--text);
+  font-size: 1.3rem;
+}
+.up-card-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.25rem;
+}
+.up-activity-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.up-activity-link:hover { color: var(--link); }
+.up-activity-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-activity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+.up-project-picker {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(100%, 15rem);
+}
+.up-project-picker select {
+  font: inherit;
+  color: var(--text);
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-control);
+  min-height: 2.75rem;
+  padding: 0.35rem 0.65rem;
+}
+.up-project-picker select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-page-head h2 { font-size: 1.5rem; }
+.up-detail-activity {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+@media (max-width: 1279px) {
+  .up-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.up-projects-heading {
+  margin: 1.5rem 0 0;
+  font-size: clamp(1.6rem, 2.5vw, 2rem);
+  line-height: 1.2;
+}
+.up-selected-day { color: var(--muted); font-size: 0.85rem; }
+.up-selected-day strong { color: var(--text); }
+
+/* Keep the shared filter groups wrapping horizontally before stacking. */
+.up-page > .build-filters,
+.up-activity-toolbar.build-filters {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+.up-page > .build-filters .build-filter-options {
+  max-width: 100%;
+}
+
+.up-project-link {
+  color: var(--text);
+  text-decoration: none;
+}
+.up-project-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.up-project-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.up-card .up-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.up-card .up-stat {
+  align-content: start;
+  gap: 0.25rem;
+  padding: 0.4rem 0;
 }

@@ -212,8 +212,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const hasViewData = overview || (view === "overview" && Boolean(session?.index.versions.length));
   const showPageHeading = track === "readiness" && session && hasViewData &&
     viewValid && platformValid;
+  const upstreamCI = params.get("view") === "ci" || (!params.has("view") && params.has("project"));
+  const upstreamHref = (page: "overview" | "ci") => {
+    const next = new URLSearchParams(params);
+    next.set("track", "upstream");
+    next.set("view", page);
+    return `?${next}`;
+  };
   const pageTitle =
-    track === "upstream" ? "Upstream Health" :
+    track === "upstream" ? (upstreamCI ? "CI Activity" : "Upstream Overview") :
     view === "engine" ? "Build Qualification" :
     view === "build" ? "Build evidence" :
     view === "build-review" ? "Build review" :
@@ -274,7 +281,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </Link>
         <div className="header-page">
           <div className="header-page-heading">
-            {showPageHeading || (track === "upstream" && !params.get("project")) ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
+            {showPageHeading || track === "upstream" ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
             <div className="deck-context">
               {track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}
             </div>
@@ -302,9 +309,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               )}
             </li>
             <li>
-              <Link aria-current={track === "upstream" ? "page" : undefined} to="?track=upstream">
+              <Link aria-current={track === "upstream" ? "true" : undefined} to="?track=upstream">
                 Upstream health
               </Link>
+              {track === "upstream" && (
+                <ul className="workspace-views" aria-label="Upstream health views">
+                  <li><Link aria-current={!upstreamCI ? "page" : undefined} to={upstreamHref("overview")}>Overview</Link></li>
+                  <li><Link aria-current={upstreamCI ? "page" : undefined} to={upstreamHref("ci")}>CI Activity</Link></li>
+                </ul>
+              )}
             </li>
           </ul>
         </nav>

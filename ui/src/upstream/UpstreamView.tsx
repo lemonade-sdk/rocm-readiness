@@ -16,6 +16,7 @@ import {
   windowDays,
 } from "./data";
 import type { Cell, Job, Project, Run, UpstreamOverview } from "./data";
+import "../builds/BuildViews.css";
 import "./upstream.css";
 
 const GH = "https://github.com/";
@@ -106,26 +107,28 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
       </div>
     );
   const data = state.data;
-  const selected = data.projects.find((p) => p.id === params.get("project"));
-  if (params.get("project") && !selected)
+  const activity = params.get("view") === "ci" || (!params.has("view") && params.has("project"));
+  const selected = data.projects.find((p) => p.id === params.get("project")) ??
+    (!params.has("project") ? data.projects[0] : undefined);
+  if (activity && params.get("project") && !selected)
     return (
       <div className="notice" role="alert">
         <h1>Unknown project</h1>
-        <a href={`?${query(params, { project: null, lens: null })}`}>
+        <a href={`?${query(params, { view: "overview", project: null, lens: null })}`}>
           Back to all projects
         </a>
       </div>
     );
-  return selected ? (
-    <ProjectPage
-      key={selected.id}
-      overview={data}
-      project={selected}
-      session={session}
-      fetcher={fetcher}
-      params={params}
-      onNavigate={onNavigate}
-    />
+  return activity && selected ? (
+      <ProjectPage
+        key={selected.id}
+        overview={data}
+        project={selected}
+        session={session}
+        fetcher={fetcher}
+        params={params}
+        onNavigate={onNavigate}
+      />
   ) : (
     <ProjectGrid overview={data} params={params} onNavigate={onNavigate} />
   );
@@ -341,8 +344,6 @@ function ProjectGrid({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
-  const last14 = windowDays(overview, 14);
-  const months = calendarMonthGroups(last14);
   const all = overview.projects.flatMap((p) => p.jobs);
   const totals = rate(all);
   const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
@@ -350,8 +351,7 @@ function ProjectGrid({
   const complete = overview.projects.every((p) => p.coverage.complete);
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <h2 className="up-summary-heading">CI summary</h2>
-      <div className="up-totals">
+      <div className="up-totals" role="group" aria-label="CI summary">
         <Stat value={overview.projects.length} label="projects" />
         <Stat value={all.length} label="configured client jobs" />
         <Stat
@@ -361,11 +361,6 @@ function ProjectGrid({
         <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
       </div>
-      <p className="up-rule muted">
-        Upstream means a test on the default branch ran on{" "}
-        configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
-        targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
-      </p>
       <h2 className="up-projects-heading">Projects</h2>
       <div className="up-cards">
         {overview.projects.map((project) => {
@@ -377,24 +372,20 @@ function ProjectGrid({
             >
               <div className="up-card-head">
                 <h2>
-                  <a
-                    href={`?${query(params, { project: project.id, lens: null })}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onNavigate(
-                        query(params, { project: project.id, lens: null }),
-                      );
-                    }}
-                  >
-                    {project.label}
-                  </a>
+                <a
+                  className="up-project-link"
+                  href={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null })}`}
+                  onClick={(event) => {
+                    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                    event.preventDefault();
+                    onNavigate(query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null }));
+                  }}
+                >
+                  {project.label}
+                </a>
                 </h2>
                 <Badge project={project} />
               </div>
-              <ProjectSources project={project} />
-              {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
-              {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
               {project.jobs.length ? (
                 <>
                   <h3 className="up-section-heading">Project metrics</h3>
@@ -416,85 +407,97 @@ function ProjectGrid({
                       />
                     )}
                   </div>
-                  <div className="data-table-heading">
-                    <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
-                    <span>Last 14 days</span>
-                  </div>
-                  <div
-                    className="up-project-activity calendar-surface"
-                    role="region"
-                    aria-label={`${project.label} activity calendar`}
-                    tabIndex={0}
-                  >
-                    <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
-                      <colgroup><col /></colgroup>
-                      {months.map((month) => <colgroup key={month.key} span={month.days} />)}
-                      <thead>
-                        <tr className="calendar-months">
-                          <th scope="col" rowSpan={2}>Category</th>
-                          {months.map((month, index) => (
-                            <th key={month.key} scope="colgroup" colSpan={month.days}
-                              className={index ? "month-boundary" : undefined}
-                              aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
-                              {month.label}
-                            </th>
-                          ))}
-                        </tr>
-                        <tr>
-                          {last14.map((day, index) => (
-                            <th key={day} scope="col" aria-label={`${day} UTC`}
-                              className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
-                              <time dateTime={day}>{Number(day.slice(8))}</time>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {CATEGORIES.map((category) => {
-                          const jobs = project.jobs.filter((job) => job.category === category);
-                          if (!jobs.length) return null;
-                          return (
-                            <tr key={category}>
-                              <th scope="row">{category}</th>
-                              {last14.map((day, index) => {
-                                const cell = sumCells(jobs, day);
-                                const state = cellState(cell);
-                                const text = describe(day, cell);
-                                return (
-                                  <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
-                                    <Tooltip floating label={text} triggerClassName="up-tick"
-                                      content={<TooltipContent heading={day} status={activityStates[state].label}>
-                                        <span>{text}</span>
-                                      </TooltipContent>}>
-                                      <ActivityMark state={state} />
-                                    </Tooltip>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
-                    {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
-                      <li key={state}>
-                        <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
-                        {activityStates[state].label}
-                      </li>
-                    ))}
-                  </ul>
                 </>
               ) : (
                 <p className="muted">
                   No conclusion about upstream support can be drawn from the configured coverage.
                 </p>
               )}
+              {project.jobs.length > 0 && <ProjectActivity project={project} jobs={project.jobs} days={windowDays(overview, 14)} params={params} />}
+
             </article>
           );
         })}
       </div>
+    </section>
+  );
+}
+
+function ProjectActivity({ project, jobs, days, params }: { project: Project; jobs: Job[]; days: string[]; params: URLSearchParams }) {
+  const last14 = days;
+  const months = calendarMonthGroups(last14);
+  return (
+    <section className="up-detail-activity" aria-label="Daily CI activity">
+    <div className="data-table-heading">
+      <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
+      <span>Last 14 days</span>
+    </div>
+    <div
+      className="up-project-activity calendar-surface"
+      role="region"
+      aria-label={`${project.label} activity calendar`}
+      tabIndex={0}
+    >
+      <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
+        <colgroup><col /></colgroup>
+        {months.map((month) => <colgroup key={month.key} span={month.days} />)}
+        <thead>
+          <tr className="calendar-months">
+            <th scope="col" rowSpan={2}>Category</th>
+            {months.map((month, index) => (
+              <th key={month.key} scope="colgroup" colSpan={month.days}
+                className={index ? "month-boundary" : undefined}
+                aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
+                {month.label}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {last14.map((day, index) => (
+              <th key={day} scope="col" aria-label={`${day} UTC`}
+                className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
+                <time dateTime={day}>{Number(day.slice(8))}</time>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {CATEGORIES.map((category) => {
+            const group = jobs.filter((job) => job.category === category);
+            if (!group.length) return null;
+            return (
+              <tr key={category}>
+                <th scope="row">{category}</th>
+                {last14.map((day, index) => {
+                  const cell = sumCells(group, day);
+                  const state = cellState(cell);
+                  const text = describe(day, cell);
+                  return (
+                    <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
+                      <Tooltip floating label={text} triggerClassName="up-tick"
+                        to={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day, activity: `cat:${category}` })}`}
+                        content={<TooltipContent heading={day} status={activityStates[state].label}>
+                          <span>{text}</span>
+                        </TooltipContent>}>
+                        <ActivityMark state={state} />
+                      </Tooltip>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+      {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
+        <li key={state}>
+          <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
+          {activityStates[state].label}
+        </li>
+      ))}
+    </ul>
     </section>
   );
 }
@@ -546,7 +549,11 @@ function ProjectPage({
   onNavigate: (next: URLSearchParams) => void;
 }) {
   const lens = params.get("lens") ?? "all";
-  const jobs = project.jobs.filter(keepJob(lens));
+  const scopedJobs = project.jobs.filter(keepJob(lens));
+  const platforms = [...new Set(scopedJobs.map((job) => job.os))];
+  const requestedPlatform = params.get("platform");
+  const platform = requestedPlatform && platforms.includes(requestedPlatform as "linux" | "windows") ? requestedPlatform : null;
+  const jobs = scopedJobs.filter((job) => platform === null || job.os === platform);
   const stacks = [...new Set(project.jobs.map((j) => j.stack))].sort();
   const targets = [
     ...new Set(
@@ -559,11 +566,12 @@ function ProjectPage({
     rows: Run[] | null;
     error: string | null;
   }>({ rows: null, error: null });
-  const [open, setOpen] = useState<{
-    key: string;
-    day: string;
-    jobs: string[];
-  } | null>(null);
+  const selectedDay = params.get("day");
+  const open = selectedDay && allDays.includes(selectedDay)
+    ? { key: params.get("activity") ?? "all", day: selectedDay, jobs: [] as string[] }
+    : null;
+  const setOpen = (next: { key: string; day: string; jobs: string[] } | null) =>
+    onNavigate(query(params, { day: next?.day ?? null, activity: next?.key ?? null }));
   const r = rate(jobs);
   const red = mergedRed(jobs);
   const quiet = jobs.filter(notRunning).length;
@@ -601,7 +609,7 @@ function ProjectPage({
   }, [jobs]);
 
   const setLens = (value: string) =>
-    onNavigate(query(params, { lens: value === "all" ? null : value }));
+    onNavigate(query(params, { lens: value === "all" ? null : value, platform: null }));
   const pick = (key: string, day: string, ids: string[]) =>
     setOpen(
       open && open.key === key && open.day === day
@@ -616,10 +624,10 @@ function ProjectPage({
     >
       <nav className="up-page-nav" aria-label="Project navigation">
         <a
-          href={`?${query(params, { project: null, lens: null })}`}
+          href={`?${query(params, { view: "overview", project: null, lens: null })}`}
           onClick={(e) => {
             e.preventDefault();
-            onNavigate(query(params, { project: null, lens: null }));
+            onNavigate(query(params, { view: "overview", project: null, lens: null }));
           }}
         >
           ‹ All projects
@@ -629,7 +637,7 @@ function ProjectPage({
       </nav>
       <header className="up-project-header">
         <div className="up-page-head">
-          <h1>{project.label}</h1>
+          <h2>{project.label}</h2>
           <Badge project={project} />
         </div>
         <ProjectSources project={project} />
@@ -645,25 +653,40 @@ function ProjectPage({
           <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
       </div>
-      {(stacks.length > 1 || targets.length > 1) && (
-        <div className="up-filter" role="group" aria-label="Filter">
-          <span className="muted">Filter</span>
+      <div className="build-browser-toolbar build-filters" role="group" aria-label="Filter">
+        <fieldset className="build-filter-options">
+          <legend>Project</legend>
+          {overview.projects.map((item) => (
+            <button key={item.id} type="button" aria-pressed={project.id === item.id}
+              onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, platform: null, day: null, activity: null }))}>
+              {item.label}
+            </button>
+          ))}
+        </fieldset>
+        <fieldset className="build-filter-options">
+          <legend>Platform</legend>
+          {(["linux", "windows"] as const).map((os) => {
+            const available = platforms.includes(os);
+            return <button key={os} type="button" aria-pressed={available && (platform === null || platform === os)}
+              disabled={!available || platform === os || platforms.length === 1}
+              onClick={() => onNavigate(query(params, { platform: platform === null ? (os === "linux" ? "windows" : "linux") : null }))}>
+              {os === "linux" ? "Linux" : "Windows"}
+            </button>;
+          })}
+        </fieldset>
+        <fieldset className="build-filter-options">
+          <legend>Stack / target</legend>
           {["all", ...stacks, ...targets].map((value) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={lens === value}
-              onClick={() => setLens(value)}
-            >
+            <button key={value} type="button" aria-pressed={lens === value} onClick={() => setLens(value)}>
               {value === "all" ? "Everything AMD" : value}
             </button>
           ))}
-          <span className="muted up-filter-sum">
-            {jobs.length} {jobs.length === 1 ? "job" : "jobs"}
-            {r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}
-          </span>
-        </div>
-      )}
+        </fieldset>
+        <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
+      </div>
+      {open && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
+      {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} days={allDays} runs={runs}
+        onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
       {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       {!project.coverage.complete && !project.coverage.error && (
         <p className="notice">
@@ -682,8 +705,8 @@ function ProjectPage({
             </h2>
             {CATEGORIES.map((category) => {
               const group = jobs.filter((j) => j.category === category);
-              if (!group.length) return null;
               const key = `cat:${category}`;
+              if (!group.length && open?.key !== key) return null;
               return (
                 <div key={category} className="up-daychart">
                   <h3 title={group.map((j) => j.label).join(", ")}>

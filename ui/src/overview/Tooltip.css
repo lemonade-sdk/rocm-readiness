@@ -103,3 +103,76 @@
 .structured-tooltip-body:has(.build-tooltip-details) { display: block; padding: 0; border: 0; }
 .structured-tooltip-body dl:not(.build-tooltip-details) { display: grid; grid-template-columns: auto 1fr; gap: .35rem .85rem; margin: 0; }
 .structured-tooltip-body dl:not(.build-tooltip-details) dd { margin: 0; text-align: end; }
+
+.comparison-bubble.floating-tooltip {
+  display: block;
+  z-index: 100;
+  inset: auto;
+  padding: 0;
+  overflow: visible;
+  max-width: min(var(--tooltip-available-width, 100vw), calc(100vw - 24px));
+}
+.tooltip-surface {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.tooltip-scroll-area {
+  overflow: auto;
+  overscroll-behavior: contain;
+  max-height: min(var(--tooltip-available-height, 90dvh), calc(100dvh - 24px));
+  scrollbar-width: auto;
+}
+.tooltip-content { padding: 14px; }
+.tooltip-content:has(.structured-tooltip) { padding: 0; }
+.tooltip-surface:has(.tooltip-close) .tooltip-content { padding-block-end: 1.5rem; }
+.tooltip-scroll-hint {
+  position: absolute;
+  inset: auto 0 0;
+  padding: .4rem .75rem;
+  text-align: center;
+  background: var(--panel);
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+  font-size: .7rem;
+}
+.tooltip-close {
+  position: absolute;
+  z-index: 2;
+  top: .65rem;
+  right: .65rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.tooltip-surface:has(.tooltip-close) .structured-tooltip-header { padding-inline-end: 3.25rem; }
+.tooltip-surface .structured-tooltip-header { background: var(--panel); }
+.tooltip-arrow { pointer-events: none; }
+
+.comparison-bubble a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: .2em;
+}
+.comparison-bubble a:not([target="_blank"])::after {
+  content: " →";
+  display: inline-block;
+  margin-inline-start: .15em;
+  opacity: .65;
+  font-size: .85em;
+  text-decoration: none;
+}
+.comparison-bubble a:is(:hover, :focus-visible) {
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+.comparison-bubble a:is(:hover, :focus-visible)::after { opacity: 1; }

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Build, Session } from "../data";
 import { index, indexUrl, overview, pointer } from "../fixtures";
-import { findExactQualificationBuild, PerformanceView } from "./PerformanceView";
+import { findExactQualificationBuild, metricValue, PerformanceView } from "./PerformanceView";
 
 type Measurement = {
   source_id?: string;
@@ -195,6 +195,12 @@ function renderView(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("PerformanceView", () => {
+  it("converts source TTFT milliseconds to seconds for display", () => {
+    expect(metricValue("ttft_ms_mean", 20817.47)).toBe("20.82 s");
+    expect(metricValue("ttft_ms_best", 250)).toBe("0.25 s");
+    expect(metricValue("tps_mean", 65)).toBe("65 tok/s");
+  });
+
   it("requires one exact qualification history record rather than choosing the first matching source", () => {
     const row = measurement({ qualification_build_id: "build-100" });
     const first = historyBuild({
@@ -210,6 +216,30 @@ describe("PerformanceView", () => {
     });
 
     expect(findExactQualificationBuild(row, [first, second])).toBeUndefined();
+  });
+
+  it("shows nightly metrics and links the exact nightly qualification build", async () => {
+    const row = measurement({
+      channel: "nightly",
+      fork_id: "llamacpp-rocm-nightly",
+      engine_repository: "lemonade-sdk/llamacpp-rocm",
+      qualification_build_id: "build-100",
+      package_url: "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b100/llama-b100-ubuntu-rocm-gfx1151-x64.tar.gz",
+    });
+    renderView([row], {
+      query: "version=10.1&view=model&model=Model+A",
+      history: [historyBuild({
+        channel: "nightly",
+        artifact: "llama-b100-ubuntu-rocm-gfx1151-x64.tar.gz",
+        source_url: "https://raw.githubusercontent.com/lemonade-sdk/llamacpp-rocm/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/qualification/index.json",
+      })],
+    });
+
+    expect(await screen.findByText("12 tok/s")).toBeInTheDocument();
+    expect(screen.getByText("nightly", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open matching package record" }))
+      .toHaveAttribute("href", "?view=build&build=build-100&platform=linux");
+    expect(findExactQualificationBuild(row, [historyBuild()])).toBeUndefined();
   });
 
   it("compares deterministic latest observations only when exact hardware and workload identities match", async () => {
@@ -340,7 +370,7 @@ describe("PerformanceView", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByText("No matching stable qualification history record"),
+        screen.getByText("No matching qualification history record"),
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText("Package qualification: Qualified")).not.toBeInTheDocument();

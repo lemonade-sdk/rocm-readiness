@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-10T11:04:35Z",
+  "generated_at": "2026-11-10T23:27:58Z",
   "window": {
     "start": "2026-10-12",
     "end": "2026-11-10",
@@ -50,9 +50,9 @@
         "reason": "tested on main on gfx1201 (models-check rocm), gfx1201 (models-check vulkan-amd)"
       },
       "kpis": {
-        "decided": 737,
-        "passed": 702,
-        "pass_rate": 95.3,
+        "decided": 786,
+        "passed": 751,
+        "pass_rate": 95.5,
         "not_running": 1,
         "merged_red": 13
       },
@@ -311,6 +311,15 @@
               "running": 1,
               "slow": 0
             },
+            "2026-11-10": {
+              "passed": 16,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
+            },
             "2026-10-29": {
               "passed": 0,
               "failed": 0,
@@ -337,33 +346,24 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-10": {
-              "passed": 10,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 1
             }
           },
-          "decided": 116,
-          "passed": 100,
-          "started": 117,
+          "decided": 122,
+          "passed": 106,
+          "started": 123,
           "skipped": 0,
           "stalled": 20,
           "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 20,
+          "median_queue_seconds": 19,
           "failed_steps": {
             "ccache-buckets-restore": 14,
             "Build": 1,
             "Test archs": 1
           },
           "gate": {
-            "merged": 137,
-            "passed": 86,
+            "merged": 143,
+            "passed": 92,
             "failed": 11,
             "not_triggered": 6,
             "no_result": 34,
@@ -654,6 +654,15 @@
               "running": 1,
               "slow": 0
             },
+            "2026-11-10": {
+              "passed": 15,
+              "failed": 1,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
             "2026-10-29": {
               "passed": 0,
               "failed": 0,
@@ -680,20 +689,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-10": {
-              "passed": 9,
-              "failed": 1,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
             }
           },
-          "decided": 117,
-          "passed": 101,
-          "started": 118,
+          "decided": 123,
+          "passed": 107,
+          "started": 124,
           "skipped": 0,
           "stalled": 19,
           "last_ran": "2026-11-10",
@@ -705,8 +705,8 @@
             "Install dependencies": 1
           },
           "gate": {
-            "merged": 137,
-            "passed": 87,
+            "merged": 143,
+            "passed": 93,
             "failed": 11,
             "not_triggered": 6,
             "no_result": 33,
@@ -997,6 +997,15 @@
               "running": 0,
               "slow": 5
             },
+            "2026-11-10": {
+              "passed": 25,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 18
+            },
             "2026-10-29": {
               "passed": 5,
               "failed": 0,
@@ -1023,33 +1032,24 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-10": {
-              "passed": 11,
-              "failed": 0,
-              "other": 0,
-              "stalled": 5,
-              "skipped": 0,
-              "running": 0,
-              "slow": 7
             }
           },
-          "decided": 187,
-          "passed": 186,
-          "started": 188,
+          "decided": 201,
+          "passed": 200,
+          "started": 202,
           "skipped": 0,
-          "stalled": 6,
+          "stalled": 1,
           "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 598,
+          "median_queue_seconds": 646,
           "failed_steps": {
             "Build with native CMake HIP support": 1
           },
           "gate": {
-            "merged": 194,
-            "passed": 18,
+            "merged": 203,
+            "passed": 22,
             "failed": 0,
-            "not_triggered": 176,
+            "not_triggered": 181,
             "no_result": 0,
             "red": [],
             "escaped": [
@@ -1296,16 +1296,25 @@
               "skipped": 0,
               "running": 0,
               "slow": 4
+            },
+            "2026-11-10": {
+              "passed": 11,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 1,
+              "slow": 1
             }
           },
-          "decided": 148,
-          "passed": 147,
-          "started": 149,
-          "skipped": 8,
+          "decided": 159,
+          "passed": 158,
+          "started": 161,
+          "skipped": 9,
           "stalled": 2,
-          "last_ran": "2026-11-09",
+          "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 98,
+          "median_queue_seconds": 45,
           "failed_steps": {
             "Build with native CMake HIP support": 1
           },
@@ -1429,16 +1438,25 @@
               "skipped": 0,
               "running": 0,
               "slow": 3
+            },
+            "2026-11-10": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
+              "slow": 0
             }
           },
-          "decided": 157,
-          "passed": 156,
-          "started": 159,
+          "decided": 169,
+          "passed": 168,
+          "started": 172,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-09",
+          "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 7,
+          "median_queue_seconds": 5,
           "failed_steps": {
             "ccache": 1
           },
@@ -1450,7 +1468,7 @@
           "built": true,
           "built_rate": 99,
           "tested": true,
-          "tested_rate": 86,
+          "tested_rate": 87,
           "shipped": "ubuntu-rocm archive in every release, and a ROCm docker image"
         },
         "windows": {
@@ -1477,7 +1495,7 @@
         {
           "kind": "not_on_pr",
           "job": "hip-build",
-          "head": "hip build never ran on 176 of 194 merged pull requests.",
+          "head": "hip build never ran on 181 of 203 merged pull requests.",
           "body": "1 merged pull requests with no run or an unknown historical result then failed on main."
         }
       ],
@@ -1485,7 +1503,7 @@
         "complete": false,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": "2026-10-29T14:43:37Z",
         "cache_identity": "fa28cf7fd6b727c8cb61093a3cac29f9c7cbb7007200141b520e4146a2723f62",
         "pending": {
@@ -31525,20 +31543,6 @@
             "workflow": "models-check.yml",
             "jobs_pages": {}
           },
-          "42772341280#1@2026-11-10": {
-            "run": {
-              "id": 42772341280,
-              "created_at": "2026-11-10T07:00:59Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "78ffbaa18533c2ed51eab2ef5ae0702330efc3e9",
-              "status": "queued",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42772341280"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
           "42771782847#1@2026-11-10": {
             "run": {
               "id": 42771782847,
@@ -31776,14 +31780,57 @@
             },
             "workflow": "release.yml",
             "jobs_pages": {}
+          },
+          "42776949718#1@2026-11-10": {
+            "run": {
+              "id": 42776949718,
+              "created_at": "2026-11-10T07:40:39Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "6122b566b0a93aac37d1c25f107333c39dd96b8a",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42776949718"
+            },
+            "workflow": "release.yml",
+            "jobs_pages": {}
+          },
+          "42774456866#1@2026-11-10": {
+            "run": {
+              "id": 42774456866,
+              "created_at": "2026-11-10T07:19:15Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "c1a4febe9d107de438922f7c8ebb88108d235ea4",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42774456866"
+            },
+            "workflow": "release.yml",
+            "jobs_pages": {}
+          },
+          "42772341280#1@2026-11-10": {
+            "run": {
+              "id": 42772341280,
+              "created_at": "2026-11-10T07:00:59Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "78ffbaa18533c2ed51eab2ef5ae0702330efc3e9",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42772341280"
+            },
+            "workflow": "release.yml",
+            "jobs_pages": {}
           }
-        }
+        },
+        "error": "run 42776949718: HTTPError: HTTP Error 502: Bad Gateway"
       },
       "files": [
         {
           "month": "2026-11",
           "path": "upstream/llamacpp/ci/2026-11.json",
-          "run_count": 829
+          "run_count": 876
         },
         {
           "month": "2026-10",
@@ -31872,6 +31919,15 @@
               "running": 0,
               "slow": 0
             },
+            "2026-11-09": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
             "2026-10-12": {
               "passed": 1,
               "failed": 0,
@@ -31918,15 +31974,6 @@
               "slow": 0
             },
             "2026-11-10": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-11-09": {
               "passed": 1,
               "failed": 0,
               "other": 0,
@@ -32011,6 +32058,15 @@
               "running": 0,
               "slow": 0
             },
+            "2026-11-09": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
             "2026-10-12": {
               "passed": 1,
               "failed": 0,
@@ -32064,15 +32120,6 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
-            },
-            "2026-11-09": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
             }
           },
           "decided": 15,
@@ -32116,7 +32163,7 @@
         "complete": true,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": "2026-10-12T05:01:59Z",
         "cache_identity": "f5320d6c42cbdf31a16c47317cab21206c22f43d7133d45775b446f12ae63e08",
         "pending": {}
@@ -32146,9 +32193,9 @@
         "reason": "no test on main runs on client hardware"
       },
       "kpis": {
-        "decided": 14,
-        "passed": 12,
-        "pass_rate": 85.7,
+        "decided": 16,
+        "passed": 14,
+        "pass_rate": 87.5,
         "not_running": 1,
         "merged_red": 0
       },
@@ -32237,25 +32284,23 @@
               "slow": 0
             },
             "2026-11-10": {
-              "passed": 0,
+              "passed": 1,
               "failed": 0,
               "other": 0,
-              "stalled": 1,
+              "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 0
+              "slow": 1
             }
           },
-          "decided": 8,
-          "passed": 6,
-          "started": 8,
+          "decided": 9,
+          "passed": 7,
+          "started": 9,
           "skipped": 0,
-          "stalled": 1,
-          "last_ran": "2026-11-06",
-          "quiet_days": [
-            "2026-11-10"
-          ],
-          "median_queue_seconds": 5,
+          "stalled": 0,
+          "last_ran": "2026-11-10",
+          "quiet_days": [],
+          "median_queue_seconds": 8,
           "failed_steps": {
             "Build and push (by digest)": 2
           },
@@ -32343,16 +32388,25 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-10": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 6,
-          "passed": 6,
-          "started": 6,
+          "decided": 7,
+          "passed": 7,
+          "started": 7,
           "skipped": 2,
           "stalled": 0,
-          "last_ran": "2026-11-06",
+          "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 1261,
+          "median_queue_seconds": 165,
           "failed_steps": {},
           "gate": null
         },
@@ -32438,12 +32492,21 @@
               "skipped": 1,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-10": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
             }
           },
           "decided": 0,
           "passed": 0,
           "started": 0,
-          "skipped": 8,
+          "skipped": 9,
           "stalled": 0,
           "last_ran": null,
           "quiet_days": [],
@@ -32455,7 +32518,7 @@
       "platforms": {
         "linux": {
           "built": true,
-          "built_rate": 86,
+          "built_rate": 88,
           "tested": false,
           "tested_rate": null,
           "shipped": "ROCm docker images"
@@ -32473,14 +32536,14 @@
           "kind": "never_ran",
           "job": "rocm-smoke-test",
           "head": "rocm gpu smoke test has not run once in the window.",
-          "body": "It was skipped 8 times by its own condition."
+          "body": "It was skipped 9 times by its own condition."
         }
       ],
       "coverage": {
         "complete": true,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": "2026-10-23T15:26:54Z",
         "cache_identity": "305eddca38e13a94d49b207e2247510506e28739653f033e56dcc27eaba9ee15",
         "pending": {}
@@ -32489,7 +32552,7 @@
         {
           "month": "2026-11",
           "path": "upstream/unsloth/ci/2026-11.json",
-          "run_count": 10
+          "run_count": 12
         },
         {
           "month": "2026-10",
@@ -32515,9 +32578,9 @@
         "reason": "client hardware is tested on main (rx7900 tests on gfx1100) but no test runs on gfx1151 or gfx1201"
       },
       "kpis": {
-        "decided": 594,
-        "passed": 570,
-        "pass_rate": 96.0,
+        "decided": 612,
+        "passed": 588,
+        "pass_rate": 96.1,
         "not_running": 0,
         "merged_red": 0
       },
@@ -32612,6 +32675,15 @@
               "stalled": 0,
               "skipped": 0,
               "running": 0,
+              "slow": 0
+            },
+            "2026-11-10": {
+              "passed": 11,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
               "slow": 0
             },
             "2026-10-18": {
@@ -32739,20 +32811,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
-            },
-            "2026-11-10": {
-              "passed": 6,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
             }
           },
-          "decided": 211,
-          "passed": 210,
-          "started": 211,
+          "decided": 216,
+          "passed": 215,
+          "started": 217,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-10",
@@ -32854,6 +32917,15 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-10": {
+              "passed": 21,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
+              "slow": 1
             },
             "2026-10-18": {
               "passed": 4,
@@ -32980,20 +33052,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-10": {
-              "passed": 8,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 4,
-              "slow": 1
             }
           },
-          "decided": 383,
-          "passed": 360,
-          "started": 415,
+          "decided": 396,
+          "passed": 373,
+          "started": 425,
           "skipped": 0,
           "stalled": 5,
           "last_ran": "2026-11-10",
@@ -33035,7 +33098,7 @@
         "complete": true,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": "2026-10-18T04:51:10Z",
         "cache_identity": "c98b786c44c238c14d88c53152d8e514f2b5ffe08764d7112fe6abbe59ae5f53",
         "pending": {}
@@ -33044,7 +33107,7 @@
         {
           "month": "2026-11",
           "path": "upstream/pytorch/ci/2026-11.json",
-          "run_count": 247
+          "run_count": 263
         },
         {
           "month": "2026-10",
@@ -33070,9 +33133,9 @@
         "reason": "no test on main runs on client hardware"
       },
       "kpis": {
-        "decided": 228,
-        "passed": 226,
-        "pass_rate": 99.1,
+        "decided": 246,
+        "passed": 244,
+        "pass_rate": 99.2,
         "not_running": 0,
         "merged_red": 0
       },
@@ -33159,6 +33222,15 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-09": {
+              "passed": 8,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 1
             },
             "2026-10-12": {
               "passed": 2,
@@ -33313,32 +33385,32 @@
               "running": 0,
               "slow": 0
             },
-            "2026-11-09": {
-              "passed": 8,
+            "2026-11-10": {
+              "passed": 9,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 0
             }
           },
-          "decided": 114,
-          "passed": 113,
-          "started": 114,
+          "decided": 123,
+          "passed": 122,
+          "started": 123,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-09",
+          "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 3,
+          "median_queue_seconds": 19,
           "failed_steps": {
             "Clone": 1
           },
           "gate": {
-            "merged": 103,
-            "passed": 70,
+            "merged": 110,
+            "passed": 76,
             "failed": 0,
-            "not_triggered": 14,
+            "not_triggered": 15,
             "no_result": 19,
             "red": [],
             "escaped": []
@@ -33426,6 +33498,15 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-09": {
+              "passed": 8,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 4
             },
             "2026-10-12": {
               "passed": 2,
@@ -33580,8 +33661,8 @@
               "running": 0,
               "slow": 0
             },
-            "2026-11-09": {
-              "passed": 8,
+            "2026-11-10": {
+              "passed": 9,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -33590,22 +33671,22 @@
               "slow": 4
             }
           },
-          "decided": 114,
-          "passed": 113,
-          "started": 114,
+          "decided": 123,
+          "passed": 122,
+          "started": 123,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-09",
+          "last_ran": "2026-11-10",
           "quiet_days": [],
-          "median_queue_seconds": 101,
+          "median_queue_seconds": 105,
           "failed_steps": {
             "Run actions/checkout@v3": 1
           },
           "gate": {
-            "merged": 103,
-            "passed": 65,
+            "merged": 110,
+            "passed": 71,
             "failed": 0,
-            "not_triggered": 14,
+            "not_triggered": 15,
             "no_result": 24,
             "red": [],
             "escaped": []
@@ -33633,7 +33714,7 @@
         "complete": true,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": "2026-10-12T14:38:41Z",
         "cache_identity": "79d8b80dc51eadd50b08a2b1236f51a4a736779516b6fb43a07390fc21dbff57",
         "pending": {}
@@ -33642,7 +33723,7 @@
         {
           "month": "2026-11",
           "path": "upstream/sdcpp/ci/2026-11.json",
-          "run_count": 88
+          "run_count": 106
         },
         {
           "month": "2026-10",
@@ -33696,7 +33777,7 @@
         "complete": true,
         "since": "2026-10-12T00:00:00Z",
         "listed_since": "2026-10-12T00:00:00Z",
-        "collected_at": "2026-11-10T11:04:35Z",
+        "collected_at": "2026-11-10T23:27:58Z",
         "oldest_run_at": null,
         "cache_identity": "f581be8b08118e8eb4261350bbeb6c513bd6825e7b9c68e5d879185835322d74",
         "pending": {}

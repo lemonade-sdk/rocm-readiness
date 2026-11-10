@@ -93,10 +93,18 @@
   max-width: min(90rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px));
 }
 .qualification-popup .structured-tooltip-body { gap: .45rem; padding: .6rem .8rem; }
-.qualification-platform-heading { margin: 0 0 .35rem; font-size: .85rem; color: var(--text); }
-.qualification-popup :is(h4, h5) small { display: inline; margin: 0; font-size: .7rem; font-weight: 400; }
+.qualification-popup .qualification-platform-heading {
+  margin: 0 0 .45rem;
+  padding-inline-start: .45rem;
+  border-inline-start: 2px solid var(--accent);
+  color: var(--text);
+  font: 700 .95rem/1.3 ui-monospace, monospace;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.qualification-popup :is(h4, h5) small { display: inline; margin: 0; font: 400 .7rem system-ui, sans-serif; letter-spacing: normal; text-transform: none; }
 .qualification-popup :is(h4, h5) a { font-weight: 500; }
-.qualification-popup h5 { margin: 0; font-size: .75rem; color: var(--text); }
+.qualification-popup h5 { margin: 0; font: 600 .7rem/1.35 system-ui, sans-serif; color: var(--muted); }
 .qualification-popup .qualification-package-metadata { font: .7rem/1.35 ui-monospace, monospace; gap: .15rem .65rem; }
 .qualification-package-metadata dt { color: var(--muted); }
 .qualification-package-metadata dd { max-inline-size: 28rem; overflow-wrap: anywhere; }

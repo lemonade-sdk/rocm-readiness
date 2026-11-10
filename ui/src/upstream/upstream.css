@@ -45,16 +45,122 @@
   margin: 0;
   font-size: 0.8rem;
 }
+.up-rule summary {
+  cursor: pointer;
+  width: max-content;
+}
+.up-rule p {
+  max-width: 80ch;
+  margin: 0.4rem 0 0;
+}
+.up-home > .up-totals {
+  padding: 0.75rem 0.25rem;
+  background: var(--panel);
+  border-radius: var(--radius-panel);
+}
+.up-home > .up-totals .up-stat {
+  padding: 0 1rem;
+}
+.up-home > .up-totals .up-stat + .up-stat {
+  border-inline-start: 1px solid var(--line);
+}
+
+/* Project cards: a grid of panels, each with a green or red edge. */
 .up-cards {
   display: grid;
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: 1rem;
 }
 .up-card {
+  position: relative;
   min-width: 0;
   cursor: pointer;
   display: grid;
-  gap: 0.6rem;
+  gap: 0.75rem;
   align-content: start;
+  padding: 1rem 1.1rem 0.85rem 1.35rem;
+  background: var(--panel);
+  border: 1px solid transparent;
+  border-radius: var(--radius-panel);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.up-card::before {
+  content: "";
+  position: absolute;
+  inset: 0.9rem auto 0.9rem 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--chart-unknown);
+}
+.up-card[data-health="pass"]::before {
+  background: var(--chart-pass);
+}
+.up-card[data-health="fail"]::before {
+  background: var(--chart-fail);
+}
+.up-card:hover {
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+@media (prefers-reduced-motion: reduce) {
+  .up-card {
+    transition: none;
+  }
+}
+.up-health {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  background: var(--subpanel);
+  border-radius: var(--radius-control);
+}
+.up-health[data-health="pass"] {
+  color: var(--good);
+}
+.up-health[data-health="fail"] b {
+  color: var(--bad);
+}
+.up-devlab {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.up-days {
+  display: grid;
+  gap: 2px;
+}
+.up-days-row {
+  display: grid;
+  grid-template-columns: 4.5rem repeat(14, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
+}
+.up-days-row .up-tick {
+  width: auto;
+  min-height: 1.25rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+}
+.up-days-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.up-days-axis span {
+  font-size: 0.65rem;
+  text-align: center;
+  color: var(--muted);
+}
+.up-card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.5rem;
+  font-size: 0.75rem;
+  border-top: 1px solid var(--line);
 }
 .up-section-heading {
   margin: 0.75rem 0 0;

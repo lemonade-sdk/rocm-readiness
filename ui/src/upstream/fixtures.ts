@@ -76,6 +76,8 @@ export const upstreamOverview = {
           started: 4,
           stalled: 2,
           last_ran: "2026-10-27",
+          latest: { state: "passed", at: "2026-10-27T18:00:00Z", url: null },
+          devlab: true,
           quiet_days: ["2026-10-29"],
           failed_steps: { Test: 1 },
           gate: {
@@ -111,6 +113,11 @@ export const upstreamOverview = {
           passed: 6,
           started: 8,
           last_ran: "2026-10-28",
+          latest: {
+            state: "passed",
+            at: "2026-10-28T12:00:00Z",
+            url: "https://github.com/ggml-org/llama.cpp/actions/runs/3/job/31",
+          },
         }),
       ],
       platforms: {

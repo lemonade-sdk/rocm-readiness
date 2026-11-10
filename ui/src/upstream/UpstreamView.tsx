@@ -6,6 +6,9 @@ import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildT
 import {
   CATEGORIES,
   cellState,
+  dayOutcome,
+  passingNow,
+  projectHealth,
   keepJob,
   loadRuns,
   loadUpstream,
@@ -331,164 +334,218 @@ function ProjectGrid({
   onNavigate: (next: URLSearchParams) => void;
 }) {
   const last14 = windowDays(overview, 14);
-  const months = calendarMonthGroups(last14);
   const all = overview.projects.flatMap((p) => p.jobs);
-  const totals = rate(all);
   const red = overview.projects.reduce((n, p) => n + p.kpis.merged_red, 0);
   const quiet = overview.projects.reduce((n, p) => n + p.kpis.not_running, 0);
   const complete = overview.projects.every((p) => p.coverage.complete);
+  const judged = overview.projects.filter((p) => p.jobs.length);
+  const passing = judged.filter((p) => projectHealth(p) === "pass").length;
+  const open = (id: string) => onNavigate(query(params, { project: id, lens: null }));
   return (
     <section aria-label="Upstream projects" className="up-home">
-      <h2 className="up-summary-heading">CI summary</h2>
       <div className="up-totals">
         <Stat value={overview.projects.length} label="projects" />
         <Stat value={all.length} label="configured client jobs" />
         <Stat
-          value={totals.pct === null ? "–" : `${totals.pct}%`}
-          label={complete ? "passed on main" : "of collected results passed on main"}
+          value={`${passing} of ${judged.length}`}
+          label="projects passing every check"
+          bad={passing < judged.length}
         />
         <Stat value={red} label={complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         <Stat value={complete ? quiet : "Unknown"} label="tests not running" bad={complete && quiet > 0} />
       </div>
-      <p className="up-rule muted">
-        Upstream means a test on the default branch ran on{" "}
-        configured targets {overview.client_rule.targets.join(" or ")}; partial means other client
-        targets only. Badges reflect configured jobs with observed runs, not verified hardware, complete support, or published artifacts. No jobs or incomplete collection cannot establish absence of support. Window {overview.window.start} to {overview.window.end}.
-      </p>
-      <h2 className="up-projects-heading">Projects</h2>
+      <details className="up-rule muted">
+        <summary>What the badges mean</summary>
+        <p>
+          Upstream means a test on the default branch ran on configured targets{" "}
+          {overview.client_rule.targets.join(" or ")}; partial means other client targets only.
+          Badges reflect configured jobs with observed runs, not verified hardware, complete
+          support, or published artifacts. No jobs or incomplete collection cannot establish
+          absence of support. Window {overview.window.start} to {overview.window.end}.
+        </p>
+      </details>
       <div className="up-cards">
-        {overview.projects.map((project) => {
-          const r = rate(project.jobs);
-          return (
-            <article
-              key={project.id}
-              className="up-card"
-              onClick={() =>
-                onNavigate(query(params, { project: project.id, lens: null }))
-              }
-            >
-              <div className="up-card-head">
-                <h2>
-                  <a
-                    href={`?${query(params, { project: project.id, lens: null })}`}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      onNavigate(
-                        query(params, { project: project.id, lens: null }),
-                      );
-                    }}
-                  >
-                    {project.label}
-                  </a>
-                </h2>
-                <Badge project={project} />
-                <Forks project={project} />
-                <span className="muted up-repo">{project.repository}</span>
-              </div>
-              {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
-              {!project.coverage.complete && !project.coverage.error && <p className="muted">Collection incomplete</p>}
-              {project.jobs.length ? (
-                <>
-                  <h3 className="up-section-heading">Project metrics</h3>
-                  <div className="up-kpis">
-                    <Stat
-                      value={r.pct === null ? "–" : `${r.pct}%`}
-                      label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
-                    />
-                    <Stat
-                      value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
-                      label="tests not running"
-                      bad={project.coverage.complete && project.kpis.not_running > 0}
-                    />
-                    {project.jobs.some((j) => j.gate) && (
-                      <Stat
-                        value={project.kpis.merged_red}
-                        label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
-                        bad={project.kpis.merged_red > 0}
-                      />
-                    )}
-                  </div>
-                  <div className="data-table-heading">
-                    <h3 className="data-table-title" id={`ci-activity-${project.id}`}>Daily CI activity</h3>
-                    <span>Last 14 days</span>
-                  </div>
-                  <div
-                    className="up-project-activity calendar-surface"
-                    role="region"
-                    aria-label={`${project.label} activity calendar`}
-                    tabIndex={0}
-                  >
-                    <table className="up-activity-table" aria-labelledby={`ci-activity-${project.id}`}>
-                      <colgroup><col /></colgroup>
-                      {months.map((month) => <colgroup key={month.key} span={month.days} />)}
-                      <thead>
-                        <tr className="calendar-months">
-                          <th scope="col" rowSpan={2}>Category</th>
-                          {months.map((month, index) => (
-                            <th key={month.key} scope="colgroup" colSpan={month.days}
-                              className={index ? "month-boundary" : undefined}
-                              aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
-                              {month.label}
-                            </th>
-                          ))}
-                        </tr>
-                        <tr>
-                          {last14.map((day, index) => (
-                            <th key={day} scope="col" aria-label={`${day} UTC`}
-                              className={isCalendarMonthBoundary(last14, index) ? "month-boundary" : undefined}>
-                              <time dateTime={day}>{Number(day.slice(8))}</time>
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {CATEGORIES.map((category) => {
-                          const jobs = project.jobs.filter((job) => job.category === category);
-                          if (!jobs.length) return null;
-                          return (
-                            <tr key={category}>
-                              <th scope="row">{category}</th>
-                              {last14.map((day, index) => {
-                                const cell = sumCells(jobs, day);
-                                const state = cellState(cell);
-                                const text = describe(day, cell);
-                                return (
-                                  <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
-                                    <Tooltip floating label={text} triggerClassName="up-tick"
-                                      content={<TooltipContent heading={day} status={activityStates[state].label}>
-                                        <span>{text}</span>
-                                      </TooltipContent>}>
-                                      <ActivityMark state={state} />
-                                    </Tooltip>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
-                    {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
-                      <li key={state}>
-                        <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
-                        {activityStates[state].label}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p className="muted">
-                  No conclusion about upstream support can be drawn from the configured coverage.
-                </p>
-              )}
-            </article>
-          );
-        })}
+        {overview.projects.map((project) => (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            days={last14}
+            href={`?${query(params, { project: project.id, lens: null })}`}
+            now={overview.generated_at}
+            onOpen={() => open(project.id)}
+          />
+        ))}
       </div>
+      <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+        {(Object.keys(dayStates) as (keyof typeof dayStates)[]).map((state) => (
+          <li key={state}>
+            <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true">
+              <ActivityMark state={state} />
+            </span>
+            {dayStates[state]}
+          </li>
+        ))}
+      </ul>
     </section>
+  );
+}
+
+const dayStates = {
+  good: "All passed",
+  bad: "Any failed",
+  stall: "Requested, no runs",
+  skip: "Skipped",
+  idle: "No collected evidence",
+} as const;
+
+function ago(at: string, now: string) {
+  const hours = (Date.parse(now) - Date.parse(at)) / 36e5;
+  if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min ago`;
+  return hours < 36 ? `${Math.round(hours)} h ago` : `${Math.round(hours / 24)} days ago`;
+}
+
+/** One line on why a card is red: the first jobs that do not pass now. */
+function whyFailing(jobs: Job[]) {
+  const failing = jobs.filter((j) => !passingNow(j));
+  const reason = (j: Job) =>
+    j.started === 0
+      ? j.stalled
+        ? "requested, never ran"
+        : "skipped on every run"
+      : j.quiet_days.length
+        ? `no run since ${j.last_ran}`
+        : "latest run failed";
+  return failing.slice(0, 2).map((j) => (
+    <span key={j.id}>
+      <b>{j.label}</b>: {reason(j)}
+      {j.latest?.url && j.latest.state !== "passed" && !j.quiet_days.length ? (
+        <>
+          {" "}
+          <a href={j.latest.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+            log
+          </a>
+        </>
+      ) : null}
+      {". "}
+    </span>
+  ));
+}
+
+function ProjectCard({
+  project,
+  days,
+  href,
+  now,
+  onOpen,
+}: {
+  project: Project;
+  days: string[];
+  href: string;
+  now: string;
+  onOpen: () => void;
+}) {
+  const health = projectHealth(project);
+  const latest = project.jobs
+    .map((j) => j.latest?.at)
+    .filter((at): at is string => !!at)
+    .sort()
+    .pop();
+  const devlab = project.jobs.filter((j) => j.devlab);
+  const failing = project.jobs.filter((j) => !passingNow(j));
+  return (
+    <article className="up-card" data-health={health} onClick={onOpen}>
+      <div className="up-card-head">
+        <h2>
+          <a
+            href={href}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpen();
+            }}
+          >
+            {project.label}
+          </a>
+        </h2>
+        <Badge project={project} />
+        {devlab.length > 0 && (
+          <span className="up-devlab" title={`${devlab.map((j) => j.label).join(", ")} ran on devlab-dispatch machines`}>
+            devlab enabled
+          </span>
+        )}
+        <Forks project={project} />
+      </div>
+      {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
+      <p className="up-health" data-health={health}>
+        {health === "none"
+          ? "No configured client jobs."
+          : health === "pass"
+            ? "Every check passed on its latest run."
+            : whyFailing(project.jobs)}
+        {health === "fail" && failing.length > 2 ? ` ${failing.length - 2} more failing.` : null}
+      </p>
+      {project.jobs.length > 0 && (
+        <>
+          <div className="up-kpis">
+            <Stat
+              value={`${project.jobs.length - failing.length} of ${project.jobs.length}`}
+              label="jobs passing now"
+              bad={failing.length > 0}
+            />
+            <Stat
+              value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
+              label="tests not running"
+              bad={project.coverage.complete && project.kpis.not_running > 0}
+            />
+            <Stat
+              value={project.kpis.merged_red}
+              label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
+              bad={project.kpis.merged_red > 0}
+            />
+          </div>
+          <div className="up-days" role="group" aria-label={`${project.label} daily CI activity`}>
+            {CATEGORIES.map((category) => {
+              const jobs = project.jobs.filter((job) => job.category === category);
+              if (!jobs.length) return null;
+              return (
+                <div key={category} className="up-days-row">
+                  <span className="up-days-label">{category}</span>
+                  {days.map((day) => {
+                    const cell = sumCells(jobs, day);
+                    const state = dayOutcome(project.jobs.some((j) => j.daily[day]) ? cell : undefined);
+                    const text = describe(day, cell);
+                    return (
+                      <span
+                        key={day}
+                        role="img"
+                        className="up-tick table-status"
+                        data-outcome={activityOutcomes[state]}
+                        title={`${category}, ${text}`}
+                        aria-label={`${category}, ${text}`}
+                      >
+                        <ActivityMark state={state} />
+                      </span>
+                    );
+                  })}
+                </div>
+              );
+            })}
+            <div className="up-days-row up-days-axis" aria-hidden="true">
+              <span />
+              {days.map((day, i) => (
+                <span key={day}>{i === 0 || i === days.length - 1 || day.endsWith("-01") ? Number(day.slice(8)) : ""}</span>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+      <p className="up-card-foot muted">
+        <span>{latest ? `Last result ${ago(latest, now)}` : project.repository}</span>
+        {!project.coverage.complete && !project.coverage.error && project.jobs.length > 0 && (
+          <span>Collection incomplete</span>
+        )}
+      </p>
+    </article>
   );
 }
 

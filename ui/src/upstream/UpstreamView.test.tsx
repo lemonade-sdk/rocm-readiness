@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router";
 import { expect, it } from "vitest";
 import { App } from "../App";
 import { fixtureFetch, indexUrl } from "../fixtures";
-import { cellState, keepJob, loadUpstream, type UpstreamOverview } from "./data";
+import { cellState, dayOutcome, keepJob, loadUpstream, type UpstreamOverview } from "./data";
 import { upstreamFetch, upstreamOverview } from "./fixtures";
 import { loadSession } from "../data";
 
@@ -28,11 +28,11 @@ it("shows one card per project with its computed upstream badge", async () => {
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
   expect(within(vllm).getByText("Configured coverage unknown")).toBeInTheDocument();
-  expect(
-    within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
-  ).toBeInTheDocument();
-  // Totals across projects come from the job records, not a stored number.
-  expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
+  expect(within(vllm).getByText("No configured client jobs.")).toBeInTheDocument();
+  expect(vllm).toHaveAttribute("data-health", "none");
+  // No percentages on the home view: totals are counts of projects and jobs.
+  expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
+  expect(screen.getByText("projects passing every check").parentElement).toHaveTextContent("0 of 1");
   expect(screen.getByRole("link", { name: "Upstream health" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -353,4 +353,39 @@ it("distinguishes missing checks from unknown historical results and escaped fai
   fireEvent.click(within(row).getByRole("button", { name: "2" }));
   expect(within(region).getByText("historical result unknown")).toBeInTheDocument();
   expect(within(region).getByText("never ran on the pull request")).toBeInTheDocument();
+});
+
+it("marks a card red when any job does not pass now and names it", async () => {
+  mount();
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  expect(card).toHaveAttribute("data-health", "fail");
+  // gpu-rocm passed last, but a request on Oct 29 never ran.
+  expect(within(card).getByText("gpu-rocm")).toBeInTheDocument();
+  expect(within(card).getByText(/no run since 2026-10-27/)).toBeInTheDocument();
+  expect(within(card).getByText("jobs passing now").parentElement).toHaveTextContent("1 of 2");
+  expect(within(card).getByText("devlab enabled")).toHaveAttribute(
+    "title",
+    "gpu-rocm ran on devlab-dispatch machines",
+  );
+});
+
+it("marks a card green only when every job passed on its latest run", async () => {
+  const project = upstreamOverview.projects[0];
+  const jobs = project.jobs.map((j) => ({ ...j, quiet_days: [], latest: { state: "passed", at: "2026-10-28T12:00:00Z", url: null } }));
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: {
+    ...upstreamOverview, projects: [{ ...project, jobs }],
+  }}));
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  expect(card).toHaveAttribute("data-health", "pass");
+  expect(within(card).getByText("Every check passed on its latest run.")).toBeInTheDocument();
+});
+
+it("draws a day red when any result failed, never amber", () => {
+  const c = (passed: number, failed: number, stalled = 0) => ({
+    passed, failed, other: 0, stalled, skipped: 0, running: 0, slow: 0,
+  });
+  expect(dayOutcome(c(19, 1))).toBe("bad");
+  expect(dayOutcome(c(20, 0))).toBe("good");
+  expect(dayOutcome(c(0, 0, 2))).toBe("stall");
+  expect(dayOutcome(undefined)).toBe("idle");
 });

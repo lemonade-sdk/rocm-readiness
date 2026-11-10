@@ -987,6 +987,13 @@ def _job_summary(job, rows, days):
     )
     ran_days = sorted({r["day"] for r in started})
     last_ran = ran_days[-1] if ran_days else None
+    # The newest finished result, so a card can say whether the job passes now.
+    finished = [r for r in in_window if r["state"] in ("passed", "failed", "other")]
+    newest = max(
+        finished,
+        key=lambda r: (r.get("created_at") or "", r.get("attempt") or 1),
+        default=None,
+    )
     quiet = sorted(
         {
             r["day"]
@@ -1042,6 +1049,17 @@ def _job_summary(job, rows, days):
         "skipped": sum(r["state"] == "skipped" for r in in_window),
         "stalled": sum(r["state"] == "stalled" for r in in_window),
         "last_ran": last_ran,
+        "latest": (
+            None
+            if newest is None
+            else {
+                "state": newest["state"],
+                "at": newest.get("created_at"),
+                "url": newest.get("url"),
+            }
+        ),
+        # devlab-dispatch machines register as ephemeral-devlab-<slot>.
+        "devlab": any("devlab" in (r.get("runner") or "") for r in in_window),
         "quiet_days": quiet,
         "median_queue_seconds": int(median(waits)) if waits else None,
         "failed_steps": dict(sorted(steps.items(), key=lambda kv: -kv[1])[:8]),
@@ -1489,6 +1507,24 @@ def validate_upstream_dataset(root, entry):
                 "invalid job classification",
             )
             job_ids.add(job.get("id"))
+            latest = job.get("latest")
+            _ok(
+                latest is None
+                or (
+                    isinstance(latest, dict)
+                    and latest.get("state") in ("passed", "failed", "other")
+                    and isinstance(latest.get("at"), str)
+                ),
+                where,
+                jat + "/latest",
+                "expected the newest finished result or null",
+            )
+            _ok(
+                isinstance(job.get("devlab", False), bool),
+                where,
+                jat + "/devlab",
+                "expected a boolean",
+            )
             daily = job.get("daily")
             _ok(
                 isinstance(daily, dict),

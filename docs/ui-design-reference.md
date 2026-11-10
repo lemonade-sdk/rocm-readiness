@@ -126,6 +126,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Use dense metadata and tables with full model names; keep detailed inspection
   in the Build details and Performance details pages.
   Put report and measurement links in parentheses beside their section headings.
+  Tooltip links inherit the surrounding text color with a faint dotted underline
+  and a small navigation arrow. Strengthen the underline on hover or keyboard focus.
   Allow sorting the model table by Model, TTFT, TPS and VRAM, with an indicated
   direction and unavailable values last. Display TTFT in seconds, converting the
   producer's millisecond values. Model names link to the exact displayed

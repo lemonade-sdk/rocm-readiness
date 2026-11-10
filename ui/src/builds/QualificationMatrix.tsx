@@ -178,7 +178,7 @@ function PackagePerformance({ build, measurements }: {
             </button>
           </th>)}</tr></thead>
         <tbody>{rows.map((row) => <tr key={row.model}>
-          <th scope="row" title={`${row.model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}><Link to={observationHref(row)}>{row.model}</Link></th>
+          <th scope="row" title={`${row.model} · ${row.scenario} · ${row.quant ?? "Quantization unreported"} · ${row.system_id ?? "Hardware unreported"} · ${row.measured_at}`}><Link to={observationHref(row)} aria-label={row.model}>{row.model}</Link></th>
           {(["ttft_ms_mean", "tps_mean", "vram_peak_gb"] as const).map((metric) =>
             <td key={metric}>{row.metrics[metric] == null ? "—" : metricValue(metric, row.metrics[metric])}</td>)}
         </tr>)}</tbody>

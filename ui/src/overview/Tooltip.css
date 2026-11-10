@@ -155,3 +155,24 @@
 .tooltip-surface:has(.tooltip-close) .structured-tooltip-header { padding-inline-end: 3.25rem; }
 .tooltip-surface .structured-tooltip-header { background: var(--panel); }
 .tooltip-arrow { pointer-events: none; }
+
+.comparison-bubble a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: .2em;
+}
+.comparison-bubble a:not([target="_blank"])::after {
+  content: " →";
+  display: inline-block;
+  margin-inline-start: .15em;
+  opacity: .65;
+  font-size: .85em;
+  text-decoration: none;
+}
+.comparison-bubble a:is(:hover, :focus-visible) {
+  color: inherit;
+  text-decoration-color: currentColor;
+}
+.comparison-bubble a:is(:hover, :focus-visible)::after { opacity: 1; }

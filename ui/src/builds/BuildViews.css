@@ -54,12 +54,15 @@
   background: var(--panel);
   font-size: 0.8rem;
 }
-.build-filter-options button:hover:enabled {
+.build-filter-options button[aria-pressed="false"]:hover:enabled {
   background: var(--control);
 }
 .build-filter-options button[aria-pressed="true"] {
   color: var(--selection-text);
   background: var(--selection-bg);
+}
+.build-filter-options button[aria-pressed="true"]:hover:enabled {
+  background: color-mix(in srgb, var(--selection-bg) 92%, var(--selection-text));
 }
 .build-filter-options button:disabled { cursor: default; }
 .build-filter-options button:disabled[aria-pressed="true"] { opacity: 1; }
@@ -73,3 +76,12 @@
 .build-day-performance ul { list-style: none; padding: 0; }
 .build-day-performance li { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .5rem 0; border-bottom: 1px solid var(--line); }
 .build-day-performance meter { inline-size: 8rem; }
+
+
+.build-filter-options button { display: inline-flex; align-items: center; gap: .4rem; }
+
+.build-filter-options button[aria-pressed="true"] .platform-logo[data-platform="windows"] { filter: brightness(0); }
+:root[data-theme="light"] .build-filter-options button[aria-pressed="true"] .platform-logo[data-platform="windows"] { filter: brightness(0) invert(1); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .build-filter-options button[aria-pressed="true"] .platform-logo[data-platform="windows"] { filter: brightness(0) invert(1); }
+}

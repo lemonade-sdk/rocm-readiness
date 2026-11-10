@@ -1,10 +1,12 @@
 import { useEffect, useId, useState, type CSSProperties } from "react";
-import { Link } from "react-router";
+import { matchedPerformanceObservations, PerformancePreview } from "../performance/PerformancePreview";
+import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
+import type { PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
-import { buildDate, buildIdentity, exactBuildHref } from "../overview/buildTimeline";
-import { qualificationCheckHref, readQualificationReport } from "./BuildBrowser";
+import { buildDate, buildIdentity } from "../overview/buildTimeline";
+import { pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
 import "./QualificationMatrix.css";
 
 type Report = Awaited<ReturnType<typeof readQualificationReport>>;
@@ -53,48 +55,75 @@ function tierLabel(id: string) {
 
 const checkOrder = new Intl.Collator("en", { numeric: true });
 
-function PackageDetails({ heading, packages, coverageFetcher, run }: {
+function buildRepository(build: Build) {
+  return build.source_url?.match(/^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/[a-f0-9]{40}\/qualification\/index\.json$/)?.[1];
+}
+
+function PackageDetails({ heading, packages, coverageFetcher, run, performanceMeasurements, initialOpen = false, dataCommit }: {
   heading: string;
   packages: Build[];
   coverageFetcher?: Fetcher;
   run?: Build;
+  initialOpen?: boolean;
+  dataCommit?: string | null;
+  performanceMeasurements?: Map<Build, PerformanceData["measurements"]>;
 }) {
-  const [inspect, setInspect] = useState(false);
-  const [coverage, setCoverage] = useState<{ packages: Build[]; targets: Map<Build, string[]> }>();
+  const [inspect, setInspect] = useState(initialOpen);
+  const [evidence, setEvidence] = useState<Map<Build, Report>>();
   useEffect(() => {
     if (!inspect || !coverageFetcher) return;
     const controller = new AbortController();
-    void Promise.allSettled(packages.map(async (build) => {
-      const report = await readQualificationReport(build, controller.signal, coverageFetcher);
-      const gfx = report.raw.gfx;
-      const present = gfx && typeof gfx === "object" && "present_in_binary" in gfx ? gfx.present_in_binary : null;
-      if (!Array.isArray(present) || !present.every((target) => typeof target === "string" && /^gfx[0-9a-z]+$/i.test(target)))
-        return null;
-      return [build, [...new Set(present)].sort(checkOrder.compare)] as const;
-    })).then((reports) => {
-      if (controller.signal.aborted) return;
-      setCoverage({ packages, targets: new Map(reports.flatMap((report) =>
-        report.status === "fulfilled" && report.value ? [report.value] : [],
-      )) });
+    void Promise.allSettled(packages.map(async (build) =>
+      [build, await readQualificationReport(build, controller.signal, coverageFetcher)] as const,
+    )).then((reports) => {
+      if (!controller.signal.aborted) setEvidence(new Map(reports.flatMap((report) =>
+        report.status === "fulfilled" ? [report.value] : [],
+      )));
     });
     return () => controller.abort();
   }, [packages, inspect, coverageFetcher]);
 
-  const evidence = coverage?.packages === packages ? coverage.targets : undefined;
-  return <Tooltip floating interactive label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
-    onOpen={() => setInspect(true)}
+  const observations = matchedPerformanceObservations(packages, performanceMeasurements);
+  const hasPerformance = observations.length > 0;
+  return <><Tooltip floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
+    initialOpen={initialOpen} onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
-      {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>{run.run_id ?? "Unreported"}</dd></dl>}
+      {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>
+        {run.run_id && buildRepository(run) ? <a href={`https://github.com/${buildRepository(run)}/actions/runs/${encodeURIComponent(run.run_id)}`} target="_blank" rel="noreferrer">{run.run_id} ↗</a> : run.run_id ?? "Unreported"}
+      </dd></dl>}
       <ul className="qualification-popup-packages">
-        {packages.map((build) => {
-          const targets = evidence?.get(build);
+        {[...packages].sort((a, b) => (a.os === "windows" ? 0 : 1) - (b.os === "windows" ? 0 : 1)).map((build) => {
+          const report = evidence?.get(build);
+          const gfx = report?.raw.gfx;
+          const present = gfx && typeof gfx === "object" && "present_in_binary" in gfx ? gfx.present_in_binary : null;
+          const targets = Array.isArray(present) && present.every((target) => typeof target === "string" && /^gfx[0-9a-z]+$/i.test(target))
+            ? [...new Set<string>(present)].sort(checkOrder.compare) : null;
+          const reference = pinnedReport(build);
+          const repository = buildRepository(build);
           return <li key={buildIdentity(build)}>
-            <Link to={exactBuildHref(build, "build")} aria-label={`Package report for ${build.build_id}`}>
-              {platformName(build.os)} report →
-            </Link>
-            <dl><dt>Build ID</dt><dd>{build.build_id}</dd>{build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}</dl>
+            <h4 className="qualification-platform-heading">
+              <PlatformIcon platform={build.os} /> {platformName(build.os)}
+            </h4>
+            <dl className="qualification-package-metadata">
+              <dt>Feed build ID</dt><dd>{build.build_id}</dd>
+              <dt>Source</dt><dd>{build.source_id ?? "Unreported"}</dd>
+              <dt>Package tag</dt><dd>{build.published === true && build.tag && repository
+                ? <a href={`https://github.com/${repository}/releases/tag/${encodeURIComponent(build.tag)}`} target="_blank" rel="noreferrer">{build.tag} ↗</a>
+                : build.tag ?? "Unreported"}</dd>
+              <dt>Qualification</dt><dd>{build.qualified === true ? "Qualified" : build.qualified === false ? "Failed qualification" : "Unreported"}</dd>
+              <dt>Produced</dt><dd>{build.generated_at}</dd>
+              {dataCommit && <><dt>Dataset revision</dt><dd><code title={dataCommit}>{dataCommit.slice(0, 12)}</code></dd></>}
+              <dt>ROCm SDK</dt><dd>{build.producer_rocm_version ?? build.rocm_version}</dd>
+              {build.upstream_sha && <><dt>Upstream SHA</dt><dd>{build.engine === "llamacpp" ? <a href={`https://github.com/ggml-org/llama.cpp/commit/${encodeURIComponent(build.upstream_sha)}`} target="_blank" rel="noreferrer"><code title={build.upstream_sha}>{build.upstream_sha.slice(0, 12)} ↗</code></a> : <code title={build.upstream_sha}>{build.upstream_sha.slice(0, 12)}</code>}</dd></>}
+              {!run && build.run_id && repository && <><dt>Workflow run</dt><dd><a href={`https://github.com/${repository}/actions/runs/${encodeURIComponent(build.run_id)}`} target="_blank" rel="noreferrer">{build.run_id} ↗</a></dd></>}
+              {build.artifact && <><dt>Archive</dt><dd>{build.artifact}</dd></>}
+            </dl>
+            {typeof reference !== "string" && <ul className="qualification-source-links" aria-label="Pinned sources">
+              <li><a href={reference.url} target="_blank" rel="noreferrer">Pinned producer report ↗</a></li>
+              {build.source_url && <li><a href={build.source_url} target="_blank" rel="noreferrer">Pinned feed source ↗</a></li>}
+            </ul>}
             {coverageFetcher && <div className="qualification-compiled-targets">
-              <strong>Compiled GPU targets</strong>
+              <h5>Compiled GPU targets</h5>
               {targets?.length ? <ul aria-label="Compiled GPU targets">
                 {targets.map((target) => <li key={target}><code>{target}</code></li>)}
               </ul> : <span className="muted">{!evidence ? "Loading…" : targets ? "None recorded" :
@@ -102,27 +131,36 @@ function PackageDetails({ heading, packages, coverageFetcher, run }: {
             </div>}
             {coverageFetcher && build.hardware_validated && build.gfx_target &&
               <p className="qualification-runtime muted">Runtime validated on <code>{build.gfx_target}</code></p>}
+            {report ? <ReportEvidence report={report} summaryOnly /> : evidence && typeof reference !== "string" &&
+              <p className="muted">Pinned producer summary unavailable.</p>}
           </li>;
         })}
       </ul>
     </TooltipContent>}>
     {heading}
-  </Tooltip>;
+  </Tooltip>
+  {hasPerformance && <PerformancePreview heading={heading}
+    observations={observations} />}
+  </>;
 }
 
-function PackageCell({ build, selected, fetcher }: {
+type CheckLink = { tier: string; check: string; revision: string | null };
+
+function PackageCell({ build, selected, fetcher, checkLink }: {
   build: Build;
   selected: boolean;
+  checkLink?: CheckLink;
   fetcher: Fetcher;
 }) {
   const [inspect, setInspect] = useState(selected);
   const [report, setReport] = useState<Report>();
+  const [reportUnavailable, setReportUnavailable] = useState(false);
   useEffect(() => {
     if (!inspect || !build.report_url) return;
     const controller = new AbortController();
     readQualificationReport(build, controller.signal, fetcher).then(
       (evidence) => { if (!controller.signal.aborted) setReport(evidence); },
-      () => { /* Retained check outcomes remain available when a report cannot load. */ },
+      () => { if (!controller.signal.aborted) setReportUnavailable(true); },
     );
     return () => controller.abort();
   }, [build, fetcher, inspect]);
@@ -151,24 +189,22 @@ function PackageCell({ build, selected, fetcher }: {
           const status = outcome(tier?.verdict ?? build.tier_verdicts?.[id]);
           const checks = tier?.checks.length
             ? [...tier.checks].sort((a, b) => checkOrder.compare(a.id, b.id))
-            : (byTier.get(id) ?? []).map(([id, status]) => ({ id, status, name: id, index: undefined }));
+            : (byTier.get(id) ?? []).map(([id, status]) => ({ id, status, name: id, index: undefined, evidence: undefined }));
           return <li key={id}>
-            <Tooltip floating onOpen={() => setInspect(true)} label={`${id} · ${outcomes[status]}`}
-              content={<TooltipContent heading={tier?.name ?? id} status={outcomes[status]}>
-                <span>{id} · {checks.length} reported checks</span>
-                {tier && Object.entries(tier.counts).some(([, count]) => count > 0) && <dl>
-                  {Object.entries(tier.counts).filter(([, count]) => count > 0).map(([key, count]) =>
-                    <div className="qualification-tooltip-count" key={key}><dt>{outcomes[outcome(key)]}</dt><dd>{count}</dd></div>)}
-                </dl>}
-              </TooltipContent>}><code>{tierLabel(id)}</code></Tooltip>
+            <code title={tier?.name} aria-label={`${tierLabel(id)} · ${outcomes[status]}`}>{tierLabel(id)}</code>
             <div className="qualification-check-strip">
               {checks.map((check) => {
                 const state = outcome(check.status);
                 const checkLabel = `${check.id} · ${outcomes[state]}`;
-                return <Tooltip key={checks.filter((item) => item.id === check.id).length > 1 ? `${check.id}:${check.index}` : check.id} floating onOpen={() => setInspect(true)}
-                  to={build.report_url ? qualificationCheckHref(build, id, check.index ?? check.id) : undefined}
+                const duplicate = checks.filter((item) => item.id === check.id).length > 1;
+                const linked = checkLink && id.toLowerCase() === checkLink.tier.toLowerCase() &&
+                  (checkLink.check === `id:${check.id}` ? !duplicate : checkLink.check === String(check.index));
+                return <Tooltip key={JSON.stringify([duplicate ? `${check.id}:${check.index}` : check.id, Boolean(linked)])}
+                  initialOpen={Boolean(linked)} floating contentClassName="qualification-popup" onOpen={() => setInspect(true)}
                   triggerClassName="table-status" label={checkLabel} content={<TooltipContent heading={check.name === check.id ? check.id : `${check.id} · ${check.name}`} status={outcomes[state]}>
                     <dl><dt>Tier</dt><dd>{tier?.name ?? id}</dd><dt>Package</dt><dd>{label}</dd></dl>
+                    {check.evidence ? <QualificationCheckEvidence evidence={check.evidence} /> :
+                      build.report_url && <span>{reportUnavailable || report ? "Pinned check details unavailable" : "Loading pinned check details…"}</span>}
                     {build.blocking_tests?.includes(check.id) && <span>Reported qualification blocker</span>}
                   </TooltipContent>}>
                   <span className="table-status qualification-check-block" data-outcome={state} aria-hidden="true"><BuildOutcomeIcon outcome={state} /></span>
@@ -182,13 +218,19 @@ function PackageCell({ build, selected, fetcher }: {
   </div>;
 }
 
-export function QualificationMatrix({ builds, fetcher, selected }: {
+export function QualificationMatrix({ builds, fetcher, selected, performanceMeasurements, openPackage, dataCommit, checkLink }: {
   builds: Build[];
   fetcher: Fetcher;
   selected: Build | null;
+  openPackage?: boolean;
+  checkLink?: CheckLink;
+  dataCommit?: string | null;
+  performanceMeasurements?: Map<Build, PerformanceData["measurements"]>;
 }) {
   const title = useId();
   const selectedId = selected ? buildIdentity(selected) : null;
+  const reference = selected && checkLink?.revision ? pinnedReport(selected) : null;
+  const revisionMismatch = checkLink?.revision && (typeof reference === "string" || reference?.commit !== checkLink.revision);
   const runs = new Map<string, Build[]>();
   for (const build of [...builds].sort((a, b) => Date.parse(b.generated_at) - Date.parse(a.generated_at))) {
     const key = build.run_id ? JSON.stringify([build.source_id, build.run_id, build.run_attempt]) : buildIdentity(build);
@@ -202,11 +244,12 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
     return order(a) - order(b) || a.localeCompare(b);
   });
 
+  const opens = (packages: Build[]) => Boolean(openPackage && selected && packages.includes(selected));
   const sharedStable = builds.length > 0 && builds.every((build) => build.channel === "stable" && !build.gfx_family);
 
   function runDetails(build: Build) {
     const release = build.tag ?? "Unreported";
-    return <Tooltip floating label={`Run details for ${release}`}
+    return <Tooltip floating contentClassName="qualification-popup" label={`Run details for ${release}`}
       content={<TooltipContent heading={release}>
         <dl><dt>Date</dt><dd>{buildDate(build)} UTC</dd><dt>Workflow run</dt><dd>{build.run_id ?? "Unreported"}</dd></dl>
       </TooltipContent>}>
@@ -235,10 +278,12 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
         {!matches.length && <span className="muted" aria-label="No retained package">—</span>}
         {details && matches.length > 0 && <div className="qualification-shared-details">
           <PackageDetails heading={platformName(os)} packages={matches}
-            coverageFetcher={matches.some((item) => item.channel === "stable" && !item.gfx_family) ? fetcher : undefined} />
+            key={String(opens(matches))} initialOpen={opens(matches)} dataCommit={dataCommit} coverageFetcher={fetcher} />
         </div>}
         {matches.map((item) => <div key={buildIdentity(item)} className="qualification-archive">
-          <PackageCell build={item} fetcher={fetcher} selected={buildIdentity(item) === selectedId} />
+          <PackageCell build={item} fetcher={fetcher} selected={buildIdentity(item) === selectedId}
+            checkLink={!revisionMismatch && buildIdentity(item) === selectedId ? checkLink : undefined} />
+
         </div>)}
       </td>;
     });
@@ -252,9 +297,11 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
 
   return <section aria-labelledby={title} className="qualification-matrix">
     <h2 id={title}>Package qualification</h2>
+    {revisionMismatch && <p role="status">This check link points to a different producer report revision.</p>}
     {builds.length === 0 ? <p role="status">No retained packages match this scope.</p> :
       <div className="qualification-releases" role="region" aria-label="Qualification by release workflow run">
-        {sharedStable ? <><div className="qualification-table-scroll" role="region" aria-label="Stable packages by build" tabIndex={0}>
+        {checkLegend}
+        {sharedStable ? <div className="qualification-table-scroll" role="region" aria-label="Stable packages by build" tabIndex={0}>
           <table className="qualification-table qualification-stable-table" data-multiple-platforms={platforms.length > 1 || undefined}>
             <thead><tr>
               <th scope="col" className="qualification-family-column">Build</th>
@@ -262,14 +309,13 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
             </tr></thead>
             <tbody>{[...runs].map(([key, packages]) => <tr key={key}>
               <th scope="row">
-                <PackageDetails heading={packages[0].tag ?? "Unreported"} packages={packages} coverageFetcher={fetcher} run={packages[0]} />
+                <PackageDetails heading={packages[0].tag ?? "Unreported"} packages={packages} key={String(opens(packages))} initialOpen={opens(packages)} dataCommit={dataCommit} coverageFetcher={fetcher} run={packages[0]} performanceMeasurements={performanceMeasurements} />
                 {publishing(packages)}
               </th>
               {platformCells(packages, false)}
             </tr>)}</tbody>
           </table>
-        </div>
-        {checkLegend}</> : [...runs].map(([key, packages]) => {
+        </div> : [...runs].map(([key, packages]) => {
           const [build] = packages;
           const release = build.tag ?? "Unreported";
           const families = new Map<string, Build[]>();
@@ -280,7 +326,6 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
             families.set(family, members);
           }
           const showFamilies = [...families.keys()].some(Boolean);
-          const showSharedCoverage = packages.some((item) => item.channel === "stable" && !item.gfx_family);
           return <section className="qualification-release" key={key}>
             <header className="qualification-release-heading">
               <span className="qualification-heading-label">Build</span>
@@ -296,7 +341,7 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
                       const platform = platformName(os);
                       const matches = packages.filter((item) => item.os === os);
                       return <th scope="col" key={os}>
-                        {!showFamilies && matches.length ? <PackageDetails heading={platform} packages={matches} coverageFetcher={showSharedCoverage ? fetcher : undefined} /> : platform}
+                        {!showFamilies && matches.length ? <PackageDetails heading={platform} packages={matches} key={String(opens(matches))} initialOpen={opens(matches)} dataCommit={dataCommit} coverageFetcher={fetcher} /> : platform}
                       </th>;
                     })}
                   </tr>
@@ -305,7 +350,7 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
                   {[...families].sort(([a], [b]) => checkOrder.compare(a, b)).map(([family, members]) =>
                     <tr key={family}>
                       {showFamilies && <th scope="row">
-                        {family ? <PackageDetails heading={family} packages={members} /> : "Shared archive"}
+                        {family ? <PackageDetails heading={family} packages={members} key={String(opens(members))} initialOpen={opens(members)} dataCommit={dataCommit} coverageFetcher={fetcher} performanceMeasurements={performanceMeasurements} /> : "Shared archive"}
                       </th>}
                       {platformCells(members, showFamilies && !family)}
                     </tr>
@@ -313,7 +358,6 @@ export function QualificationMatrix({ builds, fetcher, selected }: {
                 </tbody>
               </table>
             </div>
-            {checkLegend}
           </section>;
         })}
       </div>}

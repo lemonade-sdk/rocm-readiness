@@ -44,6 +44,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Keep at least one platform selected, and keep unavailable platforms visible
   and disabled. Determine platform availability from the version and engine
   before applying search or date paging. Keep filter selections in the URL.
+  Pair platform labels with the Windows mark or Linux Tux in filters and package
+  headings. Selected filters use a subtle hover tint while retaining their selected fill and text contrast.
 - Group version and platform controls together, with search at the trailing
   edge when space permits. Let the controls wrap at narrow widths. Use the
   workspace rail for navigation between dashboard views. Place ROCm version
@@ -52,7 +54,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
 - Put workspace navigation at the top of the desktop side rail and dataset
   provenance at the bottom. At narrow widths, keep navigation above the
   content and provenance below it. Nest view links under their workspace
-  and use the shared filled selection style for the current view. Keep
+  and use the shared filled selection style for the current view.
+  Nest Performance under Build Qualification. Keep
   keyboard focus visually distinct from the selected state.
 - Make the ROCm version the primary heading and place engine names above the
   timeline surface. In Upstream Health, group project metrics separately from
@@ -110,12 +113,38 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Put the date and run ID in the build tooltip. Overview links preserve the
   selected package and its UTC date, version, track, engine, and platform.
   Use short platform or GPU package labels and compact tinted check cells with distinct glyphs.
-  Use the shared padded tooltip header and body for tier and check details.
+  Use plain tier labels. Show each check’s pinned evidence in a tooltip anchored
+  to its outcome block.
+  Use Floating UI for anchored tooltips and interactive package popups, with an
+  arrow to the trigger, viewport-aware positioning, keyboard and touch access,
+  Escape and outside dismissal, and a visible close control for interactive panels.
   Keep the tooltip open while the pointer or keyboard focus is within its trigger
-  or panel. List the visible platform packages and report links in the GPU-family panel,
+  or panel. Size package popups to their content within the viewport. Show visible
+  platform packages in one compact column. Use top and bottom spacing, a shared
+  heading typeface, and clearly weighted subsection headings to establish hierarchy.
+  Separate platform sections with stronger horizontal rules and subsections with
+  lighter horizontal rules. Avoid vertical heading rules and borders around nested navigation.
+  Show package metadata, the pinned producer summary, and provenance links in
+  the package popup. Keep full model names in performance tables.
+  Tooltip links inherit the surrounding text color with a faint dotted underline
+  and a small navigation arrow. Strengthen the underline on hover or keyboard focus.
+  Performance glyphs open their own graph popup, separate from build metadata.
+  Show horizontal TTFT and TPS bars on independent shared scales, retaining full
+  model labels and values inside the graph tracks. Label lower TTFT and higher
+  TPS as better. Display TTFT in seconds, converting producer milliseconds.
+  Use the latest observation per model and OS. Platform bars expose workload,
+  hardware and timestamp context and link to that exact observation.
+  Windows/Linux toggles can show either platform or paired bars. Gray out
+  unmeasured platforms with an Unavailable hover label. Keep VRAM out of this preview.
+  Show the same matched-performance glyph on qualification build/family labels,
+  and selected build headings. Only verified package matches
+  establish the indicator. Pair OS packages only within the same qualification
+  run, source, release track and GPU family.
+  Show full model names, wrapping on narrow screens, and a visible scroll cue when
+  more content is below the panel. List the visible platform packages and report links in the GPU-family panel,
   or under the platform heading for shared archives. Size check cells from the
   longest tier in the package and keep that width across its tier rows.
-  An individual check opens the same check in the exact package report.
+  Existing check links open the matching check tooltip for the exact package.
 - Compare benchmark results only within one compatible workload and hardware
   cohort using verified package matches.
 - Preserve the Readiness calendar's operating-system rows, month and day

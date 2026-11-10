@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { Tooltip, tooltipTiming } from "./Tooltip";
 afterEach(() => vi.useRealTimers());
-it("delays opening and cancels incidental pointer passes", () => {
+it("delays opening and cancels incidental pointer passes", async () => {
   vi.useFakeTimers();
   render(
     <Tooltip label="Compare readiness" content="Still qualified">
@@ -10,36 +10,50 @@ it("delays opening and cancels incidental pointer passes", () => {
     </Tooltip>,
   );
   const trigger = screen.getByRole("button", { name: "Compare readiness" });
-  fireEvent.pointerEnter(trigger);
-  act(() => vi.advanceTimersByTime(tooltipTiming.openDelayMs - 1));
+  fireEvent.mouseEnter(trigger);
+  await act(() => vi.advanceTimersByTimeAsync(tooltipTiming.openDelayMs - 1));
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-  fireEvent.pointerLeave(trigger);
-  act(() => vi.advanceTimersByTime(10));
+  fireEvent.mouseLeave(trigger);
+  await act(() => vi.advanceTimersByTimeAsync(10));
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-  fireEvent.pointerEnter(trigger);
-  act(() => vi.advanceTimersByTime(tooltipTiming.openDelayMs));
+  fireEvent.mouseEnter(trigger);
+  await act(() => vi.advanceTimersByTimeAsync(tooltipTiming.openDelayMs));
   expect(screen.getByRole("tooltip")).toHaveTextContent("Still qualified");
   fireEvent.keyDown(trigger, { key: "Escape" });
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 });
-it("supports keyboard focus and click/touch disclosure", () => {
-  vi.useFakeTimers();
+it("supports keyboard focus and click/touch disclosure", async () => {
   render(
     <Tooltip label="Compare checks" content="Two checks changed">
       Checks passed
     </Tooltip>,
   );
   const trigger = screen.getByRole("button", { name: "Compare checks" });
-  fireEvent.focus(trigger);
-  act(() => vi.advanceTimersByTime(tooltipTiming.openDelayMs));
+  act(() => trigger.focus());
+  await screen.findByRole("tooltip");
   expect(trigger).toHaveAttribute(
     "aria-describedby",
     screen.getByRole("tooltip").id,
   );
-  fireEvent.blur(trigger);
-  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  act(() => trigger.blur());
+  await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
   fireEvent.click(trigger);
   expect(screen.getByRole("tooltip")).toBeInTheDocument();
   fireEvent.click(trigger);
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});
+
+it("anchors an interactive popup with an arrow and supports outside dismissal", async () => {
+  render(<Tooltip interactive label="Package details" content={<a href="#report">Linux report</a>}>Build</Tooltip>);
+  fireEvent.click(screen.getByRole("button", { name: "Package details" }));
+  const popup = await screen.findByRole("dialog", { name: "Package details" });
+  expect(popup.querySelector(".tooltip-arrow")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Linux report" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Close popup" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.getByRole("button", { name: "Package details" })).toHaveFocus();
+  fireEvent.click(screen.getByRole("button", { name: "Package details" }));
+  await screen.findByRole("dialog");
+  fireEvent.pointerDown(document.body);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 });

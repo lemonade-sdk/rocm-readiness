@@ -446,6 +446,8 @@ it("shows exact daily pass and failure counts and opens run evidence in a popup"
   fireEvent.click(day);
   const popup = await screen.findByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
   expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Previous day" })).not.toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Next day" })).not.toBeInTheDocument();
   fireEvent.click(within(popup).getByRole("button", { name: "Close popup" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
@@ -461,7 +463,8 @@ it("keeps one daily failure visible even when more than 95 percent passed", asyn
   expect(day.textContent).toBe("");
   fireEvent.click(day);
   expect(await screen.findByText(/40 runs/)).toBeInTheDocument();
-  expect(screen.getByText(/39 passed, 1 failed/)).toBeInTheDocument();
+  expect(screen.getByText("39", { selector: "dd" })).toBeInTheDocument();
+  expect(screen.getByText("1", { selector: "dd" })).toBeInTheDocument();
   expect(day.querySelector(".up-fail")).toBeInTheDocument();
 });
 
@@ -498,6 +501,8 @@ it("lists individual CI jobs in a visible table with per-job run evidence", asyn
   fireEvent.click(within(row).getByRole("button", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" }));
   const popup = await screen.findByRole("dialog", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" });
   expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Previous day" })).not.toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Next day" })).not.toBeInTheDocument();
 });
 
 it("lists rare failing steps alongside frequent ones with exact counts and affected jobs", async () => {

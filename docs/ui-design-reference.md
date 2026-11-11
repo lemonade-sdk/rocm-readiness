@@ -220,3 +220,11 @@ Use compact, evenly aligned rows with full-cell day triggers and no inline
 baseline gaps. Keep quiet-job details in the job-name tooltip. Show incomplete
 collection as a subdued status with a warning symbol beneath the project title,
 without a bullet or a support disclaimer there.
+
+Project findings use neutral, low-contrast notices with a restrained alert symbol;
+reserve failure colors for specific outcome evidence. Run tooltips use the shared
+structured header and body, with a date, outcome counts and grouped run/evidence
+links. Keep the selected day fixed: no previous/next controls inside tooltips.
+Use the shared popup close control, with a close button on standalone saved-day
+fallbacks. Match qualification evidence links with inherited text color, dotted
+underlines and a small external navigation mark.

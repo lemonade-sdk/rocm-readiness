@@ -135,8 +135,9 @@ test("overview day links restore the selected date and run evidence after reload
   await page.reload();
   const runs = page.getByRole("region", { name: "Runs on 2026-10-27" });
   await expect(runs.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
-  await runs.getByRole("button", { name: "Next day" }).click();
-  await expect(page).toHaveURL(/day=2026-10-28/);
+  await expect(runs.getByRole("button", { name: "Next day" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/day=/);
   await page.goBack();
   await expect(page.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();
 });

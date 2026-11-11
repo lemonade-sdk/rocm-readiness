@@ -613,8 +613,8 @@ function ProjectPage({
         <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
       </div>
       {open?.key === "all" && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
-      {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} days={allDays} runs={runs}
-        onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
+      {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} runs={runs}
+        onClose={() => setOpen(null)} />}
       {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       <div className="up-cols">
         <div className="up-activity-analysis">
@@ -625,13 +625,13 @@ function ProjectPage({
               selected={open} onPick={(category, day) => pick(`cat:${category}`, day, [])}
               renderDay={(category, day) => <DayPanel project={project}
                 jobs={jobs.filter((job) => job.category === category)} day={day}
-                days={days14} runs={runs} onDay={(next) => setOpen({ key: `cat:${category}`, day: next, jobs: [] })}
+                runs={runs}
                 onClose={() => setOpen(null)} />} />
             {open?.key.startsWith("cat:") &&
               (!days14.includes(open.day) || !jobs.some((job) => `cat:${job.category}` === open.key)) && (
               <DayPanel project={project} jobs={jobs.filter((job) => `cat:${job.category}` === open.key)}
-                day={open.day} days={allDays} runs={runs}
-                onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />
+                day={open.day} runs={runs}
+                onClose={() => setOpen(null)} />
             )}
           </section>
           <section
@@ -705,8 +705,8 @@ function ProjectPage({
                   return <td key={day} className={`table-status${isCalendarMonthBoundary(days14, index) ? " month-boundary" : ""}`} data-outcome={activityOutcomes[state]}>
                     <Tooltip interactive label={label} triggerClassName="up-tick" contentClassName="up-run-tooltip"
                       isOpen={active} onOpenChange={(next) => { if (next !== active) pick(key, day, [job.id]); }}
-                      content={<DayPanel project={project} jobs={[job]} day={day} days={days14} runs={runs}
-                        onDay={(next) => setOpen({ key, day: next, jobs: [job.id] })} onClose={() => setOpen(null)} />}>
+                      content={<DayPanel project={project} jobs={[job]} day={day} runs={runs}
+                        onClose={() => setOpen(null)} />}>
                       <ActivityMark state={state} />
                     </Tooltip>
                   </td>;
@@ -717,7 +717,7 @@ function ProjectPage({
         </div>
         {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
           <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
-            days={allDays} runs={runs} onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
+            runs={runs} onClose={() => setOpen(null)} />}
       </section>
       <div className="up-project-context">
         <section className="up-panel" aria-label="Repositories">
@@ -727,7 +727,7 @@ function ProjectPage({
         <section className="up-panel up-findings" aria-label="Project findings">
           <h2>Project findings</h2>
           {findings.length ? findings.map((finding) => (
-            <p key={finding.head}><strong>{finding.head}</strong> {finding.body}</p>
+            <p key={finding.head} className="up-finding-notice"><span aria-hidden="true">△</span><span><strong>{finding.head}</strong> {finding.body}</span></p>
           )) : <p className="muted">No project-wide findings recorded.</p>}
         </section>
       </div>
@@ -739,20 +739,15 @@ function DayPanel({
   project,
   jobs,
   day,
-  days,
   runs,
-  onDay,
   onClose,
 }: {
   project: Project;
   jobs: Job[];
   day: string;
-  days: string[];
   runs: { rows: Run[] | null; error: string | null };
-  onDay: (day: string) => void;
   onClose: () => void;
 }) {
-  const i = days.indexOf(day);
   const ids = new Set(jobs.map((j) => j.id));
   const label = Object.fromEntries(jobs.map((j) => [j.id, j.label]));
   const cell = sumCells(jobs, day);
@@ -765,35 +760,18 @@ function DayPanel({
     );
   return (
     <div className="up-daypanel" role="region" aria-label={`Runs on ${day}`}>
-      <div className="up-daypanel-head">
-        <button
-          type="button"
-          disabled={i <= 0}
-          onClick={() => onDay(days[i - 1])}
-          aria-label="Previous day"
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          disabled={i >= days.length - 1}
-          onClick={() => onDay(days[i + 1])}
-          aria-label="Next day"
-        >
-          ›
-        </button>
-        <strong>{day}</strong>
-        <span className="muted">
-          {cell.passed + cell.failed + cell.running + cell.other} runs · {cell.passed} passed, {cell.failed} failed
-          {cell.stalled ? `, ${cell.stalled} never ran` : ""}
-          {cell.skipped ? `, ${cell.skipped} skipped` : ""}
-          {cell.running ? `, ${cell.running} running` : ""}
-          {cell.other ? `, ${cell.other} other results` : ""}
-        </span>
-        <button type="button" onClick={onClose} aria-label="Close">
-          ×
-        </button>
-      </div>
+      <TooltipContent heading={<time dateTime={day}>{day} UTC</time>}
+        status={`${cell.passed + cell.failed + cell.running + cell.other} runs`}>
+        <button type="button" className="up-inline-close" onClick={onClose} aria-label="Close">×</button>
+        <p className="up-run-scope muted">{jobs.length === 1 ? jobs[0].label : `${jobs.length} CI jobs`} · {project.label}</p>
+        <dl className="up-run-summary">
+          <div><dt>Passed</dt><dd>{cell.passed}</dd></div>
+          <div><dt>Failed</dt><dd>{cell.failed}</dd></div>
+          {cell.stalled > 0 && <div><dt>Requested, no runs</dt><dd>{cell.stalled}</dd></div>}
+          {cell.skipped > 0 && <div><dt>Skipped</dt><dd>{cell.skipped}</dd></div>}
+          {cell.running > 0 && <div><dt>Running</dt><dd>{cell.running}</dd></div>}
+          {cell.other > 0 && <div><dt>Other results</dt><dd>{cell.other}</dd></div>}
+        </dl>
       {runs.error ? (
         <p className="bad">{runs.error}</p>
       ) : !runs.rows ? (
@@ -805,7 +783,9 @@ function DayPanel({
               key={`${run.job}:${run.job_id}`}
               className={`up-run up-run-${run.state}`}
             >
+              <div className="up-run-heading">
               <span className="up-dot" aria-hidden="true" />
+              <span className="up-run-status">{run.state}</span>
               <a
                 href={run.url}
                 target="_blank"
@@ -818,6 +798,8 @@ function DayPanel({
               {jobs.length > 1 && (
                 <span className="up-run-job">{label[run.job]}</span>
               )}
+              </div>
+              <div className="up-run-evidence">
               {run.sha && (
                 <a
                   className="up-sha"
@@ -854,6 +836,7 @@ function DayPanel({
                   {run.failed_step ? `Failed step: ${run.failed_step}` : run.state}
                 </a>
               )}
+              </div>
             </li>
           ))}
         </ul>
@@ -866,6 +849,7 @@ function DayPanel({
               : "No collected evidence for this day."}
         </p>
       )}
+      </TooltipContent>
     </div>
   );
 }

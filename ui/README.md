@@ -48,7 +48,7 @@ Omitting a group includes all its values; legacy `&lens=<stack or target>` links
 - platform coverage;
 - the merge gate;
 - what is failing on main;
-- an always-visible CI jobs table with metadata, pass rates and dated outcome cells for the whole window. Each cell opens that job’s run evidence.
+- an always-visible CI jobs table with job names, platform icons and 14 days of outcome cells. Job-name tooltips show stack, target and the 14-day pass rate. Each cell opens that job’s run evidence.
 
 ## Appearance
 

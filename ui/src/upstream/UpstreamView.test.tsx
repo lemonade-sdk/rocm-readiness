@@ -487,8 +487,14 @@ it("lists individual CI jobs in a visible table with per-job run evidence", asyn
   const table = await screen.findByRole("table", { name: "CI jobs" });
   expect(table.closest("details")).toBeNull();
   const row = within(table).getByRole("row", { name: /gpu-rocm/ });
-  expect(within(row).getByText("rocm")).toBeInTheDocument();
-  expect(within(row).getByText("gfx1151")).toBeInTheDocument();
+  expect(within(table).queryByRole("columnheader", { name: "Stack" })).not.toBeInTheDocument();
+  expect(within(row).getByRole("cell", { name: "Linux" })).toBeInTheDocument();
+  fireEvent.focus(within(row).getByRole("button", { name: "gpu-rocm" }));
+  const metadata = await screen.findByRole("tooltip");
+  expect(within(metadata).getByText(/Stack: rocm/)).toBeInTheDocument();
+  expect(within(metadata).getByText(/Target: gfx1151/)).toBeInTheDocument();
+  expect(within(metadata).getByText(/Pass rate.*14 days/)).toBeInTheDocument();
+  fireEvent.blur(within(row).getByRole("button", { name: "gpu-rocm" }));
   fireEvent.click(within(row).getByRole("button", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" }));
   const popup = await screen.findByRole("dialog", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" });
   expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
@@ -508,4 +514,16 @@ it("lists rare failing steps alongside frequent ones with exact counts and affec
   expect(within(frequent).getByRole("cell", { name: "28" })).toBeInTheDocument();
   expect(within(frequent).getByRole("cell", { name: "2" })).toBeInTheDocument();
   expect(within(rare).getAllByRole("cell", { name: "1" })).toHaveLength(2);
+});
+
+it("shows only 14 job dates even when the collection covers 30 days", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.window = { ...data.window, start: "2026-09-30", days: 30 };
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  expect(table.querySelectorAll("thead time")).toHaveLength(14);
+  expect(within(table).getByRole("columnheader", { name: "2026-10-16 UTC" })).toBeInTheDocument();
+  expect(within(table).queryByRole("columnheader", { name: "2026-10-01 UTC" })).not.toBeInTheDocument();
 });

@@ -1040,7 +1040,7 @@ button.up-tick {
 .up-job-label:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .up-jobs-explanation { margin: 0 0 0.85rem; font-size: 0.8rem; }
 .up-jobs > .up-jobs-explanation:last-child { margin-top: 0.65rem; }
-.up-jobs-table { min-width: max(100%, 70rem); }
+.up-jobs-table { min-width: max(100%, 42rem); }
 .up-jobs-table th[scope="row"] { min-width: 11rem; max-width: 14rem; }
 .up-jobs-table th[scope="row"] .comparison-tooltip { display: block; max-width: 14rem; }
 .up-jobs-table :is(th, td) { white-space: nowrap; }
@@ -1061,3 +1061,10 @@ button.up-tick {
 .up-failures-table .comparison-tooltip { display: block; width: 100%; min-width: 0; }
 .up-failures-table .up-step-label > span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .up-failure-count { color: var(--bad); font: 600 0.875rem ui-monospace, monospace; }
+
+.up-jobs-table .up-job-platform { width: 3rem; text-align: center; }
+.up-job-platform .platform-logo { display: inline-block; vertical-align: middle; }
+.up-jobs-table { table-layout: fixed; }
+.up-jobs-table thead th[rowspan]:first-child { width: 12rem; }
+.up-jobs-table thead th[rowspan]:nth-child(2) { width: 3rem; }
+.up-jobs-table th[scope="row"] { min-width: 0; max-width: none; }

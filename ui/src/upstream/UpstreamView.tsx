@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { PlatformIcon } from "../PlatformIcon";
 import type { Fetcher, Session } from "../data";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
@@ -680,44 +681,45 @@ function ProjectPage({
         </section>
       </div>
       <section className="up-panel up-jobs" aria-label="CI jobs">
-        <h2>CI jobs <span className="muted">{jobs.length} jobs · {overview.window.days} days · UTC</span></h2>
+        <h2>CI jobs <span className="muted">{jobs.length} jobs · {days14.length} days · UTC</span></h2>
         <p className="muted up-jobs-explanation">Individual jobs behind Daily activity’s category totals. Select a day for that job’s runs.</p>
         <div className="up-table-scroll calendar-surface" role="region" aria-label="CI jobs table" tabIndex={0}>
           <table className="up-activity-table up-jobs-table" aria-label="CI jobs">
             <thead>
               <tr className="calendar-months">
-                {["Job", "Platform", "Stack", "Target", "Pass rate"].map((label) => <th key={label} scope="col" rowSpan={2}>{label}</th>)}
-                {calendarMonthGroups(allDays).map((month, index) => <th key={month.key} scope="colgroup" colSpan={month.days}
+                {["Job", "Platform"].map((label) => <th key={label} scope="col" rowSpan={2}>{label}</th>)}
+                {calendarMonthGroups(days14).map((month, index) => <th key={month.key} scope="colgroup" colSpan={month.days}
                   className={index ? "month-boundary" : undefined} aria-label={`${month.label} ${month.key.slice(0, 4)}`}>{month.label}</th>)}
               </tr>
-              <tr>{allDays.map((day, index) => <th key={day} scope="col" aria-label={`${day} UTC`}
-                className={isCalendarMonthBoundary(allDays, index) ? "month-boundary" : undefined}><time dateTime={day}>{Number(day.slice(8))}</time></th>)}</tr>
+              <tr>{days14.map((day, index) => <th key={day} scope="col" aria-label={`${day} UTC`}
+                className={isCalendarMonthBoundary(days14, index) ? "month-boundary" : undefined}><time dateTime={day}>{Number(day.slice(8))}</time></th>)}</tr>
             </thead>
             <tbody>{jobs.map((job) => {
               const key = `job:${job.id}`;
+              const passed = days14.reduce((total, day) => total + (job.daily[day]?.passed ?? 0), 0);
+              const failed = days14.reduce((total, day) => total + (job.daily[day]?.failed ?? 0), 0);
+              const decided = passed + failed;
               return <tr key={job.id}>
                 <th scope="row">
                   <Tooltip label={job.label} triggerClassName="up-job-label"
                     content={<TooltipContent heading={job.label}>
                       <span>{job.category} · {job.workflow} · {job.cadence}</span>
-                      <span>{job.target} · {job.where}</span>
-                      <span>{job.passed} passed of {job.decided} decided results</span>
+                      <span>Stack: {job.stack} · Target: {job.target}</span>
+                      <span>{job.where}</span>
+                      <span>Pass rate ({days14.length} days): {decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"} · {passed} passed of {decided} decided results</span>
                     </TooltipContent>}><span>{job.label}</span></Tooltip>
                   {project.coverage.complete && notRunning(job) && <small className="bad up-job-quiet">{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</small>}
                 </th>
-                <td>{job.os === "windows" ? "Windows" : "Linux"}</td>
-                <td>{job.stack}</td>
-                <td>{job.target}</td>
-                <td>{job.decided ? `${Math.round(100 * job.passed / job.decided)}%` : "–"}</td>
-                {allDays.map((day, index) => {
+                <td className="up-job-platform" aria-label={job.os === "windows" ? "Windows" : "Linux"} title={job.os === "windows" ? "Windows" : "Linux"}><PlatformIcon platform={job.os} /></td>
+                {days14.map((day, index) => {
                   const cell = job.daily[day];
                   const state = cellState(cell);
                   const label = `${job.label} · ${describe(day, cell)}`;
                   const active = open?.key === key && open.day === day;
-                  return <td key={day} className={`table-status${isCalendarMonthBoundary(allDays, index) ? " month-boundary" : ""}`} data-outcome={activityOutcomes[state]}>
+                  return <td key={day} className={`table-status${isCalendarMonthBoundary(days14, index) ? " month-boundary" : ""}`} data-outcome={activityOutcomes[state]}>
                     <Tooltip interactive label={label} triggerClassName="up-tick" contentClassName="up-run-tooltip"
                       isOpen={active} onOpenChange={(next) => { if (next !== active) pick(key, day, [job.id]); }}
-                      content={<DayPanel project={project} jobs={[job]} day={day} days={allDays} runs={runs}
+                      content={<DayPanel project={project} jobs={[job]} day={day} days={days14} runs={runs}
                         onDay={(next) => setOpen({ key, day: next, jobs: [job.id] })} onClose={() => setOpen(null)} />}>
                       <ActivityMark state={state} />
                     </Tooltip>
@@ -727,7 +729,10 @@ function ProjectPage({
             })}</tbody>
           </table>
         </div>
-        <p className="muted up-jobs-explanation">Pass rate covers decided results across this window; missing evidence is not a failure.</p>
+        {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
+          <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
+            days={allDays} runs={runs} onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
+        <p className="muted up-jobs-explanation">Job-name tooltips show stack, target and the {days14.length}-day pass rate. Missing evidence is not a failure.</p>
       </section>
     </section>
   );

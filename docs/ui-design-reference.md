@@ -203,9 +203,11 @@ in run drill-downs. Keep wide tables independently keyboard-scrollable.
 
 In CI Activity, place repositories beside visible project-wide findings below the
 coverage tables, stacking on narrow screens. List individual CI jobs in an always
-visible table with Platform, Stack, Target, Pass rate and dated outcome columns.
+visible table with Job, an icon-only Platform column and 14 dated outcome
+columns matching Daily activity. Put Stack, Target and the pass rate for those
+14 days in the job-name tooltip; retain accessible platform names.
 Explain that these jobs contribute to Daily activity's category totals; pass rate
-covers decided results in the collection window. Keep job metadata and per-day
+covers decided results in the displayed 14-day window. Keep job metadata and per-day
 run evidence available in accessible anchored tooltips. Use a matching calendar
 surface for a ranked failing-step table with exact failure counts and affected-job
 counts. Give each step equal row height so rare failures remain readable beside

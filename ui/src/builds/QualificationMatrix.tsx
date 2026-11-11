@@ -6,7 +6,7 @@ import type { PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity } from "../overview/buildTimeline";
-import { pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
+import { checkOrder, pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
 import "./QualificationMatrix.css";
 
 type Report = Awaited<ReturnType<typeof readQualificationReport>>;
@@ -52,8 +52,6 @@ function platformName(os: string) {
 function tierLabel(id: string) {
   return id.replace(/^tier(\d+)$/i, "T$1");
 }
-
-const checkOrder = new Intl.Collator("en", { numeric: true });
 
 function buildRepository(build: Build) {
   return build.source_url?.match(/^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/[a-f0-9]{40}\/qualification\/index\.json$/)?.[1];

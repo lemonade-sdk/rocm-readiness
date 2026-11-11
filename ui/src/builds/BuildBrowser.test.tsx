@@ -249,6 +249,41 @@ describe("BuildBrowser", () => {
     expect(screen.getByText("not_applicable")).toBeInTheDocument();
   });
 
+  it("lists checks in test-id order while check links keep the report position", async () => {
+    const build = buildFixture();
+    fetchMock.mockResolvedValue(response(producerReport(build, { tiers: {
+      tier0: {
+        tier_name: "Static artifact verification",
+        status: "pass",
+        tests: ["T0.10", "T0.11", "T0.1", "T0.2", "T0.12"].map((id) =>
+          ({ id, name: `check ${id}`, status: "pass" })),
+      },
+      tier1: {
+        tier_name: "Runtime",
+        status: "pass",
+        tests: [
+          { name: "unnumbered probe", status: "pass" },
+          { id: "T1.2", name: "check T1.2", status: "pass" },
+          { id: "T1.1", name: "check T1.1", status: "pass" },
+        ],
+      },
+    } })));
+    const params = new URLSearchParams(qualificationCheckHref(build, "tier0", 2));
+    mount({
+      history: [build],
+      selectedBuildId: build.build_id,
+      selectedTierId: params.get("tier"),
+      selectedCheckIndex: params.get("check"),
+      selectedReportCommit: params.get("report_commit"),
+    });
+
+    const selected = await screen.findByRole("row", { name: /check T0\.1 pass/ });
+    expect(screen.getAllByRole("rowheader").map((header) => header.querySelector("strong")?.textContent))
+      .toEqual(["T0.1", "T0.2", "T0.10", "T0.11", "T0.12", "T1.1", "T1.2", "tier1.1"]);
+    expect(selected).toHaveAttribute("aria-current", "true");
+    expect(screen.getByRole("row", { name: /check T0\.10 pass/ })).not.toHaveAttribute("aria-current");
+  });
+
   it("does not select a test ordinal in a different report revision", async () => {
     const build = buildFixture();
     fetchMock.mockResolvedValue(response(producerReport(build)));

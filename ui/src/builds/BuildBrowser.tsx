@@ -64,6 +64,8 @@ const reportUrlPattern =
   /^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_][A-Za-z0-9_.-]*)\/([a-f0-9]{40})\/qualification\/reports\/([A-Za-z0-9][A-Za-z0-9_.-]*\.json)$/;
 const sourceUrlPattern =
   /^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_][A-Za-z0-9_.-]*)\/([a-f0-9]{40})\/qualification\/index\.json$/;
+const checkIdPattern = /^T\d+(?:\.\d+)*$/;
+export const checkOrder = new Intl.Collator("en", { numeric: true });
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -206,6 +208,8 @@ function qualificationTiers(tiers: JsonRecord): QualificationTier[] {
       status: status(test.status),
       evidence: test,
     }] : []);
+    const known = (check: QualificationCheck) => checkIdPattern.test(text(check.evidence.id) ?? "");
+    checks.sort((a, b) => known(a) && known(b) ? checkOrder.compare(a.id, b.id) : Number(known(b)) - Number(known(a)));
     return [{ id, name: text(tier.tier_name) ?? id, verdict: status(tier.status), counts, checks }];
   });
 }

@@ -191,8 +191,11 @@ repository disclosure or breadcrumb. Show incomplete collection as quiet project
 metadata while retaining collection failures as alerts. Keep Overview as the rate-band summary. CI Activity uses the same
 month groups, typography, table rules and scroll behavior, but uses Qualification trend’s stacked outcome bars for each
 category, with a common run-count scale. Show the total through bar height, with
-pass/failure segments proportional to their counts. Put exact counts and totals
-in the tooltip, keeping the chart free of per-day numeric labels. Opening or
+pass/failure segments proportional to their counts.
+Keep every day's zero baseline aligned, including mixed outcomes and empty days;
+filter changes must not shift individual bars below zero. Tooltip wrappers around
+bars use block layout so outcome segments cannot affect inline baseline alignment.
+Put exact counts and totals in the tooltip, keeping the chart free of per-day numeric labels. Opening or
 closing a day tooltip must not add in-flow content or shift the chart. Never hide an
 individual failure inside a pass-rate band. Open day evidence in the shared
 interactive anchored popup with job logs, commits and pull-request links; preserve

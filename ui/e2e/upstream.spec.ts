@@ -203,3 +203,50 @@ test("hovering daily evidence leaves the chart position and page scroll unchange
   expect(await table.boundingBox()).toEqual(before);
   expect(await page.evaluate(() => window.scrollY)).toEqual(scrollBefore);
 });
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`daily bars share a zero baseline across projects and filters at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      const source = upstreamOverview.projects[0];
+      const projects = ["llamacpp", "whispercpp", "unsloth", "pytorch", "sdcpp", "vllm"].map((id) => ({
+        ...source, id,
+        jobs: source.jobs.map((job) => ({ ...job, daily: {
+          // Mixed outcomes, no runs and pure successes must share the same zero.
+          "2026-10-26": { passed: 20, failed: 0, running: 0, other: 0, stalled: 0, skipped: 0, slow: 0 },
+          "2026-10-27": { passed: 19, failed: 1, running: 0, other: 0, stalled: 0, skipped: 0, slow: 0 },
+          "2026-10-28": { passed: 0, failed: 1, running: 1, other: 1, stalled: 0, skipped: 0, slow: 0 },
+          "2026-10-29": { passed: 0, failed: 0, running: 0, other: 0, stalled: 1, skipped: 0, slow: 0 },
+        } })),
+      }));
+      await page.route(new URL("upstream/overview.json", indexUrl).href, (route) =>
+        route.fulfill({ json: { ...upstreamOverview, projects } }));
+      for (const project of projects) {
+        await page.goto(`./?track=upstream&view=ci&project=${project.id}`);
+        const charts = page.locator(".up-daily-chart");
+        await expect(charts).toHaveCount(14);
+        for (const filtered of [false, true]) {
+          if (filtered) await page.getByRole("group", { name: "Stack", exact: true }).getByRole("button", { name: "rocm", exact: true }).click();
+          const geometry = await charts.evaluateAll((elements) => elements.map((element) => {
+            const rect = element.getBoundingClientRect();
+            return { bottom: rect.bottom, top: rect.top,
+              segments: [...element.querySelectorAll(".qualification-segment")].map((segment) => {
+                const box = segment.getBoundingClientRect();
+                return { top: box.top, bottom: box.bottom };
+              }),
+            };
+          }));
+          const baseline = geometry[0].bottom;
+          for (const bar of geometry) {
+            expect(Math.abs(bar.bottom - baseline)).toBeLessThan(0.1);
+            for (const segment of bar.segments) {
+              expect(segment.bottom).toBeLessThanOrEqual(baseline);
+              expect(segment.top).toBeGreaterThanOrEqual(bar.top - 0.1);
+            }
+          }
+        }
+      }
+    });
+  }
+}

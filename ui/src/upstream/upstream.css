@@ -954,6 +954,9 @@ button.up-tick {
 .up-daily-detail { min-width: 42rem; table-layout: fixed; }
 .up-daily-detail th[rowspan] { width: 5.5rem; }
 .up-page .up-daily-detail td { padding: 0.5rem 0.15rem; }
+/* Inline flex baselines depend on the first outcome segment's height.
+   Keep each tooltip wrapper in block layout so every day shares zero. */
+.up-daily-detail td .comparison-tooltip { display: block; }
 .up-daily-detail th[scope="row"] { position: relative; padding-right: 2rem; }
 .up-daily-axis {
   position: absolute;

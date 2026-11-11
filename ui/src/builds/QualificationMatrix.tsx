@@ -186,7 +186,7 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
           const tier = report?.tiers.find((item) => item.id === id);
           const status = outcome(tier?.verdict ?? build.tier_verdicts?.[id]);
           const checks = tier?.checks.length
-            ? [...tier.checks].sort((a, b) => checkOrder.compare(a.id, b.id))
+            ? tier.checks
             : (byTier.get(id) ?? []).map(([id, status]) => ({ id, status, name: id, index: undefined, evidence: undefined }));
           return <li key={id}>
             <code title={tier?.name} aria-label={`${tierLabel(id)} · ${outcomes[status]}`}>{tierLabel(id)}</code>

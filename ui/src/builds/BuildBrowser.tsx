@@ -322,8 +322,19 @@ function selectedDevices(test: JsonRecord) {
   const buffers = list(field(test, "model_buffers_mib")).flatMap((entry) =>
     Array.isArray(entry) && text(entry[0]) && typeof entry[1] === "number"
       ? [`${label(String(entry[0]))}: ${entry[1]} MiB model buffer`] : []);
-  if (buffers.length) return buffers;
-  return devices.length ? devices.map((entry) => `${entry.label} selected`) : null;
+  return buffers.length ? buffers : null;
+}
+
+function gpuEvidence(test: JsonRecord) {
+  // The requested-offload line is printed from what -ngl asked for, even with no GPU, so it only
+  // stands in for records that carry no GPU evidence fields at all.
+  const recorded = ["gpu_proof", "devices_selected", "model_buffers_mib"].some((key) => field(test, key) !== undefined);
+  return [
+    field(test, "gpu_proof"),
+    selectedDevices(test),
+    field(test, "gpu_offload"),
+    recorded ? undefined : field(test, "requested_offload_line"),
+  ];
 }
 
 function evidence(label: string, values: unknown[]) {
@@ -432,12 +443,7 @@ function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selecti
                             {check.name}
                             {evidence("Compatibility", [field(test, "compatibility")])}
                             {evidence("Runtime", [field(test, "runtime")])}
-                            {evidence("GPU offload", [
-                              field(test, "gpu_proof"),
-                              selectedDevices(test),
-                              field(test, "gpu_offload"),
-                              field(test, "requested_offload_line"),
-                            ])}
+                            {evidence("GPU offload", gpuEvidence(test))}
                             {details && Object.keys(details).length > 0 && (
                               <details>
                                 <summary>Audit details</summary>

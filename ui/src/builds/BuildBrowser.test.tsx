@@ -293,10 +293,7 @@ describe("BuildBrowser", () => {
         status: "pass",
         tests: [
           { id: "T1.1", name: "llama.cpp proof", status: "pass", details: {
-            gpu_proof: [
-              "llama_prepare_model_devices: using device ROCm0 (AMD Radeon 8060S Graphics) (0000:c5:00.0) - 65234 MiB free",
-              "load_tensors:        ROCm0 model buffer size =   358.78 MiB",
-            ],
+            gpu_proof: ["using device ROCm0 (AMD Radeon 8060S Graphics)", "ROCm0 model buffer size = 358.78 MiB"],
             devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
             model_buffers_mib: [["ROCm0", 358.78]],
             requested_offload_line,
@@ -306,13 +303,23 @@ describe("BuildBrowser", () => {
             model_buffers_mib: [["ROCm0", 358.78]],
             requested_offload_line,
           } },
-          { id: "T1.3", name: "selected device only", status: "fail", details: {
+          { id: "T1.3", name: "llama.cpp no proof", status: "fail", details: {
             gpu_proof: [],
             devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
             model_buffers_mib: [],
             requested_offload_line,
           } },
-          { id: "T1.4", name: "requested only", status: "pass", details: { requested_offload_line } },
+          { id: "T1.4", name: "older llama.cpp proof", status: "pass", details: {
+            gpu_proof: ["using device ROCm0", "ROCm0 model buffer size"],
+            devices_reported: [],
+            requested_offload_line,
+          } },
+          { id: "T1.5", name: "older llama.cpp no proof", status: "fail", details: {
+            gpu_proof: [],
+            devices_reported: [],
+            requested_offload_line,
+          } },
+          { id: "T1.6", name: "requested only", status: "pass", details: { requested_offload_line } },
         ],
       },
     } })));
@@ -320,13 +327,15 @@ describe("BuildBrowser", () => {
 
     const offload = async (name: string) =>
       (await screen.findByRole("row", { name: new RegExp(name) })).querySelector(".build-browser-evidence")?.textContent;
-    expect(await offload("llama.cpp proof")).toBe(
-      "GPU offload: llama_prepare_model_devices: using device ROCm0 (AMD Radeon 8060S Graphics) (0000:c5:00.0) - 65234 MiB free, " +
-      "load_tensors:        ROCm0 model buffer size =   358.78 MiB");
+    expect(await offload("^T1.1 llama.cpp proof")).toBe(
+      "GPU offload: using device ROCm0 (AMD Radeon 8060S Graphics), ROCm0 model buffer size = 358.78 MiB");
     expect(await offload("llamacpp-rocm buffers")).toBe("GPU offload: ROCm0 (AMD Radeon 8060S Graphics): 358.78 MiB model buffer");
-    expect(await offload("selected device only")).toBe("GPU offload: ROCm0 (AMD Radeon 8060S Graphics) selected");
+    // A record with its own GPU evidence fields never falls back to the requested-offload line.
+    expect(await offload("^T1.3 llama.cpp no proof")).toBeUndefined();
+    expect(await offload("older llama.cpp proof")).toBe("GPU offload: using device ROCm0, ROCm0 model buffer size");
+    expect(await offload("older llama.cpp no proof")).toBeUndefined();
     expect(await offload("requested only")).toBe(`GPU offload: ${requested_offload_line}`);
-    expect(screen.getAllByText(/"requested_offload_line": "offloaded 29\/29 layers to GPU"/)).toHaveLength(4);
+    expect(screen.getAllByText(/"requested_offload_line": "offloaded 29\/29 layers to GPU"/)).toHaveLength(6);
   });
 
   it("does not select a test ordinal in a different report revision", async () => {

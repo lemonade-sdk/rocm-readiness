@@ -179,10 +179,24 @@ headings are neutral primary-text links to that project's CI Activity page; do n
 repeat navigation beneath the calendar. Keep repository/fork information and
 collection notices in CI Activity. Overview keeps aligned project metrics and
 clickable daily activity, retaining unknown/incomplete evidence semantics. CI Activity reuses Build Qualification's grouped filter controls and selected
-states: Project, Platform, and Stack / target. Disable platforms without configured
+states: Project, Platform, Stack, and Target. Stack and Target are independent inclusive
+toggle groups: all included values use the filled selected state, without an
+Everything AMD control. Retain at least one value per group and keep both groups
+in the URL; legacy lens links remain supported. Disable platforms without configured
 jobs; retain at least one available platform. Preserve project/filter context when
 switching sidebar pages. Overview day links open the exact UTC date and category
 in CI Activity; retain that selection in the URL through reload and browser history. Keep
-legacy project-only URLs working. Place daily activity before project-wide
+legacy project-only URLs working. List source repositories directly in the compact project summary, without a
+repository disclosure or breadcrumb. Show incomplete collection as quiet project
+metadata while retaining collection failures as alerts. Keep Overview as the rate-band summary. CI Activity uses the same
+month groups, typography, table rules and scroll behavior, but uses Qualification trend’s stacked outcome bars for each
+category, with a common run-count scale. Show the total through bar height, with
+pass/failure segments proportional to their counts. Put exact counts and totals
+in the tooltip, keeping the chart free of per-day numeric labels. Opening or
+closing a day tooltip must not add in-flow content or shift the chart. Never hide an
+individual failure inside a pass-rate band. Open day evidence in the shared
+interactive anchored popup with job logs, commits and pull-request links; preserve
+selected UTC dates in the URL and browser history. Keep missing evidence distinct
+from zero failures and label requested-but-unrun, skipped and undecided outcomes. Place daily activity before project-wide
 coverage and findings, with job-log, commit and pull-request evidence available
 in run drill-downs. Keep wide tables independently keyboard-scrollable.

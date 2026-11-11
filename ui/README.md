@@ -37,12 +37,14 @@ notices are shown.
 Nested sidebar links switch between Overview (`&view=overview`) and CI Activity
 (`&view=ci`). Overview shows one project per row with a 14-day activity calendar. Selecting a
 day opens its UTC date and category in CI Activity, including after reload.
-CI Activity uses the shared Project, Platform and Stack / target filter controls
+CI Activity uses the shared Project, Platform, Stack and Target filter controls
 and contains daily run counts and detailed evidence. Project headings use the primary text color. A project
-activity page (`&view=ci&project=<id>`, with legacy `&project=<id>` URLs supported) has a filter (`&lens=<stack or gfx target>`) that filters job-derived numbers and charts. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
+activity page (`&view=ci&project=<id>`, with legacy `&project=<id>` URLs supported) uses independent inclusive stack (`&stack=<comma-separated values>`) and target
+(`&target=<comma-separated values>`) filters for job-derived numbers and calendars.
+Omitting a group includes all its values; legacy `&lens=<stack or target>` links still work. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
 
-- per-day diverging bars (passes up, failures down);
-- day panels linking each run's job log, commit and pull request;
+- a detailed daily table with grouped month headings, stacked outcome bars on one shared run-count scale;
+- interactive day tooltips with totals, exact outcome counts and each run's job log, commit and pull request;
 - platform coverage;
 - the merge gate;
 - what is failing on main;

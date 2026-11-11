@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { Fetcher, Session } from "../data";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
@@ -6,7 +7,6 @@ import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildT
 import {
   CATEGORIES,
   cellState,
-  keepJob,
   loadRuns,
   loadUpstream,
   mergedRed,
@@ -17,6 +17,7 @@ import {
 } from "./data";
 import type { Cell, Job, Project, Run, UpstreamOverview } from "./data";
 import "../builds/BuildViews.css";
+import "../builds/QualificationCharts.css";
 import "./upstream.css";
 
 const GH = "https://github.com/";
@@ -149,37 +150,19 @@ function Badge({ project }: { project: Project }) {
   );
 }
 
-function Forks({ project }: { project: Project }) {
-  if (!project.forks.length) return null;
-  return (
-    <details className="up-forks" onClick={(event) => event.stopPropagation()}>
-      <summary>
-        {project.forks.length} {project.forks.length > 1 ? "forks" : "fork"}
-      </summary>
-      <ul>
-        {project.forks.map((fork) => (
-          <li key={fork.repository}>
-            <a href={GH + fork.repository} target="_blank" rel="noreferrer">
-              {fork.repository}
-            </a>
-            <span className="muted">
-              {fork.role}
-              {fork.channel ? ` · ${fork.channel}` : ""}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
 function ProjectSources({ project }: { project: Project }) {
   return (
     <div className="up-sources" role="group" aria-label={`${project.label} source repositories`}>
-      <a className="up-repo" aria-label={`Repository: ${project.repository}`} href={GH + project.repository} target="_blank" rel="noreferrer">
-        <span className="muted">Repository:</span>{" "}{project.repository}
-      </a>
-      <Forks project={project} />
+      <span className="up-source-label muted">Repositories</span>
+      <ul className="up-source-list">
+        <li><a aria-label={`Repository: ${project.repository}`} href={GH + project.repository} target="_blank" rel="noreferrer">{project.repository}</a><span className="muted">upstream</span></li>
+        {project.forks.map((fork) => (
+          <li key={fork.repository}>
+            <a href={GH + fork.repository} target="_blank" rel="noreferrer">{fork.repository}</a>
+            <span className="muted">{fork.role}{fork.channel ? ` · ${fork.channel}` : ""}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -262,77 +245,6 @@ function describe(day: string, cell: Cell | undefined) {
   return `${day}: ${cell.passed} passed, ${cell.failed} failed of ${ran} runs`;
 }
 
-/** Passes grow up from the line; failures hang below it on their own scale. */
-function DayBars({
-  days,
-  cellOf,
-  selected,
-  onPick,
-  label,
-}: {
-  days: string[];
-  cellOf: (day: string) => Cell;
-  selected: string | null;
-  onPick: (day: string) => void;
-  label: string;
-}) {
-  const up = 30;
-  const down = 14;
-  const peak = Math.max(
-    1,
-    ...days.map((d) => cellOf(d).passed),
-  );
-  const failPeak = Math.max(1, ...days.map((d) => cellOf(d).failed));
-  return (
-    <div className="up-bars" role="group" aria-label={label}>
-      {days.map((day) => {
-        const cell = cellOf(day);
-        const ok = cell.passed;
-        const ran = ok + cell.failed + cell.other + cell.running;
-        return (
-          <button
-            key={day}
-            type="button"
-            className={`up-bar${selected === day ? " selected" : ""}`}
-            title={describe(day, cell)}
-            aria-label={describe(day, cell)}
-            aria-pressed={selected === day}
-            onClick={() => onPick(day)}
-          >
-            <span className="up-bar-up" style={{ height: up }}>
-              {ok > 0 ? (
-                <i
-                  className="up-pass"
-                  style={{ height: Math.max(2, Math.round((up * ok) / peak)) }}
-                />
-              ) : !ran && cell.stalled ? (
-                <i className="up-stall" />
-              ) : !ran && cell.skipped ? (
-                <i className="up-skip" />
-              ) : null}
-            </span>
-            <span className="up-bar-base" />
-            <span className="up-bar-down" style={{ height: down }}>
-              {cell.failed > 0 && (
-                <i
-                  className="up-fail"
-                  style={{
-                    height: Math.max(
-                      3,
-                      Math.round((down * cell.failed) / failPeak),
-                    ),
-                  }}
-                />
-              )}
-            </span>
-            <span className="up-bar-day">{day.slice(8)}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ---- home: one card per project ------------------------------------------------ */
 
 function ProjectGrid({
@@ -358,11 +270,11 @@ function ProjectGrid({
                 <h2>
                 <a
                   className="up-project-link"
-                  href={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null })}`}
+                  href={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day: null, activity: null })}`}
                   onClick={(event) => {
                     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                     event.preventDefault();
-                    onNavigate(query(params, { view: "ci", project: project.id, lens: null, platform: null, day: null, activity: null }));
+                    onNavigate(query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day: null, activity: null }));
                   }}
                 >
                   {project.label}
@@ -404,9 +316,19 @@ function ProjectGrid({
   );
 }
 
-function ProjectActivity({ project, jobs, days, params }: { project: Project; jobs: Job[]; days: string[]; params: URLSearchParams }) {
+function ProjectActivity({ project, jobs, days, params, onPick, selected, renderDay }: {
+  project: Project; jobs: Job[]; days: string[]; params: URLSearchParams;
+  onPick?: (category: string, day: string) => void;
+  selected?: { key: string; day: string } | null;
+  renderDay?: (category: string, day: string) => ReactNode;
+}) {
   const last14 = days;
   const months = calendarMonthGroups(last14);
+  const totalRuns = (cell: Cell) => cell.passed + cell.failed + cell.running + cell.other;
+  const scale = Math.max(1, ...CATEGORIES.flatMap((category) => {
+    const group = jobs.filter((job) => job.category === category);
+    return days.map((day) => totalRuns(sumCells(group, day)));
+  }));
   return (
     <section className="up-detail-activity" aria-label="Daily CI activity">
     <div
@@ -415,7 +337,7 @@ function ProjectActivity({ project, jobs, days, params }: { project: Project; jo
       aria-label={`${project.label} activity calendar`}
       tabIndex={0}
     >
-      <table className="up-activity-table" aria-label="Daily CI activity">
+      <table className={`up-activity-table${onPick ? " up-daily-detail" : ""}`} aria-label="Daily CI activity">
         <colgroup><col /></colgroup>
         {months.map((month) => <colgroup key={month.key} span={month.days} />)}
         <thead>
@@ -444,20 +366,36 @@ function ProjectActivity({ project, jobs, days, params }: { project: Project; jo
             if (!group.length) return null;
             return (
               <tr key={category}>
-                <th scope="row">{category}</th>
+                <th scope="row">{category}{onPick && <span className="up-daily-axis" aria-hidden="true"><span>{scale}</span><span>0</span></span>}</th>
                 {last14.map((day, index) => {
                   const cell = sumCells(group, day);
                   const state = cellState(cell);
                   const text = describe(day, cell);
                   return (
-                    <td key={day} data-outcome={activityOutcomes[state]} className={isCalendarMonthBoundary(last14, index) ? "table-status month-boundary" : "table-status"}>
-                      <Tooltip floating label={text} triggerClassName="up-tick"
-                        to={`?${query(params, { view: "ci", project: project.id, lens: null, platform: null, day, activity: `cat:${category}` })}`}
-                        content={<TooltipContent heading={day} status={activityStates[state].label}>
-                          <span>{text}</span>
-                        </TooltipContent>}>
-                        <ActivityMark state={state} />
-                      </Tooltip>
+                    <td key={day} data-outcome={activityOutcomes[state]} className={`${onPick ? "up-daily-cell" : "table-status"}${isCalendarMonthBoundary(last14, index) ? " month-boundary" : ""}`}>
+                      {onPick ? (
+                        <Tooltip interactive label={text} triggerClassName="up-daily-trigger"
+                          contentClassName="up-run-tooltip"
+                          isOpen={selected?.key === `cat:${category}` && selected.day === day}
+                          onOpenChange={(next) => {
+                            const active = selected?.key === `cat:${category}` && selected.day === day;
+                            if (next !== active) onPick(category, day);
+                          }}
+                          content={renderDay?.(category, day)}>
+                          <span className="qualification-trend-stack up-daily-chart" aria-hidden="true">
+                            {cell.passed > 0 && <span className="qualification-segment pass up-pass" style={{ height: `${100 * cell.passed / scale}%` }} />}
+                            {cell.failed > 0 && <span className="qualification-segment fail up-fail" style={{ height: `${100 * cell.failed / scale}%` }} />}
+                            {cell.other + cell.running > 0 && <span className="qualification-segment unknown" style={{ height: `${100 * (cell.other + cell.running) / scale}%` }} />}
+                            {!totalRuns(cell) && <span className="up-daily-special"><ActivityMark state={state} /></span>}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip floating label={text} triggerClassName="up-tick"
+                          to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}
+                          content={<TooltipContent heading={day} status={activityStates[state].label}><span>{text}</span></TooltipContent>}>
+                          <ActivityMark state={state} />
+                        </Tooltip>
+                      )}
                     </td>
                   );
                 })}
@@ -467,6 +405,12 @@ function ProjectActivity({ project, jobs, days, params }: { project: Project; jo
         </tbody>
       </table>
     </div>
+    {onPick ? <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
+      <li><span className="qualification-segment pass" />Passed</li>
+      <li><span className="qualification-segment fail" />Failed</li>
+      <li><span className="qualification-segment unknown" />Running / other</li>
+      <li>□ Requested, no runs</li><li>↷ Skipped</li><li>– No collected evidence</li><li>○ No pass or fail result</li>
+    </ul> : (
     <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
       {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
         <li key={state}>
@@ -475,6 +419,7 @@ function ProjectActivity({ project, jobs, days, params }: { project: Project; jo
         </li>
       ))}
     </ul>
+    )}
     </section>
   );
 }
@@ -525,18 +470,22 @@ function ProjectPage({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
-  const lens = params.get("lens") ?? "all";
-  const scopedJobs = project.jobs.filter(keepJob(lens));
-  const platforms = [...new Set(scopedJobs.map((job) => job.os))];
+  const stacks = [...new Set(project.jobs.map((job) => job.stack))].sort();
+  const targets = [...new Set(project.jobs.map((job) => job.target))].sort();
+  // Legacy lens links still select their original stack or target.
+  const lens = params.get("lens");
+  const selection = (key: string, options: string[]) => {
+    const requested = params.get(key)?.split(",") ?? (lens && options.includes(lens) ? [lens] : options);
+    const valid = options.filter((value) => requested.includes(value));
+    return valid.length ? valid : options;
+  };
+  const selectedStacks = selection("stack", stacks);
+  const selectedTargets = selection("target", targets);
+  const scopedJobs = project.jobs.filter((job) => selectedStacks.includes(job.stack) && selectedTargets.includes(job.target));
+  const platforms = [...new Set(project.jobs.map((job) => job.os))];
   const requestedPlatform = params.get("platform");
   const platform = requestedPlatform && platforms.includes(requestedPlatform as "linux" | "windows") ? requestedPlatform : null;
   const jobs = scopedJobs.filter((job) => platform === null || job.os === platform);
-  const stacks = [...new Set(project.jobs.map((j) => j.stack))].sort();
-  const targets = [
-    ...new Set(
-      project.jobs.map((j) => j.target).filter((t) => t.startsWith("gfx")),
-    ),
-  ].sort();
   const days14 = windowDays(overview, 14);
   const allDays = windowDays(overview);
   const [runs, setRuns] = useState<{
@@ -585,8 +534,18 @@ function ProjectPage({
       .slice(0, 6);
   }, [jobs]);
 
-  const setLens = (value: string) =>
-    onNavigate(query(params, { lens: value === "all" ? null : value, platform: null }));
+  const toggle = (key: "stack" | "target", value: string) => {
+    const current = key === "stack" ? selectedStacks : selectedTargets;
+    const options = key === "stack" ? stacks : targets;
+    const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+    if (!next.length) return;
+    onNavigate(query(params, {
+      lens: null,
+      stack: selectedStacks.length === stacks.length ? null : selectedStacks.join(","),
+      target: selectedTargets.length === targets.length ? null : selectedTargets.join(","),
+      [key]: next.length === options.length ? null : next.join(","),
+    }));
+  };
   const pick = (key: string, day: string, ids: string[]) =>
     setOpen(
       open && open.key === key && open.day === day
@@ -599,26 +558,17 @@ function ProjectPage({
       aria-label={`${project.label} upstream health`}
       className="up-page"
     >
-      <nav className="up-page-nav" aria-label="Project navigation">
-        <a
-          href={`?${query(params, { view: "overview", project: null, lens: null })}`}
-          onClick={(e) => {
-            e.preventDefault();
-            onNavigate(query(params, { view: "overview", project: null, lens: null }));
-          }}
-        >
-          ‹ All projects
-        </a>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">{project.label}</span>
-      </nav>
+      <div className="up-project-summary">
       <header className="up-project-header">
         <div className="up-page-head">
           <h2>{project.label}</h2>
           <Badge project={project} />
         </div>
         <ProjectSources project={project} />
-        <p className="up-rule muted">Badge describes configured jobs with observed runs; it does not verify physical hardware, complete support, or published artifacts.</p>
+        <div className="up-project-notes muted">
+          <p>Configured CI evidence; does not verify physical hardware or published artifacts.</p>
+          {!project.coverage.complete && !project.coverage.error && <p>◌ Collection incomplete · oldest days may be missing.</p>}
+        </div>
       </header>
       <div className="up-kpis up-kpis-page">
         <Stat
@@ -630,12 +580,13 @@ function ProjectPage({
           <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
       </div>
+      </div>
       <div className="build-browser-toolbar build-filters" role="group" aria-label="Filter">
         <fieldset className="build-filter-options">
           <legend>Project</legend>
           {overview.projects.map((item) => (
             <button key={item.id} type="button" aria-pressed={project.id === item.id}
-              onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, platform: null, day: null, activity: null }))}>
+              onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, stack: null, target: null, platform: null, day: null, activity: null }))}>
               {item.label}
             </button>
           ))}
@@ -651,83 +602,42 @@ function ProjectPage({
             </button>;
           })}
         </fieldset>
-        <fieldset className="build-filter-options">
-          <legend>Stack / target</legend>
-          {["all", ...stacks, ...targets].map((value) => (
-            <button key={value} type="button" aria-pressed={lens === value} onClick={() => setLens(value)}>
-              {value === "all" ? "Everything AMD" : value}
-            </button>
-          ))}
-        </fieldset>
+        {([{ key: "stack", label: "Stack", options: stacks, selected: selectedStacks },
+          { key: "target", label: "Target", options: targets, selected: selectedTargets }] as const).map((group) => (
+          <fieldset key={group.key} className="build-filter-options">
+            <legend>{group.label}</legend>
+            {group.options.map((value) => <button key={value} type="button"
+              aria-pressed={group.selected.includes(value)}
+              disabled={group.selected.length === 1 && group.selected.includes(value)}
+              onClick={() => toggle(group.key, value)}>{value}</button>)}
+          </fieldset>
+        ))}
         <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
       </div>
-      {open && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
+      {open?.key === "all" && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
       {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} days={allDays} runs={runs}
         onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
       {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
-      {!project.coverage.complete && !project.coverage.error && (
-        <p className="notice">
-          Collection for this project is still filling its window; the oldest
-          days may be incomplete.
-        </p>
-      )}
       <div className="up-cols">
-        <div>
-          <section className="card up-panel" aria-label="Per day">
-            <h2>
-              Per day{" "}
-              <span className="muted">
-                main only, last 14 days · passed up, failed down
-              </span>
-            </h2>
-            {CATEGORIES.map((category) => {
-              const group = jobs.filter((j) => j.category === category);
-              const key = `cat:${category}`;
-              if (!group.length && open?.key !== key) return null;
-              return (
-                <div key={category} className="up-daychart">
-                  <h3 title={group.map((j) => j.label).join(", ")}>
-                    {category}
-                  </h3>
-                  {days14.every((d) => !group.some((j) => j.daily[d])) && (
-                    <p className="muted up-empty-chart">
-                      No collected runs on the default branch in the last 14 days.
-                    </p>
-                  )}
-                  <DayBars
-                    days={days14}
-                    cellOf={(d) => sumCells(group, d)}
-                    selected={open?.key === key ? open.day : null}
-                    onPick={(day) =>
-                      pick(
-                        key,
-                        day,
-                        group.map((j) => j.id),
-                      )
-                    }
-                    label={`${category} per day`}
-                  />
-                  {open?.key === key && (
-                    <DayPanel
-                      project={project}
-                      jobs={group}
-                      day={open.day}
-                      days={days14}
-                      runs={runs}
-                      onDay={(day) => setOpen({ ...open, day })}
-                      onClose={() => setOpen(null)}
-                    />
-                  )}
-                </div>
-              );
-            })}
+        <div className="up-activity-analysis">
+          <section className="up-panel" aria-label="Daily activity">
+            <h2>Daily activity <span className="muted">main only · last 14 days · UTC</span></h2>
+            {jobs.length === 0 ? <p className="muted">No configured jobs match these filters.</p> : !jobs.some((job) => days14.some((day) => job.daily[day])) && <p className="muted">No collected runs on the default branch in the last 14 days.</p>}
+            <ProjectActivity project={project} jobs={jobs} days={days14} params={params}
+              selected={open} onPick={(category, day) => pick(`cat:${category}`, day, [])}
+              renderDay={(category, day) => <DayPanel project={project}
+                jobs={jobs.filter((job) => job.category === category)} day={day}
+                days={days14} runs={runs} onDay={(next) => setOpen({ key: `cat:${category}`, day: next, jobs: [] })}
+                onClose={() => setOpen(null)} />} />
+            {open?.key.startsWith("cat:") &&
+              (!days14.includes(open.day) || !jobs.some((job) => `cat:${job.category}` === open.key)) && (
+              <DayPanel project={project} jobs={jobs.filter((job) => `cat:${job.category}` === open.key)}
+                day={open.day} days={allDays} runs={runs}
+                onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />
+            )}
           </section>
-        </div>
-        <div>
-          <Platforms project={project} />
-          <MergeGate jobs={jobs} complete={project.coverage.complete} />
           <section
-            className="card up-panel"
+            className="up-panel"
             aria-label="What is failing on main"
           >
             <h2>What is failing on main</h2>
@@ -750,6 +660,11 @@ function ProjectPage({
             )}
           </section>
         </div>
+        <div className="up-project-coverage">
+          <Platforms project={project} />
+          <MergeGate jobs={jobs} complete={project.coverage.complete} />
+
+        </div>
       </div>
       {findings.length > 0 && (
         <details className="up-findings">
@@ -764,7 +679,7 @@ function ProjectPage({
           ))}
         </details>
       )}
-      <details className="card up-panel up-jobs">
+      <details className="up-panel up-jobs">
         <summary>
           <h2>
             By job{" "}
@@ -875,9 +790,11 @@ function DayPanel({
         </button>
         <strong>{day}</strong>
         <span className="muted">
-          {cell.passed} passed, {cell.failed} failed
+          {cell.passed + cell.failed + cell.running + cell.other} runs · {cell.passed} passed, {cell.failed} failed
           {cell.stalled ? `, ${cell.stalled} never ran` : ""}
           {cell.skipped ? `, ${cell.skipped} skipped` : ""}
+          {cell.running ? `, ${cell.running} running` : ""}
+          {cell.other ? `, ${cell.other} other results` : ""}
         </span>
         <button type="button" onClick={onClose} aria-label="Close">
           ×
@@ -966,7 +883,7 @@ function Platforms({ project }: { project: Project }) {
     </td>
   );
   return (
-    <section className="card up-panel" aria-label="Platforms">
+    <section className="up-panel" aria-label="Platforms">
       <h2>
         Platforms <span className="muted">project-wide configured targets</span>
       </h2>
@@ -1021,7 +938,7 @@ function MergeGate({ jobs, complete }: { jobs: Job[]; complete: boolean }) {
   if (!gated.length) return null;
   const shown = list && gated.find((j) => j.id === list.job);
   return (
-    <section className="card up-panel" aria-label="Merge gate">
+    <section className="up-panel" aria-label="Merge gate">
       <h2>
         Merge gate{" "}
         <span className="muted">{complete ? "the job on the commit that merged" : "collected evidence on the commit that merged; incomplete"}</span>

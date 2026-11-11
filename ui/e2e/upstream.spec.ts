@@ -47,12 +47,12 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12 results on main passed")).toBeVisible();
-  await page.getByRole("button", { name: "vulkan" }).click();
-  await expect(page).toHaveURL(/lens=vulkan/);
+  await page.getByRole("button", { name: "rocm" }).click();
+  await expect(page).toHaveURL(/stack=vulkan/);
   await expect(page.getByText("of 8 results on main passed")).toBeVisible();
-  await page.getByRole("button", { name: "Everything AMD" }).click();
+  await page.getByRole("button", { name: "rocm" }).click();
   await page
-    .getByRole("region", { name: "Per day" })
+    .getByRole("region", { name: "Daily activity" })
     .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" })
     .click();
   const panel = page.getByRole("region", { name: "Runs on 2026-10-27" });
@@ -63,9 +63,9 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goBack();
   await expect(page).not.toHaveURL(/day=/);
   await page.goBack();
-  await expect(page).toHaveURL(/lens=vulkan/);
+  await expect(page).toHaveURL(/stack=vulkan/);
   await page.goBack();
-  await expect(page).not.toHaveURL(/lens=/);
+  await expect(page).not.toHaveURL(/stack=/);
 });
 
 for (const theme of ["light", "dark"] as const) {
@@ -84,13 +84,11 @@ for (const theme of ["light", "dark"] as const) {
       const link = project.getByRole("link", { name: "llama.cpp", exact: true });
       await link.focus();
       await page.keyboard.press("Enter");
-      const navigation = page.getByRole("navigation", { name: "Project navigation" });
-      await expect(navigation.getByText("llama.cpp")).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "Project navigation" })).toHaveCount(0);
       await expect(page.getByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toBeVisible();
-      await page.getByText("1 fork", { exact: true }).click();
       await expect(page.getByRole("link", { name: "lemonade-sdk/llama.cpp" })).toBeVisible();
-      await expect(page.getByRole("table", { name: "Daily CI activity" })).toHaveCount(0);
-      await page.getByRole("region", { name: "Per day", exact: true }).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }).click();
+      await expect(page.getByRole("table", { name: "Daily CI activity" })).toHaveCount(1);
+      await page.getByRole("region", { name: "Daily activity", exact: true }).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }).click();
       await expect(page.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath("before-scroll.png"), fullPage: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -102,8 +100,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect.poll(() => coverage.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
       }
       await page.screenshot({ path: testInfo.outputPath("project.png"), fullPage: true });
-      await navigation.getByRole("link", { name: /All projects/ }).click();
-      await expect(page).not.toHaveURL(/project=/);
+      await page.getByRole("list", { name: "Upstream health views" }).getByRole("link", { name: "Overview", exact: true }).click();
       await expect(page.getByRole("region", { name: "Upstream projects" })).toBeVisible();
     });
   }
@@ -142,4 +139,66 @@ test("overview day links restore the selected date and run evidence after reload
   await expect(page).toHaveURL(/day=2026-10-28/);
   await page.goBack();
   await expect(page.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();
+});
+
+test("independent stack and target selections survive reload and history", async ({ page }) => {
+  await page.goto("./?track=upstream&view=ci&project=llamacpp");
+  const stacks = page.getByRole("group", { name: "Stack", exact: true });
+  const targets = page.getByRole("group", { name: "Target", exact: true });
+  await expect(stacks.getByRole("button", { name: "rocm", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(stacks.getByRole("button", { name: "vulkan" })).toHaveAttribute("aria-pressed", "true");
+  await stacks.getByRole("button", { name: "rocm", exact: true }).click();
+  await targets.getByRole("button", { name: "gfx1201" }).click();
+  await expect(page.getByText("No configured jobs match these filters.")).toBeVisible();
+  await page.reload();
+  await expect(stacks.getByRole("button", { name: "rocm", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await expect(targets.getByRole("button", { name: "gfx1201" })).toHaveAttribute("aria-pressed", "false");
+  await page.goBack();
+  await expect(page.getByText("of 8 results on main passed")).toBeVisible();
+  await stacks.getByRole("button", { name: "rocm", exact: true }).click();
+  await expect(page.getByText("of 12 results on main passed")).toBeVisible();
+  await expect(page).not.toHaveURL(/stack=|target=/);
+});
+
+for (const width of [390, 1440]) {
+  test(`daily count popup supports keyboard dismissal at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.goto("./?track=upstream&view=ci&project=llamacpp");
+    const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+    await expect(day).toHaveText("");
+    await day.focus();
+    const table = page.getByRole("table", { name: "Daily CI activity" });
+    const before = await table.boundingBox();
+    await day.press("Enter");
+    const popup = page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+    await expect(popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
+    await expect(popup).toContainText("4 runs");
+    expect(await table.boundingBox()).toEqual(before);
+    const bounds = await popup.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: testInfo.outputPath("daily-popup.png"), fullPage: true });
+    await page.keyboard.press("Escape");
+    await expect(popup).toHaveCount(0);
+    await expect(page).not.toHaveURL(/day=/);
+    await expect(day).toBeFocused();
+  });
+}
+
+test("hovering daily evidence leaves the chart position and page scroll unchanged", async ({ page }) => {
+  await page.goto("./?track=upstream&view=ci&project=llamacpp");
+  const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+  await day.scrollIntoViewIfNeeded();
+  const table = page.getByRole("table", { name: "Daily CI activity" });
+  const before = await table.boundingBox();
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await day.hover();
+  await expect(page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" })).toBeVisible();
+  expect(await table.boundingBox()).toEqual(before);
+  expect(await page.evaluate(() => window.scrollY)).toEqual(scrollBefore);
+  await page.mouse.move(10, 10);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(await table.boundingBox()).toEqual(before);
+  expect(await page.evaluate(() => window.scrollY)).toEqual(scrollBefore);
 });

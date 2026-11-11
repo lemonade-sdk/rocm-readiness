@@ -90,19 +90,48 @@
   align-items: center;
   justify-content: space-between;
   gap: .75rem;
-  padding: 16px 18px;
+  padding: .65rem .8rem;
 }
-.structured-tooltip-header strong { font-size: 1rem; }
+.structured-tooltip-header strong { min-width: 0; overflow-wrap: anywhere; font: 600 .95rem/1.4 system-ui, sans-serif; }
 .comparison-bubble .structured-tooltip-body {
   display: grid;
-  gap: .35rem;
-  padding: 12px 18px;
+  gap: .45rem;
+  padding: .6rem .8rem;
   background: var(--subpanel);
   border-top: 1px solid var(--line);
 }
 .structured-tooltip-body:has(.build-tooltip-details) { display: block; padding: 0; border: 0; }
-.structured-tooltip-body dl:not(.build-tooltip-details) { display: grid; grid-template-columns: auto 1fr; gap: .35rem .85rem; margin: 0; }
-.structured-tooltip-body dl:not(.build-tooltip-details) dd { margin: 0; text-align: end; }
+/* Shared evidence format, established by Qualification check tooltips.
+   Custom visualizations opt out explicitly through TooltipContent.format. */
+.structured-tooltip-body[data-format="details"] {
+  --tooltip-label-width: clamp(6rem, 28vw, 10rem);
+  overflow-wrap: anywhere;
+}
+.structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) {
+  display: grid;
+  grid-template-columns: var(--tooltip-label-width) minmax(0, 1fr);
+  gap: 0 .65rem;
+  margin: 0;
+  font: .75rem/1.35 system-ui, sans-serif;
+}
+.structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) > div { display: contents; }
+.structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) :is(dt, dd) {
+  padding-block: .24rem;
+  border-bottom: 1px solid var(--line);
+}
+.structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) dt {
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) dd {
+  margin: 0;
+  text-align: start;
+  font: inherit;
+  max-inline-size: 32rem;
+}
+
 
 .comparison-bubble.floating-tooltip {
   display: block;
@@ -156,14 +185,14 @@
 .tooltip-surface .structured-tooltip-header { background: var(--panel); }
 .tooltip-arrow { pointer-events: none; }
 
-.comparison-bubble a {
+.comparison-bubble .tooltip-content a {
   color: inherit;
   text-decoration-line: underline;
   text-decoration-style: dotted;
   text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
   text-underline-offset: .2em;
 }
-.comparison-bubble a:not([target="_blank"])::after {
+.comparison-bubble .tooltip-content a:not([target="_blank"])::after {
   content: " →";
   display: inline-block;
   margin-inline-start: .15em;
@@ -171,8 +200,17 @@
   font-size: .85em;
   text-decoration: none;
 }
-.comparison-bubble a:is(:hover, :focus-visible) {
+.comparison-bubble .tooltip-content a:is(:hover, :focus-visible) {
   color: inherit;
   text-decoration-color: currentColor;
 }
-.comparison-bubble a:is(:hover, :focus-visible)::after { opacity: 1; }
+.comparison-bubble .tooltip-content a:is(:hover, :focus-visible)::after { opacity: 1; }
+
+.comparison-bubble .tooltip-content a[target="_blank"]::after {
+  content: " ↗";
+  display: inline-block;
+  margin-inline-start: .15em;
+  opacity: .65;
+  font-size: .85em;
+  text-decoration: none;
+}

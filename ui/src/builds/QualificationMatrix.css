@@ -115,30 +115,6 @@
 .qualification-table thead th { background: var(--panel); }
 .qualification-table tbody th { border-inline-end: 1px solid var(--line); }
 
-.qualification-popup .structured-tooltip-body {
-  --qualification-label-width: clamp(6rem, 28vw, 10rem);
-  overflow-wrap: anywhere;
-}
-.qualification-popup .structured-tooltip-body dl:not(.build-tooltip-details) {
-  grid-template-columns: var(--qualification-label-width) minmax(0, 1fr);
-  gap: 0 .65rem;
-  font: .75rem/1.35 system-ui, sans-serif;
-}
-.qualification-popup .structured-tooltip-body dl :is(dt, dd) {
-  padding-block: .24rem;
-  border-bottom: 1px solid var(--line);
-}
-.qualification-popup .structured-tooltip-body dl dt {
-  color: var(--muted);
-  font: inherit;
-  letter-spacing: normal;
-  text-transform: none;
-}
-.qualification-popup .structured-tooltip-body dl dd {
-  max-inline-size: 32rem;
-  text-align: start;
-  font: inherit;
-}
 .qualification-popup .build-browser-report-summary > div { display: contents; }
 .qualification-popup .build-browser-report { gap: .35rem; padding-block-start: .55rem; }
 .qualification-popup .build-browser-report h3 { margin: 0; font-size: .85rem; }

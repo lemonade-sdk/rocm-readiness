@@ -228,6 +228,11 @@ Project findings use neutral, low-contrast notices with a restrained alert symbo
 reserve failure colors for specific outcome evidence. Run tooltips use the shared
 structured header and body, with a date, outcome counts and grouped run/evidence
 links. Keep the selected day fixed: no previous/next controls inside tooltips.
+Match Qualification tooltip density: a compact date/scope header, a single aligned
+label/value grid for counts or job metadata, and a separate run-evidence section
+with consistent row dividers. Keep run popups near the shared 400px tooltip width
+and allow long evidence lists to scroll within the popup. Avoid metadata sentences
+joined by separators when labeled fields are easier to scan.
 Use the shared popup close control, with a close button on standalone saved-day
 fallbacks. Match qualification evidence links with inherited text color, dotted
 underlines and a small external navigation mark.

@@ -639,7 +639,13 @@ function ProjectPage({
                   <tr key={step}>
                     <th scope="row">
                       <Tooltip label={step} triggerClassName="up-step-label"
-                        content={<TooltipContent heading={step}><span>{[...info.jobs.values()].join(", ")}</span><span>{info.n} observed failures · {info.jobs.size} affected {info.jobs.size === 1 ? "job" : "jobs"}</span></TooltipContent>}>
+                        content={<TooltipContent heading={step} status="Failed step">
+                          <dl className="up-tooltip-details">
+                            <dt>Observed failures</dt><dd>{info.n}</dd>
+                            <dt>Affected jobs</dt><dd>{info.jobs.size}</dd>
+                          </dl>
+                          <div className="up-tooltip-section"><strong>Jobs</strong><ul>{[...info.jobs.values()].map((name, index) => <li key={index}>{name}</li>)}</ul></div>
+                        </TooltipContent>}>
                         <span>{step}</span>
                       </Tooltip>
                     </th>
@@ -679,12 +685,18 @@ function ProjectPage({
               return <tr key={job.id}>
                 <th scope="row">
                   <Tooltip label={job.label} triggerClassName="up-job-label"
-                    content={<TooltipContent heading={job.label}>
-                      <span>{job.category} · {job.workflow} · {job.cadence}</span>
-                      <span>Stack: {job.stack} · Target: {job.target}</span>
-                      <span>{job.where}</span>
-                      <span>Pass rate ({days14.length} days): {decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"} · {passed} passed of {decided} decided results</span>
-                      {project.coverage.complete && notRunning(job) && <span>{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</span>}
+                    content={<TooltipContent heading={job.label} status={job.os === "windows" ? "Windows" : "Linux"}>
+                      <dl className="up-tooltip-details">
+                        <dt>Category</dt><dd>{job.category}</dd>
+                        <dt>Workflow</dt><dd>{job.workflow}</dd>
+                        <dt>Cadence</dt><dd>{job.cadence}</dd>
+                        <dt>Stack</dt><dd>{job.stack}</dd>
+                        <dt>Target</dt><dd>{job.target}</dd>
+                        <dt>Runner</dt><dd>{job.where}</dd>
+                        <dt>Pass rate ({days14.length} days)</dt><dd>{decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"}</dd>
+                        <dt>Decided results</dt><dd>{passed} passed of {decided}</dd>
+                        {project.coverage.complete && notRunning(job) && <><dt>Activity</dt><dd>{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</dd></>}
+                      </dl>
                     </TooltipContent>}><span>{job.label}</span></Tooltip>
                 </th>
                 <td className="up-job-platform" aria-label={job.os === "windows" ? "Windows" : "Linux"} title={job.os === "windows" ? "Windows" : "Linux"}><PlatformIcon platform={job.os} /></td>
@@ -755,24 +767,23 @@ function DayPanel({
     );
   return (
     <div className="up-daypanel" role="region" aria-label={`Runs on ${day}`}>
-      <TooltipContent heading={<time dateTime={day}>{day} UTC</time>}
+      <TooltipContent heading={<><span className="up-tooltip-context">{jobs.length === 1 ? jobs[0].label : `${project.label} · ${jobs[0]?.category ?? "CI activity"}`}</span><time dateTime={day}>{day} UTC</time></>}
         status={`${cell.passed + cell.failed + cell.running + cell.other} runs`}>
         <button type="button" className="up-inline-close" onClick={onClose} aria-label="Close">×</button>
-        <p className="up-run-scope muted">{jobs.length === 1 ? jobs[0].label : `${jobs.length} CI jobs`} · {project.label}</p>
-        <dl className="up-run-summary">
-          <div><dt>Passed</dt><dd>{cell.passed}</dd></div>
-          <div><dt>Failed</dt><dd>{cell.failed}</dd></div>
-          {cell.stalled > 0 && <div><dt>Requested, no runs</dt><dd>{cell.stalled}</dd></div>}
-          {cell.skipped > 0 && <div><dt>Skipped</dt><dd>{cell.skipped}</dd></div>}
-          {cell.running > 0 && <div><dt>Running</dt><dd>{cell.running}</dd></div>}
-          {cell.other > 0 && <div><dt>Other results</dt><dd>{cell.other}</dd></div>}
+        <dl className="up-run-summary up-tooltip-details">
+          <div className="up-tooltip-detail"><dt>Passed</dt><dd>{cell.passed}</dd></div>
+          <div className="up-tooltip-detail"><dt>Failed</dt><dd>{cell.failed}</dd></div>
+          {cell.stalled > 0 && <div className="up-tooltip-detail"><dt>Requested, no runs</dt><dd>{cell.stalled}</dd></div>}
+          {cell.skipped > 0 && <div className="up-tooltip-detail"><dt>Skipped</dt><dd>{cell.skipped}</dd></div>}
+          {cell.running > 0 && <div className="up-tooltip-detail"><dt>Running</dt><dd>{cell.running}</dd></div>}
+          {cell.other > 0 && <div className="up-tooltip-detail"><dt>Other results</dt><dd>{cell.other}</dd></div>}
         </dl>
       {runs.error ? (
         <p className="bad">{runs.error}</p>
       ) : !runs.rows ? (
         <p className="muted">Loading runs…</p>
       ) : rows.length ? (
-        <ul className="up-runs">
+        <div className="up-tooltip-section"><strong>Run evidence</strong><ul className="up-runs">
           {rows.map((run) => (
             <li
               key={`${run.job}:${run.job_id}`}
@@ -834,7 +845,7 @@ function DayPanel({
               </div>
             </li>
           ))}
-        </ul>
+        </ul></div>
       ) : (
         <p className="muted">
           {cell.skipped && !cell.stalled

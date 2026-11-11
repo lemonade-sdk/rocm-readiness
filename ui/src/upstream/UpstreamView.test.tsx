@@ -494,8 +494,8 @@ it("lists individual CI jobs in a visible table with per-job run evidence", asyn
   expect(within(row).getByRole("cell", { name: "Linux" })).toBeInTheDocument();
   fireEvent.focus(within(row).getByRole("button", { name: "gpu-rocm" }));
   const metadata = await screen.findByRole("tooltip");
-  expect(within(metadata).getByText(/Stack: rocm/)).toBeInTheDocument();
-  expect(within(metadata).getByText(/Target: gfx1151/)).toBeInTheDocument();
+  expect(within(metadata).getByText("rocm", { selector: "dd" })).toBeInTheDocument();
+  expect(within(metadata).getByText("gfx1151", { selector: "dd" })).toBeInTheDocument();
   expect(within(metadata).getByText(/Pass rate.*14 days/)).toBeInTheDocument();
   fireEvent.blur(within(row).getByRole("button", { name: "gpu-rocm" }));
   fireEvent.click(within(row).getByRole("button", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" }));
@@ -551,4 +551,12 @@ it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and leg
   expect(skipped).toHaveTextContent("–");
   const legend = screen.getByRole("list", { name: "CI job outcomes" });
   expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/–.*Skipped/);
+});
+
+it("formats CI job metadata as labeled qualification-style details", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  fireEvent.click(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("tooltip");
+  for (const label of ["Category", "Workflow", "Cadence", "Stack", "Target", "Runner", "Pass rate (14 days)", "Decided results"])
+    expect(within(tooltip).getByText(label, { selector: "dt" })).toBeInTheDocument();
 });

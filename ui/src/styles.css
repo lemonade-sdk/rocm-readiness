@@ -1184,3 +1184,14 @@ main {
   stroke-linecap: round;
   fill: none;
 }
+
+/* Shared outcome legends: glyph keys for evidence cells, swatches for bars. */
+.outcome-key { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0; padding: 0.65rem 0 0; list-style: none; color: var(--muted); font-size: 0.8rem; }
+.outcome-key li { display: inline-flex; align-items: center; gap: 0.35rem; }
+.outcome-key-mark { display: inline-grid; place-items: center; width: 1.25rem; min-height: 1.25rem; }
+.outcome-key-bar { display: inline-block; width: 1rem; height: 0.45rem; background: currentColor; }
+.outcome-key-bar[data-outcome="pass"] { color: var(--good); }
+.outcome-key-bar[data-outcome="fail"] { color: var(--bad); }
+.outcome-key-bar[data-outcome="warn"] { color: var(--warning); }
+.outcome-key-bar:is([data-outcome="unreported"], [data-outcome="pending"]) { color: var(--muted); background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px); }
+.table-status:is([data-outcome="not_run"], [data-outcome="pending"]) { background: color-mix(in srgb, var(--muted) 16%, var(--subpanel)); color: var(--muted); }

@@ -110,7 +110,7 @@ it("flags a platform that ships without an AMD hardware test", async () => {
   mount("/?track=upstream&project=llamacpp");
   const platforms = await screen.findByRole("region", { name: "Platforms" });
   const windows = within(platforms).getByRole("row", { name: /Windows/ });
-  expect(windows).toHaveTextContent("✗");
+  expect(windows).toHaveTextContent("?");
 });
 
 it("explains a dataset published before the upstream view existed", async () => {
@@ -180,7 +180,7 @@ it('distinguishes failed days from days without a decided result', async () => {
   mount('/?track=upstream&project=llamacpp', fetcher);
   const region = await screen.findByRole('region', { name: 'Daily activity' });
   expect(within(region).getByRole('button', { name: /2026-10-27:/ }).closest('td')).toHaveAttribute('data-outcome', 'fail');
-  expect(within(region).getByRole('button', { name: /2026-10-28:/ }).closest('td')).toHaveAttribute('data-outcome', 'not_applicable');
+  expect(within(region).getByRole('button', { name: /2026-10-28:/ }).closest('td')).toHaveAttribute('data-outcome', 'pending');
 });
 
 it('shows collection errors and labels configured distribution without shipment checks', async () => {
@@ -531,4 +531,24 @@ it("shows only 14 job dates even when the collection covers 30 days", async () =
   expect(table.querySelectorAll("thead time")).toHaveLength(14);
   expect(within(table).getByRole("columnheader", { name: "2026-10-16 UTC" })).toBeInTheDocument();
   expect(within(table).queryByRole("columnheader", { name: "2026-10-01 UTC" })).not.toBeInTheDocument();
+});
+
+it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and legends for %s", async (id) => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  const project = data.projects[0];
+  project.id = id;
+  project.label = id;
+  project.jobs[0].daily["2026-10-27"] = { ...project.jobs[0].daily["2026-10-27"], passed: 19, failed: 1 };
+  project.jobs[1].daily["2026-10-28"] = { ...project.jobs[1].daily["2026-10-28"], passed: 0, failed: 0, skipped: 8 };
+  mount(`/?track=upstream&view=ci&project=${id}`, upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  const failure = within(table).getByRole("button", { name: "gpu-rocm · 2026-10-27: 19 passed, 1 failed of 20 runs" });
+  expect(failure.closest("td")).toHaveAttribute("data-outcome", "fail");
+  expect(failure).toHaveTextContent("×");
+  const skipped = within(table).getByRole("button", { name: "models-check vulkan-amd · 2026-10-28: 8 skipped" });
+  expect(skipped).toHaveTextContent("–");
+  const legend = screen.getByRole("list", { name: "CI job outcomes" });
+  expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/–.*Skipped/);
 });

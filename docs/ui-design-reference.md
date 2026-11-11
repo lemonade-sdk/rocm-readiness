@@ -228,3 +228,39 @@ links. Keep the selected day fixed: no previous/next controls inside tooltips.
 Use the shared popup close control, with a close button on standalone saved-day
 fallbacks. Match qualification evidence links with inherited text color, dotted
 underlines and a small external navigation mark.
+
+## Shared outcome icons and legends
+
+Use [the shared outcome registry](../ui/src/overview/outcomes.ts),
+[BuildOutcomeIcon](../ui/src/overview/BuildOutcomeIcon.tsx), and
+[OutcomeLegend](../ui/src/overview/OutcomeLegend.tsx) for new evidence tables and
+charts. Do not introduce local glyph maps or handwritten legend markup. This
+applies to every project, including empty and partially collected projects.
+
+| Outcome | Glyph | Meaning |
+| --- | --- | --- |
+| Pass | ✓ | Recorded results passed |
+| Warn | ! | Recorded warning; explain its meaning in the evidence |
+| Fail | × | At least one recorded failure |
+| Skipped | – | The job/check was explicitly skipped |
+| Not applicable | ∕ | The check does not apply |
+| Unreported | ? | Evidence is unavailable or unreported |
+| Requested, no runs | □ | A requested job never ran; not a failed execution |
+| Pending / undecided | ○ | Collected activity has no final pass/fail verdict |
+
+Use the same compact wrapping legend layout beneath each related table or chart.
+Cell legends show the same tinted block and glyph as their cells; stacked-bar
+legends use matching outcome swatches. Keep skipped, unreported, pending and
+requested-but-unrun evidence neutral. Do not reuse the skipped dash for missing
+evidence, or the not-applicable slash for running jobs. Give icons accessible
+labels through the cell, control or tooltip, and keep the legend labels visible.
+
+Domain labels may clarify what an outcome means, without changing its glyph or
+color role. Package qualification uses the established check labels. Coverage
+uses “Observed” and “Not observed / unreported,” with unknown evidence remaining
+neutral. Upstream Overview retains explicitly labeled pass-rate bands; these are
+aggregates, not individual job verdicts. In the CI jobs table, any recorded
+failure renders Fail, while running/other undecided results render Pending.
+No project gets its own icon set, legend layout or tooltip format.
+
+Use the declarative heading **Failing steps on main** for the failure ranking.

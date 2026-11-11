@@ -4,6 +4,8 @@ import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
 import type { PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
+import { tableOutcomes } from "../overview/outcomes";
+import { OutcomeLegend } from "../overview/OutcomeLegend";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity } from "../overview/buildTimeline";
 import { pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
@@ -13,12 +15,12 @@ type Report = Awaited<ReturnType<typeof readQualificationReport>>;
 type Outcome = "pass" | "fail" | "warn" | "skip" | "not_applicable" | "unreported";
 
 const outcomes: Record<Outcome, string> = {
-  pass: "Pass",
-  fail: "Fail",
-  warn: "Warn",
-  skip: "Skipped",
-  not_applicable: "Not applicable",
-  unreported: "Unreported",
+  pass: tableOutcomes.pass.label,
+  fail: tableOutcomes.fail.label,
+  warn: tableOutcomes.warn.label,
+  skip: tableOutcomes.skip.label,
+  not_applicable: tableOutcomes.not_applicable.label,
+  unreported: tableOutcomes.unreported.label,
 };
 
 function outcome(status?: string): Outcome {
@@ -289,11 +291,8 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
     });
   }
 
-  const checkLegend = <ul className="qualification-check-legend" aria-label="Check outcomes">
-      {(Object.keys(outcomes) as Outcome[]).map((state) => <li key={state}>
-        <span className="table-status qualification-check-block" data-outcome={state} aria-hidden="true"><BuildOutcomeIcon outcome={state} /></span>{outcomes[state]}
-      </li>)}
-    </ul>;
+  const checkLegend = <OutcomeLegend label="Check outcomes" className="qualification-check-legend"
+    items={(["pass", "fail", "warn", "skip", "not_applicable", "unreported"] as const).map((outcome) => ({ outcome }))} />;
 
   return <section aria-labelledby={title} className="qualification-matrix">
     <h2 id={title}>Package qualification</h2>

@@ -1112,3 +1112,4 @@ button.up-tick {
 .up-run-tooltip .tooltip-scroll-area { max-height: min(30rem, var(--tooltip-available-height, 75dvh), 75dvh); }
 .up-run-tooltip .structured-tooltip-body dl.up-run-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem 1.5rem; margin: 0.5rem 0 0.75rem; }
 .up-run-summary > div { justify-content: flex-start; }
+.up-activity-stall { color: inherit; }

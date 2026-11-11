@@ -47,7 +47,7 @@ Omitting a group includes all its values; legacy `&lens=<stack or target>` links
 - interactive day tooltips with totals, exact outcome counts and each run's job log, commit and pull request;
 - platform coverage;
 - the merge gate;
-- what is failing on main;
+- failing steps on main;
 - an always-visible CI jobs table with job names, platform icons and 14 days of outcome cells. Job-name tooltips show stack, target and the 14-day pass rate. Each cell opens that job’s run evidence.
 
 ## Appearance
@@ -166,3 +166,8 @@ VITE_BASE_PATH=/rocm-readiness/ npm run preview
 
 Open `/rocm-readiness/` on the preview server. The default local development path
 remains `/`.
+
+All project views share the outcome registry, glyph component and legend component
+used by Build Qualification. CI jobs show any recorded failure as Fail, distinguish
+skipped/requested/pending/missing evidence, and include their own legend. See the
+shared outcome conventions in `docs/ui-design-reference.md` before adding tables.

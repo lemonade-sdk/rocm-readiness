@@ -4,6 +4,7 @@ import { PlatformIcon } from "../PlatformIcon";
 import type { Fetcher, Session } from "../data";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
+import { OutcomeLegend } from "../overview/OutcomeLegend";
 import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import {
   CATEGORIES,
@@ -168,22 +169,19 @@ function ProjectSources({ project }: { project: Project }) {
 }
 
 const activityStates = {
-  good: { glyph: "✓", label: "95–100% passed" },
-  warn: { glyph: "△", label: "80–<95% passed" },
-  bad: { glyph: "×", label: "Below 80% passed" },
-  stall: { glyph: "□", label: "Requested, no runs" },
-  skip: { glyph: "↷", label: "Skipped" },
-  idle: { glyph: "–", label: "No collected evidence" },
-  none: { glyph: "○", label: "No pass or fail result" },
+  good: { label: "95–100% passed" },
+  warn: { label: "80–<95% passed" },
+  bad: { label: "Below 80% passed" },
+  stall: { label: "Requested, no runs" },
+  skip: { label: "Skipped" },
+  idle: { label: "No collected evidence" },
+  none: { label: "No pass or fail result" },
 } as const;
 
-const activityOutcomes = { good: "pass", warn: "warn", bad: "fail", stall: "fail", skip: "skip", idle: "unreported", none: "not_applicable" } as const;
+const activityOutcomes = { good: "pass", warn: "warn", bad: "fail", stall: "not_run", skip: "skip", idle: "unreported", none: "pending" } as const;
 
 function ActivityMark({ state }: { state: keyof typeof activityStates }) {
-  if (state === "good" || state === "warn" || state === "bad") {
-    return <BuildOutcomeIcon outcome={state === "good" ? "pass" : state === "bad" ? "fail" : "warn"} />;
-  }
-  return <span className={`up-activity-symbol up-activity-${state}`} aria-hidden="true">{activityStates[state].glyph}</span>;
+  return <span className={`up-activity-symbol up-activity-${state}`}><BuildOutcomeIcon outcome={activityOutcomes[state]} /></span>;
 }
 
 /** One outcome mark per day, with its counts available in the label. */
@@ -405,21 +403,14 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
         </tbody>
       </table>
     </div>
-    {onPick ? <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
-      <li><span className="qualification-segment pass" />Passed</li>
-      <li><span className="qualification-segment fail" />Failed</li>
-      <li><span className="qualification-segment unknown" />Running / other</li>
-      <li>□ Requested, no runs</li><li>↷ Skipped</li><li>– No collected evidence</li><li>○ No pass or fail result</li>
-    </ul> : (
-    <ul className="up-activity-key calendar-legend" aria-label="Daily CI activity legend">
-      {(Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => (
-        <li key={state}>
-          <span className="up-tick table-status" data-outcome={activityOutcomes[state]} aria-hidden="true"><ActivityMark state={state} /></span>
-          {activityStates[state].label}
-        </li>
-      ))}
-    </ul>
-    )}
+    <OutcomeLegend label="Daily CI activity legend" className="calendar-legend"
+      items={onPick ? [
+        { outcome: "pass", label: "Passed", mark: "bar" },
+        { outcome: "fail", label: "Failed", mark: "bar" },
+        { outcome: "pending", label: "Running / other", mark: "bar" },
+        { outcome: "not_run" }, { outcome: "skip" },
+        { outcome: "unreported", label: "No collected evidence" },
+      ] : (Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => ({ outcome: activityOutcomes[state], label: activityStates[state].label }))} />
     </section>
   );
 }
@@ -636,9 +627,9 @@ function ProjectPage({
           </section>
           <section
             className="up-panel up-failures"
-            aria-label="What is failing on main"
+            aria-label="Failing steps on main"
           >
-            <h2>What is failing on main</h2>
+            <h2>Failing steps on main</h2>
             <div className="up-failures-surface calendar-surface">
             <p className="muted up-failures-caption">Most frequent failed steps · {overview.window.days} days · main</p>
             {steps.length ? (
@@ -699,7 +690,7 @@ function ProjectPage({
                 <td className="up-job-platform" aria-label={job.os === "windows" ? "Windows" : "Linux"} title={job.os === "windows" ? "Windows" : "Linux"}><PlatformIcon platform={job.os} /></td>
                 {days14.map((day, index) => {
                   const cell = job.daily[day];
-                  const state = cellState(cell);
+                  const state = cell?.failed ? "bad" : cell && (cell.running + cell.other > 0) ? "none" : cellState(cell);
                   const label = `${job.label} · ${describe(day, cell)}`;
                   const active = open?.key === key && open.day === day;
                   return <td key={day} className={`table-status${isCalendarMonthBoundary(days14, index) ? " month-boundary" : ""}`} data-outcome={activityOutcomes[state]}>
@@ -715,6 +706,10 @@ function ProjectPage({
             })}</tbody>
           </table>
         </div>
+        <OutcomeLegend label="CI job outcomes" className="calendar-legend" items={[
+          { outcome: "pass" }, { outcome: "fail" }, { outcome: "skip" },
+          { outcome: "not_run" }, { outcome: "unreported", label: "No collected evidence" }, { outcome: "pending" },
+        ]} />
         {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
           <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
             runs={runs} onClose={() => setOpen(null)} />}
@@ -856,8 +851,8 @@ function DayPanel({
 
 function Platforms({ project }: { project: Project }) {
   const cell = (ok: boolean, text: string | null, gap = false) => (
-    <td className={ok ? "good" : gap ? "bad" : "muted"}>
-      {ok ? "✓" : gap ? "✗" : "–"} {text ?? ""}
+    <td className={ok ? "good" : "muted"} aria-label={`${ok ? "Observed" : gap ? "Not observed" : "Unreported"}${text ? ` · ${text}` : ""}`}>
+      <BuildOutcomeIcon outcome={ok ? "pass" : "unreported"} /> {text ?? ""}
     </td>
   );
   return (
@@ -903,6 +898,9 @@ function Platforms({ project }: { project: Project }) {
           </tbody>
         </table>
       </div>
+      <OutcomeLegend label="Platform coverage legend" className="calendar-legend" items={[
+        { outcome: "pass", label: "Observed" }, { outcome: "unreported", label: "Not observed / unreported" },
+      ]} />
     </section>
   );
 }

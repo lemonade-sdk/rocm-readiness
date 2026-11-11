@@ -48,7 +48,7 @@ Omitting a group includes all its values; legacy `&lens=<stack or target>` links
 - platform coverage;
 - the merge gate;
 - what is failing on main;
-- per-job status ticks for the whole window.
+- an always-visible CI jobs table with metadata, pass rates and dated outcome cells for the whole window. Each cell opens that job’s run evidence.
 
 ## Appearance
 

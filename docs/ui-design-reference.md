@@ -200,3 +200,15 @@ selected UTC dates in the URL and browser history. Keep missing evidence distinc
 from zero failures and label requested-but-unrun, skipped and undecided outcomes. Place daily activity before project-wide
 coverage and findings, with job-log, commit and pull-request evidence available
 in run drill-downs. Keep wide tables independently keyboard-scrollable.
+
+In CI Activity, place repositories beside visible project-wide findings below the
+coverage tables, stacking on narrow screens. List individual CI jobs in an always
+visible table with Platform, Stack, Target, Pass rate and dated outcome columns.
+Explain that these jobs contribute to Daily activity's category totals; pass rate
+covers decided results in the collection window. Keep job metadata and per-day
+run evidence available in accessible anchored tooltips. Use a matching calendar
+surface for a ranked failing-step table with exact failure counts and affected-job
+counts. Give each step equal row height so rare failures remain readable beside
+dominant failures; do not encode these counts as relative bar lengths. Label its
+collection window separately from the 14-day activity chart. Truncate long job
+and step labels using ellipses and expose full labels on hover, keyboard and touch.

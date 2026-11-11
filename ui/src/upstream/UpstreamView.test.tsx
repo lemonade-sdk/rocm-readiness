@@ -294,7 +294,7 @@ it('does not describe uncollected runs as absent in incomplete project details',
   const perDay = screen.getByRole('region', { name: 'Daily activity' });
   fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: no collected evidence/ }));
   expect(await screen.findByText('No collected evidence for this day.')).toBeInTheDocument();
-  fireEvent.click(screen.getByText('By job'));
+  expect(screen.getByRole('table', { name: 'CI jobs' })).toBeInTheDocument();
   expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
 });
 
@@ -315,7 +315,7 @@ it('retains observed failures and stalls when collection is incomplete', async (
   const perDay = await screen.findByRole('region', { name: 'Daily activity' });
   expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).closest('td')).toHaveAttribute('data-outcome', 'fail');
   expect(within(perDay).getByRole('button', { name: /2026-10-29: 2 requested, none ran/ }).querySelector('.up-activity-stall')).toBeInTheDocument();
-  expect(screen.getByText('Test')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Test' })).toBeInTheDocument();
 });
 
 it('does not imply there were no failures when failing-step details are absent', async () => {
@@ -480,4 +480,32 @@ it("keeps a saved category selection dismissible when filters remove its chart r
   mount("/?track=upstream&view=ci&project=llamacpp&stack=vulkan&target=gfx1151&day=2026-10-27&activity=cat:tests");
   const panel = await screen.findByRole("region", { name: "Runs on 2026-10-27" });
   expect(within(panel).getByRole("button", { name: "Close" })).toBeInTheDocument();
+});
+
+it("lists individual CI jobs in a visible table with per-job run evidence", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  expect(table.closest("details")).toBeNull();
+  const row = within(table).getByRole("row", { name: /gpu-rocm/ });
+  expect(within(row).getByText("rocm")).toBeInTheDocument();
+  expect(within(row).getByText("gfx1151")).toBeInTheDocument();
+  fireEvent.click(within(row).getByRole("button", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  const popup = await screen.findByRole("dialog", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" });
+  expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
+});
+
+it("lists rare failing steps alongside frequent ones with exact counts and affected jobs", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].failed_steps = { "ccache-buckets-restore": 27, "Test archs": 1 };
+  data.projects[0].jobs[1].failed_steps = { "ccache-buckets-restore": 1 };
+  data.projects[0].jobs[1].label = data.projects[0].jobs[0].label;
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "Failing steps on main" });
+  const frequent = within(table).getByRole("row", { name: /ccache-buckets-restore/ });
+  const rare = within(table).getByRole("row", { name: /Test archs/ });
+  expect(within(frequent).getByRole("cell", { name: "28" })).toBeInTheDocument();
+  expect(within(frequent).getByRole("cell", { name: "2" })).toBeInTheDocument();
+  expect(within(rare).getAllByRole("cell", { name: "1" })).toHaveLength(2);
 });

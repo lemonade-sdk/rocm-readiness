@@ -47,13 +47,13 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12 results on main passed")).toBeVisible();
-  await page.getByRole("button", { name: "rocm" }).click();
+  await page.getByRole("button", { name: "rocm", exact: true }).click();
   await expect(page).toHaveURL(/stack=vulkan/);
   await expect(page.getByText("of 8 results on main passed")).toBeVisible();
-  await page.getByRole("button", { name: "rocm" }).click();
+  await page.getByRole("button", { name: "rocm", exact: true }).click();
   await page
     .getByRole("region", { name: "Daily activity" })
-    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" })
+    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })
     .click();
   const panel = page.getByRole("region", { name: "Runs on 2026-10-27" });
   await expect(panel.getByRole("link", { name: "#501 red" })).toHaveAttribute(
@@ -88,7 +88,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.getByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toBeVisible();
       await expect(page.getByRole("link", { name: "lemonade-sdk/llama.cpp" })).toBeVisible();
       await expect(page.getByRole("table", { name: "Daily CI activity" })).toHaveCount(1);
-      await page.getByRole("region", { name: "Daily activity", exact: true }).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }).click();
+      await page.getByRole("region", { name: "Daily activity", exact: true }).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true }).click();
       await expect(page.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath("before-scroll.png"), fullPage: true });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -112,12 +112,12 @@ test("upstream sub-pages preserve project and filter scope through navigation an
   await expect(views.getByRole("link", { name: "CI Activity" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("heading", { level: 1, name: "CI Activity" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Project" }).getByRole("button", { name: "llama.cpp" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "vulkan" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "vulkan", exact: true })).toHaveAttribute("aria-pressed", "true");
   await views.getByRole("link", { name: "Overview", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Upstream Overview" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Project" })).toHaveCount(0);
   await views.getByRole("link", { name: "CI Activity" }).click();
-  await expect(page.getByRole("button", { name: "vulkan" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "vulkan", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("group", { name: "Project" }).getByRole("button", { name: "vLLM" }).click();
   await expect(page).not.toHaveURL(/lens=/);
   await page.reload();
@@ -128,7 +128,7 @@ test("upstream sub-pages preserve project and filter scope through navigation an
 test("overview day links restore the selected date and run evidence after reload", async ({ page }) => {
   await page.goto("./?track=upstream");
   const calendar = page.getByRole("region", { name: "llama.cpp activity calendar" });
-  await calendar.getByRole("link", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }).click();
+  await calendar.getByRole("link", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true }).click();
   await expect(page).toHaveURL(/view=ci/);
   await expect(page).toHaveURL(/day=2026-10-27/);
   await expect(page.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();
@@ -146,7 +146,7 @@ test("independent stack and target selections survive reload and history", async
   const stacks = page.getByRole("group", { name: "Stack", exact: true });
   const targets = page.getByRole("group", { name: "Target", exact: true });
   await expect(stacks.getByRole("button", { name: "rocm", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(stacks.getByRole("button", { name: "vulkan" })).toHaveAttribute("aria-pressed", "true");
+  await expect(stacks.getByRole("button", { name: "vulkan", exact: true })).toHaveAttribute("aria-pressed", "true");
   await stacks.getByRole("button", { name: "rocm", exact: true }).click();
   await targets.getByRole("button", { name: "gfx1201" }).click();
   await expect(page.getByText("No configured jobs match these filters.")).toBeVisible();
@@ -164,13 +164,13 @@ for (const width of [390, 1440]) {
   test(`daily count popup supports keyboard dismissal at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("./?track=upstream&view=ci&project=llamacpp");
-    const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+    const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
     await expect(day).toHaveText("");
     await day.focus();
     const table = page.getByRole("table", { name: "Daily CI activity" });
     const before = await table.boundingBox();
     await day.press("Enter");
-    const popup = page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+    const popup = page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
     await expect(popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
     await expect(popup).toContainText("4 runs");
     expect(await table.boundingBox()).toEqual(before);
@@ -188,13 +188,13 @@ for (const width of [390, 1440]) {
 
 test("hovering daily evidence leaves the chart position and page scroll unchanged", async ({ page }) => {
   await page.goto("./?track=upstream&view=ci&project=llamacpp");
-  const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+  const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
   await day.scrollIntoViewIfNeeded();
   const table = page.getByRole("table", { name: "Daily CI activity" });
   const before = await table.boundingBox();
   const scrollBefore = await page.evaluate(() => window.scrollY);
   await day.hover();
-  await expect(page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })).toBeVisible();
   expect(await table.boundingBox()).toEqual(before);
   expect(await page.evaluate(() => window.scrollY)).toEqual(scrollBefore);
   await page.mouse.move(10, 10);

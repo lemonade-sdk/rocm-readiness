@@ -1005,3 +1005,59 @@ button.up-tick {
 @media (max-width: 1279px) {
   .up-page .up-cols > .up-activity-analysis { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
 }
+
+/* Pair provenance with project-wide findings, below the CI evidence. */
+.up-project-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.up-project-context > * { min-width: 0; }
+.up-project-context .up-findings { padding: 0; border: 0; }
+.up-project-context .up-source-list { display: grid; gap: 0.65rem; margin: 0; }
+.up-project-context .up-source-list li { display: grid; gap: 0.15rem; }
+.up-project-context .up-source-list a { width: fit-content; max-width: 100%; }
+.up-failures { display: flex; flex-direction: column; align-self: stretch; }
+.up-failures-surface { flex: 1; min-width: 0; padding: 0.85rem 1rem; }
+.up-failures-caption { font-size: 0.75rem; margin: 0 0 0.6rem; }
+.up-activity-analysis .up-steps li { grid-template-columns: minmax(0, 1.4fr) minmax(3rem, 1fr) 2rem; padding-block: 0.6rem; }
+.up-steps .comparison-tooltip { min-width: 0; }
+.up-activity-analysis .up-step-label,
+.up-job-label {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  text-align: left;
+}
+.up-activity-analysis .up-steps .up-step-label > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.up-step-label:focus-visible,
+.up-job-label:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.up-jobs-explanation { margin: 0 0 0.85rem; font-size: 0.8rem; }
+.up-jobs > .up-jobs-explanation:last-child { margin-top: 0.65rem; }
+.up-jobs-table { min-width: max(100%, 70rem); }
+.up-jobs-table th[scope="row"] { min-width: 11rem; max-width: 14rem; }
+.up-jobs-table th[scope="row"] .comparison-tooltip { display: block; max-width: 14rem; }
+.up-jobs-table :is(th, td) { white-space: nowrap; }
+.up-jobs-table td.table-status { min-width: 1.8rem; }
+.up-jobs-table .up-tick { min-height: 2rem; }
+.up-job-quiet { display: block; font-weight: 400; font-size: 0.7rem; }
+@media (max-width: 760px) {
+  .up-project-context { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+}
+
+/* Exact counts keep infrequent failures as readable as dominant ones. */
+.up-failures-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.8rem; }
+.up-failures-table :is(th, td) { padding: 0.65rem 0.25rem; border-bottom: 1px solid var(--line); text-align: right; }
+.up-failures-table th:first-child { width: 60%; text-align: left; }
+.up-failures-table thead th { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+.up-failures-table tbody th { font-weight: 400; }
+.up-failures-table tr:last-child > * { border-bottom: 0; }
+.up-failures-table .comparison-tooltip { display: block; width: 100%; min-width: 0; }
+.up-failures-table .up-step-label > span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.up-failure-count { color: var(--bad); font: 600 0.875rem ui-monospace, monospace; }

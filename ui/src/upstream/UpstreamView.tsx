@@ -153,7 +153,6 @@ function Badge({ project }: { project: Project }) {
 function ProjectSources({ project }: { project: Project }) {
   return (
     <div className="up-sources" role="group" aria-label={`${project.label} source repositories`}>
-      <span className="up-source-label muted">Repositories</span>
       <ul className="up-source-list">
         <li><a aria-label={`Repository: ${project.repository}`} href={GH + project.repository} target="_blank" rel="noreferrer">{project.repository}</a><span className="muted">upstream</span></li>
         {project.forks.map((fork) => (
@@ -522,12 +521,12 @@ function ProjectPage({
   }, [session, project, fetcher]);
 
   const steps = useMemo(() => {
-    const totals: Record<string, { n: number; jobs: Set<string> }> = {};
+    const totals: Record<string, { n: number; jobs: Map<string, string> }> = {};
     for (const job of jobs)
       for (const [step, n] of Object.entries(job.failed_steps)) {
-        totals[step] ??= { n: 0, jobs: new Set() };
+        totals[step] ??= { n: 0, jobs: new Map() };
         totals[step].n += n;
-        totals[step].jobs.add(job.label);
+        totals[step].jobs.set(job.id, job.label);
       }
     return Object.entries(totals)
       .sort((a, b) => b[1].n - a[1].n)
@@ -564,7 +563,6 @@ function ProjectPage({
           <h2>{project.label}</h2>
           <Badge project={project} />
         </div>
-        <ProjectSources project={project} />
         <div className="up-project-notes muted">
           <p>Configured CI evidence; does not verify physical hardware or published artifacts.</p>
           {!project.coverage.complete && !project.coverage.error && <p>◌ Collection incomplete · oldest days may be missing.</p>}
@@ -637,27 +635,30 @@ function ProjectPage({
             )}
           </section>
           <section
-            className="up-panel"
+            className="up-panel up-failures"
             aria-label="What is failing on main"
           >
             <h2>What is failing on main</h2>
+            <div className="up-failures-surface calendar-surface">
+            <p className="muted up-failures-caption">Most frequent failed steps · {overview.window.days} days · main</p>
             {steps.length ? (
-              <ol className="up-steps">
-                {steps.map(([step, info]) => (
-                  <li key={step} title={[...info.jobs].join(", ")}>
-                    <span>{step}</span>
-                    <i
-                      style={{
-                        width: `${Math.round((100 * info.n) / steps[0][1].n)}%`,
-                      }}
-                    />
-                    <span className="muted">{info.n}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="muted">No collected failing-step details.</p>
-            )}
+              <table className="up-failures-table" aria-label="Failing steps on main">
+                <thead><tr><th scope="col">Failed step</th><th scope="col">Failures</th><th scope="col" title="Number of affected CI jobs">Jobs</th></tr></thead>
+                <tbody>{steps.map(([step, info]) => (
+                  <tr key={step}>
+                    <th scope="row">
+                      <Tooltip label={step} triggerClassName="up-step-label"
+                        content={<TooltipContent heading={step}><span>{[...info.jobs.values()].join(", ")}</span><span>{info.n} observed failures · {info.jobs.size} affected {info.jobs.size === 1 ? "job" : "jobs"}</span></TooltipContent>}>
+                        <span>{step}</span>
+                      </Tooltip>
+                    </th>
+                    <td className="up-failure-count">{info.n}</td>
+                    <td>{info.jobs.size}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            ) : <p className="muted">No collected failing-step details.</p>}
+            </div>
           </section>
         </div>
         <div className="up-project-coverage">
@@ -666,77 +667,68 @@ function ProjectPage({
 
         </div>
       </div>
-      {findings.length > 0 && (
-        <details className="up-findings">
-          <summary>
-            Project-wide: {findings.length}{" "}
-            {findings.length > 1 ? "findings" : "finding"}
-          </summary>
-          {findings.map((f) => (
-            <p key={f.head}>
-              <strong>{f.head}</strong> {f.body}
-            </p>
-          ))}
-        </details>
-      )}
-      <details className="up-panel up-jobs">
-        <summary>
-          <h2>
-            By job{" "}
-            <span className="muted">
-              {jobs.length} jobs, {overview.window.days} days, click a day for
-              its runs
-            </span>
-          </h2>
-        </summary>
-        {jobs.map((job) => {
-          const key = `job:${job.id}`;
-          return (
-            <div key={job.id} className="up-job">
-              <div className="up-job-head">
-                <strong>{job.label}</strong>
-                <Ticks
-                  days={allDays}
-                  cellOf={(d) => job.daily[d]}
-                  onPick={(day) => pick(key, day, [job.id])}
-                  label={`${job.label}, ${overview.window.days} days`}
-                />
-                <span
-                  className="muted"
-                  title={`${job.workflow} · ${job.cadence} · ${job.stack}`}
-                >
-                  {job.target} · {job.where}
-                  {project.coverage.complete && notRunning(job) && (
-                    <span className="bad">
-                      {" "}
-                      ·{" "}
-                      {job.last_ran
-                        ? `quiet since ${job.last_ran}`
-                        : "never ran"}
-                    </span>
-                  )}
-                </span>
-                <span className="up-job-rate">
-                  {job.decided
-                    ? `${Math.round((100 * job.passed) / job.decided)}%`
-                    : "–"}
-                </span>
-              </div>
-              {open?.key === key && (
-                <DayPanel
-                  project={project}
-                  jobs={[job]}
-                  day={open.day}
-                  days={allDays}
-                  runs={runs}
-                  onDay={(day) => setOpen({ ...open, day })}
-                  onClose={() => setOpen(null)}
-                />
-              )}
-            </div>
-          );
-        })}
-      </details>
+      <div className="up-project-context">
+        <section className="up-panel" aria-label="Repositories">
+          <h2>Repositories</h2>
+          <ProjectSources project={project} />
+        </section>
+        <section className="up-panel up-findings" aria-label="Project findings">
+          <h2>Project findings</h2>
+          {findings.length ? findings.map((finding) => (
+            <p key={finding.head}><strong>{finding.head}</strong> {finding.body}</p>
+          )) : <p className="muted">No project-wide findings recorded.</p>}
+        </section>
+      </div>
+      <section className="up-panel up-jobs" aria-label="CI jobs">
+        <h2>CI jobs <span className="muted">{jobs.length} jobs · {overview.window.days} days · UTC</span></h2>
+        <p className="muted up-jobs-explanation">Individual jobs behind Daily activity’s category totals. Select a day for that job’s runs.</p>
+        <div className="up-table-scroll calendar-surface" role="region" aria-label="CI jobs table" tabIndex={0}>
+          <table className="up-activity-table up-jobs-table" aria-label="CI jobs">
+            <thead>
+              <tr className="calendar-months">
+                {["Job", "Platform", "Stack", "Target", "Pass rate"].map((label) => <th key={label} scope="col" rowSpan={2}>{label}</th>)}
+                {calendarMonthGroups(allDays).map((month, index) => <th key={month.key} scope="colgroup" colSpan={month.days}
+                  className={index ? "month-boundary" : undefined} aria-label={`${month.label} ${month.key.slice(0, 4)}`}>{month.label}</th>)}
+              </tr>
+              <tr>{allDays.map((day, index) => <th key={day} scope="col" aria-label={`${day} UTC`}
+                className={isCalendarMonthBoundary(allDays, index) ? "month-boundary" : undefined}><time dateTime={day}>{Number(day.slice(8))}</time></th>)}</tr>
+            </thead>
+            <tbody>{jobs.map((job) => {
+              const key = `job:${job.id}`;
+              return <tr key={job.id}>
+                <th scope="row">
+                  <Tooltip label={job.label} triggerClassName="up-job-label"
+                    content={<TooltipContent heading={job.label}>
+                      <span>{job.category} · {job.workflow} · {job.cadence}</span>
+                      <span>{job.target} · {job.where}</span>
+                      <span>{job.passed} passed of {job.decided} decided results</span>
+                    </TooltipContent>}><span>{job.label}</span></Tooltip>
+                  {project.coverage.complete && notRunning(job) && <small className="bad up-job-quiet">{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</small>}
+                </th>
+                <td>{job.os === "windows" ? "Windows" : "Linux"}</td>
+                <td>{job.stack}</td>
+                <td>{job.target}</td>
+                <td>{job.decided ? `${Math.round(100 * job.passed / job.decided)}%` : "–"}</td>
+                {allDays.map((day, index) => {
+                  const cell = job.daily[day];
+                  const state = cellState(cell);
+                  const label = `${job.label} · ${describe(day, cell)}`;
+                  const active = open?.key === key && open.day === day;
+                  return <td key={day} className={`table-status${isCalendarMonthBoundary(allDays, index) ? " month-boundary" : ""}`} data-outcome={activityOutcomes[state]}>
+                    <Tooltip interactive label={label} triggerClassName="up-tick" contentClassName="up-run-tooltip"
+                      isOpen={active} onOpenChange={(next) => { if (next !== active) pick(key, day, [job.id]); }}
+                      content={<DayPanel project={project} jobs={[job]} day={day} days={allDays} runs={runs}
+                        onDay={(next) => setOpen({ key, day: next, jobs: [job.id] })} onClose={() => setOpen(null)} />}>
+                      <ActivityMark state={state} />
+                    </Tooltip>
+                  </td>;
+                })}
+              </tr>;
+            })}</tbody>
+          </table>
+        </div>
+        <p className="muted up-jobs-explanation">Pass rate covers decided results across this window; missing evidence is not a failure.</p>
+      </section>
     </section>
   );
 }

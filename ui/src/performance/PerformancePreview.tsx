@@ -118,9 +118,10 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
 
 export function PerformancePreview({ heading, observations }: { heading: string; observations: Observation[] }) {
   if (!observations.length) return null;
+  // Decision 0001: model comparisons need chart columns rather than detail rows.
   return <Tooltip interactive contentClassName="performance-preview-popup"
     triggerClassName="performance-preview-trigger" label={`Performance data for ${heading}`}
-    content={<TooltipContent heading={`Performance · ${heading}`}>
+    content={<TooltipContent heading={`Performance · ${heading}`} format="custom">
       <PerformanceCharts observations={observations} />
     </TooltipContent>}>
     <PerformanceIndicator />

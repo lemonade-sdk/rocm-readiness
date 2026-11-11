@@ -56,7 +56,7 @@ test("upstream health opens a project, filters it and links a day's runs", async
     .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })
     .click();
   const panel = page.getByRole("region", { name: "Runs on 2026-10-27" });
-  await expect(panel.getByRole("link", { name: "#501 red" })).toHaveAttribute(
+  await expect(panel.getByRole("link", { name: "#501" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/pull/501",
   );
@@ -247,6 +247,46 @@ for (const theme of ["light", "dark"] as const) {
           }
         }
       }
+    });
+  }
+}
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`CI evidence uses shared qualification detail rows at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("./?track=upstream&view=ci&project=llamacpp&day=2026-10-27&activity=cat:tests");
+      const popup = page.getByRole("dialog");
+      await expect(popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
+      await expect(popup.getByText("Failed on the merged commit", { exact: true })).toBeVisible();
+      const logStyle = await popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" }).evaluate((link) => ({
+        color: getComputedStyle(link).color,
+        surroundingColor: getComputedStyle(link.parentElement!).color,
+        underline: getComputedStyle(link).textDecorationStyle,
+      }));
+      expect(logStyle.color).toBe(logStyle.surroundingColor);
+      expect(logStyle.underline).toBe("dotted");
+      const details = popup.locator('.structured-tooltip-body[data-format="details"]');
+      const rows = await details.locator("dl").evaluateAll((lists) => lists.map((list) => ({
+        labels: [...list.querySelectorAll("dt")].map((label) => label.getBoundingClientRect().left),
+        values: [...list.querySelectorAll("dd")].map((value) => ({
+          left: value.getBoundingClientRect().left,
+          align: getComputedStyle(value).textAlign,
+          border: getComputedStyle(value).borderBottomWidth,
+        })),
+      })));
+      for (const row of rows) {
+        expect(new Set(row.labels).size).toBe(1);
+        expect(new Set(row.values.map((value) => value.left)).size).toBe(1);
+        for (const value of row.values) {
+          expect(["start", "left"]).toContain(value.align);
+          expect(value.border).toBe("1px");
+        }
+      }
+      expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(Math.min(width - 24, 400));
+      await popup.screenshot({ path: testInfo.outputPath("tooltip-detail.png") });
+      await page.screenshot({ path: testInfo.outputPath("evidence-tooltip.png"), fullPage: true });
     });
   }
 }

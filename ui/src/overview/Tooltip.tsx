@@ -10,14 +10,15 @@ import "./Tooltip.css";
 
 export const tooltipTiming = { openDelayMs: 400 };
 
-export function TooltipContent({ heading, status, children }: {
+export function TooltipContent({ heading, status, children, format = "details" }: {
+  format?: "details" | "custom";
   heading: ReactNode;
   status?: ReactNode;
   children: ReactNode;
 }) {
   return <span className="structured-tooltip">
     <span className="structured-tooltip-header"><strong>{heading}</strong>{status}</span>
-    <span className="structured-tooltip-body">{children}</span>
+    <span className="structured-tooltip-body" data-format={format}>{children}</span>
   </span>;
 }
 

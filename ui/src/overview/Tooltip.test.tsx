@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { Tooltip, tooltipTiming } from "./Tooltip";
+import { Tooltip, TooltipContent, tooltipTiming } from "./Tooltip";
 afterEach(() => vi.useRealTimers());
 it("delays opening and cancels incidental pointer passes", async () => {
   vi.useFakeTimers();
@@ -56,4 +56,11 @@ it("anchors an interactive popup with an arrow and supports outside dismissal", 
   await screen.findByRole("dialog");
   fireEvent.pointerDown(document.body);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("defaults to shared evidence rows and explicitly supports custom visualizations", () => {
+  const { container, rerender } = render(<TooltipContent heading="CI run"><dl><dt>Outcome</dt><dd>Failed</dd></dl></TooltipContent>);
+  expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "details");
+  rerender(<TooltipContent heading="Model performance" format="custom"><figure>Comparison chart</figure></TooltipContent>);
+  expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "custom");
 });

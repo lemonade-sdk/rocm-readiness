@@ -28,17 +28,11 @@ const BADGE_LABEL = {
   partial: "partially upstream",
   down: "no configured test observed",
 };
-const VERDICT_LABEL = {
-  passed: "ok",
-  failed: "red",
-  not_triggered: "no run",
-  no_result: "no result",
-};
 const VERDICT_TEXT = {
-  passed: "passed on the merged commit",
-  failed: "was red on the merged commit",
-  not_triggered: "never ran on the pull request",
-  no_result: "had no result on the pull request",
+  passed: "Passed on the merged commit",
+  failed: "Failed on the merged commit",
+  not_triggered: "Not run on the pull request",
+  no_result: "No result on the pull request",
 };
 
 type Props = {
@@ -789,60 +783,20 @@ function DayPanel({
               key={`${run.job}:${run.job_id}`}
               className={`up-run up-run-${run.state}`}
             >
-              <div className="up-run-heading">
-              <span className="up-dot" aria-hidden="true" />
-              <span className="up-run-status">{run.state}</span>
-              <a
-                href={run.url}
-                target="_blank"
-                rel="noreferrer"
-                title="Open the job log"
-                aria-label={`Job log at ${run.created_at.slice(11, 16)} UTC · ${run.state}`}
-              >
-                Job log · <time dateTime={run.created_at}>{run.created_at.slice(11, 16)}</time> UTC
-              </a>
-              {jobs.length > 1 && (
-                <span className="up-run-job">{label[run.job]}</span>
-              )}
-              </div>
-              <div className="up-run-evidence">
-              {run.sha && (
-                <a
-                  className="up-sha"
-                  href={`${GH}${project.repository}/commit/${run.sha}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Open the commit"
-                  aria-label={`Commit ${run.sha.slice(0, 8)}`}
-                >
-                  Commit {run.sha.slice(0, 8)}
-                </a>
-              )}
-              {run.ref && run.ref !== project.default_branch && (
-                <span className="muted">{run.ref}</span>
-              )}
-              {run.pr && (
-                <a
-                  className={`up-chip up-chip-${run.pr.verdict}`}
-                  href={run.pr.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={`#${run.pr.number} ${VERDICT_TEXT[run.pr.verdict]}`}
-                >
-                  #{run.pr.number} {VERDICT_LABEL[run.pr.verdict]}
-                </a>
-              )}
-              {run.state !== "passed" && (
-                <a
-                  href={run.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="up-run-step"
-                >
-                  {run.failed_step ? `Failed step: ${run.failed_step}` : run.state}
-                </a>
-              )}
-              </div>
+              <strong className="up-run-title">{label[run.job]} · <time dateTime={run.created_at}>{run.created_at.slice(11, 16)} UTC</time></strong>
+              <dl>
+                <dt>Result</dt><dd className="up-run-result"><BuildOutcomeIcon outcome={run.state === "failed" ? "fail" : run.state === "passed" ? "pass" : run.state === "skipped" ? "skip" : "pending"} /> {run.state}</dd>
+                <dt>Job log</dt><dd><a href={run.url} target="_blank" rel="noreferrer"
+                  aria-label={`Job log at ${run.created_at.slice(11, 16)} UTC · ${run.state}`}>View log</a></dd>
+                {run.failed_step && <><dt>Failed step</dt><dd>{run.failed_step}</dd></>}
+                {run.sha && <><dt>Commit</dt><dd><a href={`${GH}${project.repository}/commit/${run.sha}`} target="_blank" rel="noreferrer"
+                  aria-label={`Commit ${run.sha.slice(0, 8)}`}>{run.sha.slice(0, 8)}</a></dd></>}
+                {run.ref && run.ref !== project.default_branch && <><dt>Branch</dt><dd>{run.ref}</dd></>}
+                {run.pr && <>
+                  <dt>Pull request</dt><dd><a href={run.pr.url} target="_blank" rel="noreferrer">#{run.pr.number}</a></dd>
+                  <dt>PR CI result</dt><dd>{VERDICT_TEXT[run.pr.verdict]}</dd>
+                </>}
+              </dl>
             </li>
           ))}
         </ul></div>

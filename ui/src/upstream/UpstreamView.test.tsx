@@ -75,7 +75,7 @@ it("opens a day's runs with links to the job, the commit and the pull request", 
   const panel = await screen.findByRole("region", {
     name: "Runs on 2026-10-27",
   });
-  await within(panel).findByText("10:00");
+  await within(panel).findByText("10:00 UTC");
   expect(within(panel).getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
@@ -84,7 +84,7 @@ it("opens a day's runs with links to the job, the commit and the pull request", 
     "href",
     `https://github.com/ggml-org/llama.cpp/commit/${"a".repeat(40)}`,
   );
-  expect(within(panel).getByRole("link", { name: "#501 red" })).toHaveAttribute(
+  expect(within(panel).getByRole("link", { name: "#501" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/pull/501",
   );
@@ -559,4 +559,12 @@ it("formats CI job metadata as labeled qualification-style details", async () =>
   const tooltip = await screen.findByRole("tooltip");
   for (const label of ["Category", "Workflow", "Cadence", "Stack", "Target", "Runner", "Pass rate (14 days)", "Decided results"])
     expect(within(tooltip).getByText(label, { selector: "dt" })).toBeInTheDocument();
+});
+
+it("presents run evidence in explicit labeled rows instead of abbreviated link clusters", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp&day=2026-10-27&activity=cat:tests");
+  const panel = await screen.findByRole("region", { name: "Runs on 2026-10-27" });
+  await within(panel).findByRole("link", { name: "Job log at 10:00 UTC · failed" });
+  for (const label of ["Result", "Job log", "Failed step", "Commit", "Pull request", "PR CI result"])
+    expect(within(panel).getAllByText(label, { selector: "dt" }).length).toBeGreaterThan(0);
 });

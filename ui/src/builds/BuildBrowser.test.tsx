@@ -284,6 +284,51 @@ describe("BuildBrowser", () => {
     expect(screen.getByRole("row", { name: /check T0\.10 pass/ })).not.toHaveAttribute("aria-current");
   });
 
+  it("prefers recorded GPU evidence over the requested offload line", async () => {
+    const build = buildFixture();
+    const requested_offload_line = "offloaded 29/29 layers to GPU";
+    fetchMock.mockResolvedValue(response(producerReport(build, { tiers: {
+      tier1: {
+        tier_name: "Runtime",
+        status: "pass",
+        tests: [
+          { id: "T1.1", name: "llama.cpp proof", status: "pass", details: {
+            gpu_proof: [
+              "llama_prepare_model_devices: using device ROCm0 (AMD Radeon 8060S Graphics) (0000:c5:00.0) - 65234 MiB free",
+              "load_tensors:        ROCm0 model buffer size =   358.78 MiB",
+            ],
+            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
+            model_buffers_mib: [["ROCm0", 358.78]],
+            requested_offload_line,
+          } },
+          { id: "T1.2", name: "llamacpp-rocm buffers", status: "pass", details: {
+            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
+            model_buffers_mib: [["ROCm0", 358.78]],
+            requested_offload_line,
+          } },
+          { id: "T1.3", name: "selected device only", status: "fail", details: {
+            gpu_proof: [],
+            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
+            model_buffers_mib: [],
+            requested_offload_line,
+          } },
+          { id: "T1.4", name: "requested only", status: "pass", details: { requested_offload_line } },
+        ],
+      },
+    } })));
+    mount({ history: [build], selectedBuildId: build.build_id });
+
+    const offload = async (name: string) =>
+      (await screen.findByRole("row", { name: new RegExp(name) })).querySelector(".build-browser-evidence")?.textContent;
+    expect(await offload("llama.cpp proof")).toBe(
+      "GPU offload: llama_prepare_model_devices: using device ROCm0 (AMD Radeon 8060S Graphics) (0000:c5:00.0) - 65234 MiB free, " +
+      "load_tensors:        ROCm0 model buffer size =   358.78 MiB");
+    expect(await offload("llamacpp-rocm buffers")).toBe("GPU offload: ROCm0 (AMD Radeon 8060S Graphics): 358.78 MiB model buffer");
+    expect(await offload("selected device only")).toBe("GPU offload: ROCm0 (AMD Radeon 8060S Graphics) selected");
+    expect(await offload("requested only")).toBe(`GPU offload: ${requested_offload_line}`);
+    expect(screen.getAllByText(/"requested_offload_line": "offloaded 29\/29 layers to GPU"/)).toHaveLength(4);
+  });
+
   it("does not select a test ordinal in a different report revision", async () => {
     const build = buildFixture();
     fetchMock.mockResolvedValue(response(producerReport(build)));

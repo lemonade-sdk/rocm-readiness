@@ -304,12 +304,30 @@ function duration(test: JsonRecord) {
   return "Not recorded";
 }
 
-function evidence(test: JsonRecord, label: string, keys: string[]) {
+function field(test: JsonRecord, key: string) {
   const details = isRecord(test.details) ? test.details : {};
-  const value = keys
-    .map((key) => test[key] ?? details[key])
-    .find((candidate) => candidate !== undefined && candidate !== null);
-  const rendered = summary(value);
+  return test[key] ?? details[key];
+}
+
+function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function selectedDevices(test: JsonRecord) {
+  const devices = list(field(test, "devices_selected")).flatMap((entry) => {
+    const device = isRecord(entry) ? text(entry.device) : null;
+    return device ? [{ device, label: `${device}${isRecord(entry) && text(entry.name) ? ` (${text(entry.name)})` : ""}` }] : [];
+  });
+  const label = (device: string) => devices.find((entry) => entry.device === device)?.label ?? device;
+  const buffers = list(field(test, "model_buffers_mib")).flatMap((entry) =>
+    Array.isArray(entry) && text(entry[0]) && typeof entry[1] === "number"
+      ? [`${label(String(entry[0]))}: ${entry[1]} MiB model buffer`] : []);
+  if (buffers.length) return buffers;
+  return devices.length ? devices.map((entry) => `${entry.label} selected`) : null;
+}
+
+function evidence(label: string, values: unknown[]) {
+  const rendered = values.map((value) => summary(value)).find(Boolean);
   return rendered ? (
     <p className="build-browser-evidence">
       <strong>{label}:</strong> {rendered}
@@ -412,12 +430,13 @@ function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selecti
                           <th scope="row">
                             <strong>{check.id}</strong>{" "}
                             {check.name}
-                            {evidence(test, "Compatibility", ["compatibility"])}
-                            {evidence(test, "Runtime", ["runtime"])}
-                            {evidence(test, "GPU offload", [
-                              "gpu_offload",
-                              "gpu_proof",
-                              "requested_offload_line",
+                            {evidence("Compatibility", [field(test, "compatibility")])}
+                            {evidence("Runtime", [field(test, "runtime")])}
+                            {evidence("GPU offload", [
+                              field(test, "gpu_proof"),
+                              selectedDevices(test),
+                              field(test, "gpu_offload"),
+                              field(test, "requested_offload_line"),
                             ])}
                             {details && Object.keys(details).length > 0 && (
                               <details>

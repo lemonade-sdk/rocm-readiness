@@ -165,7 +165,7 @@ test("keeps the current UTC date visible when the selected version has no build 
   await nightly.getByRole("link", { name: /Show Nightly packages for 2026-10-29 UTC.*Linux/ }).click();
   await expect(page).toHaveURL(/day=2026-10-29/);
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
-  await page.getByRole("link", { name: "Show all packages in this window" }).click();
+  await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(nightlyToday).toBeAttached();
 });
 
@@ -313,4 +313,16 @@ test("overview shows qualification without benchmark status", async ({
   await expect(
     page.getByText(/Inspect benchmark attempts|Benchmark execution|Bench fail/),
   ).toHaveCount(0);
+});
+
+
+test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Clear Date: 2026-10-01", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
 });

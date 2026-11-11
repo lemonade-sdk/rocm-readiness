@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
+import { FilterReset, FilterScope } from "../FilterReset";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher, Session } from "../data";
 import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
@@ -178,6 +179,14 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       />
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>
+      {selectedBuild && <FilterScope label={`Build: ${selected?.tag ?? selectedBuild}`} onClear={() => onNavigate(next({ through: end === today ? null : end, build: null, source: null, package_identity: null, tier: null, check: null, focus: null }))} />}
+      {focusedDay && <FilterScope label={`Date: ${focusedDay}`} onClear={() => onNavigate(next({ through: end === today ? null : end, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
+      <FilterReset onReset={() => {
+        const target = next({ through: end === today ? null : end });
+        for (const key of ["platform", "engine", "channel", "build_filter", "day", "focus", "build", "source", "package_identity", "tier", "check", "report_commit"])
+          target.delete(key);
+        onNavigate(target);
+      }} />
     </div>
     <QualificationCharts platforms={visiblePlatforms} builds={trendBuilds} track={trendTrack} days={days} today={today} focusedDay={focusedDay ?? undefined}
       dayHref={(day, track, os) => `?${next({ day, channel: track, platform: os, focus: "day", build: null, source: null, package_identity: null })}`} />
@@ -185,7 +194,6 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       {older && <Link to={windowLink(older)}>← Older builds</Link>}
       {end < today && <Link to={windowLink(nextWindow)}>{nextWindow ? "Newer builds →" : "Back to latest dates →"}</Link>}
     </nav>}
-    {focusedDay && <Link to={windowLink(end === today ? null : end)}>Show all packages in this window</Link>}
     {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
     {rows.length === 0 ? <p role="status">No retained packages match this scope.</p> : <QualificationMatrix
       builds={rows}

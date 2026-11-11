@@ -87,7 +87,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
 
   const observations = matchedPerformanceObservations(packages, performanceMeasurements);
   const hasPerformance = observations.length > 0;
-  return <><Tooltip floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
+  return <><Tooltip side floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
     initialOpen={initialOpen} onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
       {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>
@@ -201,7 +201,7 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
                 const duplicate = checks.filter((item) => item.id === check.id).length > 1;
                 const linked = checkLink && id.toLowerCase() === checkLink.tier.toLowerCase() &&
                   (checkLink.check === `id:${check.id}` ? !duplicate : checkLink.check === String(check.index));
-                return <Tooltip key={JSON.stringify([duplicate ? `${check.id}:${check.index}` : check.id, Boolean(linked)])}
+                return <Tooltip side key={JSON.stringify([duplicate ? `${check.id}:${check.index}` : check.id, Boolean(linked)])}
                   initialOpen={Boolean(linked)} floating contentClassName="qualification-popup" onOpen={() => setInspect(true)}
                   triggerClassName="table-status" label={checkLabel} content={<TooltipContent heading={check.name === check.id ? check.id : `${check.id} · ${check.name}`} status={outcomes[state]}>
                     <dl><dt>Tier</dt><dd>{tier?.name ?? id}</dd><dt>Package</dt><dd>{label}</dd></dl>
@@ -251,7 +251,7 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
 
   function runDetails(build: Build) {
     const release = build.tag ?? "Unreported";
-    return <Tooltip floating contentClassName="qualification-popup" label={`Run details for ${release}`}
+    return <Tooltip side floating contentClassName="qualification-popup" label={`Run details for ${release}`}
       content={<TooltipContent heading={release}>
         <dl><dt>Date</dt><dd>{buildDate(build)} UTC</dd><dt>Workflow run</dt><dd>{build.run_id ?? "Unreported"}</dd></dl>
       </TooltipContent>}>

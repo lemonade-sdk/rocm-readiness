@@ -49,11 +49,9 @@ function measurements(version: string, quant = "Q4_K_M") {
   };
 }
 
-for (const compatible of [true, false]) {
+{
   test(
-    compatible
-      ? "shares model details and compares compatible measurements without refreshing the pointer"
-      : "refuses incompatible quantizations",
+    "shares model details without refreshing the pointer",
     async ({ page }) => {
       const reads: string[] = [];
       page.on("request", (request) => {
@@ -78,50 +76,35 @@ for (const compatible of [true, false]) {
             data = historyFixture(url.match(/\/rocm\/([^/]+)\//)![1]);
           else if (url.endsWith("/performance.json")) {
             const version = url.match(/\/rocm\/([^/]+)\//)![1];
-            data = measurements(
-              version,
-              !compatible && version === "10.2" ? "Q8_0" : "Q4_K_M",
-            );
+            data = measurements(version);
           } else return route.fulfill({ status: 404, body: "{}" });
           return route.fulfill({ json: data });
         },
       );
       await page.goto("./?version=10.1&view=performance&platform=linux");
       await page
-        .getByRole("link", { name: "Fixture model", exact: true })
-        .click();
+        .getByRole("combobox", { name: "Model", exact: true })
+        .selectOption("Fixture model");
       await expect(
-        page.getByRole("heading", { name: "Fixture model", level: 2 }),
+        page.getByRole("button", { name: /^Measurement details for Fixture model/ }),
       ).toBeVisible();
+      await page.getByRole("button", { name: "Sort by TPS", exact: true }).click();
+      await expect(page).toHaveURL(/sort=tps/);
+      await expect(page.locator('th[aria-sort="descending"]')).toContainText("TPS");
       const pointerReads = reads.filter((url) =>
         url.endsWith("/main/data/latest.json"),
       ).length;
-      await page
-        .getByRole("combobox", { name: "Compare ROCm version", exact: true })
-        .selectOption("10.2");
-      if (compatible)
-        await expect(page.getByText(/Δ \+2 tok\/s/)).toBeVisible();
-      else {
-        await expect(
-          page.getByText("No compatible comparison", { exact: true }),
-        ).toBeVisible();
-        await expect(page.getByText(/Δ /)).toHaveCount(0);
-      }
+      await expect(page.getByRole("group", { name: "Compare ROCm version" })).toHaveCount(0);
       expect(
         reads.filter((url) => url.endsWith("/main/data/latest.json")),
       ).toHaveLength(pointerReads);
       const shared = page.url();
       await page.reload();
       await expect(
-        page.getByRole("heading", { name: "Fixture model", level: 2 }),
+        page.getByRole("button", { name: /^Measurement details for Fixture model/ }),
       ).toBeVisible();
       await expect(page).toHaveURL(shared);
-      await expect(
-        page.getByRole("combobox", {
-          name: "Compare ROCm version",
-          exact: true,
-        }),
-      ).toHaveValue("10.2");
+
     },
   );
 }
@@ -152,6 +135,7 @@ test("anchors package performance popups and keeps model names readable", async 
     ...data,
     measurements: [
       measured,
+      { ...measured, scenario: "context-4k", context_size: 4096 },
       { ...measured, package_os: "windows", qualification_build_id: "history-1",
         package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-win-rocm-10.1-x64.zip",
         run_id: "12346", run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12346",
@@ -221,12 +205,21 @@ test("anchors package performance popups and keeps model names readable", async 
   await popup.getByRole("button", { name: "Windows", exact: true }).click();
   await popup.getByRole("link", { name: model, exact: true }).click();
   await expect(page.getByRole("link", { name: "Performance", exact: true })).toHaveAttribute("aria-current", "page");
-  await expect(page.locator(".performance-observation")).toHaveCount(1);
+  await expect(page.locator(".performance-measurement-row")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Clear Build: b100", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /^Measurement details for NVIDIA/ }).first().click();
+  await expect(page.getByRole("dialog")).toHaveAttribute("data-placement", /^(right|left)-/);
   await expect(page.getByRole("link", { name: "12345 ↗", exact: true })).toHaveAttribute("href",
     "https://github.com/lemonade-sdk/lemonade/actions/runs/12345");
-  await expect(page.locator(".performance-observation")).toContainText("10 s");
+  await expect(page.locator(".performance-measurement-row").first()).toContainText("10");
   await page.reload();
-  await expect(page.locator(".performance-observation")).toHaveCount(1);
-  await page.getByRole("link", { name: "All observations for this model", exact: true }).click();
-  await expect(page.locator(".performance-observation")).toHaveCount(2);
+  await expect(page.locator(".performance-measurement-row")).toHaveCount(2);
+  await expect(page.getByRole("group", { name: "Workload", exact: true }).getByRole("button", { name: "4K", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(page).not.toHaveURL(/build=|model=|observation=/);
+  await page.getByRole("searchbox", { name: "Find build" }).fill("missing-build");
+  await expect(page.locator(".performance-measurement-row")).toHaveCount(0);
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(page.locator(".performance-measurement-row").first()).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Show history" })).toHaveCount(0);
 });

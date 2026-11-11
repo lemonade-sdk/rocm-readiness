@@ -12,9 +12,7 @@
 }
 
 .performance-heading h2,
-.performance-observation h3,
-.performance-comparison h2,
-.performance-comparison h3 {
+.performance-observation h3 {
   margin: 0.2rem 0 0;
 }
 
@@ -47,9 +45,7 @@
   min-width: 0;
 }
 
-.performance-table-wrap,
-.performance-observation,
-.performance-comparison {
+.performance-observation {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
@@ -60,26 +56,10 @@
   overflow-x: auto;
 }
 
-.performance-table-wrap table {
-  border-collapse: collapse;
-  min-width: 44rem;
-  width: 100%;
-}
+/* Reuse qualification-table for shared headers, cell surfaces, rules, and type. */
+.performance-measurements { min-width: 48rem; }
 
-.performance-table-wrap th,
-.performance-table-wrap td {
-  border-bottom: 1px solid var(--border);
-  padding: 0.65rem;
-  text-align: left;
-  vertical-align: top;
-}
-
-.performance-table-wrap tr:last-child td {
-  border-bottom: 0;
-}
-
-.performance-observations,
-.performance-comparison-list {
+.performance-observations {
   display: grid;
   gap: 0.85rem;
 }
@@ -91,8 +71,7 @@
 }
 
 .performance-metadata,
-.performance-metrics,
-.performance-deltas {
+.performance-metrics {
   display: grid;
   gap: 0.65rem 1rem;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
@@ -100,21 +79,18 @@
 }
 
 .performance-metadata div,
-.performance-metrics div,
-.performance-deltas div {
+.performance-metrics div {
   min-width: 0;
 }
 
 .performance-metadata dt,
-.performance-metrics dt,
-.performance-deltas dt {
+.performance-metrics dt {
   color: var(--muted);
   font-size: 0.8rem;
 }
 
 .performance-metadata dd,
-.performance-metrics dd,
-.performance-deltas dd {
+.performance-metrics dd {
   margin: 0.15rem 0 0;
   overflow-wrap: anywhere;
 }
@@ -124,28 +100,8 @@
 }
 
 .performance-provenance,
-.performance-empty-metrics,
-.performance-empty-comparison {
+.performance-empty-metrics {
   margin: 0.75rem 0 0;
-}
-
-.performance-empty-comparison {
-  font-weight: 700;
-}
-
-.performance-comparison-row {
-  border-top: 1px solid var(--border);
-  padding-top: 0.9rem;
-}
-
-.performance-comparison-row:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.performance-unmatched {
-  margin: 0.9rem 0 0;
-  padding-left: 1.2rem;
 }
 
 @media (max-width: 42rem) {
@@ -155,7 +111,44 @@
     flex-direction: column;
   }
 
-  .performance-table-wrap table {
-    min-width: 36rem;
-  }
 }
+
+.performance-filter-bar .build-filter-options button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: start;
+  white-space: normal;
+}
+
+.performance-model-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 23rem;
+  font-size: .75rem;
+  color: var(--muted);
+}
+.performance-model-filter select { width: 100%; min-width: 0; min-height: 38px; }
+.performance-measurements caption { text-align: left; font-size: .75rem; color: var(--muted); padding-bottom: .8rem; }
+.performance-measurements td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.performance-measurements thead th:nth-child(2) { width: 30%; }
+.performance-measurements th[scope="row"] { overflow-wrap: anywhere; }
+.performance-model-trigger { text-align: left; overflow-wrap: anywhere; font: inherit; }
+.performance-os { display: inline-flex; align-items: center; gap: .35rem; }
+.performance-evidence { max-width: 38rem; }
+.performance-evidence h3 { margin: 0; }
+.performance-evidence .performance-metadata { font-size: .8rem; }
+.performance-evidence time { font-size: .75rem; font-variant-numeric: tabular-nums; }
+
+.performance-measurements td { font: .85rem ui-monospace, monospace; }
+.performance-measurements .performance-os { min-height: 1.25rem; }
+.performance-engine-build { display: block; margin-top: .2rem; color: var(--muted); font: .7rem ui-monospace, monospace; }
+
+.performance-model-popup .performance-provenance { margin: 0; font-size: .75rem; }
+.performance-model-popup .performance-evidence-section h5 { margin-top: .5rem; }
+
+.performance-sort-heading { display: inline-flex; align-items: center; gap: .2rem; }
+.performance-sort { font: inherit; color: inherit; border: 0; background: transparent; padding: .1rem; cursor: pointer; }
+.performance-build-order { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; margin-bottom: .6rem; font-size: .75rem; }
+.performance-build-order select { font-size: .75rem; padding: .3rem; }
+@media (pointer: coarse) { .performance-sort { min-height: 44px; min-width: 28px; } }

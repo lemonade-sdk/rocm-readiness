@@ -118,6 +118,8 @@ neutral tint, and retain the existing status foregrounds in both themes.
   Use Floating UI for anchored tooltips and interactive package popups, with an
   arrow to the trigger, viewport-aware positioning, keyboard and touch access,
   Escape and outside dismissal, and a visible close control for interactive panels.
+  Table evidence popups open to the right and flip left when space requires it;
+  keep them beside the row so readers can scan vertically between triggers.
   Keep the tooltip open while the pointer or keyboard focus is within its trigger
   or panel. Size package popups to their content within the viewport. Show visible
   platform packages in one compact column. Use top and bottom spacing, a shared
@@ -203,6 +205,34 @@ selected UTC dates in the URL and browser history. Keep missing evidence distinc
 from zero failures and label requested-but-unrun, skipped and undecided outcomes. Place daily activity before project-wide
 coverage and findings, with job-log, commit and pull-request evidence available
 in run drill-downs. Keep wide tables independently keyboard-scrollable.
+
+Performance keeps the compact model dropdown with the shared filter buttons. Show
+measurements in one table, including filtered and legacy model URLs, with TPS,
+VRAM, TTFT, OS, and context. Keep quantization in the evidence popup. Model names open anchored evidence
+popups instead of a second detail page. Label UTC once and keep timestamps in
+the evidence. Display context workload labels as 4K/32K without changing source
+identities or inferring missing numeric context. Keep workload details in the evidence popup.
+
+Performance mirrors Package Qualification’s structure: stable uses a single table
+with Build as its first grouped column; nightly uses the shared release headings
+above separate tables with GPU family as the first grouped column. Reuse the
+qualification matrix, release, scrolling, header, and cell styles directly.
+
+Keep all measured builds visible by default; select the latest observation within
+each build/configuration rather than across builds. Keep test details in evidence
+popups instead of a separate Recorded tests section.
+
+Build Qualification and Performance place Find build and Reset filters together
+in the filter toolbar. Reset clears view filters and package/day/model drill-down
+constraints while preserving the ROCm version and current qualification window.
+Model-name links from performance previews open all workloads for the selected
+model/package; exact metric links must show the observation’s workload selected.
+
+Use compact metric headers with shared definition tooltips for units. Show Context
+for the configured window capacity. Sort measurement rows within their build and
+GPU-family groups. Rank builds by a selected metric only within one fully known
+compatible cohort; do not rank different models or workloads as faster builds.
+Use removable scope controls consistently in qualification and performance filters.
 
 In CI Activity, place repositories beside visible project-wide findings below the
 CI jobs table, stacking on narrow screens. List individual CI jobs in an always

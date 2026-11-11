@@ -366,7 +366,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                   return (
                     <td key={day} data-outcome={activityOutcomes[state]} className={`${onPick ? "up-daily-cell" : "table-status"}${isCalendarMonthBoundary(last14, index) ? " month-boundary" : ""}`}>
                       {onPick ? (
-                        <Tooltip interactive label={text} triggerClassName="up-daily-trigger"
+                        <Tooltip side interactive label={text} triggerClassName="up-daily-trigger"
                           contentClassName="up-run-tooltip"
                           isOpen={selected?.key === `cat:${category}` && selected.day === day}
                           onOpenChange={(next) => {
@@ -382,7 +382,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                           </span>
                         </Tooltip>
                       ) : (
-                        <Tooltip floating label={text} triggerClassName="up-tick"
+                        <Tooltip side floating label={text} triggerClassName="up-tick"
                           to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}
                           content={<TooltipContent heading={day} status={activityStates[state].label}><span>{text}</span></TooltipContent>}>
                           <ActivityMark state={state} />

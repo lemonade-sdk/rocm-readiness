@@ -1068,3 +1068,11 @@ button.up-tick {
 .up-jobs-table thead th[rowspan]:first-child { width: 12rem; }
 .up-jobs-table thead th[rowspan]:nth-child(2) { width: 3rem; }
 .up-jobs-table th[scope="row"] { min-width: 0; max-width: none; }
+
+/* Normalize row heights: block tooltip triggers avoid inline baseline padding. */
+.up-page .up-jobs-table :is(th, td) { padding: 0.4rem 0.5rem; vertical-align: middle; }
+.up-page .up-jobs-table td.table-status { padding: 0; }
+.up-jobs-table td .comparison-tooltip { display: block; }
+.up-jobs-table td .up-tick { display: grid; min-height: 2.25rem; }
+.up-collection-status { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem; margin: 0; color: var(--muted); font-size: 0.8rem; }
+.up-collection-status > span:first-child { color: var(--warning); }

@@ -202,11 +202,11 @@ coverage and findings, with job-log, commit and pull-request evidence available
 in run drill-downs. Keep wide tables independently keyboard-scrollable.
 
 In CI Activity, place repositories beside visible project-wide findings below the
-coverage tables, stacking on narrow screens. List individual CI jobs in an always
+CI jobs table, stacking on narrow screens. List individual CI jobs in an always
 visible table with Job, an icon-only Platform column and 14 dated outcome
 columns matching Daily activity. Put Stack, Target and the pass rate for those
 14 days in the job-name tooltip; retain accessible platform names.
-Explain that these jobs contribute to Daily activity's category totals; pass rate
+Job-name tooltips identify the job and its evidence; pass rate
 covers decided results in the displayed 14-day window. Keep job metadata and per-day
 run evidence available in accessible anchored tooltips. Use a matching calendar
 surface for a ranked failing-step table with exact failure counts and affected-job
@@ -214,3 +214,9 @@ counts. Give each step equal row height so rare failures remain readable beside
 dominant failures; do not encode these counts as relative bar lengths. Label its
 collection window separately from the 14-day activity chart. Truncate long job
 and step labels using ellipses and expose full labels on hover, keyboard and touch.
+
+Keep the CI jobs heading directly above its table without helper paragraphs.
+Use compact, evenly aligned rows with full-cell day triggers and no inline
+baseline gaps. Keep quiet-job details in the job-name tooltip. Show incomplete
+collection as a subdued status with a warning symbol beneath the project title,
+without a bullet or a support disclaimer there.

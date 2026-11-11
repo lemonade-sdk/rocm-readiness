@@ -564,10 +564,9 @@ function ProjectPage({
           <h2>{project.label}</h2>
           <Badge project={project} />
         </div>
-        <div className="up-project-notes muted">
-          <p>Configured CI evidence; does not verify physical hardware or published artifacts.</p>
-          {!project.coverage.complete && !project.coverage.error && <p>◌ Collection incomplete · oldest days may be missing.</p>}
-        </div>
+        {!project.coverage.complete && !project.coverage.error && (
+          <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>
+        )}
       </header>
       <div className="up-kpis up-kpis-page">
         <Stat
@@ -668,26 +667,13 @@ function ProjectPage({
 
         </div>
       </div>
-      <div className="up-project-context">
-        <section className="up-panel" aria-label="Repositories">
-          <h2>Repositories</h2>
-          <ProjectSources project={project} />
-        </section>
-        <section className="up-panel up-findings" aria-label="Project findings">
-          <h2>Project findings</h2>
-          {findings.length ? findings.map((finding) => (
-            <p key={finding.head}><strong>{finding.head}</strong> {finding.body}</p>
-          )) : <p className="muted">No project-wide findings recorded.</p>}
-        </section>
-      </div>
       <section className="up-panel up-jobs" aria-label="CI jobs">
         <h2>CI jobs <span className="muted">{jobs.length} jobs · {days14.length} days · UTC</span></h2>
-        <p className="muted up-jobs-explanation">Individual jobs behind Daily activity’s category totals. Select a day for that job’s runs.</p>
         <div className="up-table-scroll calendar-surface" role="region" aria-label="CI jobs table" tabIndex={0}>
           <table className="up-activity-table up-jobs-table" aria-label="CI jobs">
             <thead>
               <tr className="calendar-months">
-                {["Job", "Platform"].map((label) => <th key={label} scope="col" rowSpan={2}>{label}</th>)}
+                {["Job", "Platform"].map((label) => <th key={label} scope="col" rowSpan={2} aria-label={label}>{label === "Platform" ? "OS" : label}</th>)}
                 {calendarMonthGroups(days14).map((month, index) => <th key={month.key} scope="colgroup" colSpan={month.days}
                   className={index ? "month-boundary" : undefined} aria-label={`${month.label} ${month.key.slice(0, 4)}`}>{month.label}</th>)}
               </tr>
@@ -707,8 +693,8 @@ function ProjectPage({
                       <span>Stack: {job.stack} · Target: {job.target}</span>
                       <span>{job.where}</span>
                       <span>Pass rate ({days14.length} days): {decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"} · {passed} passed of {decided} decided results</span>
+                      {project.coverage.complete && notRunning(job) && <span>{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</span>}
                     </TooltipContent>}><span>{job.label}</span></Tooltip>
-                  {project.coverage.complete && notRunning(job) && <small className="bad up-job-quiet">{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</small>}
                 </th>
                 <td className="up-job-platform" aria-label={job.os === "windows" ? "Windows" : "Linux"} title={job.os === "windows" ? "Windows" : "Linux"}><PlatformIcon platform={job.os} /></td>
                 {days14.map((day, index) => {
@@ -732,8 +718,19 @@ function ProjectPage({
         {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
           <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
             days={allDays} runs={runs} onDay={(day) => setOpen({ ...open, day })} onClose={() => setOpen(null)} />}
-        <p className="muted up-jobs-explanation">Job-name tooltips show stack, target and the {days14.length}-day pass rate. Missing evidence is not a failure.</p>
       </section>
+      <div className="up-project-context">
+        <section className="up-panel" aria-label="Repositories">
+          <h2>Repositories</h2>
+          <ProjectSources project={project} />
+        </section>
+        <section className="up-panel up-findings" aria-label="Project findings">
+          <h2>Project findings</h2>
+          {findings.length ? findings.map((finding) => (
+            <p key={finding.head}><strong>{finding.head}</strong> {finding.body}</p>
+          )) : <p className="muted">No project-wide findings recorded.</p>}
+        </section>
+      </div>
     </section>
   );
 }

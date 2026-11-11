@@ -24,9 +24,10 @@ export function TooltipContent({ heading, status, children, format = "details" }
 
 export function Tooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen,
-  interactive = false, contentClassName, initialOpen = false, isOpen, onOpenChange,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange,
 }: {
   label: string;
+  side?: boolean;
   content: ReactNode;
   children: ReactNode;
   to?: string;
@@ -57,12 +58,12 @@ export function Tooltip({
       setOpen(next);
       onOpenChange?.(next);
     },
-    placement: "bottom-start",
+    placement: side ? "right-start" : "bottom-start",
     strategy: "fixed",
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(10),
-      flip({ padding: 12 }),
+      flip({ padding: 12, ...(side ? { fallbackPlacements: ["left-start"], flipAlignment: false } : {}) }),
       shift({ padding: 12 }),
       size({
         padding: 12,

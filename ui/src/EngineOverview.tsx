@@ -43,7 +43,7 @@ function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number })
       : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
   return (
-    <Tooltip
+    <Tooltip side
       to={qualificationBuildHref(build, dayCount > 1 ? "day" : "package")}
       label={`Open package qualification · ${label}${dayCount > 1 ? ` · ${dayCount} packages` : ""}`}
       triggerClassName={

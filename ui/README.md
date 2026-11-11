@@ -102,6 +102,16 @@ its pinned producer report on demand and displays individual checks, tiers,
 durations, warning/failure reasons and audit details. Report failures retain the
 build metadata and offer retry.
 
+Performance uses the shared visible filter buttons for ROCm version, measurement
+platform, hardware system, and workload. Each choice shows its selected state;
+there are no separate All buttons. Model selection
+remains a compact dropdown in the same filter bar; selections remain in the URL.
+Measurements use one table for both landing and legacy model URLs, with TPS, peak
+VRAM, TTFT, OS, and context. Quantization remains in evidence popups. Model-name popups retain package/run
+provenance and qualification evidence. Workload labels display 4K/32K while the
+source scenario and numeric context metadata remain unchanged. Workload details
+remain in evidence popups; timestamps use UTC.
+
 Performance views show measured package tags, dates, hardware, workloads and
 metric units. Cross-version comparisons require complete compatible hardware,
 model, quantization and workload settings. Missing metadata remains unmatched.
@@ -166,6 +176,26 @@ VITE_BASE_PATH=/rocm-readiness/ npm run preview
 
 Open `/rocm-readiness/` on the preview server. The default local development path
 remains `/`.
+
+Performance defaults to the latest observation per build, source, engine/fork/channel, model,
+quantization, workload/input, OS, and recorded hardware/context configuration. Older observations within the same build/configuration are collapsed. Rows are grouped under build tags, with nightly GPU-family subgroups from
+matched qualification packages or their attributed package filenames. Quantization
+remains available in evidence popups. P95 is copied from the producer TPS statistic; no cross-build averaging is
+performed. Legacy history URL flags no longer alter the table.
+
+Build Qualification and Performance share Find build and Reset filters controls
+in the filter toolbar. Reset clears each view’s selected package/model/day and
+filter scope while keeping the ROCm version (and qualification date window).
+Performance model-name links open all workloads for that model/package; metric
+bars retain exact-observation links and highlight their recorded workload.
+
+Performance headers keep units in shared definition tooltips. Context means the
+configured token window capacity. Header arrows sort rows inside each build/GPU
+family; missing metrics stay last. Build order can follow the selected metric
+only when all visible rows have the same complete compatible cohort identity.
+Sorting and build order persist in the URL. Both views expose removable Build/Date
+scope buttons in the filters. Hardware choices use CPU/GPU names when recorded,
+with the full source identifier available on hover.
 
 All project views share the outcome registry, glyph component and legend component
 used by Build Qualification. CI jobs show any recorded failure as Fail, distinguish

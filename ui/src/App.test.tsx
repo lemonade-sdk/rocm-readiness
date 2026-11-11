@@ -324,10 +324,9 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
     },
     [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: history,
   }), "/?view=build-performance&version=10.1&build=linux-build&platform=linux");
-  expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /^Measurement details for Matched model/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
-  fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
-  expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /^Measurement details for Matched model/ })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Different package" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: /^Build Qualification$/ }));
   const indicator = await screen.findByRole("button", { name: channel === "stable"
@@ -339,10 +338,9 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
   expect(screen.getByText("65 tok/s")).toBeInTheDocument();
   expect(measurementLink).toHaveAttribute("href", expect.stringContaining("view=build-performance"));
   fireEvent.click(measurementLink);
-  expect(await screen.findByRole("link", { name: "Matched model" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /^Measurement details for Matched model/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Performance" })).toHaveAttribute("aria-current", "page");
-  fireEvent.click(screen.getByRole("link", { name: "Matched model" }));
-  expect(await screen.findByRole("heading", { name: "Matched model", level: 2 })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /^Measurement details for Matched model/ })).toBeInTheDocument();
 
 });
 

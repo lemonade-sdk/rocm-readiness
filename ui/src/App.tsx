@@ -179,7 +179,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("tier");
     next.delete("check");
     next.delete("report_commit");
-    if (next.get("compare") === value) next.delete("compare");
+    next.delete("compare");
     if (buildView || qualificationView) next.set("view", "engine");
     if (view === "model" || view === "build-performance") next.set("view", "performance");
     setParams(next);
@@ -223,7 +223,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
   const versionOptions = session?.index.versions ?? [];
-  const versionFilter = qualificationView ? (
+  const performanceView = ["performance", "model", "build-performance"].includes(view);
+  const versionFilter = qualificationView || performanceView ? (
     <fieldset className="build-filter-options">
       <legend>ROCm version</legend>
       {!session && <span className="muted">Loading…</span>}
@@ -323,7 +324,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </aside>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
-          (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
+          !performanceView && (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
         {liveSync?.status === "failed" && (
@@ -452,6 +453,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {["performance", "model", "build-performance"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView
+                    versionFilter={versionFilter}
                     fetcher={fetcher}
                     session={session}
                     params={params}

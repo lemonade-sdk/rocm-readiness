@@ -5179,9 +5179,9 @@
       "event": "schedule",
       "ref": "main",
       "sha": "3519cba5cb6923b734b9a59eaf4c3a2fb64f4532",
-      "status": "in_progress",
-      "conclusion": null,
-      "state": "running",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
       "failed_step": null,
       "queue_seconds": 4,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-qfbnj",
@@ -5197,9 +5197,9 @@
       "event": "schedule",
       "ref": "main",
       "sha": "3519cba5cb6923b734b9a59eaf4c3a2fb64f4532",
-      "status": "in_progress",
-      "conclusion": null,
-      "state": "running",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
       "failed_step": null,
       "queue_seconds": 52,
       "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-lw59t",
@@ -5438,6 +5438,7 @@
     "42975012443#1@2026-11-11",
     "42989979593#1@2026-11-11",
     "43006698451#1@2026-11-11",
-    "43023509209#1@2026-11-11"
+    "43023509209#1@2026-11-11",
+    "43042088414#1@2026-11-11"
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-11T11:04:34Z",
+  "generated_at": "2026-11-11T17:33:42Z",
   "window": {
     "start": "2026-10-13",
     "end": "2026-11-11",
@@ -50,9 +50,9 @@
         "reason": "tested on main on gfx1201 (models-check rocm), gfx1201 (models-check vulkan-amd)"
       },
       "kpis": {
-        "decided": 890,
-        "passed": 854,
-        "pass_rate": 96.0,
+        "decided": 919,
+        "passed": 877,
+        "pass_rate": 95.4,
         "not_running": 1,
         "merged_red": 13
       },
@@ -126,7 +126,7 @@
               "passed": 0,
               "failed": 0,
               "other": 0,
-              "stalled": 14,
+              "stalled": 15,
               "skipped": 0,
               "running": 0,
               "slow": 0
@@ -181,7 +181,7 @@
           "passed": 0,
           "started": 0,
           "skipped": 0,
-          "stalled": 171,
+          "stalled": 172,
           "last_ran": null,
           "quiet_days": [
             "2026-10-29",
@@ -200,11 +200,11 @@
           "median_queue_seconds": null,
           "failed_steps": {},
           "gate": {
-            "merged": 171,
+            "merged": 172,
             "passed": 0,
             "failed": 1,
             "not_triggered": 114,
-            "no_result": 56,
+            "no_result": 57,
             "red": [
               {
                 "number": 30375,
@@ -320,6 +320,15 @@
               "running": 0,
               "slow": 1
             },
+            "2026-11-11": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
             "2026-10-29": {
               "passed": 0,
               "failed": 0,
@@ -346,20 +355,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-11": {
-              "passed": 9,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
             }
           },
-          "decided": 137,
-          "passed": 121,
-          "started": 137,
+          "decided": 140,
+          "passed": 124,
+          "started": 140,
           "skipped": 0,
           "stalled": 20,
           "last_ran": "2026-11-11",
@@ -371,8 +371,8 @@
             "Test archs": 1
           },
           "gate": {
-            "merged": 157,
-            "passed": 104,
+            "merged": 160,
+            "passed": 107,
             "failed": 11,
             "not_triggered": 8,
             "no_result": 34,
@@ -672,6 +672,15 @@
               "running": 0,
               "slow": 2
             },
+            "2026-11-11": {
+              "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
             "2026-10-29": {
               "passed": 0,
               "failed": 0,
@@ -698,20 +707,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-11": {
-              "passed": 9,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 2
             }
           },
-          "decided": 138,
-          "passed": 122,
-          "started": 138,
+          "decided": 141,
+          "passed": 125,
+          "started": 141,
           "skipped": 0,
           "stalled": 19,
           "last_ran": "2026-11-11",
@@ -723,8 +723,8 @@
             "Install dependencies": 1
           },
           "gate": {
-            "merged": 157,
-            "passed": 105,
+            "merged": 160,
+            "passed": 108,
             "failed": 11,
             "not_triggered": 8,
             "no_result": 33,
@@ -989,12 +989,12 @@
               "slow": 7
             },
             "2026-11-07": {
-              "passed": 13,
+              "passed": 15,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 1,
+              "running": 0,
               "slow": 5
             },
             "2026-11-08": {
@@ -1024,6 +1024,15 @@
               "running": 0,
               "slow": 18
             },
+            "2026-11-11": {
+              "passed": 13,
+              "failed": 4,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 14
+            },
             "2026-10-29": {
               "passed": 5,
               "failed": 0,
@@ -1050,36 +1059,55 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-11": {
-              "passed": 7,
-              "failed": 0,
-              "other": 0,
-              "stalled": 3,
-              "skipped": 0,
-              "running": 0,
-              "slow": 5
             }
           },
-          "decided": 219,
-          "passed": 218,
-          "started": 220,
+          "decided": 231,
+          "passed": 226,
+          "started": 231,
           "skipped": 0,
-          "stalled": 3,
+          "stalled": 0,
           "last_ran": "2026-11-11",
           "quiet_days": [],
-          "median_queue_seconds": 623,
+          "median_queue_seconds": 652,
           "failed_steps": {
+            "Dependencies": 4,
             "Build with native CMake HIP support": 1
           },
           "gate": {
-            "merged": 223,
-            "passed": 26,
+            "merged": 231,
+            "passed": 28,
             "failed": 0,
-            "not_triggered": 197,
+            "not_triggered": 203,
             "no_result": 0,
             "red": [],
             "escaped": [
+              {
+                "number": 32078,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32078",
+                "author": "ggerganov",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43027612509/job/130546179075"
+              },
+              {
+                "number": 32053,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32053",
+                "author": "ngxson",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43059748464/job/130658749980"
+              },
+              {
+                "number": 32049,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32049",
+                "author": "cabelo",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43017636750/job/130512574900"
+              },
               {
                 "number": 31692,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/31692",
@@ -1184,6 +1212,15 @@
               "running": 0,
               "slow": 0
             },
+            "2026-11-11": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
             "2026-10-30": {
               "passed": 1,
               "failed": 0,
@@ -1201,15 +1238,6 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-11": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
             }
           },
           "decided": 14,
@@ -1289,7 +1317,7 @@
               "slow": 0
             },
             "2026-11-07": {
-              "passed": 14,
+              "passed": 16,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -1324,6 +1352,15 @@
               "running": 0,
               "slow": 4
             },
+            "2026-11-11": {
+              "passed": 2,
+              "failed": 2,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
+              "slow": 1
+            },
             "2026-10-29": {
               "passed": 4,
               "failed": 0,
@@ -1350,26 +1387,18 @@
               "skipped": 0,
               "running": 0,
               "slow": 4
-            },
-            "2026-11-11": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 1,
-              "slow": 1
             }
           },
-          "decided": 185,
-          "passed": 183,
-          "started": 187,
+          "decided": 190,
+          "passed": 186,
+          "started": 192,
           "skipped": 10,
           "stalled": 2,
           "last_ran": "2026-11-11",
           "quiet_days": [],
-          "median_queue_seconds": 45,
+          "median_queue_seconds": 36,
           "failed_steps": {
+            "ccache": 2,
             "Build with native CMake HIP support": 1,
             "Upload artifacts": 1
           },
@@ -1441,13 +1470,13 @@
               "slow": 1
             },
             "2026-11-07": {
-              "passed": 14,
+              "passed": 16,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 2
+              "slow": 3
             },
             "2026-11-08": {
               "passed": 14,
@@ -1476,6 +1505,15 @@
               "running": 0,
               "slow": 3
             },
+            "2026-11-11": {
+              "passed": 5,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 2
+            },
             "2026-10-29": {
               "passed": 4,
               "failed": 0,
@@ -1502,20 +1540,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 3
-            },
-            "2026-11-11": {
-              "passed": 1,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 1,
-              "slow": 1
             }
           },
-          "decided": 197,
-          "passed": 196,
-          "started": 200,
+          "decided": 203,
+          "passed": 202,
+          "started": 205,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-11",
@@ -1530,14 +1559,14 @@
       "platforms": {
         "linux": {
           "built": true,
-          "built_rate": 99,
+          "built_rate": 98,
           "tested": true,
-          "tested_rate": 88,
+          "tested_rate": 89,
           "shipped": "ubuntu-rocm archive in every release, and a ROCm docker image"
         },
         "windows": {
           "built": true,
-          "built_rate": 99,
+          "built_rate": 100,
           "tested": false,
           "tested_rate": null,
           "shipped": "win-rocm archive in every release"
@@ -1553,21 +1582,21 @@
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm",
-          "head": "gpu-rocm never ran on 114 of 171 merged pull requests.",
+          "head": "gpu-rocm never ran on 114 of 172 merged pull requests.",
           "body": "0 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "hip-build",
-          "head": "hip build never ran on 197 of 223 merged pull requests.",
-          "body": "1 merged pull requests with no run or an unknown historical result then failed on main."
+          "head": "hip build never ran on 203 of 231 merged pull requests.",
+          "body": "4 merged pull requests with no run or an unknown historical result then failed on main."
         }
       ],
       "coverage": {
         "complete": false,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": "2026-10-29T14:43:37Z",
         "cache_identity": "fa28cf7fd6b727c8cb61093a3cac29f9c7cbb7007200141b520e4146a2723f62",
         "pending": {
@@ -30739,118 +30768,6 @@
             "workflow": "release.yml",
             "jobs_pages": {}
           },
-          "42402155359#1@2026-11-07": {
-            "run": {
-              "id": 42402155359,
-              "created_at": "2026-11-07T18:36:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "9f0e5098a5d5d8adb8dd5c59036ae2a38ab07db9",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42402155359"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "42390849128#1@2026-11-07": {
-            "run": {
-              "id": 42390849128,
-              "created_at": "2026-11-07T16:21:02Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "e95426f16982054c379ca7bdc8186996dd22f0fe",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42390849128"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "42366600461#1@2026-11-07": {
-            "run": {
-              "id": 42366600461,
-              "created_at": "2026-11-07T11:04:16Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "80d2c0c2c56e4a1bbf74be98f64b99927bf230bc",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42366600461"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42366559714#1@2026-11-07": {
-            "run": {
-              "id": 42366559714,
-              "created_at": "2026-11-07T11:03:41Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "0956684529271e802c740a208f97c505d62bea26",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42366559714"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42353687948#1@2026-11-07": {
-            "run": {
-              "id": 42353687948,
-              "created_at": "2026-11-07T08:01:31Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "cf659f240b232e15700b1721bbb43c1d973c52e9",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42353687948"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42353533262#1@2026-11-07": {
-            "run": {
-              "id": 42353533262,
-              "created_at": "2026-11-07T07:59:30Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "5d7d4aec1603a3747e001c5065d11be7df4816b6",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42353533262"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42348283268#1@2026-11-07": {
-            "run": {
-              "id": 42348283268,
-              "created_at": "2026-11-07T06:43:53Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "c0ab6e5c0bab3fb21e6cb9d2371f3c41d85ea775",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42348283268"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42343974258#1@2026-11-07": {
-            "run": {
-              "id": 42343974258,
-              "created_at": "2026-11-07T05:44:08Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "31424b7cf14604ca65a9195123da1413f31c4472",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42343974258"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
           "42332353322#1@2026-11-07": {
             "run": {
               "id": 42332353322,
@@ -30906,110 +30823,6 @@
             },
             "workflow": "ci-self-hosted-cuda.yml",
             "jobs_pages": {}
-          },
-          "42402155556#1@2026-11-07": {
-            "run": {
-              "id": 42402155556,
-              "created_at": "2026-11-07T18:36:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "9f0e5098a5d5d8adb8dd5c59036ae2a38ab07db9",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42402155556"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "42390849154#1@2026-11-07": {
-            "run": {
-              "id": 42390849154,
-              "created_at": "2026-11-07T16:21:02Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "e95426f16982054c379ca7bdc8186996dd22f0fe",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42390849154"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "42422691473#1@2026-11-07": {
-            "run": {
-              "id": 42422691473,
-              "created_at": "2026-11-07T22:53:14Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "a2654ec43148b8ae827d956276ce2c1eacfd3853",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42422691473"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs": [
-              {
-                "id": 128554307040,
-                "name": "gpu-rocm",
-                "status": "completed",
-                "conclusion": "cancelled",
-                "created_at": "2026-11-07T22:53:15Z",
-                "started_at": "2026-11-07T22:53:15Z",
-                "runner_name": "",
-                "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42422691473/job/128554307040",
-                "steps": []
-              }
-            ],
-            "pr": {
-              "number": 31808,
-              "url": "https://github.com/ggml-org/llama.cpp/pull/31808",
-              "head_sha": "1dd120fc2df7a198bf9cb61a44476369d10b541d",
-              "author": "ngxson",
-              "merged_at": "2026-11-07T22:53:11Z"
-            },
-            "checks_pages": {}
-          },
-          "42402155388#1@2026-11-07": {
-            "run": {
-              "id": 42402155388,
-              "created_at": "2026-11-07T18:36:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "9f0e5098a5d5d8adb8dd5c59036ae2a38ab07db9",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42402155388"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42390848964#1@2026-11-07": {
-            "run": {
-              "id": 42390848964,
-              "created_at": "2026-11-07T16:21:02Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "e95426f16982054c379ca7bdc8186996dd22f0fe",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42390848964"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "42379747768#1@2026-11-07": {
-            "run": {
-              "id": 42379747768,
-              "created_at": "2026-11-07T14:03:01Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "f7591a6a01f9273de03331732bdc0b39721168be",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/42379747768"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
           }
         }
       },
@@ -31017,7 +30830,7 @@
         {
           "month": "2026-11",
           "path": "upstream/llamacpp/ci/2026-11.json",
-          "run_count": 981
+          "run_count": 1006
         },
         {
           "month": "2026-10",
@@ -31332,7 +31145,7 @@
         "complete": true,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": "2026-10-19T14:07:04Z",
         "cache_identity": "f5320d6c42cbdf31a16c47317cab21206c22f43d7133d45775b446f12ae63e08",
         "pending": {}
@@ -31362,9 +31175,9 @@
         "reason": "no test on main runs on client hardware"
       },
       "kpis": {
-        "decided": 16,
+        "decided": 17,
         "passed": 14,
-        "pass_rate": 87.5,
+        "pass_rate": 82.4,
         "not_running": 1,
         "merged_red": 0
       },
@@ -31460,18 +31273,27 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-11": {
+              "passed": 0,
+              "failed": 1,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 9,
+          "decided": 10,
           "passed": 7,
-          "started": 9,
+          "started": 10,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-10",
+          "last_ran": "2026-11-11",
           "quiet_days": [],
-          "median_queue_seconds": 8,
+          "median_queue_seconds": 5,
           "failed_steps": {
-            "Build and push (by digest)": 2
+            "Build and push (by digest)": 3
           },
           "gate": null
         },
@@ -31566,12 +31388,21 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-11": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
             }
           },
           "decided": 7,
           "passed": 7,
           "started": 7,
-          "skipped": 2,
+          "skipped": 3,
           "stalled": 0,
           "last_ran": "2026-11-10",
           "quiet_days": [],
@@ -31670,12 +31501,21 @@
               "skipped": 1,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-11": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
             }
           },
           "decided": 0,
           "passed": 0,
           "started": 0,
-          "skipped": 9,
+          "skipped": 10,
           "stalled": 0,
           "last_ran": null,
           "quiet_days": [],
@@ -31687,7 +31527,7 @@
       "platforms": {
         "linux": {
           "built": true,
-          "built_rate": 88,
+          "built_rate": 82,
           "tested": false,
           "tested_rate": null,
           "shipped": "ROCm docker images"
@@ -31705,14 +31545,14 @@
           "kind": "never_ran",
           "job": "rocm-smoke-test",
           "head": "rocm gpu smoke test has not run once in the window.",
-          "body": "It was skipped 9 times by its own condition."
+          "body": "It was skipped 10 times by its own condition."
         }
       ],
       "coverage": {
         "complete": true,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": "2026-10-23T15:26:54Z",
         "cache_identity": "305eddca38e13a94d49b207e2247510506e28739653f033e56dcc27eaba9ee15",
         "pending": {}
@@ -31721,7 +31561,7 @@
         {
           "month": "2026-11",
           "path": "upstream/unsloth/ci/2026-11.json",
-          "run_count": 12
+          "run_count": 15
         },
         {
           "month": "2026-10",
@@ -31747,8 +31587,8 @@
         "reason": "client hardware is tested on main (rx7900 tests on gfx1100) but no test runs on gfx1151 or gfx1201"
       },
       "kpis": {
-        "decided": 629,
-        "passed": 605,
+        "decided": 637,
+        "passed": 613,
         "pass_rate": 96.2,
         "not_running": 0,
         "merged_red": 0
@@ -31848,6 +31688,15 @@
             },
             "2026-11-10": {
               "passed": 12,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
+            "2026-11-11": {
+              "passed": 9,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -31980,20 +31829,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
-            },
-            "2026-11-11": {
-              "passed": 5,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 1,
-              "slow": 0
             }
           },
-          "decided": 222,
-          "passed": 221,
-          "started": 223,
+          "decided": 226,
+          "passed": 225,
+          "started": 226,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-11",
@@ -32104,6 +31944,15 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-11": {
+              "passed": 12,
+              "failed": 0,
+              "other": 2,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 4,
+              "slow": 0
             },
             "2026-10-18": {
               "passed": 4,
@@ -32230,20 +32079,11 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
-            },
-            "2026-11-11": {
-              "passed": 8,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 2,
-              "slow": 0
             }
           },
-          "decided": 407,
-          "passed": 384,
-          "started": 437,
+          "decided": 411,
+          "passed": 388,
+          "started": 445,
           "skipped": 0,
           "stalled": 5,
           "last_ran": "2026-11-11",
@@ -32285,7 +32125,7 @@
         "complete": true,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": "2026-10-18T04:51:10Z",
         "cache_identity": "c98b786c44c238c14d88c53152d8e514f2b5ffe08764d7112fe6abbe59ae5f53",
         "pending": {}
@@ -32294,7 +32134,7 @@
         {
           "month": "2026-11",
           "path": "upstream/pytorch/ci/2026-11.json",
-          "run_count": 281
+          "run_count": 292
         },
         {
           "month": "2026-10",
@@ -32883,7 +32723,7 @@
         "complete": true,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": "2026-10-13T13:09:17Z",
         "cache_identity": "79d8b80dc51eadd50b08a2b1236f51a4a736779516b6fb43a07390fc21dbff57",
         "pending": {}
@@ -32946,7 +32786,7 @@
         "complete": true,
         "since": "2026-10-13T00:00:00Z",
         "listed_since": "2026-10-13T00:00:00Z",
-        "collected_at": "2026-11-11T11:04:34Z",
+        "collected_at": "2026-11-11T17:33:42Z",
         "oldest_run_at": null,
         "cache_identity": "f581be8b08118e8eb4261350bbeb6c513bd6825e7b9c68e5d879185835322d74",
         "pending": {}

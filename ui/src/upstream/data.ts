@@ -62,6 +62,7 @@ const jobSchema = z.object({
     runner: z.string().nullable(),
   }).nullable().optional(),
   devlab_observed: z.boolean().optional(),
+  runner_evidence_text: z.string().nullable().optional(),
   quiet_days: z.array(day),
   median_queue_seconds: count.nullable(),
   failed_steps: z.record(z.string(), count),
@@ -101,6 +102,16 @@ const projectSchema = z.object({
     state: z.enum(["up", "partial", "down"]),
     reason: z.string(),
   }),
+  activity_assessment: z.object({
+    message: z.string().nullable(),
+    metrics: z.array(z.object({ id: z.string(), label: z.string(),
+      tone: z.enum(["neutral", "negative"]), job_ids: z.array(z.string()) })),
+  }).optional(),
+  status_labels: z.array(z.object({
+    id: z.string(), text: z.string(),
+    tone: z.enum(["neutral", "positive", "warning", "negative"]),
+    tooltip: z.string(),
+  })).optional(),
   kpis: z.object({
     decided: count,
     passed: count,

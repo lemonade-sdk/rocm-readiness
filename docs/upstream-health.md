@@ -79,3 +79,30 @@ proving absence elsewhere. Missing evidence produces no indicator, not a negativ
 Fork labels, configured `where` descriptions and readiness model-result runners do not
 establish that upstream CI used DevLab. PR #54 retained runner names; PR #72 adds their
 aggregation and display. This indicator does not establish current DevLab availability.
+
+## Pipeline-owned presentation
+
+Collection publishes ordered project `status_labels` records with `id`, `text`,
+`tone` (`neutral`, `positive`, `warning`, `negative`) and plain-text `tooltip`.
+The collector decides coverage precedence (unconfigured, incomplete, then the
+observed support state), wording and whether DevLab evidence merits a second label.
+Both page headers render the supplied records verbatim. The UI does not infer
+labels from coverage, job targets, fork descriptions or runner names.
+
+Collection also publishes `activity_assessment` with a nullable message and metric
+records (`id`, `label`, `tone`, `job_ids`). CI Activity intersects the supplied job
+IDs with visible jobs to display counts, without deciding which jobs belong in
+those categories or generating their wording. Per-job `runner_evidence_text`
+provides the DevLab evidence description displayed in job tooltips.
+
+These fields are additive and optional for older snapshots. Missing presentation
+fields render no labels or activity assessment; the browser does not manufacture a
+fallback interpretation. After rollout, the next successful collection populates
+these fields. Conformance verifies project labels and activity presentation against
+collected summaries. Changes to visible copy belong in the collector, not React.
+
+Merging code to `main` triggers **Collect dashboard data** automatically. It can
+also be dispatched manually on `main` and runs daily at 11:00 UTC. PR runs validate
+collection but never publish; only non-PR runs on `main` can publish the dataset.
+The UI deployment and data publication must both complete before the production
+site can display new presentation fields on reload.

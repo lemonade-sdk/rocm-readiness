@@ -299,7 +299,8 @@ for (const theme of ["light", "dark"] as const) {
         state: "failed", conclusion: "failure", at: "2026-10-29T11:00:00Z",
         url: "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101",
         runner: "ephemeral-devlab-gfx1151-slot-1",
-      }, devlab_observed: true });
+      }, devlab_observed: true, runner_evidence_text: "Observed on devlab · 14-day collection window" });
+      data.projects[0].status_labels.push({ id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the 14-day collection window." });
       await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: data }));
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });

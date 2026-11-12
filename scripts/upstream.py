@@ -1083,6 +1083,7 @@ def _job_summary(job, rows, days):
         "last_ran": last_ran,
         "latest": _latest_result(in_window),
         "devlab_observed": _devlab_observed(in_window),
+        "runner_evidence_text": f"Observed on devlab · {len(days)}-day collection window" if _devlab_observed(in_window) else None,
         "quiet_days": quiet,
         "median_queue_seconds": int(median(waits)) if waits else None,
         "failed_steps": dict(sorted(steps.items(), key=lambda kv: -kv[1])[:8]),
@@ -1222,6 +1223,36 @@ def _findings(jobs, merged_red):
     return out
 
 
+def _activity_assessment(jobs, coverage, window_days):
+    if not coverage["complete"]:
+        return {"message": "Activity assessment unavailable — collection incomplete.", "metrics": []}
+    return {"message": None, "metrics": [
+        {"id": "no_starts", "label": f"test jobs with no observed starts · {window_days} days", "tone": "neutral",
+         "job_ids": [j["id"] for j in jobs if j["category"] == "tests" and j["started"] == 0]},
+        {"id": "later_requests", "label": f"test jobs with unrun requests after last start · {window_days} days", "tone": "negative",
+         "job_ids": [j["id"] for j in jobs if j["category"] == "tests" and j["started"] > 0 and j["quiet_days"]]},
+    ]}
+
+
+def _status_labels(jobs, badge, coverage, window_days):
+    if not jobs:
+        text, tone = "unconfigured", "neutral"
+        explanation = "No client jobs are configured. This does not establish whether the project tests client hardware elsewhere."
+    elif not coverage["complete"]:
+        text, tone = "incomplete", "neutral"
+        explanation = "Collection is incomplete, so configured coverage cannot yet be assessed."
+    else:
+        text, tone = {"up": ("upstream", "positive"), "partial": ("partial", "warning"), "down": ("unobserved", "negative")}[badge["state"]]
+        explanation = "Configured jobs: " + badge["reason"]
+    labels = [{"id": "coverage", "text": text, "tone": tone, "tooltip": explanation}]
+    observed = [job["label"] for job in jobs if job.get("devlab_observed")]
+    if observed:
+        labels.append({"id": "devlab", "text": "devlab", "tone": "neutral", "tooltip":
+            f"{', '.join(observed)} used an ephemeral-devlab-* runner in the {window_days}-day collection window. "
+            "This records observed usage; current availability is not established."})
+    return labels
+
+
 def derive_project(project, rows, days, targets, coverage, files):
     by_job = {}
     for row in rows:
@@ -1244,6 +1275,8 @@ def derive_project(project, rows, days, targets, coverage, files):
         "note": project.get("note"),
         "forks": project.get("forks", []),
         "badge": badge,
+        "status_labels": _status_labels(jobs, badge, coverage, len(days)),
+        "activity_assessment": _activity_assessment(jobs, coverage, len(days)),
         "kpis": {
             "decided": decided,
             "passed": passed,
@@ -1518,6 +1551,12 @@ def validate_upstream_dataset(root, entry):
         )
         jobs = project.get("jobs")
         _ok(isinstance(jobs, list), where, at + "/jobs", "expected jobs")
+        if "status_labels" in project:
+            _ok(project["status_labels"] == _status_labels(jobs, project["badge"], project["coverage"], window["days"]),
+                where, at + "/status_labels", "labels must match collected project evidence")
+        if "activity_assessment" in project:
+            _ok(project["activity_assessment"] == _activity_assessment(jobs, project["coverage"], window["days"]),
+                where, at + "/activity_assessment", "activity presentation must match collected evidence")
         job_ids = set()
         for jpos, job in enumerate(jobs):
             jat = f"{at}/jobs/{jpos}"

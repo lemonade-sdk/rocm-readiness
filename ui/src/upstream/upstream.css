@@ -129,13 +129,13 @@
   line-height: 1.4;
   color: var(--muted);
 }
-.up-badge-up {
+.up-badge-positive {
   color: var(--good);
 }
-.up-badge-partial {
+.up-badge-warning {
   color: var(--warning);
 }
-.up-badge-down {
+.up-badge-negative {
   color: var(--bad);
 }
 .up-forks {

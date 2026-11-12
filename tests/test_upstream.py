@@ -349,6 +349,28 @@ class CollectionTests(unittest.TestCase):
         # No hip check on the PR commit: the job never ran on the pull request.
         self.assertEqual(build_job["gate"]["not_triggered"], 1)
 
+    def test_published_label_and_activity_text_must_match_pipeline_evidence(self):
+        entry = collect(self.gh, self.out)
+        path = self.out / "upstream/overview.json"
+        data = json.loads(path.read_text())
+        original = json.loads(path.read_text())
+        data["projects"][0]["status_labels"][0]["text"] = "unsupported claim"
+        path.write_text(json.dumps(data))
+        with self.assertRaises(PipelineValidationError):
+            validate_upstream_dataset(self.out, entry)
+
+        original["projects"][0]["activity_assessment"]["message"] = "unsupported message"
+        path.write_text(json.dumps(original))
+        with self.assertRaises(PipelineValidationError):
+            validate_upstream_dataset(self.out, entry)
+
+    def test_pipeline_publishes_status_label_text_and_tooltips(self):
+        self.gh.jobs[1][0]["runner_name"] = "ephemeral-devlab-slot-1"
+        collect(self.gh, self.out)
+        card = overview(self.out)["projects"][0]
+        self.assertEqual([label["text"] for label in card["status_labels"]], ["upstream", "devlab"])
+        self.assertIn("ephemeral-devlab-", card["status_labels"][1]["tooltip"])
+
     def test_kpis_badge_and_findings(self):
         collect(self.gh, self.out)
         card = overview(self.out)["projects"][0]
@@ -928,3 +950,15 @@ class LatestJobEvidenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class StatusLabelTests(unittest.TestCase):
+    def test_coverage_and_observation_states_are_pipeline_owned(self):
+        from scripts.upstream import _status_labels
+        badge = {"state": "partial", "reason": "other configured target"}
+        job = {"label": "NPU", "devlab_observed": True}
+        self.assertEqual(_status_labels([], badge, {"complete": True}, 30)[0]["text"], "unconfigured")
+        labels = _status_labels([job], badge, {"complete": False}, 30)
+        self.assertEqual([label["text"] for label in labels], ["incomplete", "devlab"])
+        self.assertIn("30-day", labels[1]["tooltip"])
+        for state, text in [("up", "upstream"), ("partial", "partial"), ("down", "unobserved")]:
+            self.assertEqual(_status_labels([job], {"state": state, "reason": "evidence"}, {"complete": True}, 30)[0]["text"], text)

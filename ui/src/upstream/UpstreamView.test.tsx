@@ -273,6 +273,7 @@ function incompleteFetch(error?: string) {
   return upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
     ...upstreamOverview, projects: [{ ...project, jobs, files: [], findings: [],
       kpis: { ...project.kpis, decided: 0, passed: 0, not_running: 2, merged_red: 0 },
+      activity_assessment: { message: "Activity assessment unavailable — collection incomplete.", metrics: [] },
       coverage: { complete: false, ...(error ? { error } : {}) } }],
   }});
 }
@@ -582,7 +583,7 @@ it("shows latest completion, log, and observed runner independently of historica
   Object.assign(data.projects[0].jobs[0], { latest: {
     state: "other", conclusion: "cancelled", at: "2026-10-29T11:00:00Z",
     url: "https://github.com/example/demo/actions/runs/100", runner: "ephemeral-devlab-slot-1",
-  }, devlab_observed: true });
+  }, devlab_observed: true, runner_evidence_text: "Observed on devlab · 14-day collection window" });
   mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   fireEvent.focus(await screen.findByRole("button", { name: "gpu-rocm" }));
   const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
@@ -596,6 +597,7 @@ it("shows latest completion, log, and observed runner independently of historica
 it("shows an overview DevLab indicator from observed upstream runner evidence", async () => {
   const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
   data.projects[0].jobs[0].devlab_observed = true;
+  data.projects[0].status_labels = [{ id: "coverage", text: "incomplete", tone: "neutral", tooltip: "Collection is incomplete." }, { id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the collection window." }];
   data.projects[0].coverage.complete = false;
   mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
@@ -625,8 +627,27 @@ it("separates no-start test jobs from jobs with later unrun requests", async () 
 it("includes DevLab beside coverage in the CI Activity header", async () => {
   const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
   data.projects[0].jobs[0].devlab_observed = true;
+  data.projects[0].status_labels = [{ id: "coverage", text: "incomplete", tone: "neutral", tooltip: "Collection is incomplete." }, { id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the collection window." }];
   mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   await screen.findByRole("heading", { name: "llama.cpp" });
   const header = document.querySelector(".up-page-head")! as HTMLElement;
   expect(within(header).getByRole("button", { name: /^devlab$/ })).toBeInTheDocument();
+});
+
+it("renders pipeline label text and tooltip verbatim without interpreting evidence", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].status_labels = [{ id: "custom", text: "producer label", tone: "warning", tooltip: "Producer supplied explanation." }];
+  data.projects[0].coverage.complete = false;
+  data.projects[0].jobs[0].devlab_observed = true;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  fireEvent.focus(await screen.findByRole("button", { name: "producer label" }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Producer supplied explanation.");
+  expect(screen.queryByRole("button", { name: "devlab" })).not.toBeInTheDocument();
+});
+it("does not invent labels for legacy datasets", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  for (const project of data.projects) delete project.status_labels;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  expect(document.querySelectorAll(".up-status-labels button")).toHaveLength(0);
 });

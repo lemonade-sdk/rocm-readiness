@@ -23,11 +23,6 @@ import "../builds/QualificationCharts.css";
 import "./upstream.css";
 
 const GH = "https://github.com/";
-const BADGE_LABEL = {
-  up: "upstream",
-  partial: "partial",
-  down: "unobserved",
-};
 const VERDICT_TEXT = {
   passed: "Passed on the merged commit",
   failed: "Failed on the merged commit",
@@ -133,37 +128,23 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 
 /* ---- shared pieces ------------------------------------------------------------ */
 
-function Badge({ project }: { project: Project }) {
-  const label = !project.jobs.length ? "unconfigured" : !project.coverage.complete ? "incomplete" : BADGE_LABEL[project.badge.state];
-  const explanation = !project.jobs.length
-    ? "No client jobs are configured. This does not establish whether the project tests client hardware elsewhere."
-    : !project.coverage.complete
-      ? "Collection is incomplete, so configured coverage cannot yet be assessed."
-      : `Configured jobs: ${project.badge.reason}`;
-  return <Tooltip floating label={label} triggerClassName="up-status-trigger" content={
-    <TooltipContent heading={label}><span>{explanation}</span></TooltipContent>
-  }><span className={`up-badge${project.jobs.length && project.coverage.complete ? ` up-badge-${project.badge.state}` : ""}`}>{label}</span></Tooltip>;
-
+function ProjectLabels({ project }: { project: Project }) {
+  return <div className="up-status-labels">
+    {(project.status_labels ?? []).map((label) => <Tooltip key={label.id} floating
+      label={label.text} triggerClassName="up-status-trigger" content={
+        <TooltipContent heading={label.text}><span>{label.tooltip}</span></TooltipContent>
+      }><span className={`up-badge up-badge-${label.tone}`}>{label.text}</span></Tooltip>)}
+  </div>;
 }
 
-function DevLabIndicator({ project, windowDays }: { project: Project; windowDays: number }) {
-  const jobs = project.jobs.filter((job) => job.devlab_observed);
-  if (!jobs.length) return null;
-  return <Tooltip floating label="devlab" triggerClassName="up-status-trigger" content={
-    <TooltipContent heading="devlab">
-      <span>{jobs.map((job) => job.label).join(", ")} used an ephemeral-devlab-* runner in the {windowDays}-day collection window. This records observed usage; current availability is not established.</span>
-    </TooltipContent>
-  }><span className="up-badge">devlab</span></Tooltip>;
-}
-
-function ActivityAssessment({ jobs, complete, windowDays }: { jobs: Job[]; complete: boolean; windowDays: number }) {
-  if (!complete) return <p className="muted">Activity assessment unavailable — collection incomplete.</p>;
-  const noStarts = jobs.filter((job) => job.category === "tests" && job.started === 0).length;
-  const laterRequests = jobs.filter((job) => job.category === "tests" && job.started > 0 && job.quiet_days.length > 0).length;
-  return <>
-    <Stat value={noStarts} label={`test jobs with no observed starts · ${windowDays} days`} />
-    <Stat value={laterRequests} label={`test jobs with unrun requests after last start · ${windowDays} days`} bad={laterRequests > 0} />
-  </>;
+function ActivityAssessment({ project, jobs }: { project: Project; jobs: Job[] }) {
+  const assessment = project.activity_assessment;
+  if (!assessment) return null;
+  if (assessment.message) return <p className="muted">{assessment.message}</p>;
+  const visible = new Set(jobs.map((job) => job.id));
+  return <>{assessment.metrics.map((metric) => <Stat key={metric.id}
+    value={metric.job_ids.filter((id) => visible.has(id)).length} label={metric.label}
+    bad={metric.tone === "negative" && metric.job_ids.some((id) => visible.has(id))} />)}</>;
 }
 
 function ProjectSources({ project }: { project: Project }) {
@@ -291,10 +272,7 @@ function ProjectGrid({
                   {project.label}
                 </a>
                 </h2>
-                <div className="up-status-labels">
-                  <Badge project={project} />
-                  <DevLabIndicator project={project} windowDays={overview.window.days} />
-                </div>
+                <ProjectLabels project={project} />
               </div>
               {!project.jobs.length && <p className="muted">
                 No conclusion about upstream support can be drawn from the configured coverage.
@@ -547,10 +525,7 @@ function ProjectPage({
       <header className="up-project-header">
         <div className="up-page-head">
           <h2>{project.label}</h2>
-          <div className="up-status-labels">
-            <Badge project={project} />
-            <DevLabIndicator project={project} windowDays={overview.window.days} />
-          </div>
+          <ProjectLabels project={project} />
         </div>
         {!project.coverage.complete && !project.coverage.error && (
           <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>
@@ -561,7 +536,7 @@ function ProjectPage({
           value={r.pct === null ? "–" : `${r.pct}%`}
           label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
         />
-        <ActivityAssessment jobs={jobs} complete={project.coverage.complete} windowDays={overview.window.days} />
+        <ActivityAssessment project={project} jobs={jobs} />
         {project.jobs.some((j) => j.gate) && (
           <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
@@ -684,7 +659,7 @@ function ProjectPage({
                   <Tooltip interactive label={job.label} triggerClassName="up-job-label"
                     content={<TooltipContent heading={job.label} status={job.os === "windows" ? "Windows" : "Linux"}>
                       <dl className="up-tooltip-details">
-                        <LatestJobDetails job={job} windowDays={overview.window.days} />
+                        <LatestJobDetails job={job} />
                         <dt>Category</dt><dd>{job.category}</dd>
                         <dt>Workflow</dt><dd>{job.workflow}</dd>
                         <dt>Cadence</dt><dd>{job.cadence}</dd>
@@ -755,7 +730,7 @@ function RunResult({ state, conclusion }: { state: Run["state"]; conclusion?: st
   return <><BuildOutcomeIcon outcome={result.outcome} />{state === "other" ? labels[conclusion ?? ""] ?? result.label : result.label}</>;
 }
 
-function LatestJobDetails({ job, windowDays }: { job: Job; windowDays: number }) {
+function LatestJobDetails({ job }: { job: Job }) {
   const latest = job.latest;
   return <>
     <dt>Latest recorded result</dt><dd className="up-latest-result">{latest ? <RunResult state={latest.state} conclusion={latest.conclusion} /> : <><BuildOutcomeIcon outcome="unreported" />Unavailable</>}</dd>
@@ -764,7 +739,7 @@ function LatestJobDetails({ job, windowDays }: { job: Job; windowDays: number })
       <dt>Evidence</dt><dd><a href={latest.url} target="_blank" rel="noreferrer">View latest job log</a></dd>
       {latest.runner && <><dt>Observed runner</dt><dd>{latest.runner}</dd></>}
     </>}
-    {job.devlab_observed && <><dt>Runner evidence</dt><dd>Observed on devlab · {windowDays}-day collection window</dd></>}
+    {job.runner_evidence_text && <><dt>Runner evidence</dt><dd>{job.runner_evidence_text}</dd></>}
   </>;
 }
 

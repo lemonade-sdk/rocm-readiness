@@ -338,3 +338,9 @@ Shared Tooltip defaults to styled evidence. Select `tooltipMode="system"` with
 an explicit plain-text `systemText` only for a required native tooltip or fallback.
 Choose exactly one renderer; do not add native title attributes inside styled
 triggers. Keep keyboard focus, hover and touch details in styled mode.
+
+Project status labels and explanations are pipeline-owned presentation data.
+Render `status_labels` text, tooltip and semantic tone as supplied; do not derive
+labels or wording from evidence in React. Activity classification and metric copy
+also come from `activity_assessment`; the UI only applies visible-job filters.
+Older snapshots without these optional fields display no invented labels.

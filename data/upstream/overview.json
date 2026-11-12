@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-12T17:15:47Z",
+  "generated_at": "2026-11-12T19:04:07Z",
   "window": {
     "start": "2026-10-14",
     "end": "2026-11-12",
@@ -68,11 +68,11 @@
         "metrics": []
       },
       "kpis": {
-        "decided": 50,
-        "passed": 22,
-        "pass_rate": 44.0,
+        "decided": 88,
+        "passed": 44,
+        "pass_rate": 50.0,
         "not_running": 0,
-        "merged_red": 1
+        "merged_red": 4
       },
       "jobs": [
         {
@@ -88,17 +88,17 @@
           "daily": {
             "2026-11-12": {
               "passed": 0,
-              "failed": 14,
+              "failed": 22,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 0,
-              "slow": 8
+              "running": 2,
+              "slow": 11
             }
           },
-          "decided": 14,
+          "decided": 22,
           "passed": 0,
-          "started": 14,
+          "started": 24,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-12",
@@ -112,17 +112,26 @@
           "devlab_observed": true,
           "runner_evidence_text": "Observed on devlab · 30-day collection window",
           "quiet_days": [],
-          "median_queue_seconds": 748,
+          "median_queue_seconds": 360,
           "failed_steps": {
-            "Test": 14
+            "Test": 22
           },
           "gate": {
-            "merged": 14,
+            "merged": 24,
             "passed": 1,
-            "failed": 1,
-            "not_triggered": 12,
-            "no_result": 0,
+            "failed": 4,
+            "not_triggered": 18,
+            "no_result": 1,
             "red": [
+              {
+                "number": 32100,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32100",
+                "author": "am17an",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43065422507/job/130678970944",
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224783/job/131090752407"
+              },
               {
                 "number": 31533,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/31533",
@@ -131,6 +140,24 @@
                 "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43210563340/job/131158786194",
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43225136974/job/131206265590"
+              },
+              {
+                "number": 29801,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/29801",
+                "author": "ggerganov",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43012404254/job/130495043801",
+                "main": null,
+                "main_url": null
+              },
+              {
+                "number": 26048,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/26048",
+                "author": "kmorennv",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43066382217/job/130729594018",
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191801438/job/131092714060"
               }
             ],
             "escaped": [
@@ -180,6 +207,15 @@
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43207452366/job/131146115933"
               },
               {
+                "number": 32128,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32128",
+                "author": "rjtokenring",
+                "verdict": "no_result",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198530230/job/131115604963"
+              },
+              {
                 "number": 32120,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/32120",
                 "author": "ngxson",
@@ -187,6 +223,15 @@
                 "check_url": null,
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43207737979/job/131147077045"
+              },
+              {
+                "number": 32119,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32119",
+                "author": "ngxson",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43184039317/job/131066710272"
               },
               {
                 "number": 32115,
@@ -225,6 +270,15 @@
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43259936424/job/131328178603"
               },
               {
+                "number": 32043,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32043",
+                "author": "joelagnel",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275522/job/131044473509"
+              },
+              {
                 "number": 32025,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/32025",
                 "author": "hmblair",
@@ -232,6 +286,33 @@
                 "check_url": null,
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43257404802/job/131319272909"
+              },
+              {
+                "number": 31929,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31929",
+                "author": "gitGurugu",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187457142/job/131078105176"
+              },
+              {
+                "number": 31915,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31915",
+                "author": "aldehir",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177518640/job/131045265030"
+              },
+              {
+                "number": 31138,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31138",
+                "author": "Titaniumtown",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860330/job/131026822413"
               },
               {
                 "number": 29357,
@@ -258,17 +339,17 @@
           "daily": {
             "2026-11-12": {
               "passed": 0,
-              "failed": 14,
+              "failed": 22,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 0,
-              "slow": 9
+              "running": 2,
+              "slow": 10
             }
           },
-          "decided": 14,
+          "decided": 22,
           "passed": 0,
-          "started": 14,
+          "started": 24,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-12",
@@ -282,17 +363,26 @@
           "devlab_observed": true,
           "runner_evidence_text": "Observed on devlab · 30-day collection window",
           "quiet_days": [],
-          "median_queue_seconds": 831,
+          "median_queue_seconds": 198,
           "failed_steps": {
-            "Test": 14
+            "Test": 22
           },
           "gate": {
-            "merged": 14,
+            "merged": 24,
             "passed": 1,
-            "failed": 1,
-            "not_triggered": 12,
-            "no_result": 0,
+            "failed": 4,
+            "not_triggered": 18,
+            "no_result": 1,
             "red": [
+              {
+                "number": 32100,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32100",
+                "author": "am17an",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43065422507/job/130678971109",
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224783/job/131090751571"
+              },
               {
                 "number": 31533,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/31533",
@@ -301,6 +391,24 @@
                 "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43210563340/job/131158786684",
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43225136974/job/131206264869"
+              },
+              {
+                "number": 29801,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/29801",
+                "author": "ggerganov",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43012404254/job/130495043931",
+                "main": null,
+                "main_url": null
+              },
+              {
+                "number": 26048,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/26048",
+                "author": "kmorennv",
+                "verdict": "failed",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43066382217/job/130729593464",
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191801438/job/131092714469"
               }
             ],
             "escaped": [
@@ -350,6 +458,15 @@
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43207452366/job/131146115939"
               },
               {
+                "number": 32128,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32128",
+                "author": "rjtokenring",
+                "verdict": "no_result",
+                "check_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43188758146/job/131111696169",
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198530230/job/131115604491"
+              },
+              {
                 "number": 32120,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/32120",
                 "author": "ngxson",
@@ -357,6 +474,15 @@
                 "check_url": null,
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43207737979/job/131147076565"
+              },
+              {
+                "number": 32119,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32119",
+                "author": "ngxson",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43184039317/job/131066710616"
               },
               {
                 "number": 32115,
@@ -395,6 +521,15 @@
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43259936424/job/131328178108"
               },
               {
+                "number": 32043,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/32043",
+                "author": "joelagnel",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275522/job/131044473362"
+              },
+              {
                 "number": 32025,
                 "url": "https://github.com/ggml-org/llama.cpp/pull/32025",
                 "author": "hmblair",
@@ -402,6 +537,33 @@
                 "check_url": null,
                 "main": "failed",
                 "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43257404802/job/131319272882"
+              },
+              {
+                "number": 31929,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31929",
+                "author": "gitGurugu",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187457142/job/131078105163"
+              },
+              {
+                "number": 31915,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31915",
+                "author": "aldehir",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177518640/job/131045264996"
+              },
+              {
+                "number": 31138,
+                "url": "https://github.com/ggml-org/llama.cpp/pull/31138",
+                "author": "Titaniumtown",
+                "verdict": "not_triggered",
+                "check_url": null,
+                "main": "failed",
+                "main_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860330/job/131026822674"
               },
               {
                 "number": 29357,
@@ -427,20 +589,20 @@
           "cadence": "per push and pull request",
           "daily": {
             "2026-11-12": {
-              "passed": 4,
+              "passed": 10,
               "failed": 0,
               "other": 0,
-              "stalled": 0,
+              "stalled": 1,
               "skipped": 0,
-              "running": 0,
-              "slow": 1
+              "running": 1,
+              "slow": 5
             }
           },
-          "decided": 4,
-          "passed": 4,
-          "started": 4,
+          "decided": 10,
+          "passed": 10,
+          "started": 11,
           "skipped": 0,
-          "stalled": 0,
+          "stalled": 1,
           "last_ran": "2026-11-12",
           "latest": {
             "state": "passed",
@@ -452,14 +614,14 @@
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": 17,
+          "median_queue_seconds": 477,
           "failed_steps": {},
           "gate": {
-            "merged": 4,
-            "passed": 4,
+            "merged": 12,
+            "passed": 9,
             "failed": 0,
-            "not_triggered": 0,
-            "no_result": 0,
+            "not_triggered": 1,
+            "no_result": 2,
             "red": [],
             "escaped": []
           }
@@ -476,18 +638,18 @@
           "cadence": "per push and pull request",
           "daily": {
             "2026-11-12": {
-              "passed": 4,
+              "passed": 10,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 0,
-              "slow": 1
+              "running": 2,
+              "slow": 5
             }
           },
-          "decided": 4,
-          "passed": 4,
-          "started": 4,
+          "decided": 10,
+          "passed": 10,
+          "started": 12,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-12",
@@ -501,14 +663,14 @@
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": 16,
+          "median_queue_seconds": 432,
           "failed_steps": {},
           "gate": {
-            "merged": 4,
-            "passed": 4,
+            "merged": 12,
+            "passed": 9,
             "failed": 0,
-            "not_triggered": 0,
-            "no_result": 0,
+            "not_triggered": 1,
+            "no_result": 2,
             "red": [],
             "escaped": []
           }
@@ -525,20 +687,20 @@
           "cadence": "per push and pull request",
           "daily": {
             "2026-11-12": {
-              "passed": 14,
+              "passed": 22,
               "failed": 0,
               "other": 0,
-              "stalled": 0,
+              "stalled": 1,
               "skipped": 0,
-              "running": 0,
-              "slow": 11
+              "running": 1,
+              "slow": 18
             }
           },
-          "decided": 14,
-          "passed": 14,
-          "started": 14,
+          "decided": 22,
+          "passed": 22,
+          "started": 23,
           "skipped": 0,
-          "stalled": 0,
+          "stalled": 1,
           "last_ran": "2026-11-12",
           "latest": {
             "state": "passed",
@@ -550,13 +712,13 @@
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": 2542,
+          "median_queue_seconds": 2310,
           "failed_steps": {},
           "gate": {
-            "merged": 14,
-            "passed": 0,
+            "merged": 24,
+            "passed": 2,
             "failed": 0,
-            "not_triggered": 13,
+            "not_triggered": 21,
             "no_result": 1,
             "red": [],
             "escaped": []
@@ -597,18 +759,34 @@
           "os": "linux",
           "where": "GitHub-hosted, no GPU",
           "cadence": "every release tag",
-          "daily": {},
-          "decided": 0,
-          "passed": 0,
-          "started": 0,
+          "daily": {
+            "2026-11-12": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            }
+          },
+          "decided": 1,
+          "passed": 1,
+          "started": 1,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": null,
-          "latest": null,
+          "last_ran": "2026-11-12",
+          "latest": {
+            "state": "passed",
+            "conclusion": "success",
+            "at": "2026-11-12T18:32:07Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275524/job/131395966256",
+            "runner": "GitHub Actions 1001219024"
+          },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": null,
+          "median_queue_seconds": 4,
           "failed_steps": {},
           "gate": null
         },
@@ -622,18 +800,34 @@
           "os": "windows",
           "where": "GitHub-hosted, no GPU",
           "cadence": "every release tag",
-          "daily": {},
-          "decided": 0,
-          "passed": 0,
-          "started": 0,
+          "daily": {
+            "2026-11-12": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 1,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            }
+          },
+          "decided": 1,
+          "passed": 1,
+          "started": 1,
           "skipped": 0,
-          "stalled": 0,
-          "last_ran": null,
-          "latest": null,
+          "stalled": 1,
+          "last_ran": "2026-11-12",
+          "latest": {
+            "state": "passed",
+            "conclusion": "success",
+            "at": "2026-11-12T18:27:35Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275524/job/131392379674",
+            "runner": "GitHub Actions 1001219006"
+          },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": null,
+          "median_queue_seconds": 4,
           "failed_steps": {},
           "gate": null
         }
@@ -643,12 +837,12 @@
           "built": true,
           "built_rate": 100,
           "tested": true,
-          "tested_rate": 22,
+          "tested_rate": 31,
           "shipped": "ubuntu-rocm archive in every release, and a ROCm docker image"
         },
         "windows": {
-          "built": false,
-          "built_rate": null,
+          "built": true,
+          "built_rate": 100,
           "tested": false,
           "tested_rate": null,
           "shipped": "win-rocm archive in every release"
@@ -658,25 +852,25 @@
         {
           "kind": "merged_red",
           "job": null,
-          "head": "1 pull requests were merged with an AMD job failing on the merged commit.",
+          "head": "4 pull requests were merged with an AMD job failing on the merged commit.",
           "body": "Each was red on the exact commit that landed."
         },
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm-gfx1151",
-          "head": "gpu-rocm (gfx1151) never ran on 12 of 14 merged pull requests.",
-          "body": "12 merged pull requests with no run or an unknown historical result then failed on main."
+          "head": "gpu-rocm (gfx1151) never ran on 18 of 24 merged pull requests.",
+          "body": "18 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm-gfx1201",
-          "head": "gpu-rocm (gfx1201) never ran on 12 of 14 merged pull requests.",
-          "body": "12 merged pull requests with no run or an unknown historical result then failed on main."
+          "head": "gpu-rocm (gfx1201) never ran on 18 of 24 merged pull requests.",
+          "body": "18 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "hip-build",
-          "head": "hip build never ran on 13 of 14 merged pull requests.",
+          "head": "hip build never ran on 21 of 24 merged pull requests.",
           "body": "0 merged pull requests with no run or an unknown historical result then failed on main."
         }
       ],
@@ -684,122 +878,10 @@
         "complete": false,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
-        "oldest_run_at": "2026-11-12T10:19:21Z",
+        "collected_at": "2026-11-12T19:04:07Z",
+        "oldest_run_at": "2026-11-12T06:58:30Z",
         "cache_identity": "5be4541e98d609a1e3ec787fd489f45ff79420ae0f4b8ee3a257ff01a648776c",
         "pending": {
-          "43198530103#1@2026-11-12": {
-            "run": {
-              "id": 43198530103,
-              "created_at": "2026-11-12T10:14:04Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "ab4a77b9ad2198e4d1cf9359e3218660937e969a",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198530103"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43191801244#1@2026-11-12": {
-            "run": {
-              "id": 43191801244,
-              "created_at": "2026-11-12T09:28:40Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "0d69255c5205c3af9eb15d8a7fc027594848041f",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191801244"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43191224100#1@2026-11-12": {
-            "run": {
-              "id": 43191224100,
-              "created_at": "2026-11-12T09:24:43Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "3bce8bd50c8f1c6bb0c784e3a87f640882091077",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224100"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43187456857#1@2026-11-12": {
-            "run": {
-              "id": 43187456857,
-              "created_at": "2026-11-12T08:59:13Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "81f21f4b27fc8252f11404a006744045aac5ea6e",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187456857"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43184039828#1@2026-11-12": {
-            "run": {
-              "id": 43184039828,
-              "created_at": "2026-11-12T08:34:19Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "60d46a5abe4f13fa54af61c488047549c5840bbe",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43184039828"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43177518830#1@2026-11-12": {
-            "run": {
-              "id": 43177518830,
-              "created_at": "2026-11-12T07:44:46Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "93cf736a8d1d46aa922e27eb64aa712bcd5ebc30",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177518830"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43177275406#1@2026-11-12": {
-            "run": {
-              "id": 43177275406,
-              "created_at": "2026-11-12T07:42:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "4fffab623eb37ca13a220489970b8915d5a5233c",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275406"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43171860569#1@2026-11-12": {
-            "run": {
-              "id": 43171860569,
-              "created_at": "2026-11-12T06:58:30Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "09338b85e8b230742fa56f93a1d9f0bf006ca2d3",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860569"
-            },
-            "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
           "43171476613#1@2026-11-12": {
             "run": {
               "id": 43171476613,
@@ -8526,118 +8608,6 @@
               "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/38517271913"
             },
             "workflow": "build-cuda-ubuntu.yml",
-            "jobs_pages": {}
-          },
-          "43198530230#1@2026-11-12": {
-            "run": {
-              "id": 43198530230,
-              "created_at": "2026-11-12T10:14:04Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "ab4a77b9ad2198e4d1cf9359e3218660937e969a",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198530230"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43191801438#1@2026-11-12": {
-            "run": {
-              "id": 43191801438,
-              "created_at": "2026-11-12T09:28:40Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "0d69255c5205c3af9eb15d8a7fc027594848041f",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191801438"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43191224783#1@2026-11-12": {
-            "run": {
-              "id": 43191224783,
-              "created_at": "2026-11-12T09:24:44Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "3bce8bd50c8f1c6bb0c784e3a87f640882091077",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224783"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43187457142#1@2026-11-12": {
-            "run": {
-              "id": 43187457142,
-              "created_at": "2026-11-12T08:59:13Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "81f21f4b27fc8252f11404a006744045aac5ea6e",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187457142"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43184039317#1@2026-11-12": {
-            "run": {
-              "id": 43184039317,
-              "created_at": "2026-11-12T08:34:19Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "60d46a5abe4f13fa54af61c488047549c5840bbe",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43184039317"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43177518640#1@2026-11-12": {
-            "run": {
-              "id": 43177518640,
-              "created_at": "2026-11-12T07:44:46Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "93cf736a8d1d46aa922e27eb64aa712bcd5ebc30",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177518640"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43177275522#1@2026-11-12": {
-            "run": {
-              "id": 43177275522,
-              "created_at": "2026-11-12T07:42:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "4fffab623eb37ca13a220489970b8915d5a5233c",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275522"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
-            "jobs_pages": {}
-          },
-          "43171860330#1@2026-11-12": {
-            "run": {
-              "id": 43171860330,
-              "created_at": "2026-11-12T06:58:30Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "09338b85e8b230742fa56f93a1d9f0bf006ca2d3",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860330"
-            },
-            "workflow": "ci-self-hosted-cuda.yml",
             "jobs_pages": {}
           },
           "43171476455#1@2026-11-12": {
@@ -16914,90 +16884,6 @@
             "workflow": "docker.yml",
             "jobs_pages": {}
           },
-          "43199318105#1@2026-11-12": {
-            "run": {
-              "id": 43199318105,
-              "created_at": "2026-11-12T10:19:21Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "a963f659578ba9437b53066ee89e3ff16c2dc84a",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43199318105"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43198529774#1@2026-11-12": {
-            "run": {
-              "id": 43198529774,
-              "created_at": "2026-11-12T10:14:04Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "ab4a77b9ad2198e4d1cf9359e3218660937e969a",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198529774"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43191800922#1@2026-11-12": {
-            "run": {
-              "id": 43191800922,
-              "created_at": "2026-11-12T09:28:40Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "0d69255c5205c3af9eb15d8a7fc027594848041f",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191800922"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43191224305#1@2026-11-12": {
-            "run": {
-              "id": 43191224305,
-              "created_at": "2026-11-12T09:24:44Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "3bce8bd50c8f1c6bb0c784e3a87f640882091077",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224305"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43187457028#1@2026-11-12": {
-            "run": {
-              "id": 43187457028,
-              "created_at": "2026-11-12T08:59:13Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "81f21f4b27fc8252f11404a006744045aac5ea6e",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187457028"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43177275418#1@2026-11-12": {
-            "run": {
-              "id": 43177275418,
-              "created_at": "2026-11-12T07:42:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "4fffab623eb37ca13a220489970b8915d5a5233c",
-              "status": "completed",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275418"
-            },
-            "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
           "43171860572#1@2026-11-12": {
             "run": {
               "id": 43171860572,
@@ -17010,7 +16896,146 @@
               "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860572"
             },
             "workflow": "models-check.yml",
-            "jobs_pages": {}
+            "jobs": [
+              {
+                "id": 131026823911,
+                "name": "vulkan-amd",
+                "status": "completed",
+                "conclusion": "success",
+                "created_at": "2026-11-12T06:58:31Z",
+                "started_at": "2026-11-12T09:36:10Z",
+                "completed_at": "2026-11-12T09:44:18Z",
+                "runner_name": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-g6vs5-runner-p4qnd",
+                "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860572/job/131026823911",
+                "steps": [
+                  {
+                    "name": "Set up job",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Initialize containers",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Clone",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Install dependencies",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache-buckets-restore",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Build",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache-buckets-save",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Test archs",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Post ccache",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Post Clone",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Stop containers",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Complete job",
+                    "conclusion": "success"
+                  }
+                ]
+              },
+              {
+                "id": 131026823955,
+                "name": "rocm",
+                "status": "completed",
+                "conclusion": "success",
+                "created_at": "2026-11-12T06:58:31Z",
+                "started_at": "2026-11-12T10:02:34Z",
+                "completed_at": "2026-11-12T10:11:49Z",
+                "runner_name": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-g6vs5-runner-9jnd4",
+                "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860572/job/131026823955",
+                "steps": [
+                  {
+                    "name": "Set up job",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Initialize containers",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Clone",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Install dependencies",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache-buckets-restore",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Build",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "ccache-buckets-save",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Test archs",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Post ccache",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Post Clone",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Stop containers",
+                    "conclusion": "success"
+                  },
+                  {
+                    "name": "Complete job",
+                    "conclusion": "success"
+                  }
+                ]
+              }
+            ],
+            "pr": {
+              "number": 31138,
+              "url": "https://github.com/ggml-org/llama.cpp/pull/31138",
+              "head_sha": "a25f30fd149f39fb35df09a2b01996f3e106515c",
+              "author": "Titaniumtown",
+              "merged_at": "2026-11-12T06:58:27Z"
+            },
+            "checks_pages": {}
           },
           "43171476450#1@2026-11-12": {
             "run": {
@@ -22470,146 +22495,6 @@
               "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/38517553248"
             },
             "workflow": "models-check.yml",
-            "jobs_pages": {}
-          },
-          "43199318345#1@2026-11-12": {
-            "run": {
-              "id": 43199318345,
-              "created_at": "2026-11-12T10:19:21Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "a963f659578ba9437b53066ee89e3ff16c2dc84a",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43199318345"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43198530154#1@2026-11-12": {
-            "run": {
-              "id": 43198530154,
-              "created_at": "2026-11-12T10:14:04Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "ab4a77b9ad2198e4d1cf9359e3218660937e969a",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43198530154"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43191801708#1@2026-11-12": {
-            "run": {
-              "id": 43191801708,
-              "created_at": "2026-11-12T09:28:40Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "0d69255c5205c3af9eb15d8a7fc027594848041f",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191801708"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43191224750#1@2026-11-12": {
-            "run": {
-              "id": 43191224750,
-              "created_at": "2026-11-12T09:24:44Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "3bce8bd50c8f1c6bb0c784e3a87f640882091077",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43191224750"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43187457092#1@2026-11-12": {
-            "run": {
-              "id": 43187457092,
-              "created_at": "2026-11-12T08:59:13Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "81f21f4b27fc8252f11404a006744045aac5ea6e",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43187457092"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43184039839#1@2026-11-12": {
-            "run": {
-              "id": 43184039839,
-              "created_at": "2026-11-12T08:34:19Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "60d46a5abe4f13fa54af61c488047549c5840bbe",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43184039839"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43177519039#1@2026-11-12": {
-            "run": {
-              "id": 43177519039,
-              "created_at": "2026-11-12T07:44:46Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "93cf736a8d1d46aa922e27eb64aa712bcd5ebc30",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177519039"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43177275524#1@2026-11-12": {
-            "run": {
-              "id": 43177275524,
-              "created_at": "2026-11-12T07:42:48Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "4fffab623eb37ca13a220489970b8915d5a5233c",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43177275524"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43171860713#1@2026-11-12": {
-            "run": {
-              "id": 43171860713,
-              "created_at": "2026-11-12T06:58:30Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "09338b85e8b230742fa56f93a1d9f0bf006ca2d3",
-              "status": "pending",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860713"
-            },
-            "workflow": "release.yml",
-            "jobs_pages": {}
-          },
-          "43171476847#1@2026-11-12": {
-            "run": {
-              "id": 43171476847,
-              "created_at": "2026-11-12T06:55:03Z",
-              "event": "push",
-              "head_branch": "master",
-              "head_sha": "dcbff21661e5f5f1833bdd1b3a2517d7885f29da",
-              "status": "queued",
-              "run_attempt": 1,
-              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171476847"
-            },
-            "workflow": "release.yml",
             "jobs_pages": {}
           },
           "43171011847#1@2026-11-12": {
@@ -30577,6 +30462,34 @@
             },
             "workflow": "release.yml",
             "jobs_pages": {}
+          },
+          "43171860713#1@2026-11-12": {
+            "run": {
+              "id": 43171860713,
+              "created_at": "2026-11-12T06:58:30Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "09338b85e8b230742fa56f93a1d9f0bf006ca2d3",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171860713"
+            },
+            "workflow": "release.yml",
+            "jobs_pages": {}
+          },
+          "43171476847#1@2026-11-12": {
+            "run": {
+              "id": 43171476847,
+              "created_at": "2026-11-12T06:55:03Z",
+              "event": "push",
+              "head_branch": "master",
+              "head_sha": "dcbff21661e5f5f1833bdd1b3a2517d7885f29da",
+              "status": "completed",
+              "run_attempt": 1,
+              "html_url": "https://github.com/ggml-org/llama.cpp/actions/runs/43171476847"
+            },
+            "workflow": "release.yml",
+            "jobs_pages": {}
           }
         }
       },
@@ -30584,7 +30497,7 @@
         {
           "month": "2026-11",
           "path": "upstream/llamacpp/ci/2026-11.json",
-          "run_count": 50
+          "run_count": 99
         }
       ]
     },
@@ -30931,7 +30844,7 @@
         "complete": true,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
+        "collected_at": "2026-11-12T19:04:07Z",
         "oldest_run_at": "2026-10-19T14:07:04Z",
         "cache_identity": "f5320d6c42cbdf31a16c47317cab21206c22f43d7133d45775b446f12ae63e08",
         "pending": {}
@@ -31374,7 +31287,7 @@
         "complete": true,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
+        "collected_at": "2026-11-12T19:04:07Z",
         "oldest_run_at": "2026-10-23T15:26:54Z",
         "cache_identity": "305eddca38e13a94d49b207e2247510506e28739653f033e56dcc27eaba9ee15",
         "pending": {}
@@ -31434,8 +31347,8 @@
         ]
       },
       "kpis": {
-        "decided": 673,
-        "passed": 649,
+        "decided": 675,
+        "passed": 651,
         "pass_rate": 96.4,
         "not_running": 0,
         "merged_red": 0
@@ -31555,7 +31468,7 @@
               "passed": 9,
               "failed": 0,
               "other": 0,
-              "stalled": 0,
+              "stalled": 1,
               "skipped": 0,
               "running": 0,
               "slow": 0
@@ -31691,14 +31604,14 @@
           "passed": 237,
           "started": 238,
           "skipped": 0,
-          "stalled": 0,
+          "stalled": 1,
           "last_ran": "2026-11-12",
           "latest": {
-            "state": "passed",
-            "conclusion": "success",
-            "at": "2026-11-12T17:14:27Z",
-            "url": "https://github.com/pytorch/pytorch/actions/runs/43262658858/job/131337955726",
-            "runner": "mt-l-x86iavx512-8-64-hlcrq-runner-2kvnq"
+            "state": "stalled",
+            "conclusion": "cancelled",
+            "at": "2026-11-12T18:49:02Z",
+            "url": "https://github.com/pytorch/pytorch/actions/runs/43283669441/job/131411452392",
+            "runner": null
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -31820,12 +31733,12 @@
               "slow": 0
             },
             "2026-11-12": {
-              "passed": 14,
+              "passed": 16,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 4,
+              "running": 2,
               "slow": 0
             },
             "2026-10-18": {
@@ -31955,8 +31868,8 @@
               "slow": 1
             }
           },
-          "decided": 435,
-          "passed": 412,
+          "decided": 437,
+          "passed": 414,
           "started": 469,
           "skipped": 0,
           "stalled": 5,
@@ -31964,9 +31877,9 @@
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-12T15:30:10Z",
-            "url": "https://github.com/pytorch/pytorch/actions/runs/43221322213/job/131200474773",
-            "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-llkjs"
+            "at": "2026-11-12T18:11:30Z",
+            "url": "https://github.com/pytorch/pytorch/actions/runs/43241054752/job/131288306179",
+            "runner": "linux.rocm.gpu.rx7900.1-98wqm-runner-8bn57"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -32008,7 +31921,7 @@
         "complete": true,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
+        "collected_at": "2026-11-12T19:04:07Z",
         "oldest_run_at": "2026-10-18T04:51:10Z",
         "cache_identity": "c98b786c44c238c14d88c53152d8e514f2b5ffe08764d7112fe6abbe59ae5f53",
         "pending": {}
@@ -32017,7 +31930,7 @@
         {
           "month": "2026-11",
           "path": "upstream/pytorch/ci/2026-11.json",
-          "run_count": 328
+          "run_count": 329
         },
         {
           "month": "2026-10",
@@ -32176,6 +32089,15 @@
               "running": 0,
               "slow": 0
             },
+            "2026-11-12": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
             "2026-10-15": {
               "passed": 3,
               "failed": 0,
@@ -32304,15 +32226,6 @@
             },
             "2026-10-31": {
               "passed": 2,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
-            },
-            "2026-11-12": {
-              "passed": 3,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -32452,6 +32365,15 @@
               "running": 0,
               "slow": 4
             },
+            "2026-11-12": {
+              "passed": 3,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
+            },
             "2026-10-15": {
               "passed": 3,
               "failed": 0,
@@ -32586,15 +32508,6 @@
               "skipped": 0,
               "running": 0,
               "slow": 0
-            },
-            "2026-11-12": {
-              "passed": 3,
-              "failed": 0,
-              "other": 0,
-              "stalled": 0,
-              "skipped": 0,
-              "running": 0,
-              "slow": 0
             }
           },
           "decided": 119,
@@ -32649,7 +32562,7 @@
         "complete": true,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
+        "collected_at": "2026-11-12T19:04:07Z",
         "oldest_run_at": "2026-10-15T14:26:31Z",
         "cache_identity": "79d8b80dc51eadd50b08a2b1236f51a4a736779516b6fb43a07390fc21dbff57",
         "pending": {}
@@ -32737,7 +32650,7 @@
         "complete": true,
         "since": "2026-10-14T00:00:00Z",
         "listed_since": "2026-10-14T00:00:00Z",
-        "collected_at": "2026-11-12T17:15:47Z",
+        "collected_at": "2026-11-12T19:04:07Z",
         "oldest_run_at": null,
         "cache_identity": "f581be8b08118e8eb4261350bbeb6c513bd6825e7b9c68e5d879185835322d74",
         "pending": {}

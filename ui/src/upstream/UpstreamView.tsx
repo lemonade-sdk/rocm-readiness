@@ -678,15 +678,16 @@ function ProjectPage({
               const decided = passed + failed;
               return <tr key={job.id}>
                 <th scope="row">
-                  <Tooltip label={job.label} triggerClassName="up-job-label"
+                  <Tooltip interactive label={job.label} triggerClassName="up-job-label"
                     content={<TooltipContent heading={job.label} status={job.os === "windows" ? "Windows" : "Linux"}>
                       <dl className="up-tooltip-details">
+                        <LatestJobDetails job={job} windowDays={overview.window.days} />
                         <dt>Category</dt><dd>{job.category}</dd>
                         <dt>Workflow</dt><dd>{job.workflow}</dd>
                         <dt>Cadence</dt><dd>{job.cadence}</dd>
                         <dt>Stack</dt><dd>{job.stack}</dd>
                         <dt>Target</dt><dd>{job.target}</dd>
-                        <dt>Runner</dt><dd>{job.where}</dd>
+                        <dt>Configured runner</dt><dd>{job.where}</dd>
                         <dt>Pass rate ({days14.length} days)</dt><dd>{decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"}</dd>
                         <dt>Decided results</dt><dd>{passed} passed of {decided}</dd>
                         {project.coverage.complete && notRunning(job) && <><dt>Activity</dt><dd>{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</dd></>}
@@ -734,6 +735,34 @@ function ProjectPage({
       </div>
     </section>
   );
+}
+
+const runResults = {
+  passed: { outcome: "pass", label: "Passed" },
+  failed: { outcome: "fail", label: "Failed" },
+  skipped: { outcome: "skip", label: "Skipped" },
+  stalled: { outcome: "not_run", label: "Requested, no runs" },
+  running: { outcome: "pending", label: "Running" },
+  other: { outcome: "pending", label: "Other result" },
+} as const;
+
+function RunResult({ state, conclusion }: { state: Run["state"]; conclusion?: string | null }) {
+  const labels: Record<string, string> = { cancelled: "Cancelled", timed_out: "Timed out", neutral: "Neutral", action_required: "Action required", stale: "Stale" };
+  const result = runResults[state];
+  return <><BuildOutcomeIcon outcome={result.outcome} />{state === "other" ? labels[conclusion ?? ""] ?? result.label : result.label}</>;
+}
+
+function LatestJobDetails({ job, windowDays }: { job: Job; windowDays: number }) {
+  const latest = job.latest;
+  return <>
+    <dt>Latest recorded result</dt><dd className="up-latest-result">{latest ? <RunResult state={latest.state} conclusion={latest.conclusion} /> : <><BuildOutcomeIcon outcome="unreported" />Unavailable</>}</dd>
+    {latest && <>
+      <dt>Completed</dt><dd><time dateTime={latest.at}>{new Date(latest.at).toISOString().slice(0, 16).replace("T", " ")} UTC</time></dd>
+      <dt>Evidence</dt><dd><a href={latest.url} target="_blank" rel="noreferrer">View latest job log</a></dd>
+      {latest.runner && <><dt>Observed runner</dt><dd>{latest.runner}</dd></>}
+    </>}
+    {job.devlab_observed && <><dt>Runner evidence</dt><dd>Observed on devlab · {windowDays}-day collection window</dd></>}
+  </>;
 }
 
 function DayPanel({
@@ -785,7 +814,9 @@ function DayPanel({
             >
               <strong className="up-run-title">{label[run.job]} · <time dateTime={run.created_at}>{run.created_at.slice(11, 16)} UTC</time></strong>
               <dl>
-                <dt>Result</dt><dd className="up-run-result"><BuildOutcomeIcon outcome={run.state === "failed" ? "fail" : run.state === "passed" ? "pass" : run.state === "skipped" ? "skip" : "pending"} /> {run.state}</dd>
+                <dt>Result</dt><dd className="up-run-result"><RunResult state={run.state} conclusion={run.conclusion} /></dd>
+                {run.completed_at && <><dt>Completed</dt><dd><time dateTime={run.completed_at}>{new Date(run.completed_at).toISOString().slice(0, 16).replace("T", " ")} UTC</time></dd></>}
+                {run.runner && <><dt>Observed runner</dt><dd>{run.runner}</dd></>}
                 <dt>Job log</dt><dd><a href={run.url} target="_blank" rel="noreferrer"
                   aria-label={`Job log at ${run.created_at.slice(11, 16)} UTC · ${run.state}`}>View log</a></dd>
                 {run.failed_step && <><dt>Failed step</dt><dd>{run.failed_step}</dd></>}

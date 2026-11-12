@@ -493,7 +493,7 @@ it("lists individual CI jobs in a visible table with per-job run evidence", asyn
   expect(within(table).queryByRole("columnheader", { name: "Stack" })).not.toBeInTheDocument();
   expect(within(row).getByRole("cell", { name: "Linux" })).toBeInTheDocument();
   fireEvent.focus(within(row).getByRole("button", { name: "gpu-rocm" }));
-  const metadata = await screen.findByRole("tooltip");
+  const metadata = await screen.findByRole("dialog", { name: "gpu-rocm" });
   expect(within(metadata).getByText("rocm", { selector: "dd" })).toBeInTheDocument();
   expect(within(metadata).getByText("gfx1151", { selector: "dd" })).toBeInTheDocument();
   expect(within(metadata).getByText(/Pass rate.*14 days/)).toBeInTheDocument();
@@ -556,8 +556,8 @@ it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and leg
 it("formats CI job metadata as labeled qualification-style details", async () => {
   mount("/?track=upstream&view=ci&project=llamacpp");
   fireEvent.click(await screen.findByRole("button", { name: "gpu-rocm" }));
-  const tooltip = await screen.findByRole("tooltip");
-  for (const label of ["Category", "Workflow", "Cadence", "Stack", "Target", "Runner", "Pass rate (14 days)", "Decided results"])
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  for (const label of ["Category", "Workflow", "Cadence", "Stack", "Target", "Configured runner", "Pass rate (14 days)", "Decided results"])
     expect(within(tooltip).getByText(label, { selector: "dt" })).toBeInTheDocument();
 });
 
@@ -567,4 +567,28 @@ it("presents run evidence in explicit labeled rows instead of abbreviated link c
   await within(panel).findByRole("link", { name: "Job log at 10:00 UTC · failed" });
   for (const label of ["Result", "Job log", "Failed step", "Commit", "Pull request", "PR CI result"])
     expect(within(panel).getAllByText(label, { selector: "dt" }).length).toBeGreaterThan(0);
+});
+
+it("keeps absent latest evidence unavailable instead of implying failure", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  fireEvent.focus(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  expect(within(tooltip).getByText("Latest recorded result", { selector: "dt" })).toBeInTheDocument();
+  expect(within(tooltip).getByText("Unavailable", { selector: "dd" })).toBeInTheDocument();
+});
+
+it("shows latest completion, log, and observed runner independently of historical rate", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  Object.assign(data.projects[0].jobs[0], { latest: {
+    state: "other", conclusion: "cancelled", at: "2026-10-29T11:00:00Z",
+    url: "https://github.com/example/demo/actions/runs/100", runner: "ephemeral-devlab-slot-1",
+  }, devlab_observed: true });
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  fireEvent.focus(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  expect(within(tooltip).getByText("Cancelled")).toBeInTheDocument();
+  expect(within(tooltip).getByText("2026-10-29 11:00 UTC")).toBeInTheDocument();
+  expect(within(tooltip).getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/example/demo/actions/runs/100");
+  expect(within(tooltip).getByText(/Observed on devlab/)).toBeInTheDocument();
+  expect(within(tooltip).getByText("75%", { selector: "dd" })).toBeInTheDocument();
 });

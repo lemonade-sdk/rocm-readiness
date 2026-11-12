@@ -74,17 +74,27 @@
       "adapter": "github-actions-v1",
       "jobs": [
         {
-          "id": "gpu-rocm",
-          "label": "gpu-rocm",
+          "id": "gpu-rocm-gfx1151",
+          "label": "gpu-rocm (gfx1151)",
           "category": "tests",
           "workflow": "ci-self-hosted-cuda.yml",
-          "match": {
-            "name": "gpu-rocm"
-          },
+          "match": { "name": "gpu-rocm (gfx1151)" },
           "target": "gfx1151",
           "stack": "rocm",
           "os": "linux",
-          "where": "Strix Halo, one self-hosted box",
+          "where": "Strix Halo",
+          "cadence": "per push and pull request"
+        },
+        {
+          "id": "gpu-rocm-gfx1201",
+          "label": "gpu-rocm (gfx1201)",
+          "category": "tests",
+          "workflow": "ci-self-hosted-cuda.yml",
+          "match": { "name": "gpu-rocm (gfx1201)" },
+          "target": "gfx1201",
+          "stack": "rocm",
+          "os": "linux",
+          "where": "Radeon AI PRO R9700",
           "cadence": "per push and pull request"
         },
         {

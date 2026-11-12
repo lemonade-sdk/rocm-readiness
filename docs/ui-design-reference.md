@@ -304,3 +304,12 @@ failure renders Fail, while running/other undecided results render Pending.
 No project gets its own icon set, legend layout or tooltip format.
 
 Use the declarative heading **Failing steps on main** for the failure ranking.
+
+Latest CI job evidence belongs in the existing job tooltip, using the shared
+detail rows: latest recorded outcome, UTC completion, exact job-log link and
+observed runner. Keep the historical pass rate separately labeled with its
+14-day window. Missing completion evidence is unavailable, not failed. Label
+runner usage “Observed on devlab” with the collection window; never infer current
+availability from a historical runner name. Show completion and observed runner
+in individual run evidence when recorded. These fields do not change project
+badges, daily history, or the page layout.

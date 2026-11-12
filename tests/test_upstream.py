@@ -846,6 +846,85 @@ class DatasetTests(unittest.TestCase):
                 for path, text in backup.items():
                     path.write_text(text)
 
+class LatestJobEvidenceTests(unittest.TestCase):
+    def summary(self, rows):
+        from scripts.upstream import _job_summary
+        return _job_summary(project()["jobs"][0], rows, ["2026-10-27", "2026-10-28", "2026-10-29"])
+
+    def row(self, **changes):
+        return dict(day="2026-10-28", state="passed", status="completed",
+                    created_at="2026-10-28T10:00:00Z", completed_at="2026-10-28T11:00:00Z",
+                    conclusion="success", runner="box-1", url="https://github.com/example/demo/actions/runs/1", **changes)
+
+    def test_completion_time_orders_reruns_not_original_workflow_creation(self):
+        old = self.row()
+        old.update(day="2026-10-27", created_at="2026-10-27T10:00:00Z", completed_at="2026-10-29T11:00:00Z", state="failed", conclusion="failure", attempt=2)
+        result = self.summary([old, self.row()])["latest"]
+        self.assertEqual(result["state"], "failed")
+        self.assertEqual(result["at"], "2026-10-29T11:00:00Z")
+
+    def test_latest_ties_are_stable_across_collection_and_publication_order(self):
+        first = self.row()
+        first.update(run_id="100", job_id="101")
+        second = self.row()
+        second.update(run_id="200", job_id="201", state="failed", conclusion="failure")
+        self.assertEqual(self.summary([first, second])["latest"], self.summary([second, first])["latest"])
+
+    def test_legacy_records_and_running_jobs_do_not_invent_a_finished_result(self):
+        legacy = self.row()
+        legacy.pop("completed_at")
+        running = self.row()
+        running.update(status="in_progress", state="running", completed_at=None)
+        self.assertIsNone(self.summary([legacy, running])["latest"])
+
+    def test_cancelled_and_skipped_results_keep_their_actual_conclusion(self):
+        for state, conclusion in [("other", "cancelled"), ("skipped", "skipped"), ("stalled", "cancelled")]:
+            row = self.row()
+            row.update(state=state, conclusion=conclusion)
+            self.assertEqual(self.summary([row])["latest"]["conclusion"], conclusion)
+            self.assertEqual(self.summary([row])["latest"]["state"], state)
+
+    def test_devlab_is_an_observation_of_a_real_runner_prefix(self):
+        row = self.row()
+        row["runner"] = "ephemeral-devlab-x2-slot-1"
+        self.assertTrue(self.summary([row])["devlab_observed"])
+        row["runner"] = "not-devlab-box"
+        self.assertFalse(self.summary([row])["devlab_observed"])
+
+    def test_completed_timestamp_survives_job_minimization_and_recording(self):
+        from scripts.upstream import _minimal_job, _record
+        api_job = job(11, "gpu-rocm")
+        api_job["completed_at"] = "2026-10-28T11:00:00Z"
+        row = _record(run(1, "2026-10-28T10:00:00Z"), _minimal_job(api_job), project()["jobs"][0])
+        self.assertEqual(row["completed_at"], api_job["completed_at"])
+
+    def test_latest_and_devlab_summaries_must_match_the_saved_runs(self):
+        with tempfile.TemporaryDirectory() as destination:
+            gh = fake_github()
+            gh.jobs[1][0]["completed_at"] = "2026-10-28T11:00:00Z"
+            entry = collect(gh, destination)
+            path = Path(destination) / "upstream/overview.json"
+            data = json.loads(path.read_text())
+            data["projects"][0]["jobs"][0]["devlab_observed"] = True
+            path.write_text(json.dumps(data))
+            with self.assertRaises(PipelineValidationError):
+                validate_upstream_dataset(destination, entry)
+            data["projects"][0]["jobs"][0]["devlab_observed"] = False
+            data["projects"][0]["jobs"][0]["latest"]["at"] = "2026-10-29T11:00:00Z"
+            path.write_text(json.dumps(data))
+            with self.assertRaises(PipelineValidationError):
+                validate_upstream_dataset(destination, entry)
+
+    def test_matrix_configuration_matches_each_gpu_independently(self):
+        from scripts.config import load_config
+        _, config = load_config(json.loads((ROOT / "sources.json").read_text()))
+        jobs = next(p for p in config["projects"] if p["id"] == "llamacpp")["jobs"]
+        gpu_jobs = [j for j in jobs if j["id"].startswith("gpu-rocm")]
+        self.assertEqual({j["target"] for j in gpu_jobs}, {"gfx1151", "gfx1201"})
+        for gpu in ("gfx1151", "gfx1201"):
+            matches = [j for j in gpu_jobs if matcher(j["match"])(f"gpu-rocm ({gpu})")]
+            self.assertEqual([j["target"] for j in matches], [gpu])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,35 @@ Previous monthly files retain completed scan IDs and job records. `coverage.cach
 
 `index.json` references `upstream/overview.json`, containing project aggregates, coverage and monthly file references. `upstream/<project>/ci/YYYY-MM.json` holds retained executions and scan state. Conformance validates file references and retained records, and reconciles monthly daily-state counts and pass/decided totals with the overview; it does not validate badges, platforms, not-running counts or merged-red totals. Publication pins the whole dataset to one commit.
 
+## Latest job and runner evidence
+
+Jobs optionally expose `latest` (state, original GitHub conclusion, completion
+timestamp `at`, exact job-log URL and observed runner) and `devlab_observed`.
+The newest result is ordered by the job's actual `completed_at`, then attempt and stable run/job identity,
+within the existing workflow-created-date collection window. Rerunning an older
+workflow can therefore replace a newer workflow's result when it finishes later.
+The window is not a promise of current health: ongoing runs and incomplete
+collection may mean newer evidence is unavailable.
+
+The collector retains `completed_at` on monthly run records. Cached legacy rows
+without that field remain valid and are not used to infer a completion order;
+latest evidence fills in as jobs are collected. Missing optional fields display
+as unavailable, never failed. Historical pass rates and daily counts are
+unchanged. Cancelled, skipped, failed, and requested-but-unrun results retain
+their distinct meanings and original conclusion.
+
+`devlab_observed` means at least one saved run in the collection window used a
+runner named `ephemeral-devlab-*`. It does not establish current runner
+availability or verify physical hardware. The CI job tooltip includes the
+window, observed runner, latest completion and job log; individual run evidence
+also exposes observed runner and completion when available. Conformance checks
+latest summaries and devlab observations against the retained monthly records.
+
+llama.cpp's ROCm matrix is collected as separate `gpu-rocm (gfx1151)` and
+`gpu-rocm (gfx1201)` jobs. Updating this source configuration invalidates that
+project's existing collection cache; the API budget can leave it partially
+backfilled during the first collection. Other projects' caches are unaffected.
+
 ## Local preview
 
 ```sh

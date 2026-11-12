@@ -500,6 +500,7 @@ def _record(run, job, spec):
         "attempt": run.get("run_attempt") or 1,
         "day": (run.get("created_at") or "")[:10],
         "created_at": run.get("created_at"),
+        "completed_at": job.get("completed_at"),
         "event": run.get("event"),
         "ref": run.get("head_branch"),
         "sha": run.get("head_sha"),
@@ -577,6 +578,7 @@ def _minimal_job(job):
         "conclusion",
         "created_at",
         "started_at",
+        "completed_at",
         "runner_name",
         "html_url",
     )
@@ -956,6 +958,43 @@ def _days(now, window_days):
     ]
 
 
+def _completion_time(row):
+    try:
+        return _time(row.get("completed_at"))
+    except ValueError:
+        return None
+
+
+def _latest_result(rows):
+    # Workflow creation time does not advance when an old workflow is rerun.
+    # Legacy rows without job completion times cannot establish this ordering.
+    finished = [
+        r for r in rows
+        if r.get("status") == "completed" and _completion_time(r) is not None
+    ]
+    # GitHub timestamps have second precision. Identity makes ties independent
+    # of collection order and the monthly files' publication sort order.
+    newest = max(
+        finished,
+        key=lambda r: (
+            _completion_time(r), r.get("attempt") or 1,
+            r.get("run_id") or "", r.get("job_id") or "",
+        ),
+        default=None,
+    )
+    return None if newest is None else {
+        "state": newest["state"],
+        "conclusion": newest.get("conclusion"),
+        "at": newest["completed_at"],
+        "url": newest.get("url"),
+        "runner": newest.get("runner"),
+    }
+
+
+def _devlab_observed(rows):
+    return any((r.get("runner") or "").startswith("ephemeral-devlab-") for r in rows)
+
+
 def _job_summary(job, rows, days):
     daily = {}
     for row in rows:
@@ -1042,6 +1081,8 @@ def _job_summary(job, rows, days):
         "skipped": sum(r["state"] == "skipped" for r in in_window),
         "stalled": sum(r["state"] == "stalled" for r in in_window),
         "last_ran": last_ran,
+        "latest": _latest_result(in_window),
+        "devlab_observed": _devlab_observed(in_window),
         "quiet_days": quiet,
         "median_queue_seconds": int(median(waits)) if waits else None,
         "failed_steps": dict(sorted(steps.items(), key=lambda kv: -kv[1])[:8]),
@@ -1489,6 +1530,17 @@ def validate_upstream_dataset(root, entry):
                 "invalid job classification",
             )
             job_ids.add(job.get("id"))
+            latest = job.get("latest")
+            _ok(latest is None or (
+                isinstance(latest, dict)
+                and latest.get("state") in ("passed", "failed", "other", "skipped", "stalled")
+                and _completion_time({"completed_at": latest.get("at")}) is not None
+                and isinstance(latest.get("url"), str) and latest["url"].startswith("https://github.com/")
+                and (latest.get("runner") is None or isinstance(latest["runner"], str))
+                and (latest.get("conclusion") is None or isinstance(latest["conclusion"], str))
+            ), where, jat + "/latest", "expected completed job evidence or null")
+            _ok(isinstance(job.get("devlab_observed", False), bool), where,
+                jat + "/devlab_observed", "expected a boolean")
             daily = job.get("daily")
             _ok(
                 isinstance(daily, dict),
@@ -1527,6 +1579,7 @@ def validate_upstream_dataset(root, entry):
             "project totals must equal its jobs",
         )
         actual_daily = {job_id: {} for job_id in job_ids}
+        actual_rows = {job_id: [] for job_id in job_ids}
         for fpos, chunk in enumerate(project.get("files") or []):
             relative = chunk.get("path")
             match = FILE_PATH.fullmatch(relative or "")
@@ -1609,6 +1662,9 @@ def validate_upstream_dataset(root, entry):
                     rat,
                     "missing or invalid fields required for restore",
                 )
+                _ok(run.get("completed_at") is None or _completion_time(run) is not None,
+                    relative, rat + "/completed_at", "expected an ISO timestamp or null")
+                actual_rows[run["job"]].append(run)
                 cell = actual_daily[run["job"]].setdefault(
                     run["day"], {k: 0 for k in STATES + ("slow",)}
                 )
@@ -1623,6 +1679,13 @@ def validate_upstream_dataset(root, entry):
                         "invalid verdict",
                     )
         for job in jobs:
+            rows = actual_rows[job["id"]]
+            if "latest" in job:
+                _ok(job["latest"] == _latest_result(rows), where, at + "/jobs/latest",
+                    "latest result must match completed monthly run evidence")
+            if "devlab_observed" in job:
+                _ok(job["devlab_observed"] == _devlab_observed(rows), where, at + "/jobs/devlab_observed",
+                    "devlab observation must match monthly runner evidence")
             _ok(
                 job["daily"] == actual_daily[job["id"]],
                 where,

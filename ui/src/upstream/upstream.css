@@ -1111,3 +1111,5 @@ button.up-tick {
 .up-daypanel:has(.structured-tooltip) .up-run:last-child { padding-bottom: 0; }
 .up-run-title { font: 600 .8rem/1.4 system-ui, sans-serif; overflow-wrap: anywhere; }
 .comparison-bubble .up-run-result { display: flex; align-items: center; gap: .35rem; text-transform: capitalize; }
+
+.comparison-bubble .up-latest-result { display: flex; align-items: center; gap: .35rem; }

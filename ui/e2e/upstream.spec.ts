@@ -290,3 +290,33 @@ for (const theme of ["light", "dark"] as const) {
     });
   }
 }
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`latest job evidence preserves the historical view at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      const data = structuredClone(upstreamOverview);
+      Object.assign(data.projects[0].jobs[0], { latest: {
+        state: "failed", conclusion: "failure", at: "2026-10-29T11:00:00Z",
+        url: "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101",
+        runner: "ephemeral-devlab-gfx1151-slot-1",
+      }, devlab_observed: true });
+      await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: data }));
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("./?track=upstream&view=ci&project=llamacpp");
+      await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
+      const popup = page.getByRole("dialog", { name: "gpu-rocm", exact: true });
+      await expect(popup.locator(".up-latest-result")).toContainText("Failed");
+      await expect(popup.getByText("75%", { exact: true })).toBeVisible();
+      await expect(popup.getByText("2026-10-29 11:00 UTC", { exact: true })).toBeVisible();
+      await expect(popup.getByText("Observed on devlab · 14-day collection window", { exact: true })).toBeVisible();
+      await expect(popup.getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101");
+      expect(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await popup.screenshot({ path: testInfo.outputPath("latest-job-tooltip.png") });
+      await page.screenshot({ path: testInfo.outputPath("latest-job-page.png"), fullPage: true });
+      await page.keyboard.press("Escape");
+      await expect(popup).toHaveCount(0);
+      await expect(page.getByRole("table", { name: "Daily CI activity" })).toBeVisible();
+    });
+  }
+}

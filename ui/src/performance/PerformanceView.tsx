@@ -58,6 +58,10 @@ const performanceSchema = z.object({
   schema_version: z.literal(2),
   measurements: z.array(measurementSchema),
   systems: z.array(systemSchema),
+  benchmark_assessment: z.object({
+    message: text,
+    last_run_label: text,
+  }).nullable().optional(),
 });
 
 type Measurement = z.infer<typeof measurementSchema>;
@@ -65,6 +69,7 @@ type SystemRecord = z.infer<typeof systemSchema>;
 export type PerformanceData = {
   measurements: Measurement[];
   systems: Map<string, SystemRecord>;
+  benchmarkAssessment?: z.infer<typeof performanceSchema>["benchmark_assessment"];
 };
 type HistoryState = { builds: Build[] | null; error: string | null };
 type LoadState =
@@ -169,7 +174,7 @@ export async function readPerformance(session: Session, signal: AbortSignal, fet
     if (systems.has(key)) throw new Error(`${url}: duplicate source-scoped system identity.`);
     systems.set(key, record);
   }
-  return { measurements: parsed.data.measurements, systems };
+  return { measurements: parsed.data.measurements, systems, benchmarkAssessment: parsed.data.benchmark_assessment };
 }
 
 async function loadHistoryIfNeeded(
@@ -678,15 +683,15 @@ export function PerformanceView({
     if (!buildGroups.has(key)) buildGroups.set(key, { tag: row.engine_version ?? "Build unavailable", rows: [] });
     buildGroups.get(key)!.rows.push(row);
   }
-  const sortKey = ["model", "context", "tps", "p95", "vram", "ttft"].includes(params.get("sort") ?? "") ? params.get("sort")! : "model";
+  const requestedSort = params.get("sort") === "tps" ? "decode" : params.get("sort");
+  const sortKey = ["model", "context", "prefill", "decode", "vram"].includes(requestedSort ?? "") ? requestedSort! : "model";
   const descending = params.get("direction") === "desc";
   const numericValue = (row: Measurement, key: string): number | undefined => {
     if (key === "context") {
       const namedSize = row.scenario.match(/^context-(\d+)k$/i);
       return row.context_size ?? (namedSize ? Number(namedSize[1]) * 1024 : undefined);
     }
-    if (key === "tps") return row.metrics.tps_mean ?? row.metrics.tg_tps;
-    return row.metrics[{ p95: "tps_p95", vram: "vram_peak_gb", ttft: "ttft_ms_mean" }[key] ?? ""];
+    return row.metrics[{ prefill: "pp_tps", decode: "tg_tps", vram: "vram_peak_gb" }[key] ?? ""];
   };
   const compareRows = (a: Measurement, b: Measurement) => {
     if (sortKey === "model") return (descending ? -1 : 1) * a.model.localeCompare(b.model) || Date.parse(b.measured_at) - Date.parse(a.measured_at);
@@ -736,7 +741,7 @@ export function PerformanceView({
       <span className="performance-sort-heading">
         {definition ? <Tooltip side label={`${label} definition`} content={definition}>{label}</Tooltip> : label}
         <button type="button" className="performance-sort" aria-label={`Sort by ${label}`} onClick={() => navigate({ sort: key,
-          direction: sortKey === key ? descending ? "asc" : "desc" : ["tps", "p95"].includes(key) ? "desc" : "asc" })}>
+          direction: sortKey === key ? descending ? "asc" : "desc" : ["prefill", "decode"].includes(key) ? "desc" : "asc" })}>
           {sortKey === key ? descending ? "↓" : "↑" : "↕"}
         </button>
       </span>
@@ -749,12 +754,11 @@ export function PerformanceView({
       <table className={`qualification-table performance-measurements ${nightly ? "" : "qualification-stable-table"}`}>
         <thead><tr>
           <th scope="col" className="qualification-family-column">{nightly ? "GPU family" : "Build"}</th>
-              {sortHeader("model", "Model")}<th scope="col">OS</th>
-              {sortHeader("context", "Context", "Configured context window capacity in tokens: 4K = 4,096 and 32K = 32,768. A workload label is used when the numeric size is missing.")}
-              {sortHeader("tps", "TPS", "Mean generation throughput, in tokens per second. Higher is better.")}
-              {sortHeader("p95", "P95", "Producer-reported 95th percentile generation throughput, in tokens per second.")}
-              {sortHeader("vram", "VRAM", "Peak video memory usage, in GB.")}
-              {sortHeader("ttft", "TTFT", "Mean time to first token, in seconds. Lower is better.")}
+              {sortHeader("model", "Model")}
+              {sortHeader("prefill", "Prefill TPS", "Prompt processing throughput, in tokens per second, reported as pp_tps. Higher is better.")}
+              {sortHeader("decode", "Decode TPS", "Token generation throughput, in tokens per second, reported as tg_tps. Higher is better.")}
+              {sortHeader("context", "CTX size", "Configured context window capacity in tokens: 4K = 4,096 and 32K = 32,768. A workload label is used when the numeric size is missing.")}
+              {sortHeader("vram", "Peak VRAM", "Peak video memory usage, in GB.")}
         </tr></thead>
         {groups.map((group) => <tbody key={group.key}>
           {[...group.rows].sort(compareRows)
@@ -764,15 +768,18 @@ export function PerformanceView({
                   <strong>{group.label}</strong><p>{plural(group.rows.length, "measurement")} · All times UTC</p>
                 </div>}>{group.label}</Tooltip>
               </th>}
-                <th scope="row"><Tooltip side interactive label={`Measurement details for ${row.model} · ${row.package_os ?? "Unknown OS"} · ${row.measured_at}`}
+                <th scope="row"><span className="performance-model-identity"><Tooltip side interactive label={`Measurement details for ${row.model} · ${row.package_os ?? "Unknown OS"} · ${row.measured_at}`}
                   triggerClassName="performance-model-trigger" contentClassName="qualification-popup performance-model-popup"
-                  content={<MeasurementEvidence row={row} systems={state.data.systems} history={state.history} buildHref={buildHref} />}>{row.model}</Tooltip></th>
-                <td><span className="performance-os" role="img" aria-label={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"} title={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}><PlatformIcon platform={row.package_os ?? ""} />{!row.package_os && "—"}</span></td>
+                  content={<MeasurementEvidence row={row} systems={state.data.systems} history={state.history} buildHref={buildHref} />}>{row.model}</Tooltip>
+                <span className="performance-os" role="img" aria-label={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"} title={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}><PlatformIcon platform={row.package_os ?? ""} />{!row.package_os && "—"}</span></span></th>
+                <td>{row.metrics.pp_tps == null
+                  ? <Tooltip label="Prefill TPS unavailable" content="Prefill throughput was not recorded for this benchmark.">—</Tooltip>
+                  : formatNumber(row.metrics.pp_tps)}</td>
+                <td>{row.metrics.tg_tps == null
+                  ? <Tooltip label="Decode TPS unavailable" content="Decode throughput was not recorded for this benchmark.">—</Tooltip>
+                  : formatNumber(row.metrics.tg_tps)}</td>
                 <td>{row.context_size == null && /^context-\d+k$/i.test(row.scenario) ? workloadLabel(row.scenario) : contextLabel(row.context_size)}</td>
-                <td>{row.metrics.tps_mean != null || row.metrics.tg_tps != null ? formatNumber(row.metrics.tps_mean ?? row.metrics.tg_tps) : "—"}</td>
-                <td>{row.metrics.tps_p95 == null ? "—" : formatNumber(row.metrics.tps_p95)}</td>
                 <td>{row.metrics.vram_peak_gb == null ? "—" : formatNumber(row.metrics.vram_peak_gb)}</td>
-                <td>{row.metrics.ttft_ms_mean == null ? "—" : formatNumber(row.metrics.ttft_ms_mean / 1000)}</td>
             </tr>)}
         </tbody>)}
       </table>
@@ -806,6 +813,9 @@ export function PerformanceView({
           <h2 id="performance-heading">
             Performance details
           </h2>
+          {state.kind === "ready" && state.data.benchmarkAssessment && <>
+            <p className="performance-intro">{state.data.benchmarkAssessment.message}</p>
+          </>}
         </div>
       </div>
       {state.kind === "ready" && (
@@ -867,7 +877,10 @@ export function PerformanceView({
       )}
       {state.kind === "ready" && <>
         <section className="qualification-matrix" aria-label="Model performance">
-          <h2>Model performance</h2>
+          <div className="performance-table-heading">
+            <h2>Model performance</h2>
+            {state.data.benchmarkAssessment && <p className="performance-last-run">{state.data.benchmarkAssessment.last_run_label}</p>}
+          </div>
           <label className="performance-build-order"><Tooltip label="Build order help" content="Newest orders build groups by their latest measurement. Selected metric orders builds only when every visible row has the same fully recorded model, workload, quantization, OS, and hardware. Choose a metric sort first.">Build order</Tooltip>
             <select value={params.get("build_order") === "metric" && canRankBuilds ? "metric" : "newest"} onChange={(event) => navigate({ build_order: event.target.value === "newest" ? null : "metric" })}>
               <option value="newest">Newest first</option><option value="metric" disabled={!canRankBuilds}>Selected metric</option>

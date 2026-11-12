@@ -89,6 +89,7 @@ function sessionFor(
   currentMeasurements: Measurement[],
   options: {
     currentSystems?: typeof system[];
+    benchmarkAssessment?: { message: string; last_run_label: string } | null;
     performanceStatus?: "available" | "not_measured";
     history?: Build[];
   } = {},
@@ -120,10 +121,10 @@ function sessionFor(
       overview: currentOverview,
     },
     responses: {
-      [new URL("rocm/10.1/performance.json", indexUrl).href]: performance(
-        currentMeasurements,
-        options.currentSystems,
-      ),
+      [new URL("rocm/10.1/performance.json", indexUrl).href]: {
+        ...performance(currentMeasurements, options.currentSystems),
+        benchmark_assessment: options.benchmarkAssessment,
+      },
       [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
         schema_version: 2,
         rocm_version: "10.1",
@@ -168,6 +169,28 @@ function renderView(
 afterEach(() => vi.unstubAllGlobals());
 
 describe("PerformanceView", () => {
+  it("renders collector-owned benchmark copy without deriving it from filtered rows", async () => {
+    renderView([measurement()], {
+      benchmarkAssessment: {
+        message: "Collector benchmark explanation for build b456.",
+        last_run_label: "Collector benchmark date: 2026-10-28 UTC.",
+      },
+      query: "version=10.1&view=performance&model=missing",
+    });
+    expect(await screen.findByText("Collector benchmark explanation for build b456.")).toBeInTheDocument();
+    const tableSection = screen.getByRole("region", { name: "Model performance" });
+    expect(within(tableSection).getByText("Collector benchmark date: 2026-10-28 UTC.")).toBeInTheDocument();
+    expect(within(tableSection).queryByText("Collector benchmark explanation for build b456.")).not.toBeInTheDocument();
+    expect(screen.getByText(/HISTORICAL MEASUREMENTS/)).toBeInTheDocument();
+  });
+
+  it("does not invent benchmark freshness copy for legacy datasets", async () => {
+    renderView([measurement()]);
+    await screen.findByRole("button", { name: /Measurement details for Model A/ });
+    expect(screen.queryByText(/Measurements are from benchmarked llama.cpp builds/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Last run:/)).not.toBeInTheDocument();
+  });
+
   it("converts source TTFT milliseconds to seconds for display", () => {
     expect(metricValue("ttft_ms_mean", 20817.47)).toBe("20.82 s");
     expect(metricValue("ttft_ms_best", 250)).toBe("0.25 s");
@@ -218,10 +241,13 @@ describe("PerformanceView", () => {
 
   it("shows compact metrics in one table and opens evidence without navigating", async () => {
     const { onNavigate } = renderView([measurement({ scenario: "context-32k", context_size: 32768,
-      metrics: { tps_mean: 42, ttft_ms_mean: 250, vram_peak_gb: 18.5 } })]);
+      metrics: { tps_mean: 999, pp_tps: 142, tg_tps: 42, ttft_ms_mean: 250, tps_p95: 777, vram_peak_gb: 18.5 } })]);
     const table = await screen.findByRole("table");
     expect(within(table).getByText("42")).toBeInTheDocument();
-    expect(within(table).getByText("0.25")).toBeInTheDocument();
+    expect(within(table).getByText("142")).toBeInTheDocument();
+    const headings = within(table).getAllByRole("columnheader").map((node) => node.textContent?.replace(/[↕↑↓]/g, ""));
+    expect(headings).toEqual(["Build", "Model", "Prefill TPS", "Decode TPS", "CTX size", "Peak VRAM"]);
+    for (const value of ["999", "777", "0.25"]) expect(within(table).queryByText(value)).not.toBeInTheDocument();
     expect(within(table).getByText("18.5")).toBeInTheDocument();
     expect(within(table).getAllByText("32K")).toHaveLength(1);
     expect(within(table).queryByRole("columnheader", { name: "Test" })).not.toBeInTheDocument();
@@ -241,10 +267,22 @@ describe("PerformanceView", () => {
     expect(screen.queryByText("Back to models")).not.toBeInTheDocument();
   });
 
+  it("shows missing split throughput without substituting aggregate TPS", async () => {
+    renderView([measurement({ metrics: { tps_mean: 999, tps_p95: 777 }, context_size: null, scenario: "context-4k" })]);
+    const table = await screen.findByRole("table");
+    expect(within(table).queryByText("999")).not.toBeInTheDocument();
+    expect(within(table).getByText("4K")).toBeInTheDocument();
+    const missing = within(table).getByRole("button", { name: "Prefill TPS unavailable" });
+    expect(missing).toHaveTextContent("—");
+    fireEvent.click(missing);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Prefill throughput was not recorded for this benchmark.");
+    expect(within(table).getByRole("button", { name: "Decode TPS unavailable" })).toHaveTextContent("—");
+  });
+
   it("keeps older builds visible while selecting latest configurations within each build", async () => {
     const { onNavigate } = renderView([
-      measurement({ engine_version: "b99", measured_at: "2026-10-28T12:00:00Z", system_id: null, metrics: { tps_mean: 10 } }),
-      measurement({ engine_version: "b100", metrics: { tps_mean: 42, tps_p95: 44 } }),
+      measurement({ engine_version: "b99", measured_at: "2026-10-28T12:00:00Z", system_id: null, metrics: { tg_tps: 10 } }),
+      measurement({ engine_version: "b100", metrics: { pp_tps: 44, tg_tps: 42, tps_p95: 444 } }),
       measurement({ engine_version: "b100", scenario: "context-32k", context_size: 32768 }),
       measurement({ engine_version: "b100", system_id: "system-b" }),
     ]);
@@ -287,21 +325,21 @@ describe("PerformanceView", () => {
   });
 
   it("sorts model rows within each build and keeps missing values last", async () => {
-    renderView([measurement({ model: "Slow", metrics: { tps_mean: 10 } }),
-      measurement({ model: "Fast", metrics: { tps_mean: 30 } }),
+    renderView([measurement({ model: "Slow", metrics: { tg_tps: 10 } }),
+      measurement({ model: "Fast", metrics: { tg_tps: 30 } }),
       measurement({ model: "Missing", metrics: {} }),
-      measurement({ model: "Other build", engine_version: "b99", metrics: { tps_mean: 100 } })],
+      measurement({ model: "Other build", engine_version: "b99", metrics: { tg_tps: 100 } })],
       { query: "version=10.1&view=performance&sort=tps&direction=desc" });
     const table = await screen.findByRole("table");
     const names = [...table.querySelectorAll(".performance-model-trigger")].map((node) => node.textContent);
     expect(names).toEqual(["Fast", "Slow", "Missing", "Other build"]);
-    expect(screen.getByRole("button", { name: "TPS definition" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Context definition" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Decode TPS definition" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "CTX size definition" })).toBeInTheDocument();
   });
 
   it("ranks builds by the selected metric only for one complete compatible cohort", async () => {
-    renderView([measurement({ metrics: { tps_mean: 10 } }),
-      measurement({ engine_version: "b99", metrics: { tps_mean: 30 } })],
+    renderView([measurement({ metrics: { tg_tps: 10 } }),
+      measurement({ engine_version: "b99", metrics: { tg_tps: 30 } })],
       { query: "version=10.1&view=performance&sort=tps&direction=desc&build_order=metric" });
     const table = await screen.findByRole("table");
     expect([...table.querySelectorAll('th[scope="rowgroup"]')].map((node) => node.textContent)).toEqual(["b99", "b100"]);
@@ -309,7 +347,7 @@ describe("PerformanceView", () => {
   });
 
   it("does not rank unlike workloads even when a metric-order URL requests it", async () => {
-    renderView([measurement(), measurement({ engine_version: "b99", scenario: "other", metrics: { tps_mean: 100 } })],
+    renderView([measurement(), measurement({ engine_version: "b99", scenario: "other", metrics: { tg_tps: 100 } })],
       { query: "version=10.1&view=performance&sort=tps&direction=desc&build_order=metric" });
     const table = await screen.findByRole("table");
     expect([...table.querySelectorAll('th[scope="rowgroup"]')].map((node) => node.textContent)).toEqual(["b100", "b99"]);

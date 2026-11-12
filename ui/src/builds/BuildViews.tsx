@@ -12,6 +12,7 @@ import type { PerformanceData } from "../performance/PerformanceView";
 import { BuildPerformancePreview, findSelectedBuild } from "./BuildBrowser";
 import { QualificationCharts } from "./QualificationCharts";
 import { useBuildMeasurements } from "./useBuildMeasurements";
+import { matchedPerformanceObservations } from "../performance/PerformancePreview";
 import { QualificationMatrix } from "./QualificationMatrix";
 import "./BuildViews.css";
 
@@ -105,6 +106,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   const performance = useBuildMeasurements(session, history, fetcher);
   const platformParam = params.get("platform");
   const query = params.get("build_filter") ?? "";
+  const measuredOnly = params.get("performance") === "measured";
   const focus = params.get("day");
   const channel = params.get("channel");
   const selectedBuild = params.get("build");
@@ -122,6 +124,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
     availablePlatforms.includes(os) && (selectedPlatform === null || os === selectedPlatform),
   );
   const filtered = scopedBuilds.filter((build) =>
+    (!measuredOnly || matchedPerformanceObservations([build], performance.matches).length > 0) &&
     (selectedPlatform === null || build.os === selectedPlatform) &&
     (!query || [build.build_id, build.tag, build.artifact, build.gfx_family, build.source_id].join(" ").toLowerCase().includes(query.toLowerCase())),
   );
@@ -177,13 +180,20 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
         selected={selectedPlatform}
         onSelect={(value) => onNavigate(next({ platform: value, build: null, source: null, package_identity: null }))}
       />
+      <fieldset className="build-filter-options">
+        <legend>Performance</legend>
+        <button type="button" aria-pressed={measuredOnly}
+          onClick={() => onNavigate(next({ performance: measuredOnly ? null : "measured", build: null, source: null, package_identity: null }))}>
+          Has performance data
+        </button>
+      </fieldset>
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>
       {selectedBuild && <FilterScope label={`Build: ${selected?.tag ?? selectedBuild}`} onClear={() => onNavigate(next({ through: end === today ? null : end, build: null, source: null, package_identity: null, tier: null, check: null, focus: null }))} />}
       {focusedDay && <FilterScope label={`Date: ${focusedDay}`} onClear={() => onNavigate(next({ through: end === today ? null : end, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
       <FilterReset onReset={() => {
         const target = next({ through: end === today ? null : end });
-        for (const key of ["platform", "engine", "channel", "build_filter", "day", "focus", "build", "source", "package_identity", "tier", "check", "report_commit"])
+        for (const key of ["platform", "engine", "channel", "performance", "build_filter", "day", "focus", "build", "source", "package_identity", "tier", "check", "report_commit"])
           target.delete(key);
         onNavigate(target);
       }} />
@@ -195,7 +205,10 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       {end < today && <Link to={windowLink(nextWindow)}>{nextWindow ? "Newer builds →" : "Back to latest dates →"}</Link>}
     </nav>}
     {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
-    {rows.length === 0 ? <p role="status">No retained packages match this scope.</p> : <QualificationMatrix
+    {rows.length === 0 ? <div>
+      <p role="status">{measuredOnly && performance.message ? performance.message : "No retained packages match this scope."}</p>
+      {measuredOnly && performance.retry && <button type="button" onClick={performance.retry}>Retry performance</button>}
+    </div> : <QualificationMatrix
       builds={rows}
       fetcher={fetcher}
       selected={selected && rows.includes(selected) ? selected : null}

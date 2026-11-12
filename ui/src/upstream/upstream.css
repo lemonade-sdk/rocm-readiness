@@ -120,17 +120,22 @@
 .up-badge {
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.05rem 0.55rem;
-  border-radius: 999px;
-  background: var(--badge);
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  line-height: 1.4;
+  color: var(--muted);
 }
-.up-badge-up {
+.up-badge-positive {
   color: var(--good);
 }
-.up-badge-partial {
+.up-badge-warning {
   color: var(--warning);
 }
-.up-badge-down {
+.up-badge-negative {
   color: var(--bad);
 }
 .up-forks {
@@ -1111,3 +1116,14 @@ button.up-tick {
 .up-daypanel:has(.structured-tooltip) .up-run:last-child { padding-bottom: 0; }
 .up-run-title { font: 600 .8rem/1.4 system-ui, sans-serif; overflow-wrap: anywhere; }
 .comparison-bubble .up-run-result { display: flex; align-items: center; gap: .35rem; text-transform: capitalize; }
+
+.comparison-bubble .up-latest-result { display: flex; align-items: center; gap: .35rem; }
+
+/* Compact lowercase labels beside project titles, with shared evidence tooltips. */
+.up-card-head { justify-content: flex-start; gap: 0.75rem; }
+.up-status-labels { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.4rem; margin-left: auto; }
+.up-status-trigger.comparison-trigger {
+  text-decoration: none;
+  border-radius: 3px;
+}
+.up-status-trigger:hover { color: var(--text); }

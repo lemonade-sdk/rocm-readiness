@@ -7,9 +7,16 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { fixtureFetch, historyFixture, indexUrl, overview, pointer } from "./fixtures";
+
+// Match the retained build fixtures while leaving async/UI timers real.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-02T15:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
 
 function mount(fetcher = fixtureFetch(), entry = "/") {
   return render(

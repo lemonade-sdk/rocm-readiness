@@ -304,3 +304,43 @@ failure renders Fail, while running/other undecided results render Pending.
 No project gets its own icon set, legend layout or tooltip format.
 
 Use the declarative heading **Failing steps on main** for the failure ranking.
+
+Latest CI job evidence belongs in the existing job tooltip, using the shared
+detail rows: latest recorded outcome, UTC completion, exact job-log link and
+observed runner. Keep the historical pass rate separately labeled with its
+14-day window. Missing completion evidence is unavailable, not failed. Label
+runner usage “Observed on devlab” with the collection window; never infer current
+availability from a historical runner name. Show completion and observed runner
+in individual run evidence when recorded. These fields do not change upstream-support verdicts or daily history.
+Overview adds a quiet, accessible DevLab observed indicator beside the project badge;
+its tooltip identifies jobs and the collection window. Preserve the flat project layout.
+
+Coverage labels distinguish no configured jobs from incomplete collection. Do not show
+absence counts for incomplete collection. Name activity metrics by their recorded condition
+and collection window, rather than using the present-tense “tests not running”.
+
+Overview pages keep the calendars prominent: omit publication-summary lines beneath
+readiness calendars and per-project aggregate metric lines on Upstream Overview.
+CI Activity retains detailed project metrics. Upstream status labels use plain text
+and a small square status marker, without pill backgrounds. DevLab detail triggers
+have no dotted underline; retain hover details and visible keyboard focus.
+
+Upstream project headings group compact lowercase status labels directly after the
+title: upstream, partial, unobserved, incomplete, or unconfigured, plus an independent
+devlab label when runner evidence exists. Use subtle tinted fills and borders with
+3px corners, without status squares or dotted underlines. Keep full explanations in
+shared hover/focus/touch tooltips. This supersedes the plain-text status treatment.
+
+Overview and CI Activity project headers align the compact status-label group to
+the right, allowing it to wrap at narrow widths. Include the same project-wide
+DevLab indicator in both headers, independent of selected job filters.
+Shared Tooltip defaults to styled evidence. Select `tooltipMode="system"` with
+an explicit plain-text `systemText` only for a required native tooltip or fallback.
+Choose exactly one renderer; do not add native title attributes inside styled
+triggers. Keep keyboard focus, hover and touch details in styled mode.
+
+Project status labels and explanations are pipeline-owned presentation data.
+Render `status_labels` text, tooltip and semantic tone as supplied; do not derive
+labels or wording from evidence in React. Activity classification and metric copy
+also come from `activity_assessment`; the UI only applies visible-job filters.
+Older snapshots without these optional fields display no invented labels.

@@ -149,10 +149,6 @@ function ReleaseDetails({ release }: { release: PublishedRelease }) {
   const anyReport = release.archives.some((archive) => archive.report_url);
   return (
     <>
-      <p>
-        llama.cpp <a href={release.url}>{release.tag}</a> · ROCm {release.version}
-        {" · Published "}<time dateTime={release.published_at}>{release.published_at.slice(0, 10)}</time>
-      </p>
       {!anyReport && <p>Qualification data unavailable</p>}
     </>
   );

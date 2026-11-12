@@ -43,7 +43,7 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goto("./");
   await page.getByRole("link", { name: "Upstream health" }).click();
   await expect(page).toHaveURL(/track=upstream/);
-  await expect(page.getByText("Configured coverage unknown")).toBeVisible();
+  await expect(page.getByText("unconfigured")).toBeVisible();
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12 results on main passed")).toBeVisible();
@@ -287,6 +287,50 @@ for (const theme of ["light", "dark"] as const) {
       expect(await popup.evaluate((element) => element.getBoundingClientRect().width)).toBeLessThanOrEqual(Math.min(width - 24, 400));
       await popup.screenshot({ path: testInfo.outputPath("tooltip-detail.png") });
       await page.screenshot({ path: testInfo.outputPath("evidence-tooltip.png"), fullPage: true });
+    });
+  }
+}
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`latest job evidence preserves the historical view at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      const data = structuredClone(upstreamOverview);
+      Object.assign(data.projects[0].jobs[0], { latest: {
+        state: "failed", conclusion: "failure", at: "2026-10-29T11:00:00Z",
+        url: "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101",
+        runner: "ephemeral-devlab-gfx1151-slot-1",
+      }, devlab_observed: true, runner_evidence_text: "Observed on devlab · 14-day collection window" });
+      data.projects[0].status_labels.push({ id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the 14-day collection window." });
+      await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: data }));
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("./?track=upstream");
+      await page.getByRole("button", { name: "devlab", exact: true }).focus();
+      await expect(page.getByRole("tooltip", { name: "devlab" })).toContainText("ephemeral-devlab-*");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("devlab-overview.png"), fullPage: true });
+      await page.keyboard.press("Escape");
+      await page.goto("./?track=upstream&view=ci&project=llamacpp");
+      const labels = page.locator(".up-page-head .up-status-labels");
+      await expect(labels.getByRole("button", { name: "devlab", exact: true })).toBeVisible();
+      await expect(labels.locator("[title]")).toHaveCount(0);
+      await labels.getByRole("button", { name: "upstream", exact: true }).hover();
+      await expect(page.getByRole("tooltip")).toContainText("Configured jobs:");
+      await page.keyboard.press("Escape");
+      await page.screenshot({ path: testInfo.outputPath("ci-header-labels.png"), fullPage: true });
+      await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
+      const popup = page.getByRole("dialog", { name: "gpu-rocm", exact: true });
+      await expect(popup.locator(".up-latest-result")).toContainText("Failed");
+      await expect(popup.getByText("75%", { exact: true })).toBeVisible();
+      await expect(popup.getByText("2026-10-29 11:00 UTC", { exact: true })).toBeVisible();
+      await expect(popup.getByText("Observed on devlab · 14-day collection window", { exact: true })).toBeVisible();
+      await expect(popup.getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101");
+      expect(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await popup.screenshot({ path: testInfo.outputPath("latest-job-tooltip.png") });
+      await page.screenshot({ path: testInfo.outputPath("latest-job-page.png"), fullPage: true });
+      await page.keyboard.press("Escape");
+      await expect(popup).toHaveCount(0);
+      await expect(page.getByRole("table", { name: "Daily CI activity" })).toBeVisible();
     });
   }
 }

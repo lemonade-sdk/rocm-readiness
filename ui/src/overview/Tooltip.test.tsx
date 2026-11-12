@@ -64,3 +64,18 @@ it("defaults to shared evidence rows and explicitly supports custom visualizatio
   rerender(<TooltipContent heading="Model performance" format="custom"><figure>Comparison chart</figure></TooltipContent>);
   expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "custom");
 });
+
+it("uses only the styled tooltip by default", async () => {
+  const { container } = render(<Tooltip label="Status" content="Status explanation">partial</Tooltip>);
+  fireEvent.focus(screen.getByRole("button", { name: "Status" }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Status explanation");
+  expect(container.querySelector("[title]")).toBeNull();
+});
+it("uses only the native tooltip when system mode is explicit", () => {
+  render(<Tooltip tooltipMode="system" systemText="Native explanation" label="Status" content="Styled explanation">partial</Tooltip>);
+  const trigger = screen.getByRole("button", { name: "Status" });
+  expect(trigger).toHaveAttribute("title", "Native explanation");
+  fireEvent.focus(trigger);
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});

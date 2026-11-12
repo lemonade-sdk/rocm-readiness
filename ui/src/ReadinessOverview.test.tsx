@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReadinessOverview } from "./ReadinessOverview";
 import {
   fixtureFetch,
@@ -11,6 +11,13 @@ import {
   pointer,
 } from "./fixtures";
 import type { Session } from "./data";
+
+// Match the retained build fixtures while leaving async/UI timers real.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-02T15:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
 
 function mount(catalog: unknown, fixtures: Record<string, unknown> = {}) {
   const session = {
@@ -130,7 +137,7 @@ it("shows a published track when qualification records are unavailable", async (
     }],
   }, { [new URL("rocm/10.2/overview.json", indexUrl).href]: { ...overview("10.2"), engines: [], history: [] } });
   expect(await screen.findByRole("region", { name: "llama.cpp nightly build history" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
+  expect(screen.queryByRole("link", { name: "b1352" })).not.toBeInTheDocument();
   expect(screen.queryByText("Downloads and reports")).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "archive.zip" })).not.toBeInTheDocument();
   expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();

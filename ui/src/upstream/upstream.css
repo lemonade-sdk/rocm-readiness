@@ -1166,3 +1166,59 @@ button.up-tick {
 @media (max-width: 1100px) {
   .up-project-summary { grid-template-columns: minmax(0, 1fr); }
 }
+.mobile-evidence .up-run a { color: inherit; text-decoration: underline dotted; }
+.mobile-evidence .up-inline-close { display: none; }
+@media (max-width: 640px) { .up-jobs-table td .up-tick { min-height: 44px; } }
+
+.up-vertical-calendar { padding: .5rem; }
+.up-activity-vertical { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .75rem; }
+.up-activity-vertical th, .up-activity-vertical td { border-bottom: 1px solid var(--line); padding: .35rem; text-align: center; overflow-wrap: anywhere; }
+.up-activity-vertical th:first-child { width: 6.5rem; text-align: left; font: .6875rem/1.5 ui-monospace, monospace; }
+.up-activity-vertical thead { color: var(--muted); }
+.up-activity-vertical .comparison-tooltip { display: block; width: 100%; }
+.up-activity-vertical :is(button, a) { display: grid; align-content: center; width: 100%; min-height: 44px; text-decoration: none; }
+.up-horizontal-chart { display: flex; flex-direction: row; align-items: center; width: 100%; height: 1.25rem; }
+.up-horizontal-chart .qualification-segment { height: 100%; flex-shrink: 0; }
+.up-mobile-job { margin-top: .75rem; padding: .75rem; border: 1px solid var(--line); background: var(--subpanel); }
+.up-mobile-job > summary { min-height: 44px; align-content: center; cursor: pointer; overflow-wrap: anywhere; font: 600 .875rem/1.5 ui-monospace, monospace; }
+.up-mobile-job > summary > span { font: .75rem system-ui, sans-serif; }
+.up-mobile-job-metadata { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .4rem; margin-block: .75rem; font-size: .75rem; overflow-wrap: anywhere; }
+.up-mobile-job-metadata dt { color: var(--muted); }
+.up-mobile-job-metadata dd { margin: 0; }
+
+.up-mobile-days { display: grid; gap: .75rem; }
+.up-mobile-day { min-width: 0; background: var(--subpanel); border: 1px solid var(--line); }
+.up-mobile-day[data-open] { border-color: var(--accent); }
+.up-mobile-day-toggle { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .65rem; width: 100%; padding: .75rem; min-height: 44px; background: transparent; color: var(--text); border: 0; text-align: left; cursor: pointer; }
+.up-mobile-day-title { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .25rem .5rem; font: 600 .8125rem/1.5 ui-monospace, monospace; }
+.up-mobile-day-title > span { color: var(--muted); font: .75rem/1.4 system-ui, sans-serif; }
+.up-day-chevron { width: .45rem; height: .45rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); }
+.up-mobile-day-toggle[aria-expanded="true"] .up-day-chevron { transform: rotate(45deg); }
+.up-mobile-day-toggle .up-horizontal-chart { grid-column: 1 / -1; height: .875rem; }
+.up-mobile-categories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; padding: .75rem; border-top: 1px solid var(--line); }
+.up-mobile-categories button { min-height: 44px; min-width: 0; padding: .5rem; border: 1px solid var(--line); color: var(--text); background: var(--panel); cursor: pointer; overflow-wrap: anywhere; text-align: left; font: 600 .8125rem/1.4 system-ui, sans-serif; }
+.up-mobile-categories button span { display: block; font: .6875rem/1.4 system-ui, sans-serif; }
+.up-mobile-categories button[aria-pressed="true"] { color: var(--selection-text); background: var(--selection-bg); border-color: var(--selection-bg); }
+.up-mobile-day .up-mobile-day-evidence { margin: 0; border: 0; border-top: 1px solid var(--line); width: 100%; max-width: 100%; }
+@media (max-width: 540px) {
+  .up-page-head { flex-direction: column; align-items: flex-start; gap: .5rem; }
+  .up-page-head .up-status-labels { margin-left: 0; justify-content: flex-start; }
+  .up-project-summary .up-kpis-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; width: 100%; border-block: 1px solid var(--line); }
+  .up-project-summary .up-kpis-page .up-stat { display: grid; grid-template-columns: 6rem minmax(0, 1fr); align-items: center; gap: .75rem; min-width: 0; padding: .6rem 0; border-bottom: 1px solid var(--line); }
+  .up-project-summary .up-kpis-page .up-stat:last-child { border-bottom: 0; }
+  .up-project-summary .up-kpis-page .up-stat strong { font: 600 1.125rem/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
+  .up-project-summary .up-kpis-page > p { margin-block: .6rem; }
+}
+
+.up-mobile-day-evidence .structured-tooltip-header > strong { display: grid; gap: .2rem; }
+.up-mobile-day-evidence .up-tooltip-context { color: var(--muted); font: 400 .75rem/1.4 system-ui, sans-serif; }
+
+/* Summary tiles reflow from four columns to two on phones. */
+.up-project-summary .up-kpis-page { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.up-project-summary .up-kpis-page .up-stat { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .5rem; padding: 1rem; min-width: 0; border: 1px solid var(--line); background: var(--subpanel); aspect-ratio: 1; }
+.up-project-summary .up-kpis-page .up-stat:last-child { border-bottom: 1px solid var(--line); }
+.up-project-summary .up-kpis-page > p { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .up-project-summary .up-kpis-page { grid-template-columns: repeat(2, minmax(0, 1fr)); border: 0; }
+  .up-project-summary .up-kpis-page .up-stat strong { font-size: 1.375rem; }
+}

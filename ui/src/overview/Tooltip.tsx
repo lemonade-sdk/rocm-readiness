@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useMediaQuery, usePhoneLayout } from "../mobile";
+import { EvidenceExpansion, EvidenceTarget } from "./EvidenceRegion";
+import { EvidenceBody } from "./EvidenceDisclosure";
 import { Link } from "react-router";
 import type { MouseEvent, ReactNode } from "react";
 import {
@@ -41,7 +45,7 @@ export function Tooltip(props: TooltipProps) {
 
 function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen,
-  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false,
 }: {
   label: string;
   side?: boolean;
@@ -57,9 +61,23 @@ function StyledTooltip({
   onOpenChange?: (open: boolean) => void;
   floating?: boolean;
   contentClassName?: string;
+  mobilePrimary?: boolean;
 }) {
   const [localOpen, setOpen] = useState(initialOpen);
   const open = isOpen ?? localOpen;
+  const phone = usePhoneLayout();
+  const narrow = useMediaQuery("(max-width: 540px)");
+  const evidenceTarget = useContext(EvidenceTarget);
+  const expansion = useContext(EvidenceExpansion);
+  const evidenceId = useId();
+  const mobileTrigger = useRef<HTMLButtonElement>(null);
+  const mobileClose = useRef(() => {});
+  mobileClose.current = () => { setOpen(false); onOpenChange?.(false); };
+  const registerExpansion = expansion?.register;
+  useEffect(() => {
+    if (!phone || !registerExpansion) return;
+    return registerExpansion(evidenceId, open, () => mobileClose.current());
+  }, [phone, open, evidenceId, registerExpansion]);
   const arrowRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLSpanElement>(null);
@@ -102,17 +120,44 @@ function StyledTooltip({
     return () => observer.disconnect();
   }, [open, interactive, elements.floating]);
   const hover = useHover(context, {
+    enabled: !phone,
     delay: { open: tooltipTiming.openDelayMs, close: 180 },
     move: false,
     handleClose: safePolygon(),
   });
   // URL-controlled popups open by hover or activation. Restoring focus after
   // dismissal must not reopen a popup that browser history just closed.
-  const focus = useFocus(context, { visibleOnly: Boolean(to), enabled: isOpen === undefined });
-  const click = useClick(context, { enabled: !to, toggle: !interactive, stickIfOpen: interactive });
-  const dismiss = useDismiss(context);
+  const focus = useFocus(context, { visibleOnly: Boolean(to), enabled: !phone && isOpen === undefined });
+  const click = useClick(context, { enabled: !phone && !to, toggle: !interactive, stickIfOpen: interactive });
+  const dismiss = useDismiss(context, { enabled: !phone });
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
+
+  if (phone) {
+    // A navigation link stays a link. Supporting evidence never intercepts it.
+    if (to) return <Link to={to} className={triggerClassName} aria-label={label} onClick={onLinkClick}>{children}</Link>;
+    const change = (next: boolean) => {
+      if (next) onOpen?.();
+      setOpen(next);
+      onOpenChange?.(next);
+    };
+    const expanded = open || (mobilePrimary && Boolean(expansion?.expanded.size));
+    const close = () => { if (mobilePrimary) expansion?.closeOthers(evidenceId); change(false); mobileTrigger.current?.focus(); };
+    const panel = open && <EvidenceBody id={evidenceId} role="region" aria-label={label}
+      onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); close(); } }}
+      className={contentClassName}>
+      {!narrow && <button type="button" className="mobile-evidence-close" aria-label="Close evidence"
+        onClick={close}>Close ×</button>}
+      {content}
+    </EvidenceBody>;
+    return <span className="comparison-tooltip mobile-disclosure">
+      <button ref={mobileTrigger} type="button" className={`comparison-trigger ${triggerClassName ?? ""}`}
+        aria-label={label} aria-expanded={expanded} aria-controls={mobilePrimary && evidenceTarget ? evidenceTarget.id : open ? evidenceId : undefined}
+        onKeyDown={(event) => { if (event.key === "Escape" && expanded) { event.stopPropagation(); close(); } }}
+        onClick={() => { if (expanded) close(); else change(true); }}>{children}</button>
+      {evidenceTarget ? createPortal(panel, evidenceTarget) : panel}
+    </span>;
+  }
 
   return <span className="comparison-tooltip">
     {to ? <Link

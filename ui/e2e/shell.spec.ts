@@ -151,10 +151,11 @@ test("keeps the current UTC date visible when the selected version has no build 
   const nightly = trend.getByRole("list", { name: "Nightly packages by day · Linux" });
   await expect(nightly).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  if (page.viewportSize()!.width <= 640) await page.getByRole("button", { name: /^Qualification filters/ }).click();
   await expect(page.getByRole("button", { name: "10.1", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "All versions" })).toHaveCount(0);
-  await expect(stable.locator("..").getByText("October", { exact: true })).toBeVisible();
-  await expect(stable.locator("..").getByText("November", { exact: true })).toBeVisible();
+  await expect(stable.getByText("2026-10-30", { exact: true })).toBeVisible();
+  await expect(stable.getByText("2026-11-02", { exact: true })).toBeVisible();
   const today = stable.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux", exact: true });
   await expect(today).toBeAttached();
   await page.getByRole("button", { name: "10.2" }).click();
@@ -162,9 +163,11 @@ test("keeps the current UTC date visible when the selected version has no build 
   await expect(stable).toHaveCount(0);
   const nightlyToday = nightly.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux", exact: true });
   await expect(nightlyToday).toBeAttached();
-  await nightly.getByRole("link", { name: /Show Nightly packages for 2026-10-29 UTC.*Linux/ }).click();
+  await nightly.getByRole("button", { name: /2026-10-29 UTC.*Linux/ }).click();
   await expect(page).toHaveURL(/day=2026-10-29/);
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
+  const mobileFilters = page.getByRole("button", { name: /^Qualification filters/ });
+  if (await mobileFilters.getAttribute("aria-expanded") === "false") await mobileFilters.click();
   await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(nightlyToday).toBeAttached();
 });
@@ -342,7 +345,7 @@ for (const theme of ["light", "dark"] as const) {
             report_snapshot: { source_url: build.report_url, path } } : build) } });
       });
       await page.goto("./?version=10.1&view=build&build=linux-build&tier=tier1&check=0");
-      const tooltip = page.getByRole("tooltip");
+      const tooltip = width <= 540 ? page.getByRole("region", { name: "T1.1 · Pass", exact: true }) : page.getByRole("tooltip");
       await expect(tooltip.getByText("GPU execution", { exact: true })).toBeVisible();
       await expect(tooltip.getByText("Recorded by collection CI", { exact: true })).toBeVisible();
       await expect(tooltip.getByText("GPU offload", { exact: true })).toHaveCount(0);

@@ -446,3 +446,19 @@ describe("PerformanceView", () => {
     expect(next.get("keep")).toBe("1");
   });
 });
+
+
+it("shows phone measurement cards with inline evidence and source metric units", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  renderView([measurement({ metrics: { tg_tps: 12, ttft_ms_mean: 250 }, model: "Long model name", qualification_build_id: null })]);
+  const card = await screen.findByRole("article", { name: "Long model name · short-prompt" });
+  expect(within(card).getByRole("heading", { name: "Long model name" })).toBeVisible();
+  expect(within(card).getAllByText("12 tok/s")[0]).toBeVisible();
+  expect(within(card).getAllByText("0.25 s")[0]).toBeVisible();
+  expect(within(card).getAllByText("Not recorded")[0]).toBeVisible();
+  const disclosure = within(card).getByText("Evidence & configuration");
+  fireEvent.click(disclosure);
+  expect(within(card).getByText("Test configuration")).toBeVisible();
+  expect(within(card).getByText("No qualification build is identified for this package.")).toBeVisible();
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+});

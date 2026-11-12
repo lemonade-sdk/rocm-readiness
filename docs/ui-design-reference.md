@@ -34,6 +34,62 @@ neutral tint, and retain the existing status foregrounds in both themes.
 
 ## Layout and interaction
 
+### Phones and portrait tablets
+
+- At 640 CSS pixels and below, use compact phone headers: brand/engine context,
+  navigation and theme controls, then the view title and a labeled filter icon.
+  Keep sorting inside the expandable filters so results begin near the top.
+  Expanded phone filters use one aligned column, full-width inputs and selects,
+  paired option buttons, and a sort-direction button beside its select.
+- Performance measurements and qualification packages use separated square
+  records on phones. Keep ROCm version, channel and build identity above their
+  records; model names are prominent and may wrap. Preserve source metric units
+  and explicit missing values. Machine specifications belong in evidence.
+  At 540 CSS pixels and below, place full Tier 0/Tier 1 labels above their check
+  strips, with spacing and dividers between tiers. Package evidence controls
+  show a right/down chevron reflecting their expanded state. A card's evidence
+  chevron also reflects open check details and collapses those details on activation.
+  The selected check has a visible outline. At 540 CSS pixels and below, the shared
+  evidence surface stacks each field label above its value and omits the separate
+  Close button; its disclosure control or Escape collapses it. Performance cards
+  reuse the same evidence surface and disclosure affordance.
+- Phone evidence expands in document flow, preserving the shared structured
+  label/value format. Measurement cards use “Evidence & configuration”. Check
+  and CI matrix evidence appears immediately below its owning card or scrolling
+  matrix, with the selected check/job/date identified. Opening evidence requires
+  activation; hover and focus do not open it. Closing returns focus to its control.
+- At 540 CSS pixels and below, overview calendars use full UTC date rows and
+  platform columns; qualification trends use horizontal stacked bars in dated
+  rows, newest first, with the same shared count scale. Upstream Overview uses date
+  rows and category columns. CI Activity uses expandable date cards with horizontal
+  bars, category selection, and run evidence inside the selected card. Project
+  metrics use square summary tiles, four columns where space allows and two on phones. Qualification date rows expand their packages and evidence inside the selected row. CI jobs open
+  individual dated outcome tables with their metadata and selected evidence.
+  At wider widths, retain scrollable calendars and CI matrices. Do not let any
+  table force page-wide horizontal scrolling.
+- Mobile Package qualification shows ROCm once above its groups. Stable builds
+  have prominent build headings; nightly groups have prominent GPU-family
+  headings and subordinate build metadata. Put the check legend beneath each
+  build/family group's platform cards, with clear spacing between groups.
+- Collapse the navigation rail below 1280 CSS pixels, regardless of height or
+  orientation. The header Navigation button reveals the same workspace/view
+  hierarchy above the content. Use nested lists with modest indentation:
+  workspace → Overview → Build Qualification → Performance, and Upstream health
+  → Overview → CI Activity. Keep touch rows at least 44 CSS pixels high. Selection
+  closes navigation, including selecting the current page. Escape closes it and
+  returns focus to the Navigation button.
+  At 1280 CSS pixels and above, retain the sidebar.
+  Keep tables above the independent 640 CSS-pixel phone breakpoint.
+- Check light/dark themes at 320/390/430 phone widths, 768/834/1024 portrait tablet
+  widths, and 1024/1194/1366 landscape tablet widths. Check keyboard, touch,
+  text wrapping, URL-restored evidence and resizing as well as visual fit.
+
+### Shared layout conventions
+
+Ingestion warnings use square neutral surfaces, a restrained warning-color leading
+border, 1rem padding and at least 1rem separation from subsequent content in every
+view. Keep the heading prominent and retain all attempt, success and error details.
+
 - Share navigation, typography, spacing, and control styles across views.
   Use headings and spacing to show hierarchy.
 - Use the selected ROCm version and engine to scope the qualification history.

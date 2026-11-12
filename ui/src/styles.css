@@ -486,6 +486,17 @@ main {
   border-color: var(--error-line);
   background: var(--error);
 }
+.notice.warning {
+  margin-block: 1rem 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-inline-start: 3px solid var(--warning);
+  border-radius: 0;
+  background: var(--subpanel);
+  color: var(--muted);
+}
+.notice.warning > strong { color: var(--text); }
+.notice.warning > p { margin: .5rem 0 0; }
 .actions {
   display: flex;
   gap: 10px;
@@ -1197,7 +1208,7 @@ main {
 .table-status:is([data-outcome="not_run"], [data-outcome="pending"]) { background: color-mix(in srgb, var(--muted) 16%, var(--subpanel)); color: var(--muted); }
 
 /* Align app identity with the workspace rail and page heading with content. */
-@media (min-width: 761px) {
+@media (min-width: 1280px) {
   .header {
     padding-inline-start: 1rem;
     grid-template-columns: calc(13rem - 1rem) minmax(0, 1fr) auto;
@@ -1209,3 +1220,67 @@ main {
     border-inline-start: 0;
   }
 }
+/* Navigation follows width independently of the phone record layout. */
+.mobile-nav-toggle, .mobile-engine, .mobile-filter-toggle { display: none; }
+.compact-navigation { display: none; }
+.mobile-filters { min-width: 0; }
+#mobile-filter-slot { display: none; }
+@media (width < 1280px) {
+  #root { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "rail" "main" "provenance"; grid-template-rows: auto auto 1fr auto; }
+  .header { padding: .5rem 1rem; gap: .5rem; }
+  .header-controls { display: flex; align-items: center; gap: .25rem; }
+  .mobile-nav-toggle { display: grid; place-items: center; min-width: 44px; min-height: 44px; color: var(--text); background: transparent; border: 0; cursor: pointer; }
+  .deck-rail { display: none; padding: .5rem 1rem; border-inline-end: 0; border-bottom: 1px solid var(--line); }
+  .deck-rail[data-open] { display: block; }
+  .deck-rail .deck-kicker { display: none; }
+  .deck-rail .track-tabs { margin: 0; }
+  .deck-rail a { min-height: 44px; align-content: center; }
+  .deck-rail .desktop-workspace-navigation { display: none; }
+  .compact-navigation { display: block; max-width: 30rem; max-height: min(70dvh, 32rem); overflow-y: auto; padding-block: .25rem; }
+  .compact-navigation ul { display: grid; gap: .125rem; padding: 0; margin: 0; list-style: none; }
+  .compact-navigation a { color: var(--muted); display: flex; align-items: center; min-height: 44px; padding: .5rem .75rem; text-decoration: none; overflow-wrap: anywhere; line-height: 1.4; }
+  .compact-workspace-list > li + li { border-top: 1px solid var(--line); margin-top: .375rem; padding-top: .375rem; }
+  .compact-workspace-list > li > a { font-size: .875rem; font-weight: 600; }
+  .compact-workspace-list > li > a[aria-current] { color: var(--accent); }
+  .compact-navigation .compact-view-list, .compact-navigation .compact-subviews { margin-inline-start: .75rem; padding-inline-start: .5rem; border-inline-start: 1px solid var(--line); font-size: .85rem; }
+  .compact-navigation a[aria-current="page"] { background: var(--selection-bg); color: var(--selection-text); font-weight: 600; }
+  .deck-provenance { border-inline-end: 0; }
+}
+@media (max-width: 640px) {
+  .header { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand controls" "page page"; row-gap: 0; }
+  .header .brand { font-size: .875rem; min-width: 0; }
+  .header .deck-label, .header .deck-context { display: none; }
+  .mobile-engine { display: block; color: var(--muted); font: .75rem/1.2 system-ui, sans-serif; }
+  .header-page { padding: 0; border: 0; gap: .5rem; justify-content: space-between; min-height: 44px; }
+  .header-page h1, .header-page-title { font-size: 1.25rem; white-space: normal; overflow-wrap: anywhere; margin: 0; }
+  #mobile-filter-slot { display: block; flex-shrink: 0; }
+  #mobile-filter-slot:empty { display: none; }
+  main { padding: .75rem 1rem 1.5rem; }
+  .mobile-filter-toggle { display: grid; place-items: center; position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--text); cursor: pointer; }
+  .mobile-filter-count { position: absolute; top: 0; right: 0; min-width: 15px; padding: 0 2px; border-radius: 1rem; color: var(--selection-text); background: var(--selection-bg); font: 600 .625rem/15px system-ui, sans-serif; }
+  .mobile-filters:not([data-open]) .mobile-filter-content { display: none; }
+  .mobile-filters[data-open] .mobile-filter-content { padding: .75rem; margin-bottom: .75rem; border: 1px solid var(--line); background: var(--subpanel); }
+  .mobile-filters:has(.mobile-filter-content:empty) { display: none; }
+  .build-browser-toolbar { min-width: 0; }
+  .build-browser-toolbar > *, .build-filter-options { max-width: 100%; min-width: 0; }
+  .build-search input { min-width: 0; width: 100%; }
+  .build-filter-options button { min-height: 44px; overflow-wrap: anywhere; white-space: normal; }
+  .performance-heading { display: none; }
+  h2, h3, h4 { overflow-wrap: anywhere; }
+}
+
+@media (max-width: 640px) {
+  .mobile-filter-content .build-browser-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch; gap: 1rem; margin: 0; }
+  .mobile-filter-content .build-filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; width: 100%; }
+  .mobile-filter-content .build-filter-options legend { margin-bottom: .5rem; }
+  .mobile-filter-content .build-filter-options button { width: 100%; min-height: 44px; padding: .5rem .65rem; justify-content: center; }
+  .mobile-filter-content .build-browser-toolbar label { width: 100%; max-width: none; margin: 0; min-width: 0; }
+  .mobile-filter-content .build-browser-toolbar :is(input, select) { width: 100%; max-width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; }
+  .mobile-filter-content .build-search { margin-inline-start: 0; }
+  .mobile-filter-content .performance-card-sort { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: end; gap: .5rem; }
+  .mobile-filter-content .performance-card-sort button { width: 44px; height: 44px; }
+  .mobile-filter-content .performance-build-order { display: grid; align-items: stretch; justify-content: stretch; gap: .5rem; margin: 0; }
+  .mobile-filter-content .filter-reset { width: 100%; min-height: 44px; margin: 0; }
+}
+
+@media (max-width: 640px) { .mobile-filter-content .version-filter-options { grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr)); } }

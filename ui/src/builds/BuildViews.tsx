@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { useMediaQuery } from "../mobile";
+import { MobileFilters } from "../MobileFilters";
 import { Link } from "react-router";
 import { FilterReset, FilterScope } from "../FilterReset";
 import { PlatformIcon } from "../PlatformIcon";
@@ -38,6 +40,7 @@ function DayPerformance({ builds, performance }: {
   builds: Build[];
   performance: ReturnType<typeof useBuildMeasurements>;
 }) {
+  const titleId = useId();
   const systems = performance.data?.systems;
   const candidates = builds.flatMap((build) => (performance.matches.get(build) ?? []).flatMap((row) => {
     const key = systems && comparisonKey(row, systems);
@@ -49,8 +52,8 @@ function DayPerformance({ builds, performance }: {
     if (key === reference?.key && !matched.has(build)) matched.set(build, row);
   }
   const max = Math.max(0, ...[...matched.values()].map((row) => row.metrics.tps_mean));
-  return <section className="build-day-performance" aria-labelledby="day-performance">
-    <h2 id="day-performance">Reference-model performance</h2>
+  return <section className="build-day-performance" aria-labelledby={titleId}>
+    <h2 id={titleId}>Reference-model performance</h2>
     {reference && systems ? <>
       <p className="muted">{[reference.row.model, reference.row.scenario, reference.row.quant,
         `${reference.row.context_size} context tokens`, `${reference.row.input_tokens} input tokens`,
@@ -102,6 +105,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   versionFilter: ReactNode;
   onNavigate: (params: URLSearchParams, replace?: boolean) => void;
 }) {
+  const inlineDays = useMediaQuery("(max-width: 540px)");
   const today = useUtcToday();
   const performance = useBuildMeasurements(session, history, fetcher);
   const platformParam = params.get("platform");
@@ -148,7 +152,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   const newerEnd = newer ? new Date(+new Date(newer) + (READINESS_WINDOW_DAYS - 1) * 86_400_000).toISOString().slice(0, 10) : null;
   const nextWindow = newerEnd && newerEnd < today ? newerEnd : null;
   const stable = session.index.readiness?.stable_anchor;
-  const trendTrack = stable && session.version
+  const trendTrack = channel === "stable" || channel === "nightly" ? channel : stable && session.version
     ? session.version.localeCompare(stable, "en", { numeric: true }) > 0 ? "nightly" : "stable"
     : history[0]?.channel ?? "stable";
   const trendBuilds = filtered.filter((build) => days.includes(buildDate(build)));
@@ -171,6 +175,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   }
 
   return <section className="build-charts" aria-label="Build qualification history">
+    <MobileFilters label="Qualification filters" count={[selectedPlatform, query, selectedBuild, focusedDay].filter(Boolean).length}>
     <div className="build-browser-toolbar build-filters">
       {versionFilter}
       <BuildFilter
@@ -198,14 +203,28 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
         onNavigate(target);
       }} />
     </div>
+    </MobileFilters>
     <QualificationCharts platforms={visiblePlatforms} builds={trendBuilds} track={trendTrack} days={days} today={today} focusedDay={focusedDay ?? undefined}
+      focusedPlatform={selectedPlatform ?? selected?.os}
+      onSelectDay={(day, os) => onNavigate(next({ day: focusedDay === day && (!(selectedPlatform ?? selected?.os) || (selectedPlatform ?? selected?.os) === os) ? null : day,
+        focus: focusedDay === day && (!(selectedPlatform ?? selected?.os) || (selectedPlatform ?? selected?.os) === os) ? null : "day", channel: trendTrack, platform: os, build: null, source: null, package_identity: null }))}
+      renderDay={(day, os) => {
+        const packages = trendBuilds.filter((build) => buildDate(build) === day && build.os === os && build.channel === trendTrack);
+        return packages.length ? <>
+          <QualificationMatrix builds={packages} fetcher={fetcher} selected={selected && packages.includes(selected) ? selected : null}
+            openPackage={params.get("view") === "build" && !check}
+            checkLink={tier && check ? { tier, check, revision: params.get("report_commit") } : undefined}
+            dataCommit={session.pointer.data_commit} performanceMeasurements={performance.matches} />
+          <DayPerformance builds={packages} performance={performance} />
+        </> : <p role="status">No packages recorded</p>;
+      }}
       dayHref={(day, track, os) => `?${next({ day, channel: track, platform: os, focus: "day", build: null, source: null, package_identity: null })}`} />
     {(older || end < today) && <nav className="build-chart-paging" aria-label="Browse qualification dates">
       {older && <Link to={windowLink(older)}>← Older builds</Link>}
       {end < today && <Link to={windowLink(nextWindow)}>{nextWindow ? "Newer builds →" : "Back to latest dates →"}</Link>}
     </nav>}
     {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
-    {rows.length === 0 ? <div>
+    {!(inlineDays && focusedDay && days.includes(focusedDay) && visiblePlatforms.length > 0) && (rows.length === 0 ? <div>
       <p role="status">{measuredOnly && performance.message ? performance.message : "No retained packages match this scope."}</p>
       {measuredOnly && performance.retry && <button type="button" onClick={performance.retry}>Retry performance</button>}
     </div> : <QualificationMatrix
@@ -216,8 +235,8 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       checkLink={tier && check ? { tier, check, revision: params.get("report_commit") } : undefined}
       dataCommit={session.pointer.data_commit}
       performanceMeasurements={performance.matches}
-    />}
-    {focusedDay && rows.length > 0 &&
+    />)}
+    {!inlineDays && focusedDay && rows.length > 0 &&
       <DayPerformance builds={rows} performance={performance} />}
   </section>;
 }

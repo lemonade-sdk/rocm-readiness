@@ -31,8 +31,8 @@
 .qualification-archive + .qualification-archive { margin-block-start: .55rem; padding-block-start: .55rem; border-top: 1px solid var(--line); }
 .qualification-table td[data-selected] { box-shadow: inset 2px 0 var(--accent); }
 .qualification-tier-summaries { display: grid; gap: 2px; padding: 0; margin: 0; list-style: none; }
-.qualification-tier-summaries li { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: center; gap: .4rem; font-size: .8rem; }
-.qualification-tier-summaries li > .comparison-tooltip { min-inline-size: 1.8rem; }
+.qualification-tier-summaries li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: .4rem; font-size: .8rem; }
+.qualification-tier-summaries li > code { overflow-wrap: anywhere; }
 .qualification-check-strip { display: flex; flex-wrap: wrap; align-items: stretch; gap: 2px; }
 .qualification-check-strip > .comparison-tooltip { flex: 0 0 clamp(1.45rem, calc(var(--qualification-check-width) - 2px), 6rem); display: flex; }
 .qualification-check-strip :is(a, button) { display: grid; place-items: stretch; inline-size: 100%; min-block-size: 1.45rem; text-decoration: none; }
@@ -53,11 +53,15 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-block-size: min(45vh, 22rem);
-  overflow-y: auto;
+  display: grid;
+  gap: .65rem;
 }
-.qualification-popup-packages > li { padding-block: .5rem; border-top: 1px solid var(--line); }
-.qualification-popup-packages a { display: inline-block; margin-block-end: .25rem; }
+.qualification-popup-packages > li {
+  min-width: 0;
+  padding-block: .55rem 0;
+  border-top: 2px solid color-mix(in srgb, var(--text) 35%, var(--subpanel));
+}
+.qualification-popup-packages a { display: inline; }
 
 .qualification-runtime { margin: .35rem 0 0; font-size: .75rem; }
 
@@ -68,3 +72,58 @@
 .qualification-release-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; }
 .qualification-release-heading > .qualification-heading-label { flex-basis: 100%; }
 .qualification-publishing { display: flex; flex-wrap: wrap; gap: .15rem .65rem; margin: .25rem 0 0; padding: 0; list-style: none; color: var(--muted); font: .7rem/1.35 system-ui, sans-serif; }
+
+
+
+
+.comparison-bubble.qualification-popup {
+  width: max-content;
+  max-width: min(90rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px));
+}
+.qualification-popup .structured-tooltip-body { gap: .45rem; padding: .6rem .8rem; }
+.qualification-popup .qualification-platform-heading {
+  margin: 0 0 .65rem;
+  color: var(--text);
+  font: 700 .95rem/1.35 system-ui, sans-serif;
+}
+.qualification-popup :is(h4, h5) small { display: inline; margin: 0; font: 400 .7rem system-ui, sans-serif; letter-spacing: normal; text-transform: none; }
+.qualification-popup :is(h4, h5) a { font-weight: 500; }
+.qualification-popup h5 { margin: 0 0 .15rem; font: 650 .8rem/1.35 system-ui, sans-serif; color: var(--text); }
+.qualification-popup .qualification-compiled-targets {
+  margin-block-start: .9rem;
+  gap: .35rem;
+}
+@media (max-width: 700px) {
+  .qualification-popup .structured-tooltip-body { padding: .65rem; }
+}
+
+.qualification-popup .qualification-compiled-targets ul { max-inline-size: 30rem; }
+.qualification-popup-packages { align-items: start; }
+.qualification-popup .structured-tooltip-header { padding: .65rem .8rem; }
+.qualification-popup .structured-tooltip-header strong { font: 600 .95rem system-ui, sans-serif; }
+
+
+.qualification-popup :is(.qualification-performance-details, .qualification-compiled-targets) {
+  padding-block-start: .65rem;
+  border-top: 1px solid var(--line);
+}
+
+.qualification-platform-heading > .platform-logo { margin-inline-end: .2rem; }
+
+.qualification-releases > .qualification-check-legend { margin: 0; }
+.qualification-release + .qualification-release { margin-block-start: .25rem; }
+.qualification-table thead th { background: var(--panel); }
+.qualification-table tbody th { border-inline-end: 1px solid var(--line); }
+
+.qualification-popup .build-browser-report-summary > div { display: contents; }
+.qualification-popup .build-browser-report { gap: .35rem; padding-block-start: .55rem; }
+.qualification-popup .build-browser-report h3 { margin: 0; font-size: .85rem; }
+.qualification-popup .build-browser-report .build-browser-kicker { display: none; }
+.qualification-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem 1rem;
+  margin: .45rem 0 0;
+  padding: 0;
+  list-style: none;
+}

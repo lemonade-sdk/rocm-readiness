@@ -302,11 +302,59 @@
         "verdict": "passed",
         "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42461252641/job/129064713112"
       }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "42784369493",
+      "job_id": "129721817230",
+      "attempt": 1,
+      "day": "2026-11-10",
+      "created_at": "2026-11-10T08:39:39Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "664c62f7a6668b511c280a58d35ccf3d71ebb637",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 393,
+      "runner": "ephemeral-devlab-x2-la03-s03-d01-129721817230",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42784369493/job/129721817230",
+      "pr": {
+        "number": 4163,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4163",
+        "author": "d-e-s-o",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42756736964/job/129658195707"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "42784369493",
+      "job_id": "129721817347",
+      "attempt": 1,
+      "day": "2026-11-10",
+      "created_at": "2026-11-10T08:39:39Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "664c62f7a6668b511c280a58d35ccf3d71ebb637",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 51,
+      "runner": "ephemeral-devlab-x2-la03-s05-d03-129721817347",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42784369493/job/129721817347",
+      "pr": {
+        "number": 4163,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4163",
+        "author": "d-e-s-o",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42756736964/job/129658195482"
+      }
     }
   ],
   "scanned_runs": [
-    "38110276569#1@2026-10-11",
-    "38206207939#1@2026-10-12",
     "39266049278#1@2026-10-19",
     "39266669551#1@2026-10-19",
     "39266836861#1@2026-10-19",
@@ -318,6 +366,8 @@
     "42047028534#1@2026-11-05",
     "42167603816#1@2026-11-06",
     "42384467131#1@2026-11-07",
-    "42445117201#1@2026-11-08"
+    "42445117201#1@2026-11-08",
+    "42622000996#1@2026-11-09",
+    "42784369493#1@2026-11-10"
   ]
 }

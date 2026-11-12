@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useBuildMeasurements } from "./useBuildMeasurements";
+import { matchedPerformanceObservations, PerformancePreview } from "../performance/PerformancePreview";
+import type { PerformanceData } from "../performance/PerformanceView";
 import type { Build, Fetcher, Session } from "../data";
-import { exactBuildHref } from "../overview/buildTimeline";
+import { buildIdentity, exactBuildHref } from "../overview/buildTimeline";
 import "./BuildBrowser.css";
 
 type BuildBrowserProps = {
+  fetcher?: Fetcher;
   session: Session;
   history: Build[] | null;
   platform: string;
@@ -126,7 +130,7 @@ function compiledTargets(build: Build) {
   return `${build.gfx.present} of ${build.gfx.requested} requested targets compiled${missing}`;
 }
 
-function pinnedReport(build: Build): PinnedReport | string {
+export function pinnedReport(build: Build): PinnedReport | string {
   if (!build.report_url)
     return "This retained build has no producer report URL.";
   const match = build.report_url.match(reportUrlPattern);
@@ -175,10 +179,11 @@ export function findSelectedBuild(
   return { kind: "selected", build: matches[0] };
 }
 
-export function qualificationCheckHref(build: Build, tierId: string, checkIndex: number | string): string {
+export function qualificationCheckHref(build: Build, tierId: string, checkIndex?: number | string): string {
   const params = new URLSearchParams(exactBuildHref(build, "build").slice(1));
+  params.set("package_identity", buildIdentity(build));
   params.set("tier", tierId);
-  params.set("check", typeof checkIndex === "number" ? String(checkIndex) : `id:${checkIndex}`);
+  if (checkIndex != null) params.set("check", typeof checkIndex === "number" ? String(checkIndex) : `id:${checkIndex}`);
   const reference = pinnedReport(build);
   if (typeof reference !== "string") params.set("report_commit", reference.commit);
   return `?${params}`;
@@ -308,6 +313,30 @@ function evidence(test: JsonRecord, label: string, keys: string[]) {
   ) : null;
 }
 
+export function QualificationCheckEvidence({ evidence: test }: { evidence: JsonRecord }) {
+  const reason = summary(test.error ?? test.reason);
+  const details = isRecord(test.details) ? test.details : {};
+  return <dl>
+    {typeof test.gating === "boolean" && <><dt>Scope</dt><dd>{test.gating ? "Gating" : "Informational"}</dd></>}
+    {(typeof test.duration_ms === "number" || typeof test.duration_seconds === "number") &&
+      <><dt>Duration</dt><dd>{duration(test)}</dd></>}
+    {reason && <><dt>Reason / error</dt><dd>{reason}</dd></>}
+    {Object.entries({
+      compatibility: test.compatibility,
+      runtime: test.runtime,
+      gpu_offload: test.gpu_offload,
+      gpu_proof: test.gpu_proof,
+      requested_offload_line: test.requested_offload_line,
+      ...details,
+    }).map(([key, value]) => {
+      const rendered = summary(value);
+      return rendered && <div key={key} className="qualification-tooltip-count">
+        <dt>{key.replaceAll("_", " ")}</dt><dd>{rendered}</dd>
+      </div>;
+    })}
+  </dl>;
+}
+
 function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selection?: CheckSelection }) {
   const focusedRow = useRef<HTMLTableRowElement>(null);
   const checkId = selection?.index.startsWith("id:") ? selection.index.slice(3) : null;
@@ -423,7 +452,7 @@ function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selecti
   );
 }
 
-function ReportEvidence({ report, selection }: { report: QualificationReport; selection?: CheckSelection }) {
+export function ReportEvidence({ report, selection, summaryOnly = false }: { report: QualificationReport; selection?: CheckSelection; summaryOnly?: boolean }) {
   const promotion = isRecord(report.raw.promotion)
     ? report.raw.promotion
     : null;
@@ -435,15 +464,16 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
   const present = Array.isArray(reportGfx?.present_in_binary)
     ? reportGfx.present_in_binary.length
     : null;
+  const heading = useId();
   return (
     <section
       className="build-browser-report"
-      aria-labelledby="producer-report-heading"
+      aria-labelledby={heading}
     >
       <div className="build-browser-tier-heading">
         <div>
           <span className="build-browser-kicker">PINNED PRODUCER REPORT</span>
-          <h3 id="producer-report-heading">Qualification evidence</h3>
+          <h3 id={heading}>Qualification evidence</h3>
         </div>
         <span
           className={`build-browser-status status-${status(report.raw.overall)}`}
@@ -479,17 +509,27 @@ function ReportEvidence({ report, selection }: { report: QualificationReport; se
           </dd>
         </div>
       </dl>
-      <ReportTests tiers={report.tiers} selection={selection} />
+      {!summaryOnly && <ReportTests tiers={report.tiers} selection={selection} />}
     </section>
   );
+}
+
+export function BuildPerformancePreview({ build, measurements }: {
+  build: Build;
+  measurements: ReadonlyMap<Build, PerformanceData["measurements"]>;
+}) {
+  return <PerformancePreview heading={build.gfx_family ? `${build.tag ?? build.build_id} · ${build.gfx_family}` : build.tag ?? build.build_id}
+    observations={matchedPerformanceObservations([build], measurements)} />;
 }
 
 function BuildList({
   builds,
   buildHref,
+  measuredBuilds,
 }: {
   builds: Build[];
   buildHref: (build: Build) => string;
+  measuredBuilds: ReadonlyMap<Build, PerformanceData["measurements"]>;
 }) {
   if (!builds.length)
     return (
@@ -510,10 +550,11 @@ function BuildList({
               <span className="build-browser-kicker">
                 {displayPlatform(build.os)}
               </span>
-              <h3>
+              <h3 aria-label={build.tag ?? build.build_id}>
                 <a aria-label={buildLinkLabel(build)} href={buildHref(build)}>
                   {build.tag ?? build.build_id}
                 </a>
+                {measuredBuilds.has(build) && <BuildPerformancePreview build={build} measurements={measuredBuilds} />}
               </h3>
             </div>
             <span
@@ -561,9 +602,11 @@ function BuildList({
   );
 }
 
-function BuildDetail({ build, session, selection }: {
+function BuildDetail({ build, session, selection, hasPerformance, performanceMeasurements }: {
   build: Build;
   session: Session;
+  hasPerformance: boolean;
+  performanceMeasurements: ReadonlyMap<Build, PerformanceData["measurements"]>;
   selection?: CheckSelection;
 }) {
   const [retry, setRetry] = useState(0);
@@ -613,7 +656,7 @@ function BuildDetail({ build, session, selection }: {
       <div className="build-browser-detail-heading">
         <div>
           <span className="build-browser-kicker">BUILD EVIDENCE</span>
-          <h2>{build.tag ?? build.build_id}</h2>
+          <h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{hasPerformance && <BuildPerformancePreview build={build} measurements={performanceMeasurements} />}</h2>
           <p>
             {displayPlatform(build.os)} · {date(build.generated_at)}
           </p>
@@ -700,6 +743,7 @@ function BuildDetail({ build, session, selection }: {
 
 export function BuildBrowser({
   session,
+  fetcher = fetch,
   history,
   platform,
   selectedBuildId,
@@ -712,6 +756,7 @@ export function BuildBrowser({
   query = "",
   onQueryChange,
 }: BuildBrowserProps) {
+  const performance = useBuildMeasurements(session, history, fetcher);
   const platforms = useMemo(
     () => [...new Set(history?.map((build) => build.os) ?? [])].sort(),
     [history],
@@ -747,10 +792,11 @@ export function BuildBrowser({
           )}
           <h2 id="retained-builds-heading">
             {selectedBuildId === null
-              ? "Retained builds"
-              : "Selected retained build"}
+              ? "Build details"
+              : "Selected build details"}
           </h2>
         </div>
+        {selectedBuildId !== null && <a href={`?version=${encodeURIComponent(session.version ?? "")}&view=build`}>All build details</a>}
         {selectedBuildId === null && (
           <label>
             Find build
@@ -789,11 +835,13 @@ export function BuildBrowser({
           <p>Retry the published-data load to inspect retained builds.</p>
         </div>
       ) : selectedBuildId === null ? (
-        <BuildList builds={listedBuilds} buildHref={buildHref} />
+        <BuildList builds={listedBuilds} buildHref={buildHref} measuredBuilds={performance.matches} />
       ) : selection?.kind === "selected" ? (
         <BuildDetail
           key={`${selection.build.source_id ?? "unknown"}-${selection.build.os}-${selection.build.build_id}-${selection.build.report_url ?? "no-report"}`}
           build={selection.build}
+          hasPerformance={performance.matches.has(selection.build)}
+          performanceMeasurements={performance.matches}
           session={session}
           selection={selectedTierId != null && selectedCheckIndex != null
             ? { tier: selectedTierId, index: selectedCheckIndex, commit: selectedReportCommit }

@@ -10,7 +10,6 @@ import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
-import { BuildBrowser } from "./builds/BuildBrowser";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
@@ -145,7 +144,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     "performance",
     "model",
   ].includes(view);
-  const buildView = ["build", "build-review", "build-performance"].includes(view);
+  const qualificationView = view === "engine" || view === "build";
+  const buildView = view === "build-review";
   const href = (nextView: string, extras: Record<string, string> = {}) => {
     const next = new URLSearchParams(params);
     if (selected) next.set("version", selected);
@@ -154,6 +154,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     if (nextView === "engine") {
       next.delete("version");
       for (const key of ["build", "source", "engine", "channel", "platform", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit"])
+        next.delete(key);
+    }
+    if (["build", "performance"].includes(nextView)) {
+      for (const key of ["build", "source", "engine", "channel", "day", "through", "focus", "build_filter", "package_identity", "tier", "check", "report_commit", "model", "system", "workload", "compare", "observation"])
         next.delete(key);
     }
     for (const [key, value] of Object.entries(extras)) next.set(key, value);
@@ -166,6 +170,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("build");
     next.delete("source");
     next.delete("model");
+    next.delete("observation");
     next.delete("day");
     next.delete("through");
     next.delete("focus");
@@ -174,9 +179,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     next.delete("tier");
     next.delete("check");
     next.delete("report_commit");
-    if (next.get("compare") === value) next.delete("compare");
-    if (buildView) next.set("view", "engine");
-    if (view === "model") next.set("view", "performance");
+    next.delete("compare");
+    if (buildView || qualificationView) next.set("view", "engine");
+    if (view === "model" || view === "build-performance") next.set("view", "performance");
     setParams(next);
   };
   const refreshData = () => setRefresh((value) => value + 1);
@@ -199,29 +204,27 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       setParams(new URLSearchParams(query.slice(1)));
     }
   };
-  const changePlatform = (value: string) => {
-    const next = new URLSearchParams(params);
-    next.set("version", selected);
-    next.set("platform", value);
-    next.delete("build");
-    next.delete("source");
-    if (buildView) next.set("view", "engine");
-    setParams(next);
-  };
 
   const hasViewData = overview || (view === "overview" && Boolean(session?.index.versions.length));
   const showPageHeading = track === "readiness" && session && hasViewData &&
     viewValid && platformValid;
+  const upstreamCI = params.get("view") === "ci" || (!params.has("view") && params.has("project"));
+  const upstreamHref = (page: "overview" | "ci") => {
+    const next = new URLSearchParams(params);
+    next.set("track", "upstream");
+    next.set("view", page);
+    return `?${next}`;
+  };
   const pageTitle =
-    track === "upstream" ? "Upstream Health" :
-    view === "engine" ? "Build Qualification" :
-    view === "build" ? "Build evidence" :
-    view === "build-review" ? "Build review" :
-    view === "build-performance" ? "Performance evidence" :
-    view === "performance" || view === "model" ? "Model performance" :
+    track === "upstream" ? (upstreamCI ? "CI Activity" : "Upstream Overview") :
+    qualificationView ? "Build Qualification" :
+    view === "build-review" ? "Build details" :
+    view === "build-performance" ? "Performance details" :
+    view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
   const versionOptions = session?.index.versions ?? [];
-  const versionFilter = view === "engine" ? (
+  const performanceView = ["performance", "model", "build-performance"].includes(view);
+  const versionFilter = qualificationView || performanceView ? (
     <fieldset className="build-filter-options">
       <legend>ROCm version</legend>
       {!session && <span className="muted">Loading…</span>}
@@ -274,7 +277,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </Link>
         <div className="header-page">
           <div className="header-page-heading">
-            {showPageHeading || (track === "upstream" && !params.get("project")) ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
+            {showPageHeading || track === "upstream" ? <h1>{pageTitle}</h1> : <div className="header-page-title">{pageTitle}</div>}
             <div className="deck-context">
               {track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}
             </div>
@@ -296,22 +299,32 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {track === "readiness" && (
                 <ul className="workspace-views" aria-label="Dashboard views">
                   <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link></li>
-                  <li><Link aria-current={view === "engine" || buildView ? "page" : undefined} to={href("engine")}>Build Qualification</Link></li>
-                  <li><Link aria-current={view === "performance" || view === "model" ? "page" : undefined} to={href("performance")}>Model performance</Link></li>
+                  <li>
+                    <Link aria-current={qualificationView ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
+                    <ul className="workspace-views workspace-build-details" aria-label="Build Qualification pages">
+                      <li><Link aria-current={["performance", "model", "build-performance"].includes(view) ? "page" : undefined} to={href("performance")}>Performance</Link></li>
+                    </ul>
+                  </li>
                 </ul>
               )}
             </li>
             <li>
-              <Link aria-current={track === "upstream" ? "page" : undefined} to="?track=upstream">
+              <Link aria-current={track === "upstream" ? "true" : undefined} to="?track=upstream">
                 Upstream health
               </Link>
+              {track === "upstream" && (
+                <ul className="workspace-views" aria-label="Upstream health views">
+                  <li><Link aria-current={!upstreamCI ? "page" : undefined} to={upstreamHref("overview")}>Overview</Link></li>
+                  <li><Link aria-current={upstreamCI ? "page" : undefined} to={upstreamHref("ci")}>CI Activity</Link></li>
+                </ul>
+              )}
             </li>
           </ul>
         </nav>
       </aside>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
-          (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
+          !performanceView && (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
         {liveSync?.status === "failed" && (
@@ -421,7 +434,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   onRetry={refreshData}
                 />
               )}
-              {(view === "engine" || buildView) && (
+              {(qualificationView || buildView) && (
                 currentHistory?.error ? (
                   <div className="notice error" role="alert">
                     <p>{currentHistory.error}</p>
@@ -429,29 +442,19 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
                   </div>
                 ) : currentHistory?.builds ? (
                   <div onClick={handleLocalNavigation}>
-                    {view === "engine" ? <EngineBuilds
+                    {qualificationView ? <EngineBuilds
                       session={session} history={currentHistory.builds} params={params} fetcher={fetcher}
                       versionFilter={versionFilter}
                       onNavigate={(next, replace) => setParams(next, { replace })}
-                    /> : view === "build" ? <BuildBrowser
-                      session={session}
-                      history={currentHistory.builds.filter((build) =>
-                        (!params.get("engine") || build.engine === params.get("engine")) &&
-                        (!params.get("channel") || build.channel === params.get("channel")))}
-                      platform={platform}
-                      selectedBuildId={params.get("build") || ""}
-                      selectedSourceId={params.get("source")}
-                      selectedTierId={params.get("tier")} selectedCheckIndex={params.get("check")}
-                      selectedReportCommit={params.get("report_commit")}
-                      onPlatformChange={changePlatform}
-                      buildHref={(build) => href("build", { build: build.build_id, platform: build.os })}
                     /> : <BuildReview session={session} history={currentHistory.builds} params={params} fetcher={fetcher} />}
                   </div>
                 ) : <p role="status">Loading retained build history…</p>
               )}
-              {["performance", "model"].includes(view) && (
+              {["performance", "model", "build-performance"].includes(view) && (
                 <div onClick={handleLocalNavigation}>
                   <PerformanceView
+                    versionFilter={versionFilter}
+                    fetcher={fetcher}
                     session={session}
                     params={params}
                     onNavigate={(next) => setParams(next)}

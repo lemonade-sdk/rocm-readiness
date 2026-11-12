@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { z } from "zod";
-import { loadHistory, loadVersion, resolveDatasetPath } from "../data";
+import { loadHistory, resolveDatasetPath } from "../data";
 import type { Build, Session } from "../data";
 import "./PerformanceView.css";
+import "../builds/QualificationMatrix.css";
+import { FilterReset, FilterScope } from "../FilterReset";
+import { Tooltip, TooltipContent } from "../overview/Tooltip";
+import { PlatformIcon } from "../PlatformIcon";
 
 const timestamp = z
   .string()
@@ -26,6 +30,8 @@ const measurementSchema = z.object({
   context_size: nullableCount,
   input_tokens: nullableCount,
   measured_at: timestamp,
+  run_id: z.union([z.string(), z.number().int().nonnegative()]).nullable().optional(),
+  run_url: z.string().regex(/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/actions\/runs\/[0-9]+$/).nullable().optional(),
   rocm_version: nullableText,
   package_os: nullableText,
   package_url: z.string().url().nullable().optional(),
@@ -61,14 +67,9 @@ export type PerformanceData = {
   systems: Map<string, SystemRecord>;
 };
 type HistoryState = { builds: Build[] | null; error: string | null };
-type ComparisonState =
-  | { kind: "none" }
-  | { kind: "ready"; version: string; data: PerformanceData; history: HistoryState }
-  | { kind: "unmeasured"; version: string }
-  | { kind: "error"; version: string; error: string };
 type LoadState =
   | { kind: "loading" }
-  | { kind: "ready"; data: PerformanceData; history: HistoryState; comparison: ComparisonState }
+  | { kind: "ready"; data: PerformanceData; history: HistoryState }
   | { kind: "error"; error: string };
 
 const metricInfo: Record<string, { label: string; unit: string }> = {
@@ -76,8 +77,8 @@ const metricInfo: Record<string, { label: string; unit: string }> = {
   tps_p95: { label: "P95 throughput", unit: "tok/s" },
   tg_tps: { label: "Token generation throughput", unit: "tok/s" },
   pp_tps: { label: "Prompt processing throughput", unit: "tok/s" },
-  ttft_ms_mean: { label: "Mean time to first token", unit: "ms" },
-  ttft_ms_best: { label: "Best time to first token", unit: "ms" },
+  ttft_ms_mean: { label: "Mean time to first token", unit: "s" },
+  ttft_ms_best: { label: "Best time to first token", unit: "s" },
   vram_peak_gb: { label: "Peak VRAM", unit: "GB" },
 };
 const missingSystemFilter = "__missing_hardware__";
@@ -112,18 +113,18 @@ function metricName(name: string) {
 
 export function metricValue(name: string, value: number) {
   const unit = metricInfo[name]?.unit;
-  return unit ? `${formatNumber(value)} ${unit}` : `${formatNumber(value)} (unit unavailable)`;
+  const displayed = name.startsWith("ttft_ms_") ? value / 1000 : value;
+  return unit ? `${formatNumber(displayed)} ${unit}` : `${formatNumber(displayed)} (unit unavailable)`;
 }
 
 function packageLabel(row: Measurement) {
   return row.engine_version ?? "Engine tag unavailable";
 }
 
-export function stableMeasurements(data: PerformanceData) {
+export function rocmMeasurements(data: PerformanceData) {
   return data.measurements.filter(
     (row) =>
       row.engine === "llamacpp" &&
-      row.channel === "stable" &&
       row.backend === "rocm",
   );
 }
@@ -175,10 +176,11 @@ async function loadHistoryIfNeeded(
   session: Session,
   rows: Measurement[],
   signal: AbortSignal,
+  fetcher = fetch,
 ): Promise<HistoryState> {
   if (!rows.some(isQualificationCandidate)) return { builds: null, error: null };
   try {
-    return { builds: await loadHistory(session, fetch, signal), error: null };
+    return { builds: await loadHistory(session, fetcher, signal), error: null };
   } catch (reason) {
     if (signal.aborted || isAbort(reason)) throw reason;
     return { builds: null, error: errorMessage(reason, "Unable to load qualification history.") };
@@ -187,52 +189,12 @@ async function loadHistoryIfNeeded(
 
 async function loadViewData(
   session: Session,
-  compareVersion: string | null,
   signal: AbortSignal,
-): Promise<{ data: PerformanceData; history: HistoryState; comparison: ComparisonState }> {
-  const data = await readPerformance(session, signal);
-  const history = await loadHistoryIfNeeded(session, stableMeasurements(data), signal);
-  if (!compareVersion) return { data, history, comparison: { kind: "none" } };
-  if (compareVersion === session.version) {
-    return {
-      data,
-      history,
-      comparison: {
-        kind: "error",
-        version: compareVersion,
-        error: "Choose a different ROCm version to compare.",
-      },
-    };
-  }
-  try {
-    const other = await loadVersion(session, compareVersion, fetch, signal);
-    if (other.overview?.performance.status !== "available") {
-      return { data, history, comparison: { kind: "unmeasured", version: compareVersion } };
-    }
-    const otherData = await readPerformance(other, signal);
-    const otherHistory = await loadHistoryIfNeeded(other, stableMeasurements(otherData), signal);
-    return {
-      data,
-      history,
-      comparison: {
-        kind: "ready",
-        version: compareVersion,
-        data: otherData,
-        history: otherHistory,
-      },
-    };
-  } catch (reason) {
-    if (signal.aborted || isAbort(reason)) throw reason;
-    return {
-      data,
-      history,
-      comparison: {
-        kind: "error",
-        version: compareVersion,
-        error: errorMessage(reason, "Unable to load comparison data."),
-      },
-    };
-  }
+  fetcher = fetch,
+): Promise<{ data: PerformanceData; history: HistoryState }> {
+  const data = await readPerformance(session, signal, fetcher);
+  const history = await loadHistoryIfNeeded(session, rocmMeasurements(data), signal, fetcher);
+  return { data, history };
 }
 
 function canonical(value: unknown): unknown {
@@ -312,6 +274,13 @@ export function comparisonKey(row: Measurement, systems: Map<string, SystemRecor
   ]);
 }
 
+export function measurementIdentity(row: Measurement) {
+  return JSON.stringify([
+    row.source_id, row.fork_id, row.engine_version, row.model, row.scenario,
+    row.quant, row.measured_at, row.run_id == null ? null : String(row.run_id),
+  ]);
+}
+
 function measurementTieBreaker(row: Measurement) {
   return JSON.stringify([
     row.measured_at,
@@ -323,26 +292,6 @@ function measurementTieBreaker(row: Measurement) {
   ]);
 }
 
-function latestByComparisonKey(
-  rows: Measurement[],
-  systems: Map<string, SystemRecord>,
-) {
-  const latest = new Map<string, Measurement>();
-  for (const row of rows) {
-    const key = comparisonKey(row, systems);
-    if (!key) continue;
-    const prior = latest.get(key);
-    if (
-      !prior ||
-      Date.parse(row.measured_at) > Date.parse(prior.measured_at) ||
-      (Date.parse(row.measured_at) === Date.parse(prior.measured_at) &&
-        measurementTieBreaker(row) > measurementTieBreaker(prior))
-    ) {
-      latest.set(key, row);
-    }
-  }
-  return latest;
-}
 
 function packageFileName(url: string | null | undefined) {
   if (!url) return null;
@@ -372,7 +321,7 @@ export function findExactQualificationBuild(
     if (
       build.build_id !== row.qualification_build_id ||
       build.engine !== row.engine ||
-      build.channel !== "stable" ||
+      build.channel !== row.channel ||
       build.rocm_version !== row.rocm_version ||
       build.os !== row.package_os ||
       build.tag !== row.engine_version
@@ -402,18 +351,60 @@ export function systemSummary(row: Measurement, systems: Map<string, SystemRecor
 function filterRows(
   rows: Measurement[],
   model: string | null,
-  system: string | null,
-  workload: string | null,
-  platform: string,
+  system: string[],
+  workload: string[],
+  platform: string[],
 ) {
   return rows.filter((row) => {
     if (model && row.model !== model) return false;
-    if (system && system !== "all") {
-      if (system === missingSystemFilter ? row.system_id !== null : row.system_id !== system)
-        return false;
+    if (system.length && !system.includes(row.system_id ?? missingSystemFilter)) return false;
+    if (workload.length && !workload.includes(row.scenario)) return false;
+    return !platform.length || platform.includes(row.package_os ?? "");
+  });
+}
+
+export function workloadLabel(value: string) {
+  return value.replace(/^context-(\d+)k$/i, (_, count: string) => `${count}K`);
+}
+
+function contextLabel(value: number | null | undefined) {
+  return value == null ? "—" : value % 1024 === 0 ? `${value / 1024}K` : formatNumber(value);
+}
+
+function hardwareLabel(id: string, rows: Measurement[], systems: Map<string, SystemRecord>) {
+  const records = rows.filter((row) => row.system_id === id).map((row) => recordFor(row, systems)).filter(Boolean);
+  const record = records[0];
+  const cpu = record?.cpu?.replace(/\s+w\/.*$/i, "").replace(/^AMD\s+/i, "");
+  const integrated = record?.cpu?.match(/w\/\s*(.+)$/i)?.[1];
+  const gpu = integrated ?? record?.gpu_full?.map((entry) => typeof entry === "object" && entry && "name" in entry ? String(entry.name) : "").filter(Boolean).join(" / ") ?? record?.gpu;
+  return [cpu, gpu].filter(Boolean).join(" · ") || id.split("|")[0];
+}
+
+function packageGpuFamily(row: Measurement) {
+  if (!row.package_url) return null;
+  const filename = new URL(row.package_url).pathname.split("/").at(-1) ?? "";
+  return filename.match(/-(gfx[0-9a-f]+)-/i)?.[1] ?? null;
+}
+
+function latestConfigurations(rows: Measurement[]) {
+  const groups = new Map<string, Measurement[]>();
+  for (const row of rows) {
+    const key = JSON.stringify([row.source_id, row.engine, row.backend, row.fork_id,
+      row.engine_repository, row.channel, row.engine_version, row.model, row.quant, row.scenario, row.input_tokens, row.package_os,
+      row.channel === "nightly" ? packageGpuFamily(row) : null]);
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  return [...groups.values()].flatMap((group) => {
+    const sorted = [...group].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at) ||
+      measurementTieBreaker(b).localeCompare(measurementTieBreaker(a)));
+    const latest = new Map<string, Measurement>();
+    for (const row of sorted) {
+      // Prefer newer attributed observations within this build/configuration.
+      if (!row.system_id && latest.size) continue;
+      const key = row.system_id ? JSON.stringify([row.system_id, row.context_size]) : "unknown";
+      if (!latest.has(key)) latest.set(key, row);
     }
-    if (workload && workload !== "all" && row.scenario !== workload) return false;
-    return platform === "all" || row.package_os === platform;
+    return [...latest.values()];
   });
 }
 
@@ -430,7 +421,7 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
       </div>
       <div>
         <dt>Workload</dt>
-        <dd>{row.scenario}</dd>
+        <dd>{workloadLabel(row.scenario)}</dd>
       </div>
       <div>
         <dt>Context / input</dt>
@@ -449,6 +440,10 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
         <dd>{row.package_os ?? "Not recorded"}</dd>
       </div>
       <div>
+        <dt>Channel</dt>
+        <dd>{row.channel}</dd>
+      </div>
+      <div>
         <dt>Engine package</dt>
         <dd>
           {row.package_url ? (
@@ -460,9 +455,13 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
           )}
         </dd>
       </div>
+      {row.run_url && <div>
+        <dt>Benchmark run</dt>
+        <dd><a href={row.run_url} target="_blank" rel="noreferrer">{row.run_id ?? "Open benchmark run"} ↗</a></dd>
+      </div>}
       <div>
-        <dt>Measured</dt>
-        <dd>{formatDate(row.measured_at)}</dd>
+        <dt>Measured (UTC)</dt>
+        <dd><time dateTime={row.measured_at}>{new Date(row.measured_at).toISOString().slice(0, 16).replace("T", " ")}</time></dd>
       </div>
     </dl>
   );
@@ -483,6 +482,45 @@ function Metrics({ row }: { row: Measurement }) {
       ))}
     </dl>
   );
+}
+
+function MeasurementEvidence({ row, systems, history, buildHref }: {
+  row: Measurement; systems: Map<string, SystemRecord>; history: HistoryState;
+  buildHref: (buildId: string, platform: string) => string;
+}) {
+  return <TooltipContent heading={row.model}>
+    <ul className="qualification-popup-packages"><li>
+      <h4 className="qualification-platform-heading"><PlatformIcon platform={row.package_os ?? ""} /> {row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}</h4>
+      <div className="performance-evidence-section">
+        <h5>Performance</h5>
+        <Metrics row={row} />
+      </div>
+      <div className="qualification-compiled-targets">
+        <h5>Test configuration</h5>
+        <dl><dt>Workload</dt><dd>{workloadLabel(row.scenario)}</dd>
+          <dt>Context</dt><dd>{contextLabel(row.context_size)}</dd>
+          <dt>Input tokens</dt><dd>{row.input_tokens == null ? "Not recorded" : formatNumber(row.input_tokens)}</dd>
+          <dt>Quantization</dt><dd>{row.quant ?? "Not recorded"}</dd>
+        </dl>
+      </div>
+      <div className="qualification-compiled-targets">
+        <h5>Hardware</h5>
+        <dl><dt>System</dt><dd>{systemSummary(row, systems)}</dd></dl>
+      </div>
+      <div className="qualification-compiled-targets">
+        <h5>Package and benchmark</h5>
+        <dl><dt>Engine package</dt><dd>{row.package_url ? <a href={row.package_url} target="_blank" rel="noreferrer">{packageLabel(row)}</a> : packageLabel(row)}</dd>
+          <dt>Channel</dt><dd>{row.channel}</dd>
+          <dt>Benchmark run</dt><dd>{row.run_url ? <a href={row.run_url} target="_blank" rel="noreferrer">{row.run_id ?? "Open benchmark run"}</a> : "Not recorded"}</dd>
+          <dt>Measured (UTC)</dt><dd><time dateTime={row.measured_at}>{new Date(row.measured_at).toISOString().slice(0, 16).replace("T", " ")}</time></dd>
+        </dl>
+      </div>
+      <div className="qualification-compiled-targets">
+        <h5>Qualification</h5>
+        <Qualification row={row} history={history} buildHref={buildHref} />
+      </div>
+    </li></ul>
+  </TooltipContent>;
 }
 
 function Qualification({
@@ -506,7 +544,7 @@ function Qualification({
   }
   const build = findExactQualificationBuild(row, history.builds);
   if (!build) {
-    return <p className="performance-provenance">No matching stable qualification history record</p>;
+    return <p className="performance-provenance">No matching qualification history record</p>;
   }
   const outcome =
     build.qualified === true
@@ -537,7 +575,7 @@ export function MeasurementDetail({
     <article className="performance-observation">
       <div className="performance-observation-heading">
         <div>
-          <span className="eyebrow">STABLE LLAMA.CPP OBSERVATION</span>
+          <span className="eyebrow">LLAMA.CPP ROCM OBSERVATION</span>
           <h3>{row.model}</h3>
         </div>
         <time dateTime={row.measured_at}>{formatDate(row.measured_at)}</time>
@@ -549,138 +587,21 @@ export function MeasurementDetail({
   );
 }
 
-function Comparison({
-  current,
-  comparison,
-  filters,
-}: {
-  current: PerformanceData;
-  comparison: ComparisonState;
-  filters: {
-    model: string | null;
-    system: string | null;
-    workload: string | null;
-    platform: string;
-  };
+function PerformanceFilter({ label, value, options, onSelect }: {
+  label: string; value: string[]; options: [string, string][]; onSelect: (value: string[]) => void;
 }) {
-  if (comparison.kind === "none") return null;
-  if (comparison.kind === "unmeasured") {
-    return (
-      <section className="performance-comparison" aria-live="polite">
-        <h2>ROCm {comparison.version} comparison</h2>
-        <p>ROCm {comparison.version} has no recorded stable llama.cpp measurements.</p>
-      </section>
-    );
-  }
-  if (comparison.kind === "error") {
-    return (
-      <section className="performance-comparison" aria-live="polite">
-        <h2>ROCm {comparison.version} comparison</h2>
-        <p className="warning-text">{comparison.error}</p>
-      </section>
-    );
-  }
-
-  const selectedRows = filterRows(
-    stableMeasurements(current),
-    filters.model,
-    filters.system,
-    filters.workload,
-    filters.platform,
-  );
-  const otherRows = filterRows(
-    stableMeasurements(comparison.data),
-    filters.model,
-    filters.system,
-    filters.workload,
-    filters.platform,
-  );
-  const selected = latestByComparisonKey(selectedRows, current.systems);
-  const other = latestByComparisonKey(otherRows, comparison.data.systems);
-  const keys = [...selected.keys()].filter((key) => other.has(key)).sort();
-  const missingSelected = selectedRows.filter(
-    (row) => !comparisonKey(row, current.systems),
-  ).length;
-  const missingOther = otherRows.filter(
-    (row) => !comparisonKey(row, comparison.data.systems),
-  ).length;
-  const unmatchedSelected = selected.size - keys.length;
-  const unmatchedOther = other.size - keys.length;
-
-  return (
-    <section className="performance-comparison" aria-live="polite">
-      <h2>ROCm {comparison.version} comparison</h2>
-      <p>
-        Comparison uses only the latest observation with an exact source-scoped hardware record,
-        model, quantization, workload, context, input, package OS, backend, and fork.
-      </p>
-      {!keys.length ? (
-        <p className="performance-empty-comparison">No compatible comparison</p>
-      ) : (
-        <div className="performance-comparison-list">
-          {keys.map((key) => {
-            const left = selected.get(key)!;
-            const right = other.get(key)!;
-            const names = [...new Set([...Object.keys(left.metrics), ...Object.keys(right.metrics)])].sort();
-            return (
-              <article className="performance-comparison-row" key={key}>
-                <h3>
-                  {left.model} · {left.quant} · {left.scenario}
-                </h3>
-                <p>
-                  Current: {packageLabel(left)} · {formatDate(left.measured_at)}
-                  <br />
-                  ROCm {comparison.version}: {packageLabel(right)} · {formatDate(right.measured_at)}
-                </p>
-                {!names.length ? (
-                  <p>No reported metrics on either compatible observation.</p>
-                ) : (
-                  <dl className="performance-deltas">
-                    {names.map((name) => {
-                      const leftValue = left.metrics[name];
-                      const rightValue = right.metrics[name];
-                      const unit = metricInfo[name]?.unit;
-                      const canCompare =
-                        unit !== undefined &&
-                        typeof leftValue === "number" &&
-                        typeof rightValue === "number";
-                      return (
-                        <div key={name}>
-                          <dt>{metricName(name)}</dt>
-                          <dd>
-                            {typeof leftValue === "number" ? metricValue(name, leftValue) : "Not reported"}
-                            {" vs "}
-                            {typeof rightValue === "number" ? metricValue(name, rightValue) : "Not reported"}
-                            {canCompare
-                              ? ` · Δ ${(leftValue - rightValue) >= 0 ? "+" : ""}${metricValue(
-                                  name,
-                                  leftValue - rightValue,
-                                )}`
-                              : " · No unit-compatible delta"}
-                          </dd>
-                        </div>
-                      );
-                    })}
-                  </dl>
-                )}
-              </article>
-            );
-          })}
-        </div>
-      )}
-      <ul className="performance-unmatched">
-        <li>{plural(unmatchedSelected, "selected observation")} unmatched.</li>
-        <li>
-          {plural(unmatchedOther, `ROCm ${comparison.version} observation`)} unmatched.
-        </li>
-        {missingSelected + missingOther > 0 && (
-          <li>
-            Missing hardware or workload metadata excluded {plural(missingSelected + missingOther, "observation")}.
-          </li>
-        )}
-      </ul>
-    </section>
-  );
+  const selected = value.length ? value : options.map(([id]) => id);
+  return <fieldset className="build-filter-options">
+    <legend>{label}</legend>
+    {options.map(([id, name]) => <button key={id} type="button"
+      title={label === "Hardware system" ? id : undefined} aria-pressed={selected.includes(id)} disabled={selected.length === 1 && selected.includes(id)}
+      onClick={() => {
+        const next = selected.includes(id) ? selected.filter((entry) => entry !== id) : [...selected, id];
+        onSelect(next.length === options.length ? [] : next);
+      }}>
+      {label === "Measurement platform" && <PlatformIcon platform={id} />}{name}
+    </button>)}
+  </fieldset>;
 }
 
 export function PerformanceView({
@@ -688,14 +609,17 @@ export function PerformanceView({
   params,
   onNavigate,
   buildHref,
+  versionFilter,
+  fetcher = fetch,
 }: {
+  fetcher?: typeof fetch;
+  versionFilter?: ReactNode;
   session: Session;
   params: URLSearchParams;
   onNavigate: (params: URLSearchParams) => void;
   buildHref: (buildId: string, platform: string) => string;
 }) {
   const overview = session.overview;
-  const compareVersion = params.get("compare");
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const performancePath =
@@ -705,7 +629,7 @@ export function PerformanceView({
     if (!overview || overview.performance.status !== "available" || !performancePath) return;
     const controller = new AbortController();
     setState({ kind: "loading" });
-    loadViewData(session, compareVersion, controller.signal)
+    loadViewData(session, controller.signal, fetcher)
       .then((loaded) => {
         if (!controller.signal.aborted) setState({ kind: "ready", ...loaded });
       })
@@ -715,22 +639,69 @@ export function PerformanceView({
         }
       });
     return () => controller.abort();
-  }, [session, overview, performancePath, compareVersion, retry]);
+  }, [session, overview, performancePath, retry, fetcher]);
 
-  const isModelView = params.get("view") === "model";
   const model = params.get("model");
-  const system = params.get("system");
-  const workload = params.get("workload");
-  const platform = params.get("platform") ?? "all";
-  const filters = { model, system, workload, platform };
+  const system = params.getAll("system").filter((value) => value !== "all");
+  const selectedWorkloads = params.getAll("workload").filter((value) => value !== "all");
+  const buildQuery = params.get("build_filter") ?? "";
+  const platform = params.getAll("platform").filter((value) => value !== "all");
+  const observation = params.get("observation");
+  const selectedBuild = params.get("build");
+  const selectedSource = params.get("source");
+  const selectedChannel = params.get("channel");
+  const selectedEngine = params.get("engine");
   const allRows = useMemo(
-    () => (state.kind === "ready" ? stableMeasurements(state.data) : []),
-    [state],
+    () => state.kind === "ready" ? rocmMeasurements(state.data).filter((row) => {
+      if (!selectedBuild) return true;
+      const build = findExactQualificationBuild(row, state.history.builds);
+      return build?.build_id === selectedBuild &&
+        (!selectedSource || build.source_id === selectedSource) &&
+        (!selectedChannel || build.channel === selectedChannel) &&
+        (!selectedEngine || build.engine === selectedEngine);
+    }) : [],
+    [state, selectedBuild, selectedSource, selectedChannel, selectedEngine],
   );
+  const exactObservation = observation ? allRows.find((row) => measurementIdentity(row) === observation) : undefined;
+  const workload = exactObservation ? [exactObservation.scenario] : selectedWorkloads;
   const rows = useMemo(
-    () => filterRows(allRows, model, system, workload, platform),
-    [allRows, model, system, workload, platform],
+    () => filterRows(allRows, model, system, workload, platform).filter(
+      (row) => (!observation || measurementIdentity(row) === observation) &&
+        (!buildQuery || [row.engine_version, row.qualification_build_id].some((value) => value?.toLowerCase().includes(buildQuery.toLowerCase()))),
+    ),
+    [allRows, model, system, workload, platform, observation, buildQuery],
   );
+  const visibleRows = observation ? rows : latestConfigurations(rows);
+  const buildGroups = new Map<string, { tag: string; rows: Measurement[] }>();
+  for (const row of [...visibleRows].sort((a, b) => Date.parse(b.measured_at) - Date.parse(a.measured_at))) {
+    const key = JSON.stringify([row.engine_repository, row.fork_id, row.channel, row.engine_version]);
+    if (!buildGroups.has(key)) buildGroups.set(key, { tag: row.engine_version ?? "Build unavailable", rows: [] });
+    buildGroups.get(key)!.rows.push(row);
+  }
+  const sortKey = ["model", "context", "tps", "p95", "vram", "ttft"].includes(params.get("sort") ?? "") ? params.get("sort")! : "model";
+  const descending = params.get("direction") === "desc";
+  const numericValue = (row: Measurement, key: string): number | undefined => {
+    if (key === "context") {
+      const namedSize = row.scenario.match(/^context-(\d+)k$/i);
+      return row.context_size ?? (namedSize ? Number(namedSize[1]) * 1024 : undefined);
+    }
+    if (key === "tps") return row.metrics.tps_mean ?? row.metrics.tg_tps;
+    return row.metrics[{ p95: "tps_p95", vram: "vram_peak_gb", ttft: "ttft_ms_mean" }[key] ?? ""];
+  };
+  const compareRows = (a: Measurement, b: Measurement) => {
+    if (sortKey === "model") return (descending ? -1 : 1) * a.model.localeCompare(b.model) || Date.parse(b.measured_at) - Date.parse(a.measured_at);
+    const left = numericValue(a, sortKey), right = numericValue(b, sortKey);
+    if (left == null || right == null) return left == null && right == null ? a.model.localeCompare(b.model) : left == null ? 1 : -1;
+    return (descending ? -1 : 1) * (left - right) || a.model.localeCompare(b.model);
+  };
+  const cohortKeys = state.kind === "ready" ? visibleRows.map((row) => comparisonKey(row, state.data.systems)) : [];
+  const canRankBuilds = sortKey !== "model" && sortKey !== "context" && cohortKeys.length > 1 && cohortKeys.every((key) => key !== null && key === cohortKeys[0]);
+  const orderedBuildGroups = [...buildGroups];
+  if (params.get("build_order") === "metric" && canRankBuilds) orderedBuildGroups.sort(([, a], [, b]) => compareRows([...a.rows].sort(compareRows)[0], [...b.rows].sort(compareRows)[0]));
+  const gpuFamily = (row: Measurement) => {
+    const build = state.kind === "ready" ? findExactQualificationBuild(row, state.history.builds) : undefined;
+    return build?.gfx_family ?? packageGpuFamily(row) ?? "GPU family unavailable";
+  };
   const models = useMemo(
     () => [...new Set(allRows.map((row) => row.model))].sort((left, right) => left.localeCompare(right)),
     [allRows],
@@ -744,16 +715,69 @@ export function PerformanceView({
     [allRows],
   );
 
-  const nextParams = (changes: Record<string, string | null>) => {
+  const nextParams = (changes: Record<string, string | string[] | null>) => {
     const next = new URLSearchParams(params);
     for (const [key, value] of Object.entries(changes)) {
-      if (value === null || value === "") next.delete(key);
+      if (Array.isArray(value)) {
+        next.delete(key);
+        for (const entry of value) next.append(key, entry);
+      } else if (value === null || value === "") next.delete(key);
       else next.set(key, value);
     }
+    next.delete("compare");
+    next.delete("performance_history");
     return next;
   };
-  const navigate = (changes: Record<string, string | null>) => onNavigate(nextParams(changes));
-  const modelHref = (modelId: string) => `?${nextParams({ view: "model", model: modelId }).toString()}`;
+  const navigate = (changes: Record<string, string | string[] | null>) =>
+    onNavigate(nextParams({ observation: null, ...changes }));
+
+  function sortHeader(key: string, label: string, definition?: string) {
+    return <th scope="col" aria-sort={sortKey === key ? descending ? "descending" : "ascending" : "none"}>
+      <span className="performance-sort-heading">
+        {definition ? <Tooltip side label={`${label} definition`} content={definition}>{label}</Tooltip> : label}
+        <button type="button" className="performance-sort" aria-label={`Sort by ${label}`} onClick={() => navigate({ sort: key,
+          direction: sortKey === key ? descending ? "asc" : "desc" : ["tps", "p95"].includes(key) ? "desc" : "asc" })}>
+          {sortKey === key ? descending ? "↓" : "↑" : "↕"}
+        </button>
+      </span>
+    </th>;
+  }
+
+  function measurementTable(groups: { key: string; label: string; rows: Measurement[] }[], nightly: boolean) {
+    if (state.kind !== "ready") return null;
+    return <div className="qualification-table-scroll" role="region" aria-label="Model measurements" tabIndex={0}>
+      <table className={`qualification-table performance-measurements ${nightly ? "" : "qualification-stable-table"}`}>
+        <thead><tr>
+          <th scope="col" className="qualification-family-column">{nightly ? "GPU family" : "Build"}</th>
+              {sortHeader("model", "Model")}<th scope="col">OS</th>
+              {sortHeader("context", "Context", "Configured context window capacity in tokens: 4K = 4,096 and 32K = 32,768. A workload label is used when the numeric size is missing.")}
+              {sortHeader("tps", "TPS", "Mean generation throughput, in tokens per second. Higher is better.")}
+              {sortHeader("p95", "P95", "Producer-reported 95th percentile generation throughput, in tokens per second.")}
+              {sortHeader("vram", "VRAM", "Peak video memory usage, in GB.")}
+              {sortHeader("ttft", "TTFT", "Mean time to first token, in seconds. Lower is better.")}
+        </tr></thead>
+        {groups.map((group) => <tbody key={group.key}>
+          {[...group.rows].sort(compareRows)
+            .map((row, index) => <tr className="performance-measurement-row" key={measurementIdentity(row) + measurementTieBreaker(row)}>
+              {index === 0 && <th scope="rowgroup" rowSpan={group.rows.length}>
+                <Tooltip side label={`${nightly ? "GPU family" : "Build"} ${group.label}`} content={<div>
+                  <strong>{group.label}</strong><p>{plural(group.rows.length, "measurement")} · All times UTC</p>
+                </div>}>{group.label}</Tooltip>
+              </th>}
+                <th scope="row"><Tooltip side interactive label={`Measurement details for ${row.model} · ${row.package_os ?? "Unknown OS"} · ${row.measured_at}`}
+                  triggerClassName="performance-model-trigger" contentClassName="qualification-popup performance-model-popup"
+                  content={<MeasurementEvidence row={row} systems={state.data.systems} history={state.history} buildHref={buildHref} />}>{row.model}</Tooltip></th>
+                <td><span className="performance-os" role="img" aria-label={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"} title={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}><PlatformIcon platform={row.package_os ?? ""} />{!row.package_os && "—"}</span></td>
+                <td>{row.context_size == null && /^context-\d+k$/i.test(row.scenario) ? workloadLabel(row.scenario) : contextLabel(row.context_size)}</td>
+                <td>{row.metrics.tps_mean != null || row.metrics.tg_tps != null ? formatNumber(row.metrics.tps_mean ?? row.metrics.tg_tps) : "—"}</td>
+                <td>{row.metrics.tps_p95 == null ? "—" : formatNumber(row.metrics.tps_p95)}</td>
+                <td>{row.metrics.vram_peak_gb == null ? "—" : formatNumber(row.metrics.vram_peak_gb)}</td>
+                <td>{row.metrics.ttft_ms_mean == null ? "—" : formatNumber(row.metrics.ttft_ms_mean / 1000)}</td>
+            </tr>)}
+        </tbody>)}
+      </table>
+    </div>;
+  }
 
   if (!overview || session.version === null) {
     return (
@@ -767,6 +791,7 @@ export function PerformanceView({
     return (
       <section className="performance-view">
         <h2>Model performance</h2>
+        <div className="build-browser-toolbar build-filters">{versionFilter}</div>
         <p>No recorded model measurements for ROCm {overview.rocm_version}</p>
         <p>Performance remains unmeasured; no package or qualification conclusion is implied.</p>
       </section>
@@ -777,42 +802,33 @@ export function PerformanceView({
     <section className="performance-view" aria-labelledby="performance-heading">
       <div className="performance-heading">
         <div>
-          <span className="eyebrow">STABLE LLAMA.CPP · HISTORICAL MEASUREMENTS</span>
+          <span className="eyebrow">LLAMA.CPP ROCM · HISTORICAL MEASUREMENTS</span>
           <h2 id="performance-heading">
-            {isModelView && model ? model : "Model performance"}
+            Performance details
           </h2>
         </div>
-        {isModelView && (
-          <a
-            href={`?${nextParams({ view: "performance", model: null }).toString()}`}
-            onClick={(event) => {
-              event.preventDefault();
-              navigate({ view: "performance", model: null });
-            }}
-          >
-            ← Back to models
-          </a>
-        )}
       </div>
-      <p className="performance-intro">
-        Each row is a recorded historical measurement. Its package tag and date belong to that
-        observation and do not establish the performance of the current build.
-      </p>
-      <p className="performance-platform-note">
-        Platform filters measurements by their recorded package OS, not by a current qualification
-        list.
-      </p>
-
       {state.kind === "ready" && (
-        <div className="performance-filters" aria-label="Performance filters">
-          <label>
+        <div className="build-browser-toolbar build-filters performance-filter-bar" aria-label="Performance filters">
+          {versionFilter}
+          <PerformanceFilter label="Measurement platform" value={platform}
+            options={[["windows", "Windows"], ["linux", "Linux"]]}
+            onSelect={(value) => navigate({ platform: value })} />
+          <PerformanceFilter label="Hardware system" value={system}
+            options={[...systems.map((entry): [string, string] => [entry, hardwareLabel(entry, allRows, state.data.systems)]),
+              ...(allRows.some((row) => row.system_id === null) ? [[missingSystemFilter, "Hardware metadata unavailable"] as [string, string]] : [])]}
+            onSelect={(value) => navigate({ system: value })} />
+          <PerformanceFilter label="Workload" value={workload}
+            options={[...workloads.map((entry): [string, string] => [entry, workloadLabel(entry)])]}
+            onSelect={(value) => navigate({ workload: value })} />
+          <label className="performance-model-filter">
             Model
             <select
               value={model ?? ""}
               onChange={(event) =>
                 navigate({
                   model: event.target.value || null,
-                  view: event.target.value ? "model" : "performance",
+                  view: "performance",
                 })
               }
             >
@@ -824,54 +840,22 @@ export function PerformanceView({
               ))}
             </select>
           </label>
-          <label>
-            Hardware system
-            <select value={system ?? ""} onChange={(event) => navigate({ system: event.target.value || null })}>
-              <option value="">All systems</option>
-              {systems.map((entry) => (
-                <option value={entry} key={entry}>
-                  {entry}
-                </option>
-              ))}
-              {allRows.some((row) => row.system_id === null) && (
-                <option value={missingSystemFilter}>Hardware metadata unavailable</option>
-              )}
-            </select>
-          </label>
-          <label>
-            Workload
-            <select value={workload ?? ""} onChange={(event) => navigate({ workload: event.target.value || null })}>
-              <option value="">All workloads</option>
-              {workloads.map((entry) => (
-                <option value={entry} key={entry}>
-                  {entry}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Measurement platform
-            <select value={platform} onChange={(event) => navigate({ platform: event.target.value })}>
-              <option value="all">All platforms</option>
-              <option value="linux">Linux</option>
-              <option value="windows">Windows</option>
-            </select>
-          </label>
-          <label>
-            Compare ROCm version
-            <select value={compareVersion ?? ""} onChange={(event) => navigate({ compare: event.target.value || null })}>
-              <option value="">No comparison</option>
-              {session.index.versions
-                .filter((entry) => entry.rocm_version !== session.version)
-                .map((entry) => (
-                  <option value={entry.rocm_version} key={entry.rocm_version}>
-                    ROCm {entry.rocm_version}
-                  </option>
-                ))}
-            </select>
-          </label>
+          <label className="build-search">Find build <input type="search" value={buildQuery} placeholder="Package tag or build ID"
+            onChange={(event) => navigate({ build_filter: event.target.value || null })} /></label>
+          {selectedBuild && <FilterScope label={`Build: ${allRows[0]?.engine_version ?? selectedBuild}`} onClear={() => navigate({ build: null, source: null, observation: null })} />}
+          {observation && <FilterScope label="Exact measurement" onClear={() => navigate({ observation: null })} />}
+          <FilterReset onReset={() => {
+            const next = new URLSearchParams(params);
+            for (const key of ["build", "source", "model", "system", "workload", "platform", "observation", "engine", "channel", "build_filter", "day", "focus", "package_identity", "sort", "direction", "build_order"])
+              next.delete(key);
+            next.set("view", "performance");
+            onNavigate(next);
+          }} />
+
+
         </div>
       )}
+      {state.kind !== "ready" && <div className="build-browser-toolbar build-filters">{versionFilter}</div>}
 
       {state.kind === "loading" && <p role="status">Loading historical measurements…</p>}
       {state.kind === "error" && (
@@ -881,75 +865,36 @@ export function PerformanceView({
           <button onClick={() => setRetry((value) => value + 1)}>Retry</button>
         </div>
       )}
-      {state.kind === "ready" && (
-        <>
-          {isModelView ? (
-            model ? (
-              <div className="performance-observations">
-                {rows.map((row) => (
-                  <MeasurementDetail
-                    key={measurementTieBreaker(row)}
-                    row={row}
-                    systems={state.data.systems}
-                    history={state.history}
-                    buildHref={buildHref}
-                  />
-                ))}
-                {!rows.length && <p>No stable measurements match this model and these filters.</p>}
-              </div>
-            ) : (
-              <p>Select a model to inspect its recorded observations.</p>
-            )
-          ) : (
-            <div className="performance-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Model</th>
-                    <th>Observed configurations</th>
-                    <th>Hardware systems</th>
-                    <th>Most recent observation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...new Set(rows.map((row) => row.model))]
-                    .sort((left, right) => left.localeCompare(right))
-                    .map((modelId) => {
-                      const observations = rows.filter((row) => row.model === modelId);
-                      const mostRecent = observations.reduce((latest, row) =>
-                        Date.parse(row.measured_at) > Date.parse(latest.measured_at) ? row : latest,
-                      );
-                      return (
-                        <tr key={modelId}>
-                          <td>
-                            <a
-                              href={modelHref(modelId)}
-                              onClick={(event) => {
-                                event.preventDefault();
-                                navigate({ view: "model", model: modelId });
-                              }}
-                            >
-                              {modelId}
-                            </a>
-                          </td>
-                          <td>{plural(observations.length, "observation")}</td>
-                          <td>
-                            {[...new Set(observations.map((row) => row.system_id ?? "Hardware metadata unavailable"))].join(
-                              ", ",
-                            )}
-                          </td>
-                          <td>{formatDate(mostRecent.measured_at)}</td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-              {!rows.length && <p>No stable llama.cpp ROCm measurements match these filters.</p>}
-            </div>
-          )}
-          <Comparison current={state.data} comparison={state.comparison} filters={filters} />
-        </>
-      )}
+      {state.kind === "ready" && <>
+        <section className="qualification-matrix" aria-label="Model performance">
+          <h2>Model performance</h2>
+          <label className="performance-build-order"><Tooltip label="Build order help" content="Newest orders build groups by their latest measurement. Selected metric orders builds only when every visible row has the same fully recorded model, workload, quantization, OS, and hardware. Choose a metric sort first.">Build order</Tooltip>
+            <select value={params.get("build_order") === "metric" && canRankBuilds ? "metric" : "newest"} onChange={(event) => navigate({ build_order: event.target.value === "newest" ? null : "metric" })}>
+              <option value="newest">Newest first</option><option value="metric" disabled={!canRankBuilds}>Selected metric</option>
+            </select>
+          </label>
+          <div className="qualification-releases">
+            {visibleRows.every((row) => row.channel === "stable")
+              ? measurementTable(orderedBuildGroups.map(([key, group]) => ({ key, label: group.tag, rows: group.rows })), false)
+              : orderedBuildGroups.map(([key, group]) => {
+                const families = new Map<string, Measurement[]>();
+                for (const row of group.rows) {
+                  const family = gpuFamily(row);
+                  families.set(family, [...(families.get(family) ?? []), row]);
+                }
+                return <section className="qualification-release" key={key}>
+                  <header className="qualification-release-heading">
+                    <span className="qualification-heading-label">Build</span>
+                    <h3><Tooltip side label={`Build ${group.tag}`} content={group.tag}>{group.tag}</Tooltip></h3>
+                  </header>
+                  {measurementTable([...families].sort(([a], [b]) => a.localeCompare(b)).map(([family, entries]) => ({ key: family, label: family, rows: entries })), true)}
+                </section>;
+              })}
+          </div>
+          {!rows.length && <p>No llama.cpp ROCm measurements match these filters.</p>}
+        </section>
+
+      </>}
     </section>
   );
 }

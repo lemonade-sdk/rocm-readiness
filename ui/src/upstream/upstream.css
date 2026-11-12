@@ -6,18 +6,6 @@
   display: grid;
   gap: 1rem;
 }
-.up-totals .up-stat {
-  min-width: 0;
-  flex: 1 1 7rem;
-  padding: 0;
-}
-.up-totals .up-stat strong {
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-}
-.up-projects-heading {
-  margin-top: 0.5rem;
-}
-.up-totals,
 .up-kpis {
   display: flex;
   flex-wrap: wrap;
@@ -45,132 +33,20 @@
   margin: 0;
   font-size: 0.8rem;
 }
-.up-rule summary {
-  cursor: pointer;
-  width: max-content;
-}
-.up-rule p {
-  max-width: 80ch;
-  margin: 0.4rem 0 0;
-}
-.up-home > .up-totals {
-  padding: 0.75rem 0.25rem;
-  background: var(--panel);
-  border-radius: var(--radius-panel);
-}
-.up-home > .up-totals .up-stat {
-  padding: 0 1rem;
-}
-.up-home > .up-totals .up-stat + .up-stat {
-  border-inline-start: 1px solid var(--line);
-}
-
-/* Project cards: a grid of panels, each with a green or red edge. */
 .up-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
   gap: 1rem;
 }
 .up-card {
-  position: relative;
   min-width: 0;
-  cursor: pointer;
   display: grid;
-  gap: 0.75rem;
+  gap: 0.4rem;
   align-content: start;
-  padding: 1rem 1.1rem 0.85rem 1.35rem;
-  background: var(--panel);
-  border: 1px solid transparent;
-  border-radius: var(--radius-panel);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.up-card::before {
-  content: "";
-  position: absolute;
-  inset: 0.9rem auto 0.9rem 0;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
-  background: var(--chart-unknown);
-}
-.up-card[data-health="pass"]::before {
-  background: var(--chart-pass);
-}
-.up-card[data-health="fail"]::before {
-  background: var(--chart-fail);
-}
-.up-card:hover {
-  border-color: var(--line);
-  box-shadow: var(--shadow);
-}
-@media (prefers-reduced-motion: reduce) {
-  .up-card {
-    transition: none;
-  }
-}
-.up-health {
-  margin: 0;
-  padding: 0.45rem 0.65rem;
-  font-size: 0.85rem;
-  background: var(--subpanel);
-  border-radius: var(--radius-control);
-}
-.up-health[data-health="pass"] {
-  color: var(--good);
-}
-.up-health[data-health="fail"] b {
-  color: var(--bad);
-}
-.up-devlab {
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.05rem 0.55rem;
-  border-radius: 999px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-}
-.up-days {
-  display: grid;
-  gap: 2px;
-}
-.up-days-row {
-  display: grid;
-  grid-template-columns: 4.5rem repeat(14, minmax(0, 1fr));
-  gap: 2px;
-  align-items: center;
-}
-.up-days-row .up-tick {
-  width: auto;
-  min-height: 1.25rem;
-  border-radius: 3px;
-  font-size: 0.7rem;
-}
-.up-days-label {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-.up-days-axis span {
-  font-size: 0.65rem;
-  text-align: center;
-  color: var(--muted);
-}
-.up-card-foot {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0;
-  padding-top: 0.5rem;
-  font-size: 0.75rem;
-  border-top: 1px solid var(--line);
-}
-.up-section-heading {
-  margin: 0.75rem 0 0;
-  font-size: 0.85rem;
-  color: var(--muted);
 }
 .up-project-activity {
   overflow-x: auto;
   min-width: 0;
-  padding: 0.75rem 1rem 0.5rem;
+  padding: 0.35rem 0.75rem;
 }
 .up-project-activity:focus-visible {
   outline: 2px solid var(--focus);
@@ -203,7 +79,7 @@
 .up-activity-key {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1rem;
+  gap: 0.2rem 0.65rem;
   margin: 0;
   list-style: none;
   font-size: 0.75rem;
@@ -214,17 +90,12 @@
   align-items: center;
   gap: 0.25rem;
 }
-.up-card .up-kpis {
-  align-self: center;
-  gap: 0.5rem;
+.up-activity-key.calendar-legend {
+  padding: 0;
 }
-.up-card .up-stat {
-  min-width: 0;
-  flex: 1 1 6rem;
-  padding: 0.4rem 0.6rem;
-}
-.up-card .up-stat strong {
-  font-size: 1.25rem;
+.up-activity-key .up-tick {
+  width: 1.25rem;
+  min-height: 1rem;
 }
 .up-empty-chart {
   margin: 0.2rem 0;
@@ -238,11 +109,8 @@
   gap: 0.5rem;
 }
 .up-card-head h2,
-.up-page-head h1 {
+.up-page-head h2 {
   margin: 0;
-}
-.up-card-head h2 a {
-  color: var(--link);
 }
 .up-repo {
   margin-left: auto;
@@ -348,9 +216,6 @@ button.up-tick {
   background: var(--chart-track);
 }
 .up-filter {
-  position: sticky;
-  top: 0;
-  z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -662,3 +527,587 @@ button.up-tick {
 .track-tabs a:hover {
   color: var(--accent);
 }
+
+/* Project identity, navigation and evidence each have their own reading row. */
+.up-home,
+.up-page,
+.up-cols > div {
+  min-width: 0;
+}
+.up-card {
+  padding-block: 0.75rem;
+}
+.up-card + .up-card {
+  border-block-start: 1px solid var(--line);
+}
+.up-card-head {
+  justify-content: space-between;
+}
+.up-sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
+  min-width: 0;
+}
+.up-sources .up-repo {
+  margin: 0;
+  font-size: 0.8rem;
+}
+.up-forks {
+  min-width: 0;
+  max-width: 100%;
+}
+.up-forks summary {
+  list-style: revert;
+  border: 0;
+  border-radius: 0;
+  padding: 0.25rem 0;
+  color: var(--link);
+}
+.up-forks ul {
+  position: static;
+  min-width: 0;
+  max-width: 100%;
+  box-shadow: none;
+}
+.up-forks li {
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
+}
+.up-page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.up-page-nav a {
+  padding-block: 0.5rem;
+}
+.up-project-header {
+  display: grid;
+  gap: 0.65rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.up-kpis-page .up-stat {
+  padding-left: 0;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+.up-panel h2 {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+.up-cols {
+  grid-template-columns: minmax(0, 1fr);
+}
+.up-cols > div:last-child {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.up-cols > div:last-child > :last-child {
+  grid-column: 1 / -1;
+}
+.up-findings {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.up-findings summary,
+.up-jobs summary {
+  list-style: revert;
+  padding-block: 0.35rem;
+}
+.up-run {
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  padding-block: 0.6rem;
+  overflow-wrap: anywhere;
+}
+.up-run a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  padding-block: 0.25rem;
+}
+.up-run-job {
+  width: auto;
+  white-space: normal;
+}
+.up-run-step {
+  margin-left: 0;
+}
+.up-daypanel-head {
+  flex-wrap: wrap;
+}
+.up-daypanel-head button {
+  min-width: 2rem;
+  min-height: 2rem;
+}
+.up-steps li {
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) 2.5rem;
+}
+.up-sources a:focus-visible,
+.up-forks summary:focus-visible,
+.up-page-nav a:focus-visible,
+.up-run a:focus-visible,
+.up-findings summary:focus-visible,
+.up-jobs summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .up-cols > div:last-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .up-filter button {
+    min-height: 2.25rem;
+  }
+  .up-filter-sum {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .up-run-step {
+    flex-basis: 100%;
+  }
+}
+.up-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.up-table-scroll:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-table th {
+  white-space: nowrap;
+}
+.up-table td {
+  overflow-wrap: break-word;
+}
+.up-table-scroll .up-table {
+  min-width: 26rem;
+}
+
+/* Stack the overview so each project calendar can use the available width. */
+.up-cards {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.up-card-head h2 {
+  color: var(--text);
+  font-size: 1.25rem;
+}
+.up-card-footer {
+  margin-top: 0.5rem;
+  padding-top: 0.25rem;
+}
+.up-activity-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+.up-activity-link:hover { color: var(--link); }
+.up-activity-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-activity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+.up-project-picker {
+  display: grid;
+  gap: 0.35rem;
+  min-width: min(100%, 15rem);
+}
+.up-project-picker select {
+  font: inherit;
+  color: var(--text);
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-control);
+  min-height: 2.75rem;
+  padding: 0.35rem 0.65rem;
+}
+.up-project-picker select:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.up-page-head h2 { font-size: 1.5rem; }
+.up-detail-activity {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+@media (max-width: 1279px) {
+  .up-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.up-selected-day { color: var(--muted); font-size: 0.85rem; }
+.up-selected-day strong { color: var(--text); }
+
+/* Keep the shared filter groups wrapping horizontally before stacking. */
+.up-page > .build-filters,
+.up-activity-toolbar.build-filters {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+.up-page > .build-filters .build-filter-options {
+  max-width: 100%;
+}
+
+.up-project-link {
+  color: var(--text);
+  text-decoration: none;
+}
+.up-project-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.up-project-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.up-card .up-kpis {
+  gap: 0.25rem 1rem;
+}
+.up-card .up-stat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.3rem;
+  min-width: 0;
+  padding: 0;
+}
+.up-card .up-stat strong {
+  font-size: 0.875rem;
+}
+
+/* CI Activity follows the flat evidence sections used by Overview. */
+.up-page {
+  gap: 1.5rem;
+}
+.up-page .up-project-header {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.up-page-head h2 {
+  font-size: 1.75rem;
+  line-height: 1.25;
+}
+.up-kpis-page {
+  gap: 1rem 2rem;
+  padding-block: 0.25rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.up-kpis-page .up-stat {
+  flex: 0 1 16rem;
+  gap: 0.35rem;
+  padding: 0;
+}
+.up-kpis-page .up-stat strong {
+  font-size: 1.75rem;
+}
+.up-page .up-cols {
+  gap: 2rem;
+}
+.up-page .up-panel {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+.up-page .up-panel h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
+  margin: 0 0 1rem;
+  color: var(--text);
+  font: 600 1.25rem/1.4 ui-monospace, monospace;
+}
+.up-page .up-panel h2 .muted {
+  font: 400 0.8rem/1.5 ui-sans-serif, system-ui, sans-serif;
+}
+.up-page .up-daychart {
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--panel) 55%, var(--background));
+}
+.up-page .up-daychart + .up-daychart {
+  margin-top: 0.75rem;
+}
+.up-page .up-daychart h3 {
+  margin: 0 0 0.75rem;
+  color: var(--text);
+  font: 600 0.875rem/1.4 ui-monospace, monospace;
+}
+.up-page .up-cols > div:last-child {
+  gap: 1.75rem 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.up-page .up-table th,
+.up-page .up-table td {
+  padding-block: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.up-page .up-table thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.up-page .up-jobs {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.up-page .up-jobs summary h2 {
+  display: inline;
+}
+.up-page .up-job {
+  padding-block: 0.85rem;
+}
+.up-bar:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.up-page .up-bar.selected {
+  border-color: var(--focus);
+}
+@media (max-width: 640px) {
+  .up-page .up-daychart { padding-inline: 0.5rem; }
+  .up-kpis-page .up-stat { flex: 1 1 8rem; }
+  .up-page .up-cols > div:last-child { gap: 1.5rem; }
+}
+
+/* Compact project identity and always-visible source provenance. */
+.up-project-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 2rem;
+  align-items: start;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.up-project-summary .up-kpis-page {
+  border: 0;
+  padding: 0.35rem 0 0;
+  gap: 1.25rem;
+}
+.up-project-summary .up-stat { flex: 1 1 7rem; max-width: 10rem; }
+.up-project-summary .up-sources { display: block; }
+.up-source-label { font-size: 0.75rem; }
+.up-source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.up-source-list li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.5rem; overflow-wrap: anywhere; }
+.up-project-notes { font-size: 0.75rem; line-height: 1.5; }
+.up-project-notes p { margin: 0; }
+.up-page .up-activity-table th,
+.up-page .up-activity-table td { padding-block: 0.55rem; }
+.up-page .up-activity-table button { min-height: 2rem; }
+.up-activity-table button[aria-pressed="true"] {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+@media (max-width: 1100px) {
+  .up-project-summary { grid-template-columns: minmax(0, 1fr); }
+  .up-project-summary .up-kpis-page { gap: 1rem 2rem; }
+  .up-project-summary .up-stat { max-width: none; }
+}
+.up-project-summary .up-kpis-page {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(28rem, 100%);
+}
+.up-project-summary .up-stat { max-width: none; }
+@media (max-width: 1100px) {
+  .up-project-summary .up-kpis-page { width: 100%; gap: 0.75rem; }
+}
+
+@media (max-width: 640px) {
+  .up-project-summary .up-stat strong { font-size: clamp(1rem, 5vw, 1.4rem); }
+}
+
+/* CI Activity shares Qualification trend's stacked-count bars and palette. */
+.up-daily-detail { min-width: 42rem; table-layout: fixed; }
+.up-daily-detail th[rowspan] { width: 5.5rem; }
+.up-page .up-daily-detail td { padding: 0.5rem 0.15rem; }
+/* Inline flex baselines depend on the first outcome segment's height.
+   Keep each tooltip wrapper in block layout so every day shares zero. */
+.up-daily-detail td .comparison-tooltip { display: block; }
+.up-daily-detail th[scope="row"] { position: relative; padding-right: 2rem; }
+.up-daily-axis {
+  position: absolute;
+  inset: 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  justify-content: space-between;
+  color: var(--muted);
+  font: 0.75rem ui-monospace, monospace;
+}
+.up-daily-trigger {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  text-decoration: none;
+  border-radius: 0;
+  outline-offset: -2px;
+}
+.up-daily-trigger[aria-expanded="true"] { outline: 2px solid var(--focus); }
+.up-daily-chart.qualification-trend-stack { margin: 0; height: 2.5rem; }
+.up-daily-chart .qualification-segment { min-height: 2px; }
+.up-daily-special { position: absolute; inset-inline: 0; bottom: 0.25rem; font: 0.8rem ui-monospace, monospace; }
+.up-daily-trigger:focus-visible { outline: 2px solid var(--focus); }
+.up-page .up-activity-key .qualification-segment { width: 1rem; height: 0.45rem; }
+.up-run-tooltip .up-daypanel { border: 0; margin: 0; background: transparent; }
+.up-run-tooltip .up-daypanel-head { padding-right: 2rem; }
+.up-run-tooltip .up-run a { display: inline; }
+.up-run-tooltip .up-dot { display: inline-block; flex: 0 0 7px; }
+.up-run-tooltip .up-daypanel-head > button:last-child { display: none; }
+
+/* Keep the trend and failure diagnosis in one compact reading row. */
+.up-page .up-cols > .up-activity-analysis {
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.45fr);
+  gap: 2rem;
+  align-items: start;
+}
+.up-page .up-cols > .up-project-coverage > :last-child { grid-column: auto; }
+.up-activity-analysis .up-steps li {
+  grid-template-columns: minmax(0, 1.4fr) minmax(3rem, 1fr) 2rem;
+  padding-block: 0.4rem;
+}
+.up-activity-analysis .up-steps li span:first-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1279px) {
+  .up-page .up-cols > .up-activity-analysis { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+}
+
+/* Pair provenance with project-wide findings, below the CI evidence. */
+.up-project-context {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
+  padding-block: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+.up-project-context > * { min-width: 0; }
+.up-project-context .up-findings { padding: 0; border: 0; }
+.up-project-context .up-source-list { display: grid; gap: 0.65rem; margin: 0; }
+.up-project-context .up-source-list li { display: grid; gap: 0.15rem; }
+.up-project-context .up-source-list a { width: fit-content; max-width: 100%; }
+.up-failures { display: flex; flex-direction: column; align-self: stretch; }
+.up-failures-surface { flex: 1; min-width: 0; padding: 0.85rem 1rem; }
+.up-failures-caption { font-size: 0.75rem; margin: 0 0 0.6rem; }
+.up-activity-analysis .up-steps li { grid-template-columns: minmax(0, 1.4fr) minmax(3rem, 1fr) 2rem; padding-block: 0.6rem; }
+.up-steps .comparison-tooltip { min-width: 0; }
+.up-activity-analysis .up-step-label,
+.up-job-label {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  text-align: left;
+}
+.up-activity-analysis .up-steps .up-step-label > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.up-step-label:focus-visible,
+.up-job-label:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.up-jobs-explanation { margin: 0 0 0.85rem; font-size: 0.8rem; }
+.up-jobs > .up-jobs-explanation:last-child { margin-top: 0.65rem; }
+.up-jobs-table { min-width: max(100%, 42rem); }
+.up-jobs-table th[scope="row"] { min-width: 11rem; max-width: 14rem; }
+.up-jobs-table th[scope="row"] .comparison-tooltip { display: block; max-width: 14rem; }
+.up-jobs-table :is(th, td) { white-space: nowrap; }
+.up-jobs-table td.table-status { min-width: 1.8rem; }
+.up-jobs-table .up-tick { min-height: 2rem; }
+.up-job-quiet { display: block; font-weight: 400; font-size: 0.7rem; }
+@media (max-width: 760px) {
+  .up-project-context { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+}
+
+/* Exact counts keep infrequent failures as readable as dominant ones. */
+.up-failures-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.8rem; }
+.up-failures-table :is(th, td) { padding: 0.65rem 0.25rem; border-bottom: 1px solid var(--line); text-align: right; }
+.up-failures-table th:first-child { width: 60%; text-align: left; }
+.up-failures-table thead th { color: var(--muted); font-size: 0.75rem; font-weight: 500; }
+.up-failures-table tbody th { font-weight: 400; }
+.up-failures-table tr:last-child > * { border-bottom: 0; }
+.up-failures-table .comparison-tooltip { display: block; width: 100%; min-width: 0; }
+.up-failures-table .up-step-label > span { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.up-failure-count { color: var(--bad); font: 600 0.875rem ui-monospace, monospace; }
+
+.up-jobs-table .up-job-platform { width: 3rem; text-align: center; }
+.up-job-platform .platform-logo { display: inline-block; vertical-align: middle; }
+.up-jobs-table { table-layout: fixed; }
+.up-jobs-table thead th[rowspan]:first-child { width: 12rem; }
+.up-jobs-table thead th[rowspan]:nth-child(2) { width: 3rem; }
+.up-jobs-table th[scope="row"] { min-width: 0; max-width: none; }
+
+/* Normalize row heights: block tooltip triggers avoid inline baseline padding. */
+.up-page .up-jobs-table :is(th, td) { padding: 0.4rem 0.5rem; vertical-align: middle; }
+.up-page .up-jobs-table td.table-status { padding: 0; }
+.up-jobs-table td .comparison-tooltip { display: block; }
+.up-jobs-table td .up-tick { display: grid; min-height: 2.25rem; }
+.up-collection-status { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem; margin: 0; color: var(--muted); font-size: 0.8rem; }
+.up-collection-status > span:first-child { color: var(--warning); }
+
+/* Findings are notices, with restrained symbols rather than failure blocks. */
+.up-project-context .up-findings .up-finding-notice {
+  display: grid;
+  grid-template-columns: 1rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--panel) 55%, var(--background));
+}
+.up-finding-notice > span:first-child { color: var(--muted); }
+.up-run-tooltip .up-daypanel { display: block; }
+.up-daypanel .structured-tooltip { display: block; }
+.up-inline-close { float: right; cursor: pointer; }
+.up-run-tooltip .up-inline-close { display: none; }
+.up-run-scope { margin: 0; font-size: 0.8rem; }
+.up-daypanel:has(.structured-tooltip) .up-runs { max-height: none; }
+.up-daypanel:has(.structured-tooltip) .up-run { display: grid; gap: 0.35rem; padding: 0.75rem 0; }
+.up-run-tooltip .tooltip-scroll-area { max-height: min(30rem, var(--tooltip-available-height, 75dvh), 75dvh); }
+.up-activity-stall { color: inherit; }
+
+/* CI evidence uses Qualification's compact header and aligned detail rows. */
+.up-run-tooltip { width: min(25rem, calc(100vw - 2rem)); }
+.comparison-bubble .up-tooltip-context { color: var(--muted); font: 400 0.75rem/1.4 system-ui, sans-serif; margin-bottom: 0.2rem; }
+.up-tooltip-section { padding-top: 0.65rem; border-top: 1px solid var(--line); }
+.up-tooltip-section > strong { margin-bottom: 0.4rem; font-weight: 600; }
+.up-tooltip-section > ul:not(.up-runs) { padding-left: 1rem; margin: 0; }
+.up-daypanel:has(.structured-tooltip) .up-run { gap: 0.4rem; align-items: start; padding: 0.65rem 0; }
+.up-daypanel:has(.structured-tooltip) .up-run:first-child { border-top: 0; padding-top: 0; }
+.up-daypanel:has(.structured-tooltip) .up-run:last-child { padding-bottom: 0; }
+.up-run-title { font: 600 .8rem/1.4 system-ui, sans-serif; overflow-wrap: anywhere; }
+.comparison-bubble .up-run-result { display: flex; align-items: center; gap: .35rem; text-transform: capitalize; }

@@ -54,17 +54,6 @@ const jobSchema = z.object({
   skipped: count,
   stalled: count,
   last_ran: day.nullable(),
-  // Newest finished result and whether any run used a devlab-dispatch machine.
-  // Optional so datasets published before these fields still load.
-  latest: z
-    .object({
-      state: z.enum(["passed", "failed", "other"]),
-      at: z.string(),
-      url: z.string().nullable().optional(),
-    })
-    .nullable()
-    .optional(),
-  devlab: z.boolean().optional(),
   quiet_days: z.array(day),
   median_queue_seconds: count.nullable(),
   failed_steps: z.record(z.string(), count),
@@ -293,26 +282,4 @@ export function mergedRed(jobs: Job[]) {
   return new Set(
     jobs.flatMap((j) => (j.gate ? j.gate.red.map((g) => g.number) : [])),
   ).size;
-}
-
-/** A job passes now when its newest result passed and no request since went unrun. */
-export function passingNow(job: Job) {
-  return job.latest?.state === "passed" && job.started > 0 && !job.quiet_days.length;
-}
-
-/** Green only when every configured job passes now; red when any does not. */
-export function projectHealth(project: { jobs: Job[] }): "pass" | "fail" | "none" {
-  if (!project.jobs.length) return "none";
-  return project.jobs.every(passingNow) ? "pass" : "fail";
-}
-
-/** Two-state day mark for the project cards: any failure makes the day red. */
-export function dayOutcome(
-  cell: Cell | undefined,
-): "good" | "bad" | "stall" | "skip" | "idle" | "none" {
-  if (!cell) return "idle";
-  if (cell.failed) return "bad";
-  if (cell.passed) return "good";
-  if (cell.other || cell.running) return "none";
-  return cell.stalled ? "stall" : cell.skipped ? "skip" : "idle";
 }

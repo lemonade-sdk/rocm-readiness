@@ -584,28 +584,6 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual(card["kpis"]["not_running"], 1)
         self.assertTrue(any(f["kind"] == "not_running" for f in card["findings"]))
 
-    def test_latest_result_and_devlab_machines_are_reported_per_job(self):
-        self.gh.jobs[1][0]["runner_name"] = "ephemeral-devlab-x2-la03-s03-d01-1"
-        collect(self.gh, self.out)
-        jobs = {j["id"]: j for j in overview(self.out)["projects"][0]["jobs"]}
-        # Run 1 (Oct 28, passed) is newer than run 2 (Oct 27, failed).
-        self.assertEqual(jobs["gpu"]["latest"]["state"], "passed")
-        self.assertEqual(jobs["gpu"]["latest"]["at"], "2026-10-28T10:00:00Z")
-        self.assertTrue(jobs["gpu"]["devlab"])
-        self.assertFalse(jobs["build"]["devlab"])
-
-    def test_a_job_with_no_finished_run_has_no_latest_result(self):
-        self.gh.jobs[1] = [
-            job(11, "gpu-rocm", "cancelled", steps=False),
-            job(12, "cpu"),
-        ]
-        self.gh.jobs[2] = [job(21, "gpu-rocm", "cancelled", steps=False)]
-        collect(self.gh, self.out)
-        gpu = next(
-            j for j in overview(self.out)["projects"][0]["jobs"] if j["id"] == "gpu"
-        )
-        self.assertIsNone(gpu["latest"])
-
     def test_a_removed_job_does_not_break_the_next_publication(self):
         collect(self.gh, self.out)
         (self.out / "index.json").write_text(

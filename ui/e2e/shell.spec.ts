@@ -6,6 +6,13 @@ import {
   pointer,
   historyFixture,
 } from "../src/fixtures";
+import { producerReport } from "../src/builds/fixtures";
+
+const linuxBuild = {
+  ...historyFixture().builds[0],
+  channel: "stable" as const,
+  results: { "T0.1": "warn" },
+};
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
@@ -19,13 +26,18 @@ test.beforeEach(async ({ page }) => {
     else if (url === new URL("rocm/10.2/overview.json", indexUrl).href)
       data = overview("10.2");
     else if (url.endsWith("/history/2026-10.json"))
-      data = historyFixture(url.match(/\/rocm\/([^/]+)\//)?.[1]);
+      {
+        const history = historyFixture(url.match(/\/rocm\/([^/]+)\//)?.[1]);
+        data = { ...history, builds: history.builds.map((build) =>
+          build.build_id === linuxBuild.build_id ? { ...build, results: linuxBuild.results } : build) };
+      }
+    else if (url === historyFixture().builds[0].report_url) data = producerReport(linuxBuild);
     else return route.fulfill({ status: 404, body: "{}" });
     await route.fulfill({ json: data });
   });
 });
 
-test("overview build marks open qualification and the exact package review", async ({ page }) => {
+test("overview build marks open qualification and the exact package popup", async ({ page }) => {
   await page.goto("./?version=10.1&view=overview&platform=windows");
   await expect(
     page
@@ -46,17 +58,11 @@ test("overview build marks open qualification and the exact package review", asy
   await expect(page).toHaveURL(/focus=day/);
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
   const details = page.getByRole("button", { name: "Run details for b11972", exact: true }).first();
-  await details.hover();
-  const report = page.getByRole("link", { name: "Package report for linux-build", exact: true });
-  await report.hover();
-  await expect(report).toBeVisible();
-  await report.click();
-  await page.getByRole("link", { name: /Build review/ }).click();
-  await expect(page).toHaveURL(/view=build/);
-  await expect(page).toHaveURL(/build=linux-build/);
-  await expect(
-    page.getByRole("heading", { name: "Build review", exact: true }),
-  ).toBeVisible();
+  await details.click();
+  const popup = page.getByRole("dialog");
+  await expect(popup.getByText("linux-build", { exact: true })).toBeVisible();
+  await expect(popup.getByRole("link", { name: /Pinned producer report/ })).toHaveAttribute("href", historyFixture().builds[0].report_url);
+  await popup.getByRole("button", { name: "Close popup" }).click();
   await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
   await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -99,29 +105,28 @@ test("pins data, switches versions and restores scope through browser history", 
   await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "false");
   await page.getByLabel("Find build").fill("linux-build");
   await expect(page).toHaveURL(/build_filter=linux-build/);
-  await page.getByRole("button", { name: "Run details for b11972", exact: true }).first().click();
-  await page.getByRole("link", { name: "Package report for linux-build", exact: true }).click();
-  await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
-  ).toBeVisible();
-  expect(
-    reads.filter((url) => url.endsWith("/main/data/latest.json")),
-  ).toHaveLength(pointerReads);
-  const shared = page.url();
-  await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
-  ).toBeVisible();
-  await expect(page).toHaveURL(shared);
+  const tiers = page.locator(".qualification-tier-summaries").filter({ hasText: "T0" });
+  await expect(tiers.getByRole("link")).toHaveCount(0);
+  await expect(tiers.getByText("T0", { exact: true })).toBeVisible();
+  const check = tiers.getByRole("button", { name: "T0.1 · Warn", exact: true });
+  await check.focus();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip.getByText("extra binary")).toBeVisible();
+  await expect(tooltip.getByText("12 ms")).toBeVisible();
+  await expect(tooltip.getByText("ROCm 10.1", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toHaveCount(0);
+  expect(reads.filter((url) => url.endsWith("/main/data/latest.json"))).toHaveLength(pointerReads);
+  const shared = new URL(page.url());
+  for (const [key, value] of Object.entries({ view: "build", build: "linux-build", tier: "tier0", check: "1" }))
+    shared.searchParams.set(key, value);
+  await page.goto(shared.href);
+  await expect(tooltip.getByText("hipblas missing", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goBack();
   await expect(page).toHaveURL(/view=engine.*platform=linux/);
   await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "false");
-  await page.goForward();
-  await expect(page).toHaveURL(/view=build/);
-  await expect(
-    page.getByRole("heading", { name: "Build evidence", exact: true }),
-  ).toBeVisible();
   expect(
     reads
       .filter(
@@ -160,7 +165,7 @@ test("keeps the current UTC date visible when the selected version has no build 
   await nightly.getByRole("link", { name: /Show Nightly packages for 2026-10-29 UTC.*Linux/ }).click();
   await expect(page).toHaveURL(/day=2026-10-29/);
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
-  await page.getByRole("link", { name: "Show all packages in this window" }).click();
+  await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(nightlyToday).toBeAttached();
 });
 
@@ -308,4 +313,16 @@ test("overview shows qualification without benchmark status", async ({
   await expect(
     page.getByText(/Inspect benchmark attempts|Benchmark execution|Bench fail/),
   ).toHaveCount(0);
+});
+
+
+test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Clear Date: 2026-10-01", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
 });

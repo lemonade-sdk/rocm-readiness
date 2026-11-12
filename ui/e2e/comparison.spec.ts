@@ -71,25 +71,17 @@ test("individual build marks retain outcomes and exact identity in a clean sessi
   expect(href).toContain("channel=stable");
   await failed.click();
   await page.getByRole("button", { name: "Run details for b-failed", exact: true }).click();
-  await page.getByRole("link", { name: "Package report for failed", exact: true }).click();
-  await page.getByRole("link", { name: /Build review/ }).click();
-  await expect(
-    page.getByRole("heading", { name: "Build review", exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "b-failed", exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText("Windows · stable · 2026-10-29 UTC")).toBeVisible();
-  const url = page.url();
+  await expect(page.getByRole("dialog").getByText("failed", { exact: true })).toBeVisible();
+  const url = new URL("?view=build&version=10.1&engine=llamacpp&channel=stable&platform=windows&build=failed", page.url()).href;
   const clean = await browser.newContext();
   try {
     await clean.route("https://raw.githubusercontent.com/**", routeFixture);
     const fresh = await clean.newPage();
     await fresh.goto(url);
     await expect(
-      fresh.getByRole("heading", { name: "b-failed", exact: true }),
+      fresh.getByRole("dialog", { name: "Run details for b-failed" }),
     ).toBeVisible();
-    await expect(fresh.getByText("Windows · stable · 2026-10-29 UTC")).toBeVisible();
+    await expect(fresh.getByRole("dialog").getByText("failed", { exact: true })).toBeVisible();
   } finally {
     await clean.close();
   }

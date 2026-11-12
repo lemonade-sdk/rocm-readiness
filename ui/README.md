@@ -31,15 +31,24 @@ refresh only the upstream view with `scripts/upstream.py`. See
 
 The header switches between **ROCm readiness** and **Upstream health**
 (`?track=upstream`). Upstream health shows one card per project with its
-computed badge, forks and 14-day status strips. A project page
-(`&project=<id>`) has a filter (`&lens=<stack or gfx target>`) that filters job-derived numbers and charts. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
+computed badge and aligned summary metrics in flat project sections. Project
+headings link to CI Activity, where source repositories, forks and collection
+notices are shown.
+Nested sidebar links switch between Overview (`&view=overview`) and CI Activity
+(`&view=ci`). Overview shows one project per row with a 14-day activity calendar. Selecting a
+day opens its UTC date and category in CI Activity, including after reload.
+CI Activity uses the shared Project, Platform, Stack and Target filter controls
+and contains daily run counts and detailed evidence. Project headings use the primary text color. A project
+activity page (`&view=ci&project=<id>`, with legacy `&project=<id>` URLs supported) uses independent inclusive stack (`&stack=<comma-separated values>`) and target
+(`&target=<comma-separated values>`) filters for job-derived numbers and calendars.
+Omitting a group includes all its values; legacy `&lens=<stack or target>` links still work. The badge, platform table and findings remain project-wide. Configured targets and distribution do not verify physical hardware or published artifacts. It also shows:
 
-- per-day diverging bars (passes up, failures down);
-- day panels linking each run's job log, commit and pull request;
+- a detailed daily table with grouped month headings, stacked outcome bars on one shared run-count scale;
+- interactive day tooltips with totals, exact outcome counts and each run's job log, commit and pull request;
 - platform coverage;
 - the merge gate;
-- what is failing on main;
-- per-job status ticks for the whole window.
+- failing steps on main;
+- an always-visible CI jobs table with job names, platform icons and 14 days of outcome cells. Job-name tooltips show stack, target and the 14-day pass rate. Each cell opens that job’s run evidence.
 
 ## Appearance
 
@@ -92,6 +101,16 @@ Build history supports platform and package/build searches. Opening a build load
 its pinned producer report on demand and displays individual checks, tiers,
 durations, warning/failure reasons and audit details. Report failures retain the
 build metadata and offer retry.
+
+Performance uses the shared visible filter buttons for ROCm version, measurement
+platform, hardware system, and workload. Each choice shows its selected state;
+there are no separate All buttons. Model selection
+remains a compact dropdown in the same filter bar; selections remain in the URL.
+Measurements use one table for both landing and legacy model URLs, with TPS, peak
+VRAM, TTFT, OS, and context. Quantization remains in evidence popups. Model-name popups retain package/run
+provenance and qualification evidence. Workload labels display 4K/32K while the
+source scenario and numeric context metadata remain unchanged. Workload details
+remain in evidence popups; timestamps use UTC.
 
 Performance views show measured package tags, dates, hardware, workloads and
 metric units. Cross-version comparisons require complete compatible hardware,
@@ -157,3 +176,28 @@ VITE_BASE_PATH=/rocm-readiness/ npm run preview
 
 Open `/rocm-readiness/` on the preview server. The default local development path
 remains `/`.
+
+Performance defaults to the latest observation per build, source, engine/fork/channel, model,
+quantization, workload/input, OS, and recorded hardware/context configuration. Older observations within the same build/configuration are collapsed. Rows are grouped under build tags, with nightly GPU-family subgroups from
+matched qualification packages or their attributed package filenames. Quantization
+remains available in evidence popups. P95 is copied from the producer TPS statistic; no cross-build averaging is
+performed. Legacy history URL flags no longer alter the table.
+
+Build Qualification and Performance share Find build and Reset filters controls
+in the filter toolbar. Reset clears each view’s selected package/model/day and
+filter scope while keeping the ROCm version (and qualification date window).
+Performance model-name links open all workloads for that model/package; metric
+bars retain exact-observation links and highlight their recorded workload.
+
+Performance headers keep units in shared definition tooltips. Context means the
+configured token window capacity. Header arrows sort rows inside each build/GPU
+family; missing metrics stay last. Build order can follow the selected metric
+only when all visible rows have the same complete compatible cohort identity.
+Sorting and build order persist in the URL. Both views expose removable Build/Date
+scope buttons in the filters. Hardware choices use CPU/GPU names when recorded,
+with the full source identifier available on hover.
+
+All project views share the outcome registry, glyph component and legend component
+used by Build Qualification. CI jobs show any recorded failure as Fail, distinguish
+skipped/requested/pending/missing evidence, and include their own legend. See the
+shared outcome conventions in `docs/ui-design-reference.md` before adding tables.

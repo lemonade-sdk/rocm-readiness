@@ -1130,16 +1130,6 @@ main {
 .up-activity-table tbody tr:nth-child(even) {
   background: color-mix(in srgb, var(--control) 45%, transparent);
 }
-.up-totals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-  gap: 0.75rem 1.25rem;
-  border-block: 1px solid var(--line);
-  padding-block: 0.85rem;
-}
-.up-totals .up-stat {
-  padding: 0;
-}
 @media (max-width: 760px) {
   #root {
     grid-template-columns: minmax(0, 1fr);
@@ -1175,3 +1165,33 @@ main {
   color: var(--status-ink, var(--muted));
 }
 .table-status-glyph { font: 700 .8rem/1 ui-monospace, monospace; }
+
+.workspace-build-details {
+  margin-inline-start: .65rem;
+}
+
+
+.platform-logo { display: inline-block; width: 1.1rem; height: 1.1rem; object-fit: contain; vertical-align: -.15em; flex-shrink: 0; }
+
+.qualification-performance-indicator {
+  width: .85rem;
+  height: .85rem;
+  margin-inline-start: .35rem;
+  vertical-align: -.1rem;
+  color: var(--accent);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  fill: none;
+}
+
+/* Shared outcome legends: glyph keys for evidence cells, swatches for bars. */
+.outcome-key { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin: 0; padding: 0.65rem 0 0; list-style: none; color: var(--muted); font-size: 0.8rem; }
+.outcome-key li { display: inline-flex; align-items: center; gap: 0.35rem; }
+.outcome-key-mark { display: inline-grid; place-items: center; width: 1.25rem; min-height: 1.25rem; }
+.outcome-key-bar { display: inline-block; width: 1rem; height: 0.45rem; background: currentColor; }
+.outcome-key-bar[data-outcome="pass"] { color: var(--good); }
+.outcome-key-bar[data-outcome="fail"] { color: var(--bad); }
+.outcome-key-bar[data-outcome="warn"] { color: var(--warning); }
+.outcome-key-bar:is([data-outcome="unreported"], [data-outcome="pending"]) { color: var(--muted); background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px); }
+.table-status:is([data-outcome="not_run"], [data-outcome="pending"]) { background: color-mix(in srgb, var(--muted) 16%, var(--subpanel)); color: var(--muted); }

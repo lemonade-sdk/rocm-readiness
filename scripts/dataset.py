@@ -1,6 +1,6 @@
 """Write the compact, versioned dataset consumed by the readiness UI."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -579,6 +579,23 @@ def _systems_for(rows, systems):
     return [systems[key] for key in sorted(keys)]
 
 
+def _benchmark_assessment(rows):
+    """Publish benchmark freshness copy from run evidence, never release dates."""
+    llama_rows = [
+        row
+        for row in rows
+        if row.get("engine") == "llamacpp" and row.get("backend") == "rocm"
+    ]
+    if not llama_rows:
+        return None
+    latest = max(llama_rows, key=lambda row: _timestamp(row["measured_at"]))
+    run_date = _timestamp(latest["measured_at"]).astimezone(timezone.utc)
+    return {
+        "message": "Measurements are from benchmarked llama.cpp builds. Benchmarks may trail releases.",
+        "last_run_label": f"Last run: {run_date:%Y-%m-%d %H:%M:%S} UTC.",
+    }
+
+
 def _latest_measurements(rows):
     latest = {}
     for row in rows:
@@ -669,6 +686,7 @@ def _write_version(
             {
                 "schema_version": 2,
                 "measurements": measurements,
+                "benchmark_assessment": _benchmark_assessment(measurements),
                 "systems": _systems_for(measurements, systems),
             },
         )

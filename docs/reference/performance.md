@@ -9,6 +9,23 @@
 | `/schema_version` | integer, required; `2` | Writer constant. |
 | `/measurements` | array of measurement records, required | All retained assigned observations in this version, after identity merging. |
 | `/systems` | array of system records, required | Only systems referenced by those measurements, unique by `(source_id, id)`. |
+| `/benchmark_assessment` | object or null; optional in older datasets | Collector-owned `message` and `last_run_label` for the newest llama.cpp ROCm benchmark in this version. |
+
+The benchmark assessment uses the greatest existing `measurements[*].measured_at`
+for `engine: "llamacpp"` and `backend: "rocm"`. Its benchmark date is formatted in UTC. It does
+not use collection time, qualification/build time, or release order. This summary
+is version-wide and stays independent of UI filters; historical build groups
+remain available. No matching observations produce null. React renders both
+strings as supplied, and older datasets without this field show no invented
+freshness assessment.
+The generic explanation appears below the page heading, while the last-run label
+appears beside the Model performance table. The table shows Prefill TPS directly
+from `pp_tps` and Decode TPS directly from `tg_tps`, then CTX size and Peak
+VRAM. Neither throughput column substitutes aggregate `tps_mean`; absent split
+metrics show an em dash with an explanation. Context size retains the existing
+workload-label fallback for historical records. P95 and TTFT remain in measurement
+evidence but are not table columns.
+
 
 ## Measurement record
 

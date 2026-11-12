@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.dataset import write_dataset
+from scripts.dataset import write_dataset, _benchmark_assessment
 
 SOURCE_A = (
     "https://raw.githubusercontent.com/example/source/"
@@ -82,6 +82,20 @@ def normalized(builds=None, measurements=None, systems=None, status="complete"):
 
 
 class DatasetTests(unittest.TestCase):
+    def test_benchmark_assessment_uses_latest_llamacpp_run_not_release_or_collection(self):
+        rows = [
+            {"engine": "llamacpp", "backend": "rocm", "engine_version": "b999", "measured_at": "2026-10-30T12:00:00Z"},
+            {"engine": "llamacpp", "backend": "rocm", "engine_version": "b100", "measured_at": "2026-10-31T13:02:03+02:00"},
+            {"engine": "vllm", "engine_version": "v2", "measured_at": "2026-11-01T12:00:00Z"},
+            {"engine": "llamacpp", "backend": "cuda", "engine_version": "b200", "measured_at": "2026-11-02T12:00:00Z"},
+        ]
+        self.assertEqual(_benchmark_assessment(rows), {
+            "message": "Measurements are from benchmarked llama.cpp builds. Benchmarks may trail releases.",
+            "last_run_label": "Last run: 2026-10-31 11:02:03 UTC.",
+        })
+        self.assertIsNone(_benchmark_assessment(rows[2:]))
+        self.assertIsNone(_benchmark_assessment([]))
+
     def test_retains_report_index_evidence_and_accepts_older_history(self):
         evidence = {
             "results": {"T0.1": "warn", "T1.1": "pass"},
@@ -631,6 +645,7 @@ class DatasetTests(unittest.TestCase):
             "source_pointer": "/latest/0",
             "kind": "latest",
             "engine": "llamacpp",
+            "backend": "rocm",
             "channel": "stable",
             "fork_id": "stable",
             "engine_repository": "example/source",
@@ -674,6 +689,10 @@ class DatasetTests(unittest.TestCase):
                 result["measurements"][0]["attribution"]["status"], "matched"
             )
             self.assertEqual([x["id"] for x in result["systems"]], ["host"])
+            self.assertEqual(result["benchmark_assessment"], {
+                "message": "Measurements are from benchmarked llama.cpp builds. Benchmarks may trail releases.",
+                "last_run_label": "Last run: 2026-10-01 10:00:00 UTC.",
+            })
             overview = json.loads((previous / "rocm/7.14/overview.json").read_text())
             self.assertEqual(overview["performance"]["measurement_count"], 1)
             self.assertEqual(

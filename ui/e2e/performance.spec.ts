@@ -10,6 +10,10 @@ import {
 function measurements(version: string, quant = "Q4_K_M") {
   return {
     schema_version: 2,
+    benchmark_assessment: {
+      message: "Measurements are from benchmarked llama.cpp builds. Benchmarks may trail releases.",
+      last_run_label: "Last run: 2026-10-29 12:00:00 UTC.",
+    },
     systems: [
       {
         id: "rig",
@@ -43,7 +47,7 @@ function measurements(version: string, quant = "Q4_K_M") {
         package_os: "linux",
         qualification_build_id: null,
         package_url: `https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b100/llama-b100-ubuntu-rocm-gfx1151-x64.tar.gz`,
-        metrics: { tg_tps: version === "10.1" ? 12 : 10, ttft_ms_mean: 250 },
+        metrics: { pp_tps: 120, tg_tps: version === "10.1" ? 12 : 10, ttft_ms_mean: 250 },
       },
     ],
   };
@@ -88,8 +92,10 @@ function measurements(version: string, quant = "Q4_K_M") {
       await expect(
         page.getByRole("button", { name: /^Measurement details for Fixture model/ }),
       ).toBeVisible();
-      await page.getByRole("button", { name: "Sort by TPS", exact: true }).click();
-      await expect(page).toHaveURL(/sort=tps/);
+      await expect(page.getByText("Measurements are from benchmarked llama.cpp builds. Benchmarks may trail releases.")).toBeVisible();
+      await expect(page.getByRole("region", { name: "Model performance", exact: true }).getByText("Last run: 2026-10-29 12:00:00 UTC.")).toBeVisible();
+      await page.getByRole("button", { name: "Sort by Decode TPS", exact: true }).click();
+      await expect(page).toHaveURL(/sort=decode/);
       await expect(page.locator('th[aria-sort="descending"]')).toContainText("TPS");
       const pointerReads = reads.filter((url) =>
         url.endsWith("/main/data/latest.json"),

@@ -46,10 +46,10 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await expect(page.getByText("unconfigured")).toBeVisible();
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
-  await expect(page.getByText("of 12 results on main passed")).toBeVisible();
+  await expect(page.getByText("of 12", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "rocm", exact: true }).click();
   await expect(page).toHaveURL(/stack=vulkan/);
-  await expect(page.getByText("of 8 results on main passed")).toBeVisible();
+  await expect(page.getByText("of 8", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "rocm", exact: true }).click();
   await page
     .getByRole("region", { name: "Daily activity" })
@@ -155,9 +155,9 @@ test("independent stack and target selections survive reload and history", async
   await expect(stacks.getByRole("button", { name: "rocm", exact: true })).toHaveAttribute("aria-pressed", "false");
   await expect(targets.getByRole("button", { name: "gfx1201" })).toHaveAttribute("aria-pressed", "false");
   await page.goBack();
-  await expect(page.getByText("of 8 results on main passed")).toBeVisible();
+  await expect(page.getByText("of 8", { exact: true })).toBeVisible();
   await stacks.getByRole("button", { name: "rocm", exact: true }).click();
-  await expect(page.getByText("of 12 results on main passed")).toBeVisible();
+  await expect(page.getByText("of 12", { exact: true })).toBeVisible();
   await expect(page).not.toHaveURL(/stack=|target=/);
 });
 

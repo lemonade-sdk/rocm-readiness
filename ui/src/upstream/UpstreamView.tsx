@@ -139,12 +139,17 @@ function ProjectLabels({ project }: { project: Project }) {
 
 function ActivityAssessment({ project, jobs }: { project: Project; jobs: Job[] }) {
   const assessment = project.activity_assessment;
-  if (!assessment) return null;
-  if (assessment.message) return <p className="muted">{assessment.message}</p>;
   const visible = new Set(jobs.map((job) => job.id));
-  return <>{assessment.metrics.map((metric) => <Stat key={metric.id}
-    value={metric.job_ids.filter((id) => visible.has(id)).length} label={metric.label}
-    bad={metric.tone === "negative" && metric.job_ids.some((id) => visible.has(id))} />)}</>;
+  return <>{[
+    { id: "no_starts", label: "No runs observed" },
+    { id: "later_requests", label: "Requests not started" },
+  ].map(({ id, label }) => {
+    const metric = assessment?.metrics.find((item) => item.id === id);
+    const count = metric?.job_ids.filter((jobId) => visible.has(jobId)).length ?? 0;
+    return <Stat key={id} value={count} label={label}
+      description={project.metric_descriptions?.[id as "no_starts" | "later_requests"]}
+      bad={metric?.tone === "negative" && count > 0} />;
+  })}</>;
 }
 
 function ProjectSources({ project }: { project: Project }) {
@@ -404,15 +409,17 @@ function Stat({
   value,
   label,
   bad = false,
+  description,
 }: {
-  value: number | string;
+  description?: string;
+  value: ReactNode;
   label: string;
   bad?: boolean;
 }) {
   return (
     <div className={`up-stat${bad ? " bad" : ""}`}>
       <strong>{value}</strong>
-      <span>{label}</span>
+      <span>{description ? <Tooltip label={label} content={<TooltipContent heading={label}><span>{description}</span></TooltipContent>}>{label}</Tooltip> : label}</span>
     </div>
   );
 }
@@ -533,12 +540,13 @@ function ProjectPage({
       </header>
       <div className="up-kpis up-kpis-page">
         <Stat
-          value={r.pct === null ? "–" : `${r.pct}%`}
-          label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
+          value={<>{r.pct === null ? "–" : `${r.pct}%`} <small>of {r.decided}</small></>}
+          label="Collected results passed"
+          description={project.metric_descriptions?.pass_rate}
         />
         <ActivityAssessment project={project} jobs={jobs} />
         {project.jobs.some((j) => j.gate) && (
-          <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
+          <Stat value={<>{red} <small>{red === 1 ? "PR" : "PRs"}</small></>} label="Merged with failed checks" description={project.metric_descriptions?.merged_red} bad={red > 0} />
         )}
       </div>
       </div>

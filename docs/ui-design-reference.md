@@ -344,3 +344,22 @@ Render `status_labels` text, tooltip and semantic tone as supplied; do not deriv
 labels or wording from evidence in React. Activity classification and metric copy
 also come from `activity_assessment`; the UI only applies visible-job filters.
 Older snapshots without these optional fields display no invented labels.
+
+In CI Activity, place the project status-label group beneath the project title,
+left-aligned. Overview retains its right-aligned labels.
+
+CI Activity summary metrics use a prominent percentage with a smaller inline
+sample size and the caption “Collected results passed”. Show the failed-check
+merge count with an inline PR unit and “Merged with failed checks”; avoid color
+jargon. The project collection notice communicates incomplete coverage. The desktop shell
+page heading aligns with the main content inset.
+
+Section descriptions in CI Activity sit below their section titles, left-aligned.
+Align the desktop app
+identity with the workspace rail text inset; align the page heading with content.
+
+CI Activity displays both inactivity metrics as “No runs observed” and “Requests
+not started”. Use zero when the published assessment omits a count, including
+incomplete collection. This is a display fallback, not verified absence; retain
+the project-level incomplete-collection indicator. Tooltip descriptions come from the collector’s optional `metric_descriptions`
+fields, including window scope and the zero-fallback limitation.

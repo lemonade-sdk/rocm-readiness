@@ -52,10 +52,10 @@ it("lists forks with links without opening the project", async () => {
 it("opens a project page whose filter drives the headline numbers", async () => {
   mount("/?track=upstream&project=llamacpp");
   await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
-  expect(screen.getByText("of 12 results on main passed")).toBeInTheDocument();
+  expect(screen.getByText("of 12")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "rocm" }));
   expect(
-    await screen.findByText("of 8 results on main passed"),
+    await screen.findByText("of 8"),
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "vulkan" })).toHaveAttribute(
     "aria-pressed",
@@ -289,7 +289,10 @@ it('omits aggregate metrics from incomplete overview projects', async () => {
 it('does not describe uncollected runs as absent in incomplete project details', async () => {
   mount('/?track=upstream&project=llamacpp', incompleteFetch());
   await screen.findByRole('heading', { level: 2, name: 'llama.cpp' });
-  expect(screen.getByText('Activity assessment unavailable — collection incomplete.')).toBeInTheDocument();
+  expect(screen.queryByText('Activity assessment unavailable — collection incomplete.')).not.toBeInTheDocument();
+  for (const label of ['No runs observed', 'Requests not started']) {
+    expect(screen.getByText(label).parentElement).toHaveTextContent('0');
+  }
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
   const perDay = screen.getByRole('region', { name: 'Daily activity' });
@@ -408,11 +411,11 @@ it("filters platform evidence while keeping at least one platform selected", asy
   }));
   const platforms = await screen.findByRole("group", { name: "Platform" });
   fireEvent.click(within(platforms).getByRole("button", { name: "Windows" }));
-  expect(await screen.findByText("of 4 results on main passed")).toBeInTheDocument();
+  expect(await screen.findByText("of 4")).toBeInTheDocument();
   expect(within(platforms).getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "false");
   expect(within(platforms).getByRole("button", { name: "Linux" })).toBeDisabled();
   fireEvent.click(within(platforms).getByRole("button", { name: "Windows" }));
-  expect(await screen.findByText("of 12 results on main passed")).toBeInTheDocument();
+  expect(await screen.findByText("of 12")).toBeInTheDocument();
 });
 
 it("uses independent inclusive stack and target toggles and a shared daily calendar", async () => {
@@ -426,14 +429,14 @@ it("uses independent inclusive stack and target toggles and a shared daily calen
   expect(screen.queryByRole("navigation", { name: "Project navigation" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "lemonade-sdk/llama.cpp" }).closest("details")).toBeNull();
   fireEvent.click(within(stacks).getByRole("button", { name: "rocm" }));
-  expect(screen.getByText("of 8 results on main passed")).toBeInTheDocument();
+  expect(screen.getByText("of 8")).toBeInTheDocument();
   expect(within(stacks).getByRole("button", { name: "vulkan" })).toBeDisabled();
   fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
   expect(screen.getByText("0 jobs")).toBeInTheDocument();
   fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
-  expect(screen.getByText("of 8 results on main passed")).toBeInTheDocument();
+  expect(screen.getByText("of 8")).toBeInTheDocument();
   fireEvent.click(within(stacks).getByRole("button", { name: "rocm" }));
-  expect(screen.getByText("of 12 results on main passed")).toBeInTheDocument();
+  expect(screen.getByText("of 12")).toBeInTheDocument();
   expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
 });
 
@@ -620,8 +623,8 @@ it("separates no-start test jobs from jobs with later unrun requests", async () 
   job.quiet_days = ["2026-10-29"];
   mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   const card = await screen.findByRole("region", { name: "llama.cpp upstream health" });
-  expect(within(card).getByText(/test jobs with no observed starts/).parentElement).toHaveTextContent("0");
-  expect(within(card).getByText(/test jobs with unrun requests after last start/).parentElement).toHaveTextContent("1");
+  expect(within(card).getByText("No runs observed").parentElement).toHaveTextContent("0");
+  expect(within(card).getByText("Requests not started").parentElement).toHaveTextContent("1");
 });
 
 it("includes DevLab beside coverage in the CI Activity header", async () => {
@@ -650,4 +653,31 @@ it("does not invent labels for legacy datasets", async () => {
   mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   await screen.findByRole("heading", { name: "llama.cpp" });
   expect(document.querySelectorAll(".up-status-labels button")).toHaveLength(0);
+});
+
+it("shows collector-provided descriptions for all four summary metrics", async () => {
+  const descriptions = {
+    pass_rate: "Collector explanation of passed results",
+    no_starts: "Collector explanation of no starts",
+    later_requests: "Collector explanation of unstarted requests",
+    merged_red: "Collector explanation of failed checks",
+  };
+  const data = { ...upstreamOverview, projects: upstreamOverview.projects.map((project) => ({
+    ...project, metric_descriptions: descriptions,
+  })) };
+  mount('/?track=upstream&view=ci&project=llamacpp', upstreamFetch({
+    [new URL('upstream/overview.json', indexUrl).href]: data,
+  }));
+  await screen.findByRole('heading', { name: 'llama.cpp', level: 2 });
+  for (const [label, description] of [
+    ['Collected results passed', descriptions.pass_rate],
+    ['No runs observed', descriptions.no_starts],
+    ['Requests not started', descriptions.later_requests],
+    ['Merged with failed checks', descriptions.merged_red],
+  ]) {
+    const trigger = screen.getByRole('button', { name: label });
+    fireEvent.focus(trigger);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(description);
+    fireEvent.blur(trigger);
+  }
 });

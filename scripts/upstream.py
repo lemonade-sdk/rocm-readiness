@@ -774,9 +774,19 @@ def collect_project(
             sort_keys=True,
         ).encode()
     ).hexdigest()
+    source_identity = {"repository": repo, "branch": branch,
+                       "tag_pattern": project.get("tag_pattern"), "cache_version": 3}
+    job_specs = {job["id"]: job for job, _ in specs}
     prior = prior_coverage or {}
     if prior.get("cache_identity") != identity:
-        previous, scanned, prior = {}, set(), {}
+        # Preserve evidence only for jobs whose complete specification and source
+        # are unchanged. Reset scan state so changed/new selectors are backfilled.
+        old_specs = prior.get("job_specs", {})
+        unchanged = {jid for jid, spec in job_specs.items() if old_specs.get(jid) == spec}
+        if prior.get("source_identity") != source_identity:
+            unchanged = set()
+        previous = {key: row for key, row in previous.items() if row.get("job") in unchanged}
+        scanned, prior = set(), {}
     records = {
         key: row
         for key, row in previous.items()
@@ -940,6 +950,8 @@ def collect_project(
         "collected_at": _iso(now),
         "oldest_run_at": min(created) if created else None,
         "cache_identity": identity,
+        "source_identity": source_identity,
+        "job_specs": job_specs,
         "pending": cache,
     }
     if errors:
@@ -1223,6 +1235,20 @@ def _findings(jobs, merged_red):
     return out
 
 
+def _metric_descriptions(coverage, window_days):
+    scope = f"Across the {window_days}-day collection window, for jobs included by the current filters. "
+    incomplete = (" Collection is incomplete; missing records may change this value."
+                  if not coverage["complete"] else "")
+    inactivity = (" Collection is incomplete: zero is a display fallback, not a verified absence of inactive jobs."
+                  if not coverage["complete"] else "")
+    return {
+        "pass_rate": scope + "Percentage of collected pass or fail job results that passed. The sample size excludes skipped, unstarted and undecided results." + incomplete,
+        "no_starts": scope + "Number of configured test jobs with no observed starts. Skipped jobs can be included; this does not by itself establish a runner problem." + inactivity,
+        "later_requests": scope + "Number of test jobs that started earlier but had later days with requested jobs that did not start. Counts jobs, not individual requests." + inactivity,
+        "merged_red": scope + "Number of distinct merged pull requests with a recorded failed configured check on the pull request head commit, completed by merge time. A pull request is counted once even if several checks failed." + incomplete,
+    }
+
+
 def _activity_assessment(jobs, coverage, window_days):
     if not coverage["complete"]:
         return {"message": "Activity assessment unavailable — collection incomplete.", "metrics": []}
@@ -1277,6 +1303,7 @@ def derive_project(project, rows, days, targets, coverage, files):
         "badge": badge,
         "status_labels": _status_labels(jobs, badge, coverage, len(days)),
         "activity_assessment": _activity_assessment(jobs, coverage, len(days)),
+        "metric_descriptions": _metric_descriptions(coverage, len(days)),
         "kpis": {
             "decided": decided,
             "passed": passed,
@@ -1417,6 +1444,32 @@ def collect_upstream(
             f"{calls[0]} API calls so far",
             flush=True,
         )
+    # Give every project its initial share, then spend otherwise-unused calls on
+    # incomplete backfills. Continue from the records and page checkpoints just
+    # collected, rather than fetching completed job details again.
+    pending_projects = [p for p in config["projects"]
+                        if not collected[p["id"]][2].get("complete")
+                        and not collected[p["id"]][2].get("error")]
+    for pos, project in enumerate(pending_projects):
+        remaining = max(0, budget_calls - used)
+        if not remaining:
+            break
+        budget = Budget(remaining // (len(pending_projects) - pos))
+        pid = project["id"]
+        rows, scanned_rows, coverage = collected[pid]
+        prior_rows = {(r["job"], r["run_id"], r["job_id"]): r for r in rows}
+        try:
+            collected[pid] = collect_project(
+                project, counted, budget, now, config["window_days"],
+                prior_rows, scanned_rows, workers=workers, prior_coverage=coverage)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            coverage["error"] = str(error)
+            coverage["complete"] = False
+        used += budget.used
+        rows, _, coverage = collected[pid]
+        print(f"upstream {pid} backfill: {len(rows)} job records, "
+              f"{'complete' if coverage.get('complete') else 'partial'}, "
+              f"{calls[0]} API calls so far", flush=True)
     entry = write_upstream(destination, config, collected, now, write_json)
     entry["api_calls"] = calls[0]
     if errors:
@@ -1554,6 +1607,9 @@ def validate_upstream_dataset(root, entry):
         if "status_labels" in project:
             _ok(project["status_labels"] == _status_labels(jobs, project["badge"], project["coverage"], window["days"]),
                 where, at + "/status_labels", "labels must match collected project evidence")
+        if "metric_descriptions" in project:
+            _ok(project["metric_descriptions"] == _metric_descriptions(project["coverage"], window["days"]),
+                where, at + "/metric_descriptions", "metric descriptions must match collection scope")
         if "activity_assessment" in project:
             _ok(project["activity_assessment"] == _activity_assessment(jobs, project["coverage"], window["days"]),
                 where, at + "/activity_assessment", "activity presentation must match collected evidence")

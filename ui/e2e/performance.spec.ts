@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+
+// Baseline table/popup scenarios use desktop dimensions; responsive cases override this.
+test.use({ viewport: { width: 1440, height: 1000 } });
 import {
   index,
   indexUrl,

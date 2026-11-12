@@ -125,7 +125,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect(page.getByRole("article", { name: `${model} · 4K` })).toHaveCount(0);
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath("performance.png"), fullPage: true });
+      await page.screenshot({ path: testInfo.outputPath("performance.png"), fullPage: false });
       if (compact) await navigation.click();
       await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
       await expect(page.getByRole("heading", { name: "Package qualification", exact: true })).toBeVisible();
@@ -141,7 +141,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect(evidence).toHaveCount(0);
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath("qualification.png"), fullPage: true });
+      await page.screenshot({ path: testInfo.outputPath("qualification.png"), fullPage: false });
     });
   }
 }
@@ -159,7 +159,7 @@ for (const width of [430, 540, 541]) {
     const reverse = await page.getByRole("button", { name: "Reverse measurement sort" }).boundingBox();
     expect(Math.abs(sorting!.y - reverse!.y)).toBeLessThan(1);
     expect(reverse!.width).toBeGreaterThanOrEqual(44);
-    await page.screenshot({ path: testInfo.outputPath("aligned-filters.png"), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("aligned-filters.png"), fullPage: false });
     await page.getByRole("button", { name: "Performance filters", exact: true }).click();
     const measurement = page.getByRole("article").first();
     await measurement.locator("summary").click();
@@ -199,7 +199,7 @@ for (const width of [320, 430, 540, 541, 768]) {
       await expect(history.getByRole("rowheader")).toHaveCount(14);
       expect(await history.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     } else await expect(history.locator(".build-timeline")).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath("overview-calendar.png"), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("overview-calendar.png"), fullPage: false });
     await page.goto("./?view=engine&version=10.1");
     const bars = page.locator(".qualification-trend-stack").first();
     if (width <= 540) {
@@ -212,7 +212,7 @@ for (const width of [320, 430, 540, 541, 768]) {
     const legends = groups.getByRole("list", { name: "Check outcomes", exact: true });
     await expect(legends).toHaveCount(await groups.count());
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath("vertical-qualification.png"), fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("vertical-qualification.png"), fullPage: false });
   });
 }
 

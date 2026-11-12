@@ -102,6 +102,9 @@ const projectSchema = z.object({
     state: z.enum(["up", "partial", "down"]),
     reason: z.string(),
   }),
+  metric_descriptions: z.object({
+    pass_rate: z.string(), no_starts: z.string(), later_requests: z.string(), merged_red: z.string(),
+  }).optional(),
   activity_assessment: z.object({
     message: z.string().nullable(),
     metrics: z.array(z.object({ id: z.string(), label: z.string(),

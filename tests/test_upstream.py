@@ -423,6 +423,26 @@ class CollectionTests(unittest.TestCase):
         self.assertEqual(entry["status"], "fresh")
         self.assertEqual(overview(self.out)["projects"][0]["kpis"]["decided"], 3)
 
+    def test_unused_project_budget_is_reused_for_backfill(self):
+        cfg = config(project(), project(id="empty", jobs=[]))
+        entry = collect(self.gh, self.out, cfg, budget=18)
+        self.assertEqual(entry["status"], "fresh")
+        self.assertEqual(overview(self.out)["projects"][0]["kpis"]["decided"], 3)
+        self.assertLessEqual(entry["api_calls"], 18)
+
+    def test_changed_selector_preserves_unchanged_job_records_during_backfill(self):
+        entry = collect(self.gh, self.out)
+        (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
+        old_build = overview(self.out)["projects"][0]["jobs"][1]["decided"]
+        self.assertGreater(old_build, 0)
+        cfg = config()
+        cfg["projects"][0]["jobs"][0]["match"] = {"name": "cpu"}
+        collect(self.gh, self.out, cfg, previous=self.out, budget=0)
+        card = overview(self.out)["projects"][0]
+        self.assertEqual(card["jobs"][0]["decided"], 0)
+        self.assertEqual(card["jobs"][1]["decided"], old_build)
+        self.assertFalse(card["coverage"]["complete"])
+
     def test_changed_selector_recollects_previously_scanned_runs(self):
         entry = collect(self.gh, self.out)
         (self.out / "index.json").write_text(json.dumps({"upstream": entry}))
@@ -962,3 +982,16 @@ class StatusLabelTests(unittest.TestCase):
         self.assertIn("30-day", labels[1]["tooltip"])
         for state, text in [("up", "upstream"), ("partial", "partial"), ("down", "unobserved")]:
             self.assertEqual(_status_labels([job], {"state": state, "reason": "evidence"}, {"complete": True}, 30)[0]["text"], text)
+
+class MetricDescriptionTests(unittest.TestCase):
+    def test_descriptions_explain_scope_counts_and_incomplete_fallback(self):
+        from scripts.upstream import _metric_descriptions
+        complete = _metric_descriptions({"complete": True}, 30)
+        self.assertEqual(set(complete), {"pass_rate", "no_starts", "later_requests", "merged_red"})
+        self.assertTrue(all("30-day" in text for text in complete.values()))
+        self.assertIn("Counts jobs, not individual requests", complete["later_requests"])
+        self.assertIn("counted once", complete["merged_red"])
+        self.assertIn("head commit, completed by merge time", complete["merged_red"])
+        partial = _metric_descriptions({"complete": False}, 30)
+        for key in ("no_starts", "later_requests"):
+            self.assertIn("zero is a display fallback", partial[key])

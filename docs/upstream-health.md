@@ -106,3 +106,28 @@ also be dispatched manually on `main` and runs daily at 11:00 UTC. PR runs valid
 collection but never publish; only non-PR runs on `main` can publish the dataset.
 The UI deployment and data publication must both complete before the production
 site can display new presentation fields on reload.
+
+### Summary metric explanations
+
+The collector emits optional `metric_descriptions` on each upstream project,
+with `pass_rate`, `no_starts`, `later_requests`, and `merged_red` text. These
+explain the collection window, visible-job filter scope, counting rules, and
+incomplete-collection limitations. CI Activity renders this text through shared
+hover, focus and touch tooltips on the metric captions. Older datasets without
+these fields remain readable, without invented tooltip text. Incomplete
+inactivity metrics explicitly explain that zero is a display fallback.
+
+### Incremental backfill budget and configuration changes
+
+Collection first allocates a share of the API budget to every project. A second
+pass distributes remaining calls to incomplete projects without API errors,
+resuming their in-memory records and page checkpoints. The total budget stays
+unchanged, and other projects keep their initial opportunity to refresh.
+
+Coverage retains `source_identity` and per-job `job_specs`. When configuration
+changes, records for exactly unchanged jobs from the same source remain usable,
+while scan/page state resets so new selectors are backfilled. Changed jobs and
+source changes discard incompatible evidence. Legacy snapshots without this
+metadata retain conservative full invalidation on a configuration mismatch.
+This prevents future unnecessary loss; already-discarded history still needs
+backfilling from GitHub. Published dataset files are not manually reconstructed.

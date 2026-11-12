@@ -163,3 +163,14 @@
 .build-timeline .os-column {
   vertical-align: bottom;
 }
+
+.build-calendar-vertical { width: 100%; table-layout: fixed; border-collapse: collapse; font: .75rem/1.4 ui-monospace, monospace; }
+.build-calendar-vertical th, .build-calendar-vertical td { padding: .35rem; border-bottom: 1px solid var(--line); text-align: center; }
+.build-calendar-vertical th:first-child { width: 7.5rem; text-align: left; }
+.build-calendar-vertical thead { color: var(--muted); }
+.build-calendar-vertical th[aria-current="date"] { color: var(--accent); }
+.build-calendar-vertical h4, .build-calendar-vertical h5 { margin: 0; font: inherit; }
+.build-calendar-vertical .build-mark, .build-calendar-vertical .build-evidence-missing { color: inherit; display: grid; place-items: center; width: 100%; min-height: 44px; }
+@media (max-width: 540px) { .build-timeline-scroll:has(.build-calendar-vertical) { padding: .5rem; overflow: visible; } }
+
+.build-calendar-vertical .build-no-data { display: grid; place-items: center; min-height: 44px; }

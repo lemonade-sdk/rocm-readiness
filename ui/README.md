@@ -89,7 +89,20 @@ Calendar headings group day numbers under spanning month names with a month boun
 Build links use the shared custom tooltip with formatted UTC report time, qualification,
 channel, revision and build identity. The repeated ROCm/channel heading is omitted
 inside a single-channel card; multiple channels retain concise channel headings.
-Mobile keeps the horizontally scrollable timeline; a vertical redesign is deferred.
+At 540 CSS pixels and below, overview calendars use date rows with platform
+columns, and qualification trends use horizontal bars down a dated list. Wider
+layouts retain the horizontally scrollable timelines.
+
+Phones (up to 640 CSS pixels) show Performance measurements and qualification
+packages as separated records with expandable evidence. Package qualification
+shows ROCm once, prominent stable-build or nightly GPU-family headings, and check
+legends beneath each build/family group. The compact header keeps
+the current view title and a filter icon visible; filters and measurement sorting
+expand in place. At 540 CSS pixels and below, CI Activity uses expandable date cards with category selection and run evidence inside
+each card. Project metrics use square tiles in a responsive four/two-column grid. Qualification date rows expand their packages in place. CI jobs open individual dated outcome tables. Wider CI matrices retain horizontal scrolling,
+with selected evidence expanded below the matrix. Below 1280 CSS pixels, the Navigation button reveals
+workspace navigation above the content, regardless of orientation. Tables remain
+above the independent 640 CSS-pixel phone breakpoint; wider layouts retain the sidebar.
 
 Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
 model-performance details. URLs retain

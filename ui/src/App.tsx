@@ -14,6 +14,7 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
+import { useMediaQuery } from "./mobile";
 
 function date(value: string | null) {
   return value
@@ -26,6 +27,10 @@ function date(value: string | null) {
 }
 export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const navigationButton = useRef<HTMLButtonElement>(null);
+  const compactNavigation = useMediaQuery("(width < 1280px)");
+  useEffect(() => setNavigationOpen(false), [params]);
   const version = params.get("version") || undefined;
   const view = params.get("view") ?? "overview";
   // Two dashboards over one dataset: ROCm readiness (default) and Upstream
@@ -225,7 +230,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const versionOptions = session?.index.versions ?? [];
   const performanceView = ["performance", "model", "build-performance"].includes(view);
   const versionFilter = qualificationView || performanceView ? (
-    <fieldset className="build-filter-options">
+    <fieldset className="build-filter-options version-filter-options">
       <legend>ROCm version</legend>
       {!session && <span className="muted">Loading…</span>}
       {selected && !versionOptions.some((row) => row.rocm_version === selected) && (
@@ -274,6 +279,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         <Link className="brand" to={href("overview")}>
           ROCm Readiness
           <span className="deck-label">Signal Deck</span>
+          <span className="mobile-engine">{track === "readiness" ? "llama.cpp" : "Upstream health"}</span>
         </Link>
         <div className="header-page">
           <div className="header-page-heading">
@@ -282,12 +288,57 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               {track === "readiness" ? "01 / Release qualification" : "02 / Continuous integration"}
             </div>
           </div>
+          <span id="mobile-filter-slot" />
         </div>
-        <div className="header-controls"><ThemeControl /></div>
+        <div className="header-controls"><ThemeControl /><button ref={navigationButton} type="button" className="mobile-nav-toggle"
+          aria-label="Navigation" aria-expanded={navigationOpen} aria-controls="workspace-navigation"
+          onClick={() => setNavigationOpen(!navigationOpen)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button></div>
       </header>
-      <aside className="deck-rail" aria-label="Workspaces">
+      <aside id="workspace-navigation" className="deck-rail" aria-label="Workspaces" data-open={navigationOpen || undefined}
+        onKeyDown={(event) => {
+          if (compactNavigation && event.key === "Escape") {
+            event.preventDefault();
+            setNavigationOpen(false);
+            navigationButton.current?.focus();
+          }
+        }}
+        onClick={(event) => {
+          if (compactNavigation && event.target instanceof Element && event.target.closest("a")) {
+            setNavigationOpen(false);
+            requestAnimationFrame(() => document.getElementById("main")?.focus({ preventScroll: true }));
+          }
+        }}>
         <div className="deck-kicker">Workspaces</div>
-        <nav className="track-tabs" aria-label="Dashboards">
+        {compactNavigation ? <nav className="compact-navigation" aria-label="Dashboards">
+          <ul className="compact-workspace-list">
+            <li>
+              <Link aria-current={track === "readiness" ? "true" : undefined}
+                to={`?${new URLSearchParams(selected ? { version: selected } : {})}`}>ROCm readiness</Link>
+              {track === "readiness" && <ul className="compact-view-list" aria-label="Dashboard views">
+                <li><Link aria-current={view === "overview" ? "page" : undefined} to={href("overview")}>Overview</Link>
+                  <ul className="compact-subviews" aria-label="Overview pages">
+                    <li><Link aria-current={qualificationView ? "page" : undefined} to={href("engine")}>Build Qualification</Link>
+                      <ul className="compact-subviews" aria-label="Build Qualification pages">
+                        <li><Link aria-current={performanceView ? "page" : undefined} to={href("performance")}>Performance</Link></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>}
+            </li>
+            <li>
+              <Link aria-current={track === "upstream" ? "true" : undefined} to="?track=upstream">Upstream health</Link>
+              {track === "upstream" && <ul className="compact-view-list" aria-label="Upstream health views">
+                <li><Link aria-current={!upstreamCI ? "page" : undefined} to={upstreamHref("overview")}>Overview</Link>
+                  <ul className="compact-subviews" aria-label="Overview pages">
+                    <li><Link aria-current={upstreamCI ? "page" : undefined} to={upstreamHref("ci")}>CI Activity</Link></li>
+                  </ul>
+                </li>
+              </ul>}
+            </li>
+          </ul>
+        </nav> :
+        <nav className="track-tabs desktop-workspace-navigation" aria-label="Dashboards">
           <ul className="workspace-list">
             <li>
               <Link
@@ -320,7 +371,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               )}
             </li>
           </ul>
-        </nav>
+        </nav>}
       </aside>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&

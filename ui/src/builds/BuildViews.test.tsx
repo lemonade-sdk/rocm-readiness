@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EngineBuilds } from "./BuildViews";
 import { buildFixture, session } from "./fixtures";
 import type { PerformanceData } from "../performance/PerformanceView";
@@ -62,4 +62,16 @@ describe("Build qualification performance filter", () => {
     expect(params.get("through")).toBe("2026-10-29");
     expect(screen.getAllByText("b101").length).toBeGreaterThan(0);
   });
+});
+
+afterEach(() => vi.unstubAllGlobals());
+it("keeps date-scoped phone packages visible without a platform filter", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  mount("view=engine&version=10.1&day=2026-10-29");
+  const evidence = document.querySelectorAll(".qualification-day-evidence");
+  expect(evidence).toHaveLength(2);
+  expect(screen.getAllByRole("heading", { name: /^Package qualification$/ })).toHaveLength(2);
+  const toggles = document.querySelectorAll<HTMLButtonElement>('.qualification-day-toggle[aria-expanded="true"]');
+  fireEvent.click(toggles[1]);
+  expect(document.querySelectorAll(".qualification-day-evidence")).toHaveLength(0);
 });

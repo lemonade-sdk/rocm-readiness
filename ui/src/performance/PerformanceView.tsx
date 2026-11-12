@@ -7,6 +7,9 @@ import "../builds/QualificationMatrix.css";
 import { FilterReset, FilterScope } from "../FilterReset";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { PlatformIcon } from "../PlatformIcon";
+import { usePhoneLayout } from "../mobile";
+import { MobileFilters } from "../MobileFilters";
+import { EvidenceDisclosure } from "../overview/EvidenceDisclosure";
 
 const timestamp = z
   .string()
@@ -624,6 +627,7 @@ export function PerformanceView({
   onNavigate: (params: URLSearchParams) => void;
   buildHref: (buildId: string, platform: string) => string;
 }) {
+  const phone = usePhoneLayout();
   const overview = session.overview;
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -819,6 +823,7 @@ export function PerformanceView({
         </div>
       </div>
       {state.kind === "ready" && (
+        <MobileFilters label="Performance filters" count={[model, system.length, selectedWorkloads.length, platform.length, buildQuery, selectedBuild, observation].filter(Boolean).length}>
         <div className="build-browser-toolbar build-filters performance-filter-bar" aria-label="Performance filters">
           {versionFilter}
           <PerformanceFilter label="Measurement platform" value={platform}
@@ -854,6 +859,17 @@ export function PerformanceView({
             onChange={(event) => navigate({ build_filter: event.target.value || null })} /></label>
           {selectedBuild && <FilterScope label={`Build: ${allRows[0]?.engine_version ?? selectedBuild}`} onClear={() => navigate({ build: null, source: null, observation: null })} />}
           {observation && <FilterScope label="Exact measurement" onClear={() => navigate({ observation: null })} />}
+          {phone && <div className="performance-card-sort"><label>Sort measurements
+            <select aria-label="Sort measurements" value={sortKey} onChange={(event) => navigate({ sort: event.target.value })}>
+              <option value="model">Model</option><option value="context">Context</option><option value="tps">TPS</option><option value="p95">P95</option><option value="vram">VRAM</option><option value="ttft">TTFT</option>
+            </select></label>
+            <button type="button" aria-label="Reverse measurement sort" onClick={() => navigate({ direction: descending ? "asc" : "desc" })}>{descending ? "↓" : "↑"}</button>
+          </div>}
+          {phone && <div className="performance-build-order"><Tooltip label="Build order help" content="Newest orders build groups by their latest measurement. Selected metric orders builds only when every visible row has the same fully recorded model, workload, quantization, OS, and hardware. Choose a metric sort first.">Build order</Tooltip>
+            <select aria-label="Build order" value={params.get("build_order") === "metric" && canRankBuilds ? "metric" : "newest"} onChange={(event) => navigate({ build_order: event.target.value === "newest" ? null : "metric" })}>
+              <option value="newest">Newest first</option><option value="metric" disabled={!canRankBuilds}>Selected metric</option>
+            </select>
+          </div>}
           <FilterReset onReset={() => {
             const next = new URLSearchParams(params);
             for (const key of ["build", "source", "model", "system", "workload", "platform", "observation", "engine", "channel", "build_filter", "day", "focus", "package_identity", "sort", "direction", "build_order"])
@@ -864,6 +880,7 @@ export function PerformanceView({
 
 
         </div>
+        </MobileFilters>
       )}
       {state.kind !== "ready" && <div className="build-browser-toolbar build-filters">{versionFilter}</div>}
 
@@ -878,16 +895,33 @@ export function PerformanceView({
       {state.kind === "ready" && <>
         <section className="qualification-matrix" aria-label="Model performance">
           <div className="performance-table-heading">
-            <h2>Model performance</h2>
+            {!phone && <h2>Model performance</h2>}
             {state.data.benchmarkAssessment && <p className="performance-last-run">{state.data.benchmarkAssessment.last_run_label}</p>}
           </div>
-          <label className="performance-build-order"><Tooltip label="Build order help" content="Newest orders build groups by their latest measurement. Selected metric orders builds only when every visible row has the same fully recorded model, workload, quantization, OS, and hardware. Choose a metric sort first.">Build order</Tooltip>
-            <select value={params.get("build_order") === "metric" && canRankBuilds ? "metric" : "newest"} onChange={(event) => navigate({ build_order: event.target.value === "newest" ? null : "metric" })}>
+          {!phone && <label className="performance-build-order"><Tooltip label="Build order help" content="Newest orders build groups by their latest measurement. Selected metric orders builds only when every visible row has the same fully recorded model, workload, quantization, OS, and hardware. Choose a metric sort first.">Build order</Tooltip>
+            <select aria-label="Build order" value={params.get("build_order") === "metric" && canRankBuilds ? "metric" : "newest"} onChange={(event) => navigate({ build_order: event.target.value === "newest" ? null : "metric" })}>
               <option value="newest">Newest first</option><option value="metric" disabled={!canRankBuilds}>Selected metric</option>
             </select>
-          </label>
+          </label>}
           <div className="qualification-releases">
-            {visibleRows.every((row) => row.channel === "stable")
+            {phone ? orderedBuildGroups.map(([key, group]) => <section className="performance-card-group" key={key} aria-label={`Build ${group.tag}`}>
+              <header className="performance-card-build">
+                <h2>ROCm {session.version} <span className="performance-channel">{group.rows[0].channel === "stable" ? "Stable" : group.rows[0].channel === "nightly" ? "Nightly" : group.rows[0].channel}</span></h2>
+                <p>{group.tag} · {group.rows[0].engine === "llamacpp" ? "llama.cpp" : group.rows[0].engine}</p>
+              </header>
+              {[...group.rows].sort(compareRows).map((row) => <article className="performance-card" key={measurementIdentity(row) + measurementTieBreaker(row)} aria-label={`${row.model} · ${workloadLabel(row.scenario)}`}>
+                <h3>{row.model}</h3>
+                <p className="performance-card-subtitle">{workloadLabel(row.scenario)} · <PlatformIcon platform={row.package_os ?? ""} /> {row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}{row.channel !== "stable" && ` · ${gpuFamily(row)}`}</p>
+                <dl className="performance-card-metrics">
+                  <div><dt>TPS</dt><dd>{row.metrics.tps_mean != null || row.metrics.tg_tps != null ? `${formatNumber(row.metrics.tps_mean ?? row.metrics.tg_tps)} tok/s` : "Not recorded"}</dd></div>
+                  <div><dt>Peak VRAM</dt><dd>{row.metrics.vram_peak_gb == null ? "Not recorded" : `${formatNumber(row.metrics.vram_peak_gb)} GB`}</dd></div>
+                  <div><dt>TTFT</dt><dd>{row.metrics.ttft_ms_mean == null ? "Not recorded" : `${formatNumber(row.metrics.ttft_ms_mean / 1000)} s`}</dd></div>
+                </dl>
+                <EvidenceDisclosure className="performance-card-evidence" initialOpen={Boolean(observation)}>
+                  <MeasurementEvidence row={row} systems={state.data.systems} history={state.history} buildHref={buildHref} />
+                </EvidenceDisclosure>
+              </article>)}
+            </section>) : visibleRows.every((row) => row.channel === "stable")
               ? measurementTable(orderedBuildGroups.map(([key, group]) => ({ key, label: group.tag, rows: group.rows })), false)
               : orderedBuildGroups.map(([key, group]) => {
                 const families = new Map<string, Measurement[]>();

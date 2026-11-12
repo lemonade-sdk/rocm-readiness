@@ -1,3 +1,4 @@
+import { useMediaQuery } from "./mobile";
 import { useUtcToday } from "./overview/useUtcToday";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
@@ -112,6 +113,7 @@ export function EngineOverview({
   nested = false,
   emptyChannel,
 }: Props) {
+  const vertical = useMediaQuery("(max-width: 540px)");
   const EngineHeading = nested ? "h3" : "h2";
   const OSHeading = nested ? "h5" : "h4";
   const today = useUtcToday(now);
@@ -183,7 +185,21 @@ export function EngineOverview({
                       role="region"
                       aria-label={`${engine.label} ${channel} build history`}
                     >
-                      <table className="build-timeline">
+                      {vertical ? <table className="build-calendar-vertical">
+                        <thead><tr><th scope="col">Date · UTC</th>{platforms.map((os) => <th scope="col" key={os}><OSHeading>{platformLabel(os)}</OSHeading></th>)}</tr></thead>
+                        <tbody>{[...days].reverse().map((day) => <tr key={day}>
+                          <th scope="row" aria-label={`${day} UTC`} aria-current={day === today ? "date" : undefined}><time dateTime={day}>{day}</time></th>
+                          {platforms.map((os) => {
+                            const dayBuilds = channelBuilds.filter((build) => build.os === os && buildDate(build) === day);
+                            const latest = dayBuilds.at(-1);
+                            const verdict = latest ? qualificationOutcome(latest) : null;
+                            const status = verdict === "pass" && latest?.overall === "warn" ? "warn" : verdict;
+                            return <td key={os} className="table-status" data-outcome={latest ? status ?? "unreported" : undefined}>
+                              {latest ? <BuildMark build={latest} dayCount={dayBuilds.length} /> : <span className="build-no-data">No data</span>}
+                            </td>;
+                          })}
+                        </tr>)}</tbody>
+                      </table> : <table className="build-timeline">
                         <colgroup>
                           <col />
                         </colgroup>
@@ -278,7 +294,7 @@ export function EngineOverview({
                             );
                           })}
                         </tbody>
-                      </table>
+                      </table>}
                     </div>
                   )}
                 </section>

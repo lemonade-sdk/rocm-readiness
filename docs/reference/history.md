@@ -49,6 +49,45 @@ properties are required when restoring schema-v2 history.
 | `event` | string or null | Producer workflow event. |
 | `run_id` | string or null | Producer qualification workflow run identifier. |
 
+## Collected report snapshots
+
+Qualification sources with `report_details: true` fetch retained builds' reports
+at the immutable `report_url` during this repository's collection CI. Each build
+then carries an optional `report_snapshot` object:
+
+```json
+{
+  "report_snapshot": {
+    "source_url": "https://raw.githubusercontent.com/owner/repo/0123456789012345678901234567890123456789/qualification/reports/build.json",
+    "path": "reports/<64-character-content-sha256>.json"
+  }
+}
+```
+
+`source_url` must equal the build's pinned `report_url`. The linked file contains
+`source_url` and `report`, the producer report with downstream presentation
+fields added. The UI loads this file on demand from the active dataset revision,
+keeping build lists compact. Publication includes every linked report and verifies
+its content hash. If collection of that report fails, the linked file instead
+contains `source_url` and an `error` string; the build
+remains available and the UI shows the failure. It does not fetch an unprepared
+replacement. Reports are deduplicated by URL and fetched with at most eight
+concurrent requests, after readiness track selection.
+
+Each test gains its original zero-based `source_index` and a `display_evidence`
+array of `{ "label": "GPU offload", "value": "ROCm0: 358.78 MiB model buffer" }`
+entries. The collector sorts numbered check IDs numerically, then retains
+unnumbered checks in report order. Original positions keep existing check links
+stable. Raw `details` remain unchanged for audit.
+
+The downstream collector owns evidence labels, selection and entry order. It
+prefers producer `gpu_proof`, then positive GPU model-buffer records, and keeps
+requested offload counts in audit details only. Compatibility and runtime
+summaries are also prepared here. The dashboard renders these entries directly
+in build details and check tooltips. Older datasets without `report_snapshot`
+still load their pinned producer report; absent `display_evidence` produces no
+highlighted summary, with raw audit fields still accessible.
+
 ## Retention and identity
 
 `(source_id, build_id)` uniquely identifies a retained build. Nightly build IDs

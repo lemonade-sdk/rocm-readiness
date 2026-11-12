@@ -191,7 +191,7 @@ export function qualificationCheckHref(build: Build, tierId: string, checkIndex?
   return `?${params}`;
 }
 
-function qualificationTiers(tiers: JsonRecord): QualificationTier[] {
+function qualificationTiers(tiers: JsonRecord, prepared = false): QualificationTier[] {
   return Object.entries(tiers).flatMap(([id, tier]) => {
     if (!isRecord(tier)) return [];
     const counts: Record<string, number> = {};
@@ -201,15 +201,20 @@ function qualificationTiers(tiers: JsonRecord): QualificationTier[] {
       }
     }
     const tests: unknown[] = Array.isArray(tier.tests) ? tier.tests : [];
-    const checks = tests.flatMap((test, index) => isRecord(test) ? [{
-      index,
-      id: text(test.id) ?? `${id}.${index + 1}`,
-      name: text(test.name) ?? "Unnamed test",
-      status: status(test.status),
-      evidence: test,
-    }] : []);
+    const checks = tests.flatMap((test, index) => {
+      if (!isRecord(test)) return [];
+      const sourceIndex = prepared && typeof test.source_index === "number" &&
+        Number.isInteger(test.source_index) && test.source_index >= 0 ? test.source_index : index;
+      return [{
+        index: sourceIndex,
+        id: text(test.id) ?? `${id}.${sourceIndex + 1}`,
+        name: text(test.name) ?? "Unnamed test",
+        status: status(test.status),
+        evidence: test,
+      }];
+    });
     const known = (check: QualificationCheck) => checkIdPattern.test(text(check.evidence.id) ?? "");
-    checks.sort((a, b) => known(a) && known(b) ? checkOrder.compare(a.id, b.id) : Number(known(b)) - Number(known(a)));
+    if (!prepared) checks.sort((a, b) => known(a) && known(b) ? checkOrder.compare(a.id, b.id) : Number(known(b)) - Number(known(a)));
     return [{ id, name: text(tier.tier_name) ?? id, verdict: status(tier.status), counts, checks }];
   });
 }
@@ -218,6 +223,7 @@ function reportMetadata(
   report: JsonRecord,
   build: Build,
   pinned: PinnedReport,
+  prepared = false,
 ) {
   const reportBuild = report.build;
   if (!isRecord(reportBuild))
@@ -262,7 +268,7 @@ function reportMetadata(
     throw new Error("Producer report is missing tier evidence.");
   if (!pinned.commit || !pinned.file)
     throw new Error("Pinned producer report metadata is incomplete.");
-  return { raw: report, build: reportBuild, tiers: qualificationTiers(tiers) };
+  return { raw: report, build: reportBuild, tiers: qualificationTiers(tiers, prepared) };
 }
 
 export async function readQualificationReport(
@@ -272,6 +278,18 @@ export async function readQualificationReport(
 ): Promise<QualificationReport> {
   const reference = pinnedReport(build);
   if (typeof reference === "string") throw new Error(reference);
+  if (build.report_snapshot) {
+    const referenceSnapshot = build.report_snapshot;
+    if (referenceSnapshot.source_url !== reference.url) throw new Error("Collected report does not match the pinned producer report.");
+    if (!referenceSnapshot.url) throw new Error("Collected report dataset URL is unavailable.");
+    const response = await fetcher(referenceSnapshot.url, { cache: "no-store", signal });
+    if (!response.ok) throw new Error(`Collected report request failed: HTTP ${response.status}.`);
+    const snapshot: unknown = await response.json();
+    if (!isRecord(snapshot) || snapshot.source_url !== reference.url) throw new Error("Collected report source does not match the pinned producer report.");
+    if (typeof snapshot.error === "string") throw new Error(`Report collection failed: ${snapshot.error}`);
+    if (!isRecord(snapshot.report)) throw new Error("Collected report is missing evidence.");
+    return reportMetadata(snapshot.report, build, reference, true);
+  }
   const response = await fetcher(reference.url, { cache: "no-store", signal });
   if (!response.ok) throw new Error(`Producer report request failed: HTTP ${response.status}.`);
   const raw: unknown = await response.json();
@@ -304,52 +322,25 @@ function duration(test: JsonRecord) {
   return "Not recorded";
 }
 
-function field(test: JsonRecord, key: string) {
-  const details = isRecord(test.details) ? test.details : {};
-  return test[key] ?? details[key];
-}
-
-function list(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function selectedDevices(test: JsonRecord) {
-  const devices = list(field(test, "devices_selected")).flatMap((entry) => {
-    const device = isRecord(entry) ? text(entry.device) : null;
-    return device ? [{ device, label: `${device}${isRecord(entry) && text(entry.name) ? ` (${text(entry.name)})` : ""}` }] : [];
+// Labels and evidence selection belong to downstream collection CI. Legacy
+// reports retain their raw audit details without a synthesized summary.
+function displayEvidence(test: JsonRecord) {
+  if (!Array.isArray(test.display_evidence)) return [];
+  return test.display_evidence.flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const label = text(entry.label);
+    const value = summary(entry.value);
+    return label && value ? [{ label, value }] : [];
   });
-  const label = (device: string) => devices.find((entry) => entry.device === device)?.label ?? device;
-  const buffers = list(field(test, "model_buffers_mib")).flatMap((entry) =>
-    Array.isArray(entry) && text(entry[0]) && typeof entry[1] === "number"
-      ? [`${label(String(entry[0]))}: ${entry[1]} MiB model buffer`] : []);
-  return buffers.length ? buffers : null;
-}
-
-function gpuEvidence(test: JsonRecord) {
-  // The requested-offload line is printed from what -ngl asked for, even with no GPU, so it only
-  // stands in for records that carry no GPU evidence fields at all.
-  const recorded = ["gpu_proof", "devices_selected", "model_buffers_mib"].some((key) => field(test, key) !== undefined);
-  return [
-    field(test, "gpu_proof"),
-    selectedDevices(test),
-    field(test, "gpu_offload"),
-    recorded ? undefined : field(test, "requested_offload_line"),
-  ];
-}
-
-function evidence(label: string, values: unknown[]) {
-  const rendered = values.map((value) => summary(value)).find(Boolean);
-  return rendered ? (
-    <p className="build-browser-evidence">
-      <strong>{label}:</strong> {rendered}
-    </p>
-  ) : null;
 }
 
 export function QualificationCheckEvidence({ evidence: test }: { evidence: JsonRecord }) {
   const reason = summary(test.error ?? test.reason);
   const details = isRecord(test.details) ? test.details : {};
   return <dl>
+    {displayEvidence(test).map(({ label, value }, index) => <div key={index} className="qualification-tooltip-count">
+      <dt>{label}</dt><dd>{value}</dd>
+    </div>)}
     {typeof test.gating === "boolean" && <><dt>Scope</dt><dd>{test.gating ? "Gating" : "Informational"}</dd></>}
     {(typeof test.duration_ms === "number" || typeof test.duration_seconds === "number") &&
       <><dt>Duration</dt><dd>{duration(test)}</dd></>}
@@ -441,9 +432,9 @@ function ReportTests({ tiers, selection }: { tiers: QualificationTier[]; selecti
                           <th scope="row">
                             <strong>{check.id}</strong>{" "}
                             {check.name}
-                            {evidence("Compatibility", [field(test, "compatibility")])}
-                            {evidence("Runtime", [field(test, "runtime")])}
-                            {evidence("GPU offload", gpuEvidence(test))}
+                            {displayEvidence(test).map(({ label, value }, index) => (
+                              <p key={index} className="build-browser-evidence"><strong>{label}:</strong> {value}</p>
+                            ))}
                             {details && Object.keys(details).length > 0 && (
                               <details>
                                 <summary>Audit details</summary>

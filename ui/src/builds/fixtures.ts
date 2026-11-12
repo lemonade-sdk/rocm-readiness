@@ -118,6 +118,7 @@ export function producerReport(
             gating: true,
             duration_ms: 12,
             error: "extra binary",
+            display_evidence: [{ label: "Compatibility", value: "ROCm 10.1" }],
             details: { compatibility: "ROCm 10.1", audited: true },
           },
           {
@@ -127,6 +128,7 @@ export function producerReport(
             gating: true,
             duration_ms: 8,
             error: "hipblas missing",
+            display_evidence: [{ label: "Runtime", value: "hipblas.dll missing" }],
             details: { runtime: "hipblas.dll missing" },
           },
           {
@@ -136,6 +138,7 @@ export function producerReport(
             gating: false,
             duration_ms: 0,
             error: "hardware unavailable",
+            display_evidence: [{ label: "GPU offload", value: "not exercised" }],
             details: { gpu_offload: "not exercised" },
           },
           {

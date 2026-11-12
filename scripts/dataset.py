@@ -210,6 +210,17 @@ def _compact_build(row, source_urls=None, strict=False, version=None, month=None
         for key, verdict in row.items()
         if re.fullmatch(r"tier\d+", key, re.IGNORECASE) and isinstance(verdict, str)
     )
+    if "report_snapshot" in row:
+        snapshot = row["report_snapshot"]
+        _require(
+            isinstance(snapshot, dict)
+            and snapshot.get("source_url") == row.get("report_url")
+            and isinstance(snapshot.get("path"), str)
+            and re.fullmatch(r"reports/[a-f0-9]{64}\.json", snapshot["path"])
+            is not None,
+            "invalid qualification report snapshot",
+        )
+        compact["report_snapshot"] = snapshot
     tier_verdicts = row.get("tier_verdicts")
     if isinstance(tier_verdicts, dict) and all(
         isinstance(verdict, str) for verdict in tier_verdicts.values()
@@ -365,6 +376,13 @@ def _load_previous(previous_data):
             total += len(chunk["builds"])
             for raw in chunk["builds"]:
                 row = _compact_build(raw, strict=True, version=version, month=month)
+                if "report_snapshot" in row:
+                    reference = row["report_snapshot"]
+                    snapshot = _read_previous(root, reference["path"])
+                    _require(
+                        snapshot.get("source_url") == reference["source_url"],
+                        "collected report source mismatch",
+                    )
                 key = (row["source_id"], row["build_id"])
                 _require(key not in builds, "duplicate previous build")
                 builds[key] = row
@@ -745,12 +763,38 @@ def write_dataset(
         for source in output["sources"]
         if isinstance(source, dict) and isinstance(source.get("id"), str)
     }
+    prepared_builds = []
+    for row in output["builds"]:
+        if not in_readiness_scope(row, policy):
+            continue
+        snapshot = row.get("report_snapshot")
+        if snapshot is not None:
+            _require(
+                isinstance(snapshot, dict)
+                and snapshot.get("source_url") == row.get("report_url")
+                and (
+                    (
+                        isinstance(snapshot.get("report"), dict)
+                        and "error" not in snapshot
+                    )
+                    or (
+                        isinstance(snapshot.get("error"), str)
+                        and "report" not in snapshot
+                    )
+                ),
+                "invalid collected qualification report",
+            )
+            payload = json.dumps(snapshot, **JSON_OPTIONS) + "\n"
+            digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+            path = f"reports/{digest}.json"
+            _write_json(destination / path, snapshot)
+            row = {
+                **row,
+                "report_snapshot": {"source_url": snapshot["source_url"], "path": path},
+            }
+        prepared_builds.append(row)
     compact = _unique_builds(
-        [
-            _compact_build(row, source_urls)
-            for row in output["builds"]
-            if in_readiness_scope(row, policy)
-        ]
+        [_compact_build(row, source_urls) for row in prepared_builds]
     )
     prior_measurements, prior_systems = {}, {}
     if previous_data is not None and output.get("collection_status") == "complete":
@@ -780,6 +824,15 @@ def write_dataset(
                 row["artifact"] = old.get("artifact")
         previous.update(compact)
         compact = previous
+    # Legacy/custom collections may retain previous builds and their linked reports.
+    for row in compact.values():
+        snapshot = row.get("report_snapshot")
+        if snapshot and not (destination / snapshot["path"]).is_file():
+            _require(previous_data is not None, "missing collected report file")
+            _write_json(
+                destination / snapshot["path"],
+                _read_previous(Path(previous_data).resolve(), snapshot["path"]),
+            )
     systems = {}
     for system in _project(output["systems"], SYSTEM_FIELDS):
         _require(

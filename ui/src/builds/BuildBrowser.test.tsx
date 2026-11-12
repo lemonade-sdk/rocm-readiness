@@ -284,58 +284,58 @@ describe("BuildBrowser", () => {
     expect(screen.getByRole("row", { name: /check T0\.10 pass/ })).not.toHaveAttribute("aria-current");
   });
 
-  it("prefers recorded GPU evidence over the requested offload line", async () => {
+  it("reads the collected snapshot without a producer fetch and keeps the CI check order", async () => {
     const build = buildFixture();
-    const requested_offload_line = "offloaded 29/29 layers to GPU";
+    const report = producerReport(build, { tiers: { tier0: {
+      tier_name: "Static artifact verification", status: "pass", tests: [
+        { id: "T0.2", source_index: 1, name: "CI first", status: "pass" },
+        { id: "T0.1", source_index: 0, name: "CI second", status: "pass" },
+      ],
+    } } });
+    const url = new URL("reports/" + "a".repeat(64) + ".json", session.indexUrl).href;
+    build.report_snapshot = { source_url: build.report_url!, path: "reports/" + "a".repeat(64) + ".json", url };
+    fetchMock.mockResolvedValue(response({ source_url: build.report_url, report }));
+    mount({ history: [build], selectedBuildId: build.build_id,
+      selectedTierId: "tier0", selectedCheckIndex: "0" });
+    const selected = await screen.findByRole("row", { name: /CI second/ });
+    expect(selected).toHaveAttribute("aria-current", "true");
+    const names = screen.getAllByRole("rowheader").map((header) => header.textContent);
+    expect(names.findIndex((name) => name?.includes("CI first")))
+      .toBeLessThan(names.findIndex((name) => name?.includes("CI second")));
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(url, expect.any(Object));
+  });
+
+  it("shows snapshot failures without fetching unprepared producer evidence", async () => {
+    const build = buildFixture();
+    const url = new URL("reports/" + "a".repeat(64) + ".json", session.indexUrl).href;
+    build.report_snapshot = { source_url: build.report_url!, path: "reports/" + "a".repeat(64) + ".json", url };
+    fetchMock.mockResolvedValue(response({ source_url: build.report_url, error: "offline" }));
+    mount({ history: [build], selectedBuildId: build.build_id });
+    expect(await screen.findByRole("alert")).toHaveTextContent("offline");
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(url, expect.any(Object));
+  });
+
+  it("renders producer display evidence without interpreting GPU audit fields", async () => {
+    const build = buildFixture();
     fetchMock.mockResolvedValue(response(producerReport(build, { tiers: {
       tier1: {
-        tier_name: "Runtime",
-        status: "pass",
-        tests: [
-          { id: "T1.1", name: "llama.cpp proof", status: "pass", details: {
-            gpu_proof: ["using device ROCm0 (AMD Radeon 8060S Graphics)", "ROCm0 model buffer size = 358.78 MiB"],
-            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
-            model_buffers_mib: [["ROCm0", 358.78]],
-            requested_offload_line,
-          } },
-          { id: "T1.2", name: "llamacpp-rocm buffers", status: "pass", details: {
-            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
-            model_buffers_mib: [["ROCm0", 358.78]],
-            requested_offload_line,
-          } },
-          { id: "T1.3", name: "llama.cpp no proof", status: "fail", details: {
-            gpu_proof: [],
-            devices_selected: [{ device: "ROCm0", name: "AMD Radeon 8060S Graphics" }],
-            model_buffers_mib: [],
-            requested_offload_line,
-          } },
-          { id: "T1.4", name: "older llama.cpp proof", status: "pass", details: {
-            gpu_proof: ["using device ROCm0", "ROCm0 model buffer size"],
-            devices_reported: [],
-            requested_offload_line,
-          } },
-          { id: "T1.5", name: "older llama.cpp no proof", status: "fail", details: {
-            gpu_proof: [],
-            devices_reported: [],
-            requested_offload_line,
-          } },
-          { id: "T1.6", name: "requested only", status: "pass", details: { requested_offload_line } },
-        ],
+        tier_name: "Runtime", status: "fail", tests: [{
+          id: "T1.1", name: "Accelerator check", status: "fail",
+          display_evidence: [{ label: "Accelerator execution", value: "No GPU model buffer recorded" }],
+          details: {
+            gpu_proof: ["using device ROCm0"],
+            model_buffers_mib: [["ROCm0", 0]],
+            requested_offload_line: "offloaded 29/29 layers to GPU",
+          },
+        }],
       },
     } })));
     mount({ history: [build], selectedBuildId: build.build_id });
-
-    const offload = async (name: string) =>
-      (await screen.findByRole("row", { name: new RegExp(name) })).querySelector(".build-browser-evidence")?.textContent;
-    expect(await offload("^T1.1 llama.cpp proof")).toBe(
-      "GPU offload: using device ROCm0 (AMD Radeon 8060S Graphics), ROCm0 model buffer size = 358.78 MiB");
-    expect(await offload("llamacpp-rocm buffers")).toBe("GPU offload: ROCm0 (AMD Radeon 8060S Graphics): 358.78 MiB model buffer");
-    // A record with its own GPU evidence fields never falls back to the requested-offload line.
-    expect(await offload("^T1.3 llama.cpp no proof")).toBeUndefined();
-    expect(await offload("older llama.cpp proof")).toBe("GPU offload: using device ROCm0, ROCm0 model buffer size");
-    expect(await offload("older llama.cpp no proof")).toBeUndefined();
-    expect(await offload("requested only")).toBe(`GPU offload: ${requested_offload_line}`);
-    expect(screen.getAllByText(/"requested_offload_line": "offloaded 29\/29 layers to GPU"/)).toHaveLength(6);
+    const row = await screen.findByRole("row", { name: /Accelerator check/ });
+    expect(row.querySelector(".build-browser-evidence")?.textContent)
+      .toBe("Accelerator execution: No GPU model buffer recorded");
+    expect(row.querySelectorAll(".build-browser-evidence")).toHaveLength(1);
+    expect(row.querySelector("pre")).toHaveTextContent('"requested_offload_line": "offloaded 29/29 layers to GPU"');
   });
 
   it("does not select a test ordinal in a different report revision", async () => {

@@ -97,7 +97,12 @@ published pointer.
 
 Build history supports platform and package/build searches. Opening a build loads
 its pinned producer report on demand and displays individual checks, tiers,
-durations, warning/failure reasons and audit details. Report failures retain the
+durations, warning/failure reasons and audit details. Highlighted evidence labels
+and values come from the downstream collector’s `report_snapshot` and its
+`display_evidence` entries;
+the UI does not infer GPU execution from audit fields. Reports without these
+entries keep their raw audit details. See the [collected report contract](../docs/reference/history.md#collected-report-snapshots).
+Report failures retain the
 build metadata and offer retry.
 
 Performance views show measured package tags, dates, hardware, workloads and

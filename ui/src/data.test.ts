@@ -7,9 +7,31 @@ import {
   loadHistory,
   resolveDatasetPath,
 } from "./data";
-import { fixtureFetch, index, indexUrl, overview, pointer } from "./fixtures";
+import { fixtureFetch, index, indexUrl, overview, pointer, historyFixture } from "./fixtures";
 
 describe("immutable dataset session", () => {
+  it("resolves collected report files against the pinned dataset revision", async () => {
+    const path = "reports/" + "a".repeat(64) + ".json";
+    const data = overview();
+    const history = historyFixture();
+    const snapshot = { source_url: history.builds[0].report_url!, path };
+    const fetcher = fixtureFetch({
+      [new URL("rocm/10.1/overview.json", indexUrl).href]: {
+        ...data, engines: [{ ...data.engines[0], latest_builds: [
+          { ...data.engines[0].latest_builds[0], report_snapshot: snapshot },
+        ] }],
+      },
+      [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: {
+        ...history, builds: history.builds.map((build) => ({ ...build, report_snapshot: snapshot })),
+      },
+    });
+    const session = await loadSession(undefined, fetcher);
+    const builds = await loadHistory(session, fetcher);
+    expect(builds[0].report_snapshot?.url).toBe(new URL(path, indexUrl).href);
+    expect(session.overview?.engines[0].latest_builds[0].report_snapshot?.url)
+      .toBe(new URL(path, indexUrl).href);
+  });
+
   it("accepts producer records with only required check counters", async () => {
     const data = overview();
     const base = data.engines[0].latest_builds[0];

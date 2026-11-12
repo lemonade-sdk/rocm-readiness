@@ -311,5 +311,10 @@ observed runner. Keep the historical pass rate separately labeled with its
 14-day window. Missing completion evidence is unavailable, not failed. Label
 runner usage “Observed on devlab” with the collection window; never infer current
 availability from a historical runner name. Show completion and observed runner
-in individual run evidence when recorded. These fields do not change project
-badges, daily history, or the page layout.
+in individual run evidence when recorded. These fields do not change upstream-support verdicts or daily history.
+Overview adds a quiet, accessible DevLab observed indicator beside the project badge;
+its tooltip identifies jobs and the collection window. Preserve the flat project layout.
+
+Coverage labels distinguish no configured jobs from incomplete collection. Do not show
+absence counts for incomplete collection. Name activity metrics by their recorded condition
+and collection window, rather than using the present-tense “tests not running”.

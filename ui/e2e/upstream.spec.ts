@@ -43,7 +43,7 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goto("./");
   await page.getByRole("link", { name: "Upstream health" }).click();
   await expect(page).toHaveURL(/track=upstream/);
-  await expect(page.getByText("Configured coverage unknown")).toBeVisible();
+  await expect(page.getByText("No client jobs configured")).toBeVisible();
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12 results on main passed")).toBeVisible();
@@ -303,6 +303,12 @@ for (const theme of ["light", "dark"] as const) {
       await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: data }));
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
+      await page.goto("./?track=upstream");
+      await page.getByRole("button", { name: "DevLab observed", exact: true }).focus();
+      await expect(page.getByRole("tooltip", { name: "DevLab observed" })).toContainText("ephemeral-devlab-*");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("devlab-overview.png"), fullPage: true });
+      await page.keyboard.press("Escape");
       await page.goto("./?track=upstream&view=ci&project=llamacpp");
       await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
       const popup = page.getByRole("dialog", { name: "gpu-rocm", exact: true });

@@ -27,7 +27,7 @@ it("shows one card per project with its computed upstream badge", async () => {
   const vllm = screen
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
-  expect(within(vllm).getByText("Configured coverage unknown")).toBeInTheDocument();
+  expect(within(vllm).getByText("No client jobs configured")).toBeInTheDocument();
   expect(
     within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
   ).toBeInTheDocument();
@@ -280,15 +280,15 @@ function incompleteFetch(error?: string) {
 it('shows unknown rather than unobserved not-running counts in incomplete project cards and totals', async () => {
   mount('/?track=upstream', incompleteFetch());
   const card = (await screen.findByRole('heading', { name: 'llama.cpp' })).closest('article')!;
-  expect(within(card).getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  expect(within(card).getByText('Activity assessment unavailable — collection incomplete.')).toBeInTheDocument();
   const total = screen.getByRole('region', { name: 'Upstream projects' });
-  expect(within(total).getAllByText('tests not running')[0].parentElement).toHaveTextContent('Unknown');
+  expect(within(total).queryByText('tests not running')).not.toBeInTheDocument();
 });
 
 it('does not describe uncollected runs as absent in incomplete project details', async () => {
   mount('/?track=upstream&project=llamacpp', incompleteFetch());
   await screen.findByRole('heading', { level: 2, name: 'llama.cpp' });
-  expect(screen.getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  expect(screen.getByText('Activity assessment unavailable — collection incomplete.')).toBeInTheDocument();
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
   const perDay = screen.getByRole('region', { name: 'Daily activity' });
@@ -591,4 +591,33 @@ it("shows latest completion, log, and observed runner independently of historica
   expect(within(tooltip).getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/example/demo/actions/runs/100");
   expect(within(tooltip).getByText(/Observed on devlab/)).toBeInTheDocument();
   expect(within(tooltip).getByText("75%", { selector: "dd" })).toBeInTheDocument();
+});
+
+it("shows an overview DevLab indicator from observed upstream runner evidence", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].devlab_observed = true;
+  data.projects[0].coverage.complete = false;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  fireEvent.focus(within(card).getByRole("button", { name: "DevLab observed" }));
+  expect(await screen.findByText(/ephemeral-devlab-/)).toBeInTheDocument();
+  expect(screen.getByText("Collection incomplete — coverage unknown")).toBeInTheDocument();
+});
+it("does not infer DevLab from configured runner descriptions", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].where = "DevLab";
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  expect(screen.queryByRole("button", { name: "DevLab observed" })).not.toBeInTheDocument();
+});
+
+it("separates no-start test jobs from jobs with later unrun requests", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  const job = data.projects[0].jobs[0];
+  job.started = 2;
+  job.quiet_days = ["2026-10-29"];
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  expect(within(card).getByText(/test jobs with no observed starts/).parentElement).toHaveTextContent("0");
+  expect(within(card).getByText(/test jobs with unrun requests after last start/).parentElement).toHaveTextContent("1");
 });

@@ -61,3 +61,21 @@ npm run dev:local
 ```
 
 The second command refreshes upstream alone. `dev:local` is a development-only preview of `../data/local-preview`, or `LOCAL_DATA_DIR` if set; it does not change the published pointer. Add a project and its typed source to `sources.json`, explicitly select it in `views.upstream.sources`, and run the unit and local collection checks. Job `match` accepts exactly one of `name`, `prefix`, or `regex`; GitHub truncates job names at 100 characters.
+
+## Coverage, activity and DevLab indicators
+
+Overview distinguishes **No client jobs configured** from **Collection incomplete — coverage unknown**.
+Incomplete collection displays **Activity assessment unavailable** instead of an absence count.
+With complete collection, activity metrics count configured test jobs with no observed starts,
+and separately jobs with starts plus requested-but-unrun records on a later UTC date than
+that job's last start. These are collection-window summaries, not assertions about today's
+runner availability or the selected calendar day. Skips and missing observations alone do
+not prove a request was left unrun. Per-day records remain available in CI Activity.
+
+The overview's **DevLab observed** indicator means at least one configured upstream job
+has retained runner evidence beginning with `ephemeral-devlab-` in the collection window.
+It remains useful during incomplete collection: a positive observation does not require
+proving absence elsewhere. Missing evidence produces no indicator, not a negative verdict.
+Fork labels, configured `where` descriptions and readiness model-result runners do not
+establish that upstream CI used DevLab. PR #54 retained runner names; PR #72 adds their
+aggregation and display. This indicator does not establish current DevLab availability.

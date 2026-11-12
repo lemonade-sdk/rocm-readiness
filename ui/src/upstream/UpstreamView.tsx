@@ -134,8 +134,8 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 /* ---- shared pieces ------------------------------------------------------------ */
 
 function Badge({ project }: { project: Project }) {
-  if (!project.jobs.length || !project.coverage.complete)
-    return <span className="up-badge">Configured coverage unknown</span>;
+  if (!project.jobs.length) return <span className="up-badge">No client jobs configured</span>;
+  if (!project.coverage.complete) return <span className="up-badge">Collection incomplete — coverage unknown</span>;
   return (
     <span
       className={`up-badge up-badge-${project.badge.state}`}
@@ -144,6 +144,26 @@ function Badge({ project }: { project: Project }) {
       {BADGE_LABEL[project.badge.state]}
     </span>
   );
+}
+
+function DevLabIndicator({ project, windowDays }: { project: Project; windowDays: number }) {
+  const jobs = project.jobs.filter((job) => job.devlab_observed);
+  if (!jobs.length) return null;
+  return <Tooltip floating label="DevLab observed" content={
+    <TooltipContent heading="DevLab observed">
+      <span>{jobs.map((job) => job.label).join(", ")} used an ephemeral-devlab-* runner in the {windowDays}-day collection window. This records observed usage; current availability is not established.</span>
+    </TooltipContent>
+  }><span className="up-badge">DevLab observed</span></Tooltip>;
+}
+
+function ActivityAssessment({ jobs, complete, windowDays }: { jobs: Job[]; complete: boolean; windowDays: number }) {
+  if (!complete) return <p className="muted">Activity assessment unavailable — collection incomplete.</p>;
+  const noStarts = jobs.filter((job) => job.category === "tests" && job.started === 0).length;
+  const laterRequests = jobs.filter((job) => job.category === "tests" && job.started > 0 && job.quiet_days.length > 0).length;
+  return <>
+    <Stat value={noStarts} label={`test jobs with no observed starts · ${windowDays} days`} />
+    <Stat value={laterRequests} label={`test jobs with unrun requests after last start · ${windowDays} days`} bad={laterRequests > 0} />
+  </>;
 }
 
 function ProjectSources({ project }: { project: Project }) {
@@ -273,6 +293,7 @@ function ProjectGrid({
                 </a>
                 </h2>
                 <Badge project={project} />
+                <DevLabIndicator project={project} windowDays={overview.window.days} />
               </div>
               {project.jobs.length ? (
                 <div className="up-kpis" role="group" aria-label="CI metrics">
@@ -280,11 +301,7 @@ function ProjectGrid({
                     value={r.pct === null ? "–" : `${r.pct}%`}
                     label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
                   />
-                  <Stat
-                    value={project.coverage.complete ? project.kpis.not_running : "Unknown"}
-                    label="tests not running"
-                    bad={project.coverage.complete && project.kpis.not_running > 0}
-                  />
+                  <ActivityAssessment jobs={project.jobs} complete={project.coverage.complete} windowDays={overview.window.days} />
                   {project.jobs.some((j) => j.gate) && (
                     <Stat
                       value={project.kpis.merged_red}
@@ -485,7 +502,6 @@ function ProjectPage({
     onNavigate(query(params, { day: next?.day ?? null, activity: next?.key ?? null }));
   const r = rate(jobs);
   const red = mergedRed(jobs);
-  const quiet = jobs.filter(notRunning).length;
   const findings = project.coverage.complete ? project.findings : project.findings.filter((f) => !["not_running", "never_ran"].includes(f.kind));
 
   useEffect(() => {
@@ -558,7 +574,7 @@ function ProjectPage({
           value={r.pct === null ? "–" : `${r.pct}%`}
           label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
         />
-        <Stat value={project.coverage.complete ? quiet : "Unknown"} label="tests not running" bad={project.coverage.complete && quiet > 0} />
+        <ActivityAssessment jobs={jobs} complete={project.coverage.complete} windowDays={overview.window.days} />
         {project.jobs.some((j) => j.gate) && (
           <Stat value={red} label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"} bad={red > 0} />
         )}
@@ -690,7 +706,7 @@ function ProjectPage({
                         <dt>Configured runner</dt><dd>{job.where}</dd>
                         <dt>Pass rate ({days14.length} days)</dt><dd>{decided ? `${Math.round(100 * passed / decided)}%` : "Unavailable"}</dd>
                         <dt>Decided results</dt><dd>{passed} passed of {decided}</dd>
-                        {project.coverage.complete && notRunning(job) && <><dt>Activity</dt><dd>{job.last_ran ? `Quiet since ${job.last_ran}` : "Never ran"}</dd></>}
+                        {project.coverage.complete && notRunning(job) && <><dt>Activity</dt><dd>{job.last_ran ? `Unrun requests after last observed start on ${job.last_ran}` : "No observed starts in collection window"}</dd></>}
                       </dl>
                     </TooltipContent>}><span>{job.label}</span></Tooltip>
                 </th>

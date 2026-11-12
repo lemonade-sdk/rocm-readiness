@@ -243,7 +243,7 @@ describe("BuildBrowser", () => {
     });
 
     const selected = await screen.findByRole("row", { name: /Second host/ });
-    expect(selected).toHaveFocus();
+    await waitFor(() => expect(selected).toHaveFocus());
     expect(selected).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("row", { name: /First host/ })).not.toHaveAttribute("aria-current");
     expect(screen.getByText("not_applicable")).toBeInTheDocument();

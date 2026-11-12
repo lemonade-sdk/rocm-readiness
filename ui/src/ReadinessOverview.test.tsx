@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReadinessOverview } from "./ReadinessOverview";
 import {
   fixtureFetch,
@@ -11,6 +11,13 @@ import {
   pointer,
 } from "./fixtures";
 import type { Session } from "./data";
+
+// Match the retained build fixtures while leaving async/UI timers real.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-02T15:00:00Z"));
+});
+afterEach(() => vi.useRealTimers());
 
 function mount(catalog: unknown, fixtures: Record<string, unknown> = {}) {
   const session = {

@@ -334,3 +334,47 @@ for (const theme of ["light", "dark"] as const) {
     });
   }
 }
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`filter explanations and platform icons at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.goto("./?view=engine&version=10.1");
+      await expect(page.getByRole("button", { name: "Measured", exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "10.1", exact: true }).focus();
+      await expect(page.getByRole("tooltip")).toContainText("Latest stable qualification track");
+      await page.screenshot({ path: testInfo.outputPath("version-help.png"), fullPage: true });
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "10.2", exact: true }).hover();
+      await expect(page.getByRole("tooltip")).toContainText("Nightly qualification track");
+      await page.keyboard.press("Escape");
+      const measured = page.getByRole("button", { name: "Measured", exact: true });
+      await measured.focus();
+      await expect(page.getByRole("tooltip")).toContainText("matching recorded performance measurements");
+      await measured.click();
+      await expect(measured).toHaveAttribute("aria-pressed", "true");
+      await expect(page).toHaveURL(/performance=measured/);
+      await page.goto("./?track=upstream&view=ci&project=llamacpp");
+      const platforms = page.getByRole("group", { name: "Platform", exact: true });
+      await expect(platforms.locator('[data-platform="linux"]')).toBeVisible();
+      await expect(platforms.locator('[data-platform="windows"]')).toBeVisible();
+      await page.getByRole("button", { name: "About Stack", exact: true }).focus();
+      await expect(page.getByRole("tooltip")).toContainText("configured software stack");
+      await page.screenshot({ path: testInfo.outputPath("upstream-filter-help.png"), fullPage: true });
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "About Target", exact: true }).focus();
+      await expect(page.getByRole("tooltip")).toContainText("configured hardware target");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    });
+  }
+}
+
+test.describe("touch filter help", () => {
+  test.use({ hasTouch: true });
+  test("opens filter explanations by touch", async ({ page }) => {
+    await page.goto("./?track=upstream&view=ci&project=llamacpp");
+    await page.getByRole("button", { name: "About Target", exact: true }).tap();
+    await expect(page.getByRole("tooltip")).toContainText("configured hardware target");
+  });
+});

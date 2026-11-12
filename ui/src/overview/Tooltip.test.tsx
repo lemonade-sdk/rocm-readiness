@@ -79,3 +79,13 @@ it("uses only the native tooltip when system mode is explicit", () => {
   fireEvent.click(trigger);
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 });
+
+it("keeps a tooltip open when a tap focuses the trigger before clicking", () => {
+  render(<Tooltip label="Filter help" content="Filter scope">Help</Tooltip>);
+  const trigger = screen.getByRole("button", { name: "Filter help" });
+  act(() => trigger.focus());
+  fireEvent.click(trigger);
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Filter scope");
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});

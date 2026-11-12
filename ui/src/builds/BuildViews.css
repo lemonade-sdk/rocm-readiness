@@ -90,3 +90,14 @@
 @media (pointer: coarse) { .filter-reset { min-height: 44px; } }
 .filter-scope { align-self: flex-end; min-height: 38px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: .8rem; display: inline-flex; gap: .5rem; align-items: center; }
 @media (pointer: coarse) { .filter-scope { min-height: 44px; } }
+
+/* Filter explanations share the evidence popup without changing control styling. */
+.build-filter-options .filter-tooltip-trigger { text-decoration: none; }
+.build-filter-options legend .comparison-trigger {
+  min-height: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  border-radius: 2px;
+}

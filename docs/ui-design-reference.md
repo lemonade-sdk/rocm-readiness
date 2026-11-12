@@ -366,3 +366,11 @@ fields, including window scope and the zero-fallback limitation.
 
 The Build Qualification Performance filter uses the compact label “Measured”
 for builds with performance data.
+
+ROCm version filter buttons explain track scope using the dataset's stable anchor
+and numeric version ordering, matching the readiness overview. Do not hard-code
+version classifications; older datasets without an anchor report unavailable
+classification. The Measured filter explains matching measurement availability.
+Upstream Project, Stack, and Target legends open shared styled explanations with
+repository and configured filter values from the dataset. Platform filters omit
+help tooltips and consistently pair OS names with shared platform icons.

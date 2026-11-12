@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import type { MouseEvent, ReactNode } from "react";
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from "react";
 import {
   arrow, autoUpdate, flip, FloatingArrow, FloatingFocusManager, FloatingPortal,
   offset, safePolygon, shift, size, useClick, useDismiss, useFloating,
@@ -30,20 +30,21 @@ type TooltipProps = Parameters<typeof StyledTooltip>[0] & (
 /** Choose a single renderer. Native tooltips require an explicit plain-text alternative. */
 export function Tooltip(props: TooltipProps) {
   if (props.tooltipMode !== "system") return <StyledTooltip {...props} />;
-  const { label, systemText, children, to, triggerClassName, onLinkClick } = props;
+  const { label, systemText, children, to, triggerClassName, onLinkClick, buttonProps } = props;
   return <span className="comparison-tooltip">
     {to ? <Link to={to} className={triggerClassName} aria-label={label}
       title={systemText} onClick={onLinkClick}>{children}</Link>
-      : <button type="button" className={`comparison-trigger ${triggerClassName ?? ""}`}
+      : <button {...buttonProps} type="button" className={`comparison-trigger ${triggerClassName ?? ""}`}
         aria-label={label} title={systemText}>{children}</button>}
   </span>;
 }
 
 function StyledTooltip({
-  label, content, children, to, triggerClassName, onLinkClick, onOpen,
+  label, content, children, to, triggerClassName, onLinkClick, onOpen, buttonProps,
   interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange,
 }: {
   label: string;
+  buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
   side?: boolean;
   content: ReactNode;
   children: ReactNode;
@@ -109,7 +110,7 @@ function StyledTooltip({
   // URL-controlled popups open by hover or activation. Restoring focus after
   // dismissal must not reopen a popup that browser history just closed.
   const focus = useFocus(context, { visibleOnly: Boolean(to), enabled: isOpen === undefined });
-  const click = useClick(context, { enabled: !to, toggle: !interactive, stickIfOpen: interactive });
+  const click = useClick(context, { enabled: !to, toggle: !interactive, stickIfOpen: true });
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
@@ -124,7 +125,7 @@ function StyledTooltip({
       ref={refs.setReference}
       type="button"
       className={`comparison-trigger ${triggerClassName ?? ""}`}
-      {...getReferenceProps({ "aria-label": label })}
+      {...getReferenceProps({ ...buttonProps, "aria-label": label })}
     >{children}</button>}
     {open && <FloatingPortal>
       <FloatingFocusManager context={context} modal={false} initialFocus={-1} disabled={!interactive}>

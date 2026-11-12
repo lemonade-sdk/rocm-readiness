@@ -12,6 +12,7 @@ import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
 import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
+import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
 
@@ -231,16 +232,22 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       {selected && !versionOptions.some((row) => row.rocm_version === selected) && (
         <button type="button" aria-pressed="true" disabled>{selected} · unavailable</button>
       )}
-      {versionOptions.map(({ rocm_version }) => (
-        <button
-          key={rocm_version}
-          type="button"
-          aria-pressed={selected === rocm_version}
-          onClick={() => { if (selected !== rocm_version) changeVersion(rocm_version); }}
-        >
-          {rocm_version}
-        </button>
-      ))}
+      {versionOptions.map(({ rocm_version, build_count }) => {
+        const stable = session?.index.readiness?.stable_anchor;
+        let track = "Release track classification unavailable";
+        if (stable) {
+          track = rocm_version === stable ? "Latest stable qualification track"
+            : rocm_version.localeCompare(stable, "en", { numeric: true }) > 0
+              ? "Nightly qualification track" : "Historical qualification track";
+        }
+        return <Tooltip key={rocm_version} label={rocm_version}
+          triggerClassName="filter-tooltip-trigger"
+          buttonProps={{ "aria-pressed": selected === rocm_version,
+            onClick: () => { if (selected !== rocm_version) changeVersion(rocm_version); } }}
+          content={<TooltipContent heading={`ROCm ${rocm_version}`}>
+            <span>{track}. {build_count} recorded builds in this dataset. Select to scope qualification and performance to this ROCm version.</span>
+          </TooltipContent>}>{rocm_version}</Tooltip>;
+      })}
     </fieldset>
   ) : (
     <label>

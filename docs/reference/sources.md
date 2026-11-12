@@ -62,6 +62,11 @@ Configuration values become catalog engine/source metadata and ownership labels.
 They do not override a contradictory benchmark repository/backend or establish a
 measurement's ROCm version. See [field lineage](mappings.md).
 
+Qualification sources may set `report_details: true` to collect pinned report
+snapshots and prepare evidence labels and check order in downstream CI. Both
+configured llama.cpp qualification sources enable this option. It is a boolean
+and is valid only for `qualification-v1`. See [collected reports](history.md#collected-report-snapshots).
+
 ## Unified configuration (schema version 2)
 
 The canonical `sources.json` contains `schema_version: 2`, `reference_model`,

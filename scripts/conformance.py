@@ -6,6 +6,7 @@ Diagnostics name the output file, JSON pointer and independent mapping evidence.
 
 from datetime import datetime
 import json
+import hashlib
 import math
 from pathlib import Path, PurePosixPath
 import re
@@ -987,6 +988,24 @@ def validate_dataset(
                         ptr + "/report_url",
                         "qualification-v1 report must retain the source commit directory and safe reports/ relative path",
                         row["source_id"],
+                    )
+                reference = row.get("report_snapshot")
+                if reference is not None:
+                    _check(
+                        isinstance(reference, dict)
+                        and reference.get("source_url") == row["report_url"]
+                        and isinstance(reference.get("path"), str)
+                        and re.fullmatch(r"reports/[a-f0-9]{64}\.json", reference["path"]) is not None,
+                        path, ptr + "/report_snapshot", "invalid collected report reference",
+                    )
+                    report_path = reference["path"]
+                    snapshot = read(report_path, path, ptr + "/report_snapshot/path")
+                    _check(
+                        snapshot.get("source_url") == row["report_url"]
+                        and ((isinstance(snapshot.get("report"), dict) and "error" not in snapshot)
+                             or (isinstance(snapshot.get("error"), str) and "report" not in snapshot))
+                        and hashlib.sha256((root / report_path).read_bytes()).hexdigest() == Path(report_path).stem,
+                        path, ptr + "/report_snapshot", "collected report source, content or hash mismatch",
                     )
                 for key in ("blocked_by", "blocking_tests"):
                     _check(

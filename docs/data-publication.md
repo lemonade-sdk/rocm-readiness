@@ -66,8 +66,11 @@ builds go into `history/2026-10.json`; November builds go into `history/2026-11.
 Daily runs add or update records within the monthly file.
 
 A history directory has several files when its builds span several months.
-Published history carries forward across successful runs. The 30-day expiry
-applies to downloadable CI artifacts containing source copies and diagnostics.
+Each successful collection rebuilds qualification history from the producers'
+current feeds; rows that leave a producer feed leave the dashboard. The UI's
+14-day range (`READINESS_WINDOW_DAYS`) is a display window; older retained
+builds remain reachable through **Older builds**. The 30-day expiry applies to
+downloadable CI artifacts containing source copies and diagnostics.
 
 ## Version directories
 

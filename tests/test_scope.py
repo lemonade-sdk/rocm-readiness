@@ -19,6 +19,9 @@ class ScopeTests(unittest.TestCase):
         # This fixture exercises source pruning with its 10.0 fixture anchor.
         config["readiness"].pop("release_repositories")
         config["readiness"]["stable_anchor"] = "10.0"
+        # Detailed reports are exercised separately; this fixture tests source pruning.
+        for source in config["sources"]:
+            source.pop("report_details", None)
         # Not the separate detailed-run feed.
         next(s for s in config["sources"] if s["id"] == "lemonade-performance")[
             "execution_details"

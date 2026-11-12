@@ -15,6 +15,7 @@ from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 if __package__:
+    from .qualification_reports import collect_reports
     from .config import load_config
     from .readiness import release_policy, select_policy
     from .release_inventory import INVENTORY, REPOSITORY, discover, qualify
@@ -31,6 +32,7 @@ if __package__:
     from .sync import load_last_success, publish_sync
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
+    from qualification_reports import collect_reports
     from config import load_config
     from readiness import release_policy, select_policy
     from release_inventory import INVENTORY, REPOSITORY, discover, qualify
@@ -127,6 +129,12 @@ def validate_config(config):
         seen.add(sid)
         require(source["engine"] in engine_ids, "unknown engine")
         require(source["adapter"] in ADAPTERS, "unknown adapter")
+        if "report_details" in source:
+            require(
+                type(source["report_details"]) is bool
+                and source["adapter"] == "qualification-v1",
+                "invalid qualification report detail configuration",
+            )
         if "execution_details" in source:
             require(
                 type(source["execution_details"]) is bool
@@ -1033,6 +1041,12 @@ def collect(
             for row in output[field]
             if in_readiness_scope(row, output.get("readiness"))
         ]
+    collect_reports(
+        output["builds"],
+        {source["id"] for source in config["sources"]
+         if source.get("adapter") == "qualification-v1" and source.get("report_details")},
+        fetch,
+    )
     if output["execution_evidence"]:
         write_json(
             destination / "provenance/executions.json",

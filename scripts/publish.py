@@ -1,6 +1,7 @@
 """Restore and publish the final dashboard dataset on the main branch."""
 
 import argparse
+import hashlib
 from datetime import datetime, timezone
 import json
 import re
@@ -157,6 +158,28 @@ def manifest(root, allow_legacy=False):
         checked(root, overview_path)
         overview = _read_previous(root.resolve(), overview_path)
         paths.update(entry["path"] for entry in overview["history"])
+        for entry in overview["history"]:
+            history = read_json(checked(root, entry["path"]))
+            for build in history["builds"]:
+                reference = build.get("report_snapshot")
+                if reference is None:
+                    continue
+                path = reference.get("path")
+                if not isinstance(path, str) or not re.fullmatch(
+                    r"reports/[a-f0-9]{64}\.json", path
+                ):
+                    raise ValueError("invalid collected report path")
+                snapshot = read_json(checked(root, path))
+                if snapshot.get("source_url") != build.get(
+                    "report_url"
+                ) or reference.get("source_url") != build.get("report_url"):
+                    raise ValueError("collected report source mismatch")
+                if (
+                    hashlib.sha256((root / path).read_bytes()).hexdigest()
+                    != Path(path).stem
+                ):
+                    raise ValueError("collected report content hash mismatch")
+                paths.add(path)
         if overview.get("performance", {}).get("path"):
             paths.add(overview["performance"]["path"])
         if overview.get("execution", {}).get("path"):

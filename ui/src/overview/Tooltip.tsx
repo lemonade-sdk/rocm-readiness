@@ -81,7 +81,7 @@ function StyledTooltip({
     middleware: [
       offset(10),
       flip({ padding: 12, ...(side ? { fallbackPlacements: ["left-start"], flipAlignment: false } : {}) }),
-      shift({ padding: 12 }),
+      shift({ padding: 12, crossAxis: side }),
       size({
         padding: 12,
         apply({ availableWidth, availableHeight, elements }) {
@@ -108,7 +108,7 @@ function StyledTooltip({
   });
   // URL-controlled popups open by hover or activation. Restoring focus after
   // dismissal must not reopen a popup that browser history just closed.
-  const focus = useFocus(context, { visibleOnly: false, enabled: isOpen === undefined });
+  const focus = useFocus(context, { visibleOnly: Boolean(to), enabled: isOpen === undefined });
   const click = useClick(context, { enabled: !to, toggle: !interactive, stickIfOpen: interactive });
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });

@@ -155,6 +155,11 @@ const buildSchema = z.preprocess((value) => {
   overall: z.string().nullable().optional(),
   hardware_validated: z.boolean().nullable().optional(),
   report_url: z.string().nullable().optional(),
+  report_snapshot: z.object({
+    source_url: z.string(),
+    path: z.string().regex(/^reports\/[a-f0-9]{64}\.json$/),
+    url: z.string().optional(),
+  }).optional(),
   gfx_target: z.string().nullable().optional(),
   tests: testsSchema.nullable().optional(),
   gfx: z
@@ -218,6 +223,12 @@ export type Session = {
 };
 export type Fetcher = typeof fetch;
 
+function resolveReportSnapshot(build: Build, indexUrl: string): Build {
+  if (!build.report_snapshot) return build;
+  return { ...build, report_snapshot: { ...build.report_snapshot,
+    url: resolveDatasetPath(indexUrl, build.report_snapshot.path) } };
+}
+
 export async function loadHistory(
   session: Session,
   fetcher: Fetcher = fetch,
@@ -240,7 +251,7 @@ export async function loadHistory(
         throw new Error(
           `${url}: history build version does not match the selected version`,
         );
-      return data.builds;
+      return data.builds.map((build) => resolveReportSnapshot(build, session.indexUrl));
     }),
   );
   const builds = chunks.flat();
@@ -331,6 +342,7 @@ export async function loadVersion(
   if (overview.performance.path)
     resolveDatasetPath(session.indexUrl, overview.performance.path);
   for (const engine of overview.engines) {
+    engine.latest_builds = engine.latest_builds.map((build) => resolveReportSnapshot(build, session.indexUrl));
     for (const build of engine.latest_builds) {
       if (build.rocm_version !== version || build.engine !== engine.id) {
         throw new Error(

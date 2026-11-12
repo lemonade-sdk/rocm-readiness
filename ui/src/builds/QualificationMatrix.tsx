@@ -8,7 +8,7 @@ import { tableOutcomes } from "../overview/outcomes";
 import { OutcomeLegend } from "../overview/OutcomeLegend";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity } from "../overview/buildTimeline";
-import { pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
+import { checkOrder, pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
 import "./QualificationMatrix.css";
 
 type Report = Awaited<ReturnType<typeof readQualificationReport>>;
@@ -54,8 +54,6 @@ function platformName(os: string) {
 function tierLabel(id: string) {
   return id.replace(/^tier(\d+)$/i, "T$1");
 }
-
-const checkOrder = new Intl.Collator("en", { numeric: true });
 
 function buildRepository(build: Build) {
   return build.source_url?.match(/^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/[a-f0-9]{40}\/qualification\/index\.json$/)?.[1];
@@ -190,7 +188,7 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
           const tier = report?.tiers.find((item) => item.id === id);
           const status = outcome(tier?.verdict ?? build.tier_verdicts?.[id]);
           const checks = tier?.checks.length
-            ? [...tier.checks].sort((a, b) => checkOrder.compare(a.id, b.id))
+            ? tier.checks
             : (byTier.get(id) ?? []).map(([id, status]) => ({ id, status, name: id, index: undefined, evidence: undefined }));
           return <li key={id}>
             <code title={tier?.name} aria-label={`${tierLabel(id)} · ${outcomes[status]}`}>{tierLabel(id)}</code>

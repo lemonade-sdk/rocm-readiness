@@ -113,7 +113,7 @@ test("pins data, switches versions and restores scope through browser history", 
   const tooltip = page.getByRole("tooltip");
   await expect(tooltip.getByText("extra binary")).toBeVisible();
   await expect(tooltip.getByText("12 ms")).toBeVisible();
-  await expect(tooltip.getByText("ROCm 10.1", { exact: true })).toBeVisible();
+  await expect(tooltip.getByText("ROCm 10.1", { exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(tooltip).toHaveCount(0);
   expect(reads.filter((url) => url.endsWith("/main/data/latest.json"))).toHaveLength(pointerReads);
@@ -315,6 +315,46 @@ test("overview shows qualification without benchmark status", async ({
   ).toHaveCount(0);
 });
 
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`renders collected evidence without producer requests at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme });
+      const producerReads: string[] = [];
+      page.on("request", (request) => {
+        if (request.url() === linuxBuild.report_url) producerReads.push(request.url());
+      });
+      const path = "reports/" + "a".repeat(64) + ".json";
+      const report = producerReport(linuxBuild, { tiers: { tier1: {
+          tier_name: "Runtime", status: "pass", tests: [{
+            id: "T1.1", name: "Collected accelerator check", source_index: 0, status: "pass",
+            display_evidence: [{ label: "GPU execution", value: "Recorded by collection CI" }],
+            details: { requested_offload_line: "offloaded 29/29 layers to GPU" },
+          }],
+        } } });
+      await page.route("**/data/" + path, async (route) => {
+        await route.fulfill({ json: { source_url: linuxBuild.report_url, report } });
+      });
+      await page.route("**/history/2026-10.json", async (route) => {
+        const history = historyFixture();
+        await route.fulfill({ json: { ...history, builds: history.builds.map((build) =>
+          build.build_id === linuxBuild.build_id ? { ...build,
+            report_snapshot: { source_url: build.report_url, path } } : build) } });
+      });
+      await page.goto("./?version=10.1&view=build&build=linux-build&tier=tier1&check=0");
+      const tooltip = page.getByRole("tooltip");
+      await expect(tooltip.getByText("GPU execution", { exact: true })).toBeVisible();
+      await expect(tooltip.getByText("Recorded by collection CI", { exact: true })).toBeVisible();
+      await expect(tooltip.getByText("GPU offload", { exact: true })).toHaveCount(0);
+      expect(producerReads).toEqual([]);
+      await expect.poll(() => tooltip.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        return { left: box.left, right: box.right, viewport: window.innerWidth,
+          fits: box.left >= 0 && box.right <= window.innerWidth };
+      })).toMatchObject({ fits: true });
+    });
+  }
+}
 
 test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
   await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");

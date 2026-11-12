@@ -310,6 +310,13 @@ for (const theme of ["light", "dark"] as const) {
       await page.screenshot({ path: testInfo.outputPath("devlab-overview.png"), fullPage: true });
       await page.keyboard.press("Escape");
       await page.goto("./?track=upstream&view=ci&project=llamacpp");
+      const labels = page.locator(".up-page-head .up-status-labels");
+      await expect(labels.getByRole("button", { name: "devlab", exact: true })).toBeVisible();
+      await expect(labels.locator("[title]")).toHaveCount(0);
+      await labels.getByRole("button", { name: "upstream", exact: true }).hover();
+      await expect(page.getByRole("tooltip")).toContainText("Configured jobs:");
+      await page.keyboard.press("Escape");
+      await page.screenshot({ path: testInfo.outputPath("ci-header-labels.png"), fullPage: true });
       await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
       const popup = page.getByRole("dialog", { name: "gpu-rocm", exact: true });
       await expect(popup.locator(".up-latest-result")).toContainText("Failed");

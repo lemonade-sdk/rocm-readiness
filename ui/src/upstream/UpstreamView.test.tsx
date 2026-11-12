@@ -20,10 +20,10 @@ it("shows one card per project with its computed upstream badge", async () => {
   const card = (
     await screen.findByRole("heading", { name: "llama.cpp" })
   ).closest("article")!;
-  expect(within(card).getByText("upstream")).toHaveAttribute(
-    "title",
-    expect.stringContaining("gfx1201"),
-  );
+  fireEvent.focus(within(card).getByRole("button", { name: /^upstream$/ }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("gfx1201");
+  expect(card.querySelector(".up-status-labels [title]")).toBeNull();
+  fireEvent.keyDown(within(card).getByRole("button", { name: /^upstream$/ }), { key: "Escape" });
   const vllm = screen
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
@@ -620,4 +620,13 @@ it("separates no-start test jobs from jobs with later unrun requests", async () 
   const card = await screen.findByRole("region", { name: "llama.cpp upstream health" });
   expect(within(card).getByText(/test jobs with no observed starts/).parentElement).toHaveTextContent("0");
   expect(within(card).getByText(/test jobs with unrun requests after last start/).parentElement).toHaveTextContent("1");
+});
+
+it("includes DevLab beside coverage in the CI Activity header", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].devlab_observed = true;
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  const header = document.querySelector(".up-page-head")! as HTMLElement;
+  expect(within(header).getByRole("button", { name: /^devlab$/ })).toBeInTheDocument();
 });

@@ -22,7 +22,24 @@ export function TooltipContent({ heading, status, children, format = "details" }
   </span>;
 }
 
-export function Tooltip({
+type TooltipProps = Parameters<typeof StyledTooltip>[0] & (
+  | { tooltipMode?: "styled"; systemText?: never }
+  | { tooltipMode: "system"; systemText: string }
+);
+
+/** Choose a single renderer. Native tooltips require an explicit plain-text alternative. */
+export function Tooltip(props: TooltipProps) {
+  if (props.tooltipMode !== "system") return <StyledTooltip {...props} />;
+  const { label, systemText, children, to, triggerClassName, onLinkClick } = props;
+  return <span className="comparison-tooltip">
+    {to ? <Link to={to} className={triggerClassName} aria-label={label}
+      title={systemText} onClick={onLinkClick}>{children}</Link>
+      : <button type="button" className={`comparison-trigger ${triggerClassName ?? ""}`}
+        aria-label={label} title={systemText}>{children}</button>}
+  </span>;
+}
+
+function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen,
   interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange,
 }: {

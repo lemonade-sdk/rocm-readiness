@@ -142,7 +142,7 @@ function Badge({ project }: { project: Project }) {
       : `Configured jobs: ${project.badge.reason}`;
   return <Tooltip floating label={label} triggerClassName="up-status-trigger" content={
     <TooltipContent heading={label}><span>{explanation}</span></TooltipContent>
-  }><span className={`up-badge${project.jobs.length && project.coverage.complete ? ` up-badge-${project.badge.state}` : ""}`} title={explanation}>{label}</span></Tooltip>;
+  }><span className={`up-badge${project.jobs.length && project.coverage.complete ? ` up-badge-${project.badge.state}` : ""}`}>{label}</span></Tooltip>;
 
 }
 
@@ -547,7 +547,10 @@ function ProjectPage({
       <header className="up-project-header">
         <div className="up-page-head">
           <h2>{project.label}</h2>
-          <Badge project={project} />
+          <div className="up-status-labels">
+            <Badge project={project} />
+            <DevLabIndicator project={project} windowDays={overview.window.days} />
+          </div>
         </div>
         {!project.coverage.complete && !project.coverage.error && (
           <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>

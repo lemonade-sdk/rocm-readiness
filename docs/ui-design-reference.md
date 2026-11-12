@@ -330,3 +330,11 @@ title: upstream, partial, unobserved, incomplete, or unconfigured, plus an indep
 devlab label when runner evidence exists. Use subtle tinted fills and borders with
 3px corners, without status squares or dotted underlines. Keep full explanations in
 shared hover/focus/touch tooltips. This supersedes the plain-text status treatment.
+
+Overview and CI Activity project headers align the compact status-label group to
+the right, allowing it to wrap at narrow widths. Include the same project-wide
+DevLab indicator in both headers, independent of selected job filters.
+Shared Tooltip defaults to styled evidence. Select `tooltipMode="system"` with
+an explicit plain-text `systemText` only for a required native tooltip or fallback.
+Choose exactly one renderer; do not add native title attributes inside styled
+triggers. Keep keyboard focus, hover and touch details in styled mode.

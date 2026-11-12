@@ -661,8 +661,8 @@ function ProjectPage({
       </div>
       <MobileFilters label="CI filters" count={[platform, params.get("stack"), params.get("target")].filter(Boolean).length}>
       <div className="build-browser-toolbar build-filters" role="group" aria-label="Filter">
-        <fieldset className="build-filter-options">
-          <legend>Project</legend>
+        <fieldset className="build-filter-options" aria-label="Project">
+          <legend><Tooltip mobileDisclosure={false} label="About Project" content={<TooltipContent heading="Project"><span>Select the project whose configured CI jobs and collected evidence are shown. Source: {project.repository}; default branch: {project.default_branch}.</span></TooltipContent>}>Project</Tooltip></legend>
           {overview.projects.map((item) => (
             <button key={item.id} type="button" aria-pressed={project.id === item.id}
               onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, stack: null, target: null, platform: null, day: null, activity: null }))}>
@@ -677,14 +677,16 @@ function ProjectPage({
             return <button key={os} type="button" aria-pressed={available && (platform === null || platform === os)}
               disabled={!available || platform === os || platforms.length === 1}
               onClick={() => onNavigate(query(params, { platform: platform === null ? (os === "linux" ? "windows" : "linux") : null }))}>
-              {os === "linux" ? "Linux" : "Windows"}
+              <PlatformIcon platform={os} />{os === "linux" ? "Linux" : "Windows"}
             </button>;
           })}
         </fieldset>
         {([{ key: "stack", label: "Stack", options: stacks, selected: selectedStacks },
           { key: "target", label: "Target", options: targets, selected: selectedTargets }] as const).map((group) => (
-          <fieldset key={group.key} className="build-filter-options">
-            <legend>{group.label}</legend>
+          <fieldset key={group.key} className="build-filter-options" aria-label={group.label}>
+            <legend><Tooltip mobileDisclosure={false} label={`About ${group.label}`} content={<TooltipContent heading={group.label}>
+              <span>{group.key === "stack" ? "Filter jobs by their configured software stack" : "Filter jobs by their configured hardware target"}: {group.options.join(", ")}. Selected values are included together; keep at least one. These are job configurations, not verified hardware availability.</span>
+            </TooltipContent>}>{group.label}</Tooltip></legend>
             {group.options.map((value) => <button key={value} type="button"
               aria-pressed={group.selected.includes(value)}
               disabled={group.selected.length === 1 && group.selected.includes(value)}

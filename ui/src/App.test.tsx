@@ -9,7 +9,7 @@ import {
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
-import { fixtureFetch, historyFixture, indexUrl, overview, pointer } from "./fixtures";
+import { fixtureFetch, historyFixture, index, indexUrl, overview, pointer } from "./fixtures";
 
 // Match the retained build fixtures while leaving async/UI timers real.
 beforeEach(() => {
@@ -366,4 +366,16 @@ it("opens legacy build links in Build Qualification and keeps Performance in its
   fireEvent.click(within(navigation).getByRole("link", { name: "Performance" }));
   expect(await screen.findByRole("heading", { name: "Performance details", level: 1 })).toBeInTheDocument();
   expect(await screen.findByRole("combobox", { name: "Model" })).toBeInTheDocument();
+});
+
+it.each(["10.1", "10.2"])("explains ROCm tracks from the dataset stable anchor %s", async (anchor) => {
+  const original = fixtureFetch();
+  const fetcher = async (input: string | URL | Request) => String(input) === indexUrl
+    ? new Response(JSON.stringify({ ...index, readiness: { stable_anchor: anchor } }))
+    : original(input);
+  mount(fetcher, "/?view=engine&version=10.1");
+  await screen.findByRole("region", { name: "Qualification by release workflow run" });
+  const versions = screen.getByRole("group", { name: "ROCm version" });
+  act(() => within(versions).getByRole("button", { name: anchor }).focus());
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Latest stable qualification track");
 });

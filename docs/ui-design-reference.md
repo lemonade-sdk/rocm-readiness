@@ -419,3 +419,17 @@ not started”. Use zero when the published assessment omits a count, including
 incomplete collection. This is a display fallback, not verified absence; retain
 the project-level incomplete-collection indicator. Tooltip descriptions come from the collector’s optional `metric_descriptions`
 fields, including window scope and the zero-fallback limitation.
+
+The Build Qualification Performance filter uses the compact label “Measured”
+for builds with performance data.
+
+ROCm version filter buttons explain track scope using the dataset's stable anchor
+and numeric version ordering, matching the readiness overview. Do not hard-code
+version classifications; older datasets without an anchor report unavailable
+classification. The Measured filter explains matching measurement availability.
+Upstream Project, Stack, and Target legends open shared styled explanations with
+repository and configured filter values from the dataset. Platform filters omit
+help tooltips and consistently pair OS names with shared platform icons.
+
+Filter help stays in anchored popups on phones so it does not replace filter
+actions or become page evidence. Other evidence keeps the mobile disclosure pattern.

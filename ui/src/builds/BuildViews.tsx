@@ -3,6 +3,7 @@ import { useMediaQuery } from "../mobile";
 import { MobileFilters } from "../MobileFilters";
 import { Link } from "react-router";
 import { FilterReset, FilterScope } from "../FilterReset";
+import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher, Session } from "../data";
 import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
@@ -187,10 +188,12 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       />
       <fieldset className="build-filter-options">
         <legend>Performance</legend>
-        <button type="button" aria-pressed={measuredOnly}
-          onClick={() => onNavigate(next({ performance: measuredOnly ? null : "measured", build: null, source: null, package_identity: null }))}>
-          Has performance data
-        </button>
+        <Tooltip mobileDisclosure={false} label="Measured" triggerClassName="filter-tooltip-trigger"
+          buttonProps={{ "aria-pressed": measuredOnly,
+            onClick: () => onNavigate(next({ performance: measuredOnly ? null : "measured", build: null, source: null, package_identity: null })) }}
+          content={<TooltipContent heading="Measured builds"><span>Show only builds with matching recorded performance measurements. This filters measurement availability, not qualification results or performance quality.</span></TooltipContent>}>
+          Measured
+        </Tooltip>
       </fieldset>
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>

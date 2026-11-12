@@ -983,6 +983,34 @@ class StatusLabelTests(unittest.TestCase):
         for state, text in [("up", "upstream"), ("partial", "partial"), ("down", "unobserved")]:
             self.assertEqual(_status_labels([job], {"state": state, "reason": "evidence"}, {"complete": True}, 30)[0]["text"], text)
 
+class DevlabLabelTests(unittest.TestCase):
+    def labels(self, latest, collected_at="2026-11-12T20:00:00Z"):
+        from scripts.upstream import _status_labels
+        job = {"label": "gpu-rocm (gfx1151)", "devlab_observed": True, "latest": latest}
+        coverage = {"complete": True, "collected_at": collected_at}
+        return _status_labels([job], {"state": "up", "reason": "evidence"}, coverage, 30)[1]
+
+    def test_green_when_latest_result_ran_on_devlab_within_a_day(self):
+        label = self.labels({"state": "failed", "at": "2026-11-12T19:13:07Z",
+                             "runner": "ephemeral-devlab-x2-la03-s04-d02-1"})
+        self.assertEqual(label["tone"], "positive")
+        self.assertIn("running", label["tooltip"])
+
+    def test_grey_when_latest_devlab_result_is_older_than_a_day(self):
+        label = self.labels({"state": "passed", "at": "2026-11-10T08:00:00Z",
+                             "runner": "ephemeral-devlab-x2-slot-1"})
+        self.assertEqual(label["tone"], "neutral")
+
+    def test_grey_when_latest_result_was_not_on_devlab(self):
+        label = self.labels({"state": "passed", "at": "2026-11-12T19:00:00Z", "runner": "amd-r9700-box"})
+        self.assertEqual(label["tone"], "neutral")
+
+    def test_grey_without_latest_or_collection_time(self):
+        self.assertEqual(self.labels(None)["tone"], "neutral")
+        self.assertEqual(self.labels({"at": "2026-11-12T19:00:00Z", "runner": "ephemeral-devlab-1"},
+                                     collected_at=None)["tone"], "neutral")
+
+
 class MetricDescriptionTests(unittest.TestCase):
     def test_descriptions_explain_scope_counts_and_incomplete_fallback(self):
         from scripts.upstream import _metric_descriptions

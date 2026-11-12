@@ -37,7 +37,7 @@ describe("Build qualification performance filter", () => {
   });
   it("toggles matched observations through URL state", () => {
     const navigate = mount();
-    const toggle = screen.getByRole("button", { name: "Has performance data" });
+    const toggle = screen.getByRole("button", { name: "Measured" });
     expect(toggle).toHaveAttribute("aria-pressed", "false");
     expect(screen.getAllByText("b101").length).toBeGreaterThan(0);
     fireEvent.click(toggle);
@@ -51,7 +51,7 @@ describe("Build qualification performance filter", () => {
   });
   it("honors URL state, matches same-run platform siblings, and resets", () => {
     const navigate = mount("view=engine&version=10.1&through=2026-10-29&performance=measured&platform=windows");
-    expect(screen.getByRole("button", { name: "Has performance data" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Measured" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryAllByText("b101")).toHaveLength(0);
     expect(screen.getAllByText("b100").length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));

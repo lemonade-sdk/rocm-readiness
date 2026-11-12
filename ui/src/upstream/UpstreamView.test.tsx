@@ -446,7 +446,7 @@ it("uses independent inclusive stack and target toggles and a shared daily calen
   mount("/?track=upstream&view=ci&project=llamacpp");
   const stacks = await screen.findByRole("group", { name: "Stack" });
   const targets = screen.getByRole("group", { name: "Target" });
-  for (const button of [...within(stacks).getAllByRole("button"), ...within(targets).getAllByRole("button")]) {
+  for (const button of [...stacks.querySelectorAll("button[aria-pressed]"), ...targets.querySelectorAll("button[aria-pressed]")]) {
     expect(button).toHaveAttribute("aria-pressed", "true");
   }
   expect(screen.queryByRole("button", { name: "Everything AMD" })).not.toBeInTheDocument();
@@ -704,4 +704,14 @@ it("shows collector-provided descriptions for all four summary metrics", async (
     expect(await screen.findByRole('tooltip')).toHaveTextContent(description);
     fireEvent.blur(trigger);
   }
+});
+
+it("explains upstream filter scopes and shows OS icons", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const platforms = await screen.findByRole("group", { name: "Platform" });
+  expect(platforms.querySelector('[data-platform="linux"]')).not.toBeNull();
+  expect(platforms.querySelector('[data-platform="windows"]')).not.toBeNull();
+  fireEvent.focus(screen.getByRole("button", { name: "About Stack" }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(/stack/i);
+  expect(screen.queryByRole("button", { name: "About Platform" })).not.toBeInTheDocument();
 });

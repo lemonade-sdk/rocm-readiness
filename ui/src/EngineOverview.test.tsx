@@ -1,11 +1,22 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import type { Build } from "./data";
 import { EngineOverview } from "./EngineOverview";
 import { overview } from "./fixtures";
 
 const now = new Date("2026-11-02T15:00:00Z");
+afterEach(() => vi.unstubAllGlobals());
+
+it("uses date rows with platform columns at narrow phone widths", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  mount([build({ generated_at: "2026-11-01T01:00:00Z", tag: "b1" })]);
+  const table = screen.getByRole("table");
+  expect(within(table).getByRole("columnheader", { name: "Date · UTC" })).toBeVisible();
+  const day = within(table).getByRole("rowheader", { name: "2026-11-01 UTC" });
+  expect(within(day.closest("tr")!).getByRole("link", { name: /b1/ })).toHaveAttribute("href", expect.stringContaining("day=2026-11-01"));
+  expect(within(table).getAllByRole("rowheader")).toHaveLength(14);
+});
 function build(overrides: Partial<Build> = {}): Build {
   return {
     ...overview().engines[0].latest_builds[0],

@@ -10,6 +10,8 @@ import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity } from "../overview/buildTimeline";
 import { checkOrder, pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
 import "./QualificationMatrix.css";
+import { usePhoneLayout } from "../mobile";
+import { EvidenceRegion } from "../overview/EvidenceRegion";
 
 type Report = Awaited<ReturnType<typeof readQualificationReport>>;
 type Outcome = "pass" | "fail" | "warn" | "skip" | "not_applicable" | "unreported";
@@ -59,7 +61,8 @@ function buildRepository(build: Build) {
   return build.source_url?.match(/^https:\/\/raw\.githubusercontent\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/[a-f0-9]{40}\/qualification\/index\.json$/)?.[1];
 }
 
-function PackageDetails({ heading, packages, coverageFetcher, run, performanceMeasurements, initialOpen = false, dataCommit }: {
+function PackageDetails({ heading, packages, coverageFetcher, run, performanceMeasurements, initialOpen = false, dataCommit, triggerText }: {
+  triggerText?: string;
   heading: string;
   packages: Build[];
   coverageFetcher?: Fetcher;
@@ -86,7 +89,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
   const observations = matchedPerformanceObservations(packages, performanceMeasurements);
   const hasPerformance = observations.length > 0;
   return <><Tooltip side floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
-    initialOpen={initialOpen} onOpen={() => setInspect(true)}
+    mobilePrimary={Boolean(triggerText)} initialOpen={initialOpen} onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
       {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>
         {run.run_id && buildRepository(run) ? <a href={`https://github.com/${buildRepository(run)}/actions/runs/${encodeURIComponent(run.run_id)}`} target="_blank" rel="noreferrer">{run.run_id} ↗</a> : run.run_id ?? "Unreported"}
@@ -137,7 +140,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
         })}
       </ul>
     </TooltipContent>}>
-    {heading}
+    {triggerText ?? heading}
   </Tooltip>
   {hasPerformance && <PerformancePreview heading={heading}
     observations={observations} />}
@@ -191,7 +194,10 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
             ? tier.checks
             : (byTier.get(id) ?? []).map(([id, status]) => ({ id, status, name: id, index: undefined, evidence: undefined }));
           return <li key={id}>
-            <code title={tier?.name} aria-label={`${tierLabel(id)} · ${outcomes[status]}`}>{tierLabel(id)}</code>
+            <code title={tier?.name} aria-label={`${id.replace(/^tier(\d+)$/i, "Tier $1")} · ${outcomes[status]}`}>
+              <span className="qualification-tier-short">{tierLabel(id)}</span>
+              <span className="qualification-tier-long">{id.replace(/^tier(\d+)$/i, "Tier $1")}</span>
+            </code>
             <div className="qualification-check-strip">
               {checks.map((check) => {
                 const state = outcome(check.status);
@@ -227,6 +233,7 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
   dataCommit?: string | null;
   performanceMeasurements?: Map<Build, PerformanceData["measurements"]>;
 }) {
+  const phone = usePhoneLayout();
   const title = useId();
   const selectedId = selected ? buildIdentity(selected) : null;
   const reference = selected && checkLink?.revision ? pinnedReport(selected) : null;
@@ -291,6 +298,55 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
 
   const checkLegend = <OutcomeLegend label="Check outcomes" className="qualification-check-legend"
     items={(["pass", "fail", "warn", "skip", "not_applicable", "unreported"] as const).map((outcome) => ({ outcome }))} />;
+
+  function mobileCards(packages: Build[], nightly: boolean) {
+    return packages.map((build) => <article className="qualification-mobile-card" key={buildIdentity(build)} aria-label={`${build.tag ?? build.build_id} · ${platformName(build.os)}`}>
+      <EvidenceRegion>
+        <h5>{nightly && <>{build.tag ?? build.build_id} · </>}<PlatformIcon platform={build.os} /> {platformName(build.os)}</h5>
+        <p className="muted qualification-mobile-publishing">{build.published === true ? "Published" : build.published === false ? "Not published" : "Publishing unreported"}{nightly && ` · ${buildDate(build)} UTC`}</p>
+        <PackageCell build={build} fetcher={fetcher} selected={buildIdentity(build) === selectedId}
+          checkLink={!revisionMismatch && buildIdentity(build) === selectedId ? checkLink : undefined} />
+        <div className="qualification-mobile-details"><PackageDetails heading={build.tag ?? build.build_id} packages={[build]}
+          key={String(Boolean(openPackage && buildIdentity(build) === selectedId))}
+          triggerText="Evidence & configuration" initialOpen={Boolean(openPackage && buildIdentity(build) === selectedId)}
+          dataCommit={dataCommit} coverageFetcher={fetcher} performanceMeasurements={performanceMeasurements} /></div>
+      </EvidenceRegion>
+    </article>);
+  }
+
+  if (phone) {
+    const versions = [...new Set(builds.map((build) => build.rocm_version))];
+    return <section aria-labelledby={title} className="qualification-matrix">
+      <h2 id={title}>Package qualification</h2>
+      {revisionMismatch && <p role="status">This check link points to a different producer report revision.</p>}
+      {!builds.length && <p role="status">No retained packages match this scope.</p>}
+      {versions.map((version) => {
+        const versionRuns = [...runs].filter(([, packages]) => packages[0].rocm_version === version);
+        const families = new Map<string, Build[]>();
+        for (const [, packages] of versionRuns) for (const build of packages) {
+          if (build.channel === "stable") continue;
+          const family = build.gfx_family ?? "Shared archive";
+          families.set(family, [...(families.get(family) ?? []), build]);
+        }
+        return <section className="qualification-mobile-version" key={version} aria-label={`ROCm ${version} packages`}>
+          <h3>ROCm {version}</h3>
+          {versionRuns.filter(([, packages]) => packages[0].channel === "stable").map(([key, packages]) => {
+            const build = packages[0];
+            return <section className="qualification-mobile-release" key={key} aria-label={`Build ${build.tag ?? build.build_id}`}>
+              <header className="qualification-mobile-group-heading"><h4>{build.tag ?? build.build_id}</h4><p>{build.engine === "llamacpp" ? "llama.cpp" : build.engine} · Stable · {buildDate(build)} UTC</p></header>
+              {mobileCards(packages, false)}
+              {checkLegend}
+            </section>;
+          })}
+          {[...families].sort(([a], [b]) => checkOrder.compare(a, b)).map(([family, packages]) => <section className="qualification-mobile-release" key={family} aria-label={`GPU family ${family}`}>
+            <header className="qualification-mobile-group-heading"><h4>{family}</h4><p>{[...new Set(packages.map((build) => build.engine === "llamacpp" ? "llama.cpp" : build.engine))].join(", ")} · {[...new Set(packages.map((build) => build.channel === "nightly" ? "Nightly" : build.channel))].join(", ")}</p></header>
+            {mobileCards(packages, true)}
+            {checkLegend}
+          </section>)}
+        </section>;
+      })}
+    </section>;
+  }
 
   return <section aria-labelledby={title} className="qualification-matrix">
     <h2 id={title}>Package qualification</h2>

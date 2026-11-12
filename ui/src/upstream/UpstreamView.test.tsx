@@ -1,11 +1,35 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { fixtureFetch, indexUrl } from "../fixtures";
 import { cellState, keepJob, loadUpstream, type UpstreamOverview } from "./data";
 import { upstreamFetch, upstreamOverview } from "./fixtures";
 import { loadSession } from "../data";
+afterEach(() => vi.unstubAllGlobals());
+
+it("expands phone daily evidence inside its own dated row", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const row = await screen.findByRole("article", { name: "CI activity on 2026-10-27 UTC" });
+  const toggle = within(row).getByRole("button", { name: /^2026-10-27:/ });
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
+  expect(await within(row).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
+  expect(within(row).getByRole("region", { name: "Runs on 2026-10-27" }).closest("table")).toBeNull();
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(within(row).queryByRole("region", { name: "Runs on 2026-10-27" })).not.toBeInTheDocument();
+});
+
+it("restores a selected phone job and its dated evidence from the URL", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  mount("/?track=upstream&view=ci&project=llamacpp&day=2026-10-27&activity=job:gpu-rocm");
+  const table = await screen.findByRole("table", { name: "gpu-rocm daily outcomes" });
+  expect(table.closest("details")).toHaveAttribute("open");
+  expect(within(table).getAllByRole("rowheader")).toHaveLength(14);
+  expect(await screen.findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
+});
 
 function mount(entry = "/?track=upstream", fetcher = upstreamFetch()) {
   return render(

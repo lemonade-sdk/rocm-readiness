@@ -1,5 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useMediaQuery } from "../mobile";
+import { EvidenceRegion } from "../overview/EvidenceRegion";
+import { EvidenceBody } from "../overview/EvidenceDisclosure";
+import { MobileFilters } from "../MobileFilters";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Fetcher, Session } from "../data";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
@@ -292,12 +296,63 @@ function ProjectGrid({
   );
 }
 
+type MobileDayProps = {
+  day: string; jobs: Job[]; categories: string[]; scale: number;
+  selected?: { key: string; day: string } | null;
+  onPick: (category: string, day: string) => void;
+  renderDay?: (category: string, day: string) => ReactNode;
+};
+
+function MobileActivityDay({ day, jobs, categories, scale, selected, onPick, renderDay }: MobileDayProps) {
+  const id = useId();
+  const toggle = useRef<HTMLButtonElement>(null);
+  const cell = sumCells(jobs, day);
+  const total = cell.passed + cell.failed + cell.running + cell.other;
+  const requested = selected?.key.startsWith("cat:") ? selected.key.slice(4) : undefined;
+  const category = requested && categories.includes(requested) ? requested : categories.find((category) => {
+    const cell = sumCells(jobs.filter((job) => job.category === category), day);
+    return cell.passed + cell.failed + cell.running + cell.other + cell.stalled + cell.skipped > 0;
+  }) ?? categories[0];
+  const expanded = selected?.day === day && selected.key === `cat:${category}`;
+  const close = () => { onPick(category, day); toggle.current?.focus(); };
+  return <article className="up-mobile-day" aria-label={`CI activity on ${day} UTC`} data-open={expanded || undefined}
+    onKeyDown={(event) => { if (event.key === "Escape" && expanded) { event.preventDefault(); event.stopPropagation(); close(); } }}>
+    <button ref={toggle} type="button" className="up-mobile-day-toggle" aria-label={describe(day, cell)}
+      aria-expanded={expanded} aria-controls={id} onClick={() => onPick(category, day)}>
+      <span className="up-mobile-day-title"><time dateTime={day}>{day} UTC</time><span>{total ? `${total} runs` : activityStates[cellState(cell)].label}</span></span>
+      <span className="up-day-chevron" aria-hidden="true" />
+      <span className="up-horizontal-chart" aria-hidden="true">
+        {cell.passed > 0 && <span className="qualification-segment pass" style={{ width: `${100 * cell.passed / scale}%` }} />}
+        {cell.failed > 0 && <span className="qualification-segment fail" style={{ width: `${100 * cell.failed / scale}%` }} />}
+        {cell.running + cell.other > 0 && <span className="qualification-segment unknown" style={{ width: `${100 * (cell.running + cell.other) / scale}%` }} />}
+        {!total && <ActivityMark state={cellState(cell)} />}
+      </span>
+    </button>
+    <div id={id} hidden={!expanded}>
+      {expanded && <>
+        <div className="up-mobile-categories" role="group" aria-label={`Activity category on ${day}`}>
+          {categories.map((item) => {
+            const cell = sumCells(jobs.filter((job) => job.category === item), day);
+            const total = cell.passed + cell.failed + cell.running + cell.other;
+            return <button type="button" key={item} aria-label={`${item} · ${describe(day, cell)}`} aria-pressed={item === category}
+              onClick={() => { if (item !== category) onPick(item, day); }}>
+              {item} <span>{total ? `${total} runs` : activityStates[cellState(cell)].label}</span>
+            </button>;
+          })}
+        </div>
+        <EvidenceBody className="up-run-tooltip up-mobile-day-evidence">{renderDay?.(category, day)}</EvidenceBody>
+      </>}
+    </div>
+  </article>;
+}
+
 function ProjectActivity({ project, jobs, days, params, onPick, selected, renderDay }: {
   project: Project; jobs: Job[]; days: string[]; params: URLSearchParams;
   onPick?: (category: string, day: string) => void;
   selected?: { key: string; day: string } | null;
   renderDay?: (category: string, day: string) => ReactNode;
 }) {
+  const vertical = useMediaQuery("(max-width: 540px)");
   const last14 = days;
   const months = calendarMonthGroups(last14);
   const totalRuns = (cell: Cell) => cell.passed + cell.failed + cell.running + cell.other;
@@ -305,8 +360,60 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
     const group = jobs.filter((job) => job.category === category);
     return days.map((day) => totalRuns(sumCells(group, day)));
   }));
+  if (vertical && onPick) {
+    const categories = CATEGORIES.filter((category) => jobs.some((job) => job.category === category));
+    const dayScale = Math.max(1, ...days.map((day) => totalRuns(sumCells(jobs, day))));
+    if (!categories.length) return null;
+    return <section className="up-detail-activity" aria-label="Daily CI activity">
+      <div className="up-mobile-days">{[...days].reverse().map((day) => <MobileActivityDay key={day} day={day} jobs={jobs} categories={categories}
+        scale={dayScale} selected={selected} onPick={onPick} renderDay={renderDay} />)}</div>
+      <OutcomeLegend label="Daily CI activity legend" className="calendar-legend" items={[
+        { outcome: "pass", label: "Passed", mark: "bar" }, { outcome: "fail", label: "Failed", mark: "bar" },
+        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No collected evidence" },
+      ]} />
+    </section>;
+  }
+  if (vertical) {
+    const categories = CATEGORIES.filter((category) => jobs.some((job) => job.category === category));
+    return <section className="up-detail-activity" aria-label="Daily CI activity">
+      <EvidenceRegion>
+        <div className="calendar-surface up-vertical-calendar" role="region" aria-label={`${project.label} activity calendar`}>
+          <table className="up-activity-vertical" aria-label="Daily CI activity">
+            <thead><tr><th scope="col">Date · UTC</th>{categories.map((category) => <th scope="col" key={category}>{category}</th>)}</tr></thead>
+            <tbody>{[...days].reverse().map((day) => <tr key={day}>
+              <th scope="row"><time dateTime={day}>{day}</time></th>
+              {categories.map((category) => {
+                const cell = sumCells(jobs.filter((job) => job.category === category), day);
+                const state = cellState(cell), text = describe(day, cell);
+                return <td key={category} className={onPick ? "up-vertical-bar-cell" : "table-status"} data-outcome={activityOutcomes[state]}>
+                  {onPick ? <Tooltip interactive label={text} triggerClassName="up-vertical-day-trigger" contentClassName="up-run-tooltip"
+                    isOpen={selected?.key === `cat:${category}` && selected.day === day}
+                    onOpenChange={(next) => { if (next !== (selected?.key === `cat:${category}` && selected.day === day)) onPick(category, day); }}
+                    content={renderDay?.(category, day)}>
+                    <span className="up-horizontal-chart up-daily-chart" aria-hidden="true">
+                      {cell.passed > 0 && <span className="qualification-segment pass" style={{ width: `${100 * cell.passed / scale}%` }} />}
+                      {cell.failed > 0 && <span className="qualification-segment fail" style={{ width: `${100 * cell.failed / scale}%` }} />}
+                      {cell.other + cell.running > 0 && <span className="qualification-segment unknown" style={{ width: `${100 * (cell.other + cell.running) / scale}%` }} />}
+                      {!totalRuns(cell) && <ActivityMark state={state} />}
+                    </span>
+                  </Tooltip> : <Tooltip label={text} triggerClassName="up-tick"
+                    to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}
+                    content={text}><ActivityMark state={state} /></Tooltip>}
+                </td>;
+              })}
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </EvidenceRegion>
+      <OutcomeLegend label="Daily CI activity legend" className="calendar-legend" items={onPick ? [
+        { outcome: "pass", label: "Passed", mark: "bar" }, { outcome: "fail", label: "Failed", mark: "bar" },
+        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No collected evidence" },
+      ] : (Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => ({ outcome: activityOutcomes[state], label: activityStates[state].label }))} />
+    </section>;
+  }
   return (
     <section className="up-detail-activity" aria-label="Daily CI activity">
+    <EvidenceRegion>
     <div
       className="up-project-activity calendar-surface"
       role="region"
@@ -381,6 +488,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
         </tbody>
       </table>
     </div>
+    </EvidenceRegion>
     <OutcomeLegend label="Daily CI activity legend" className="calendar-legend"
       items={onPick ? [
         { outcome: "pass", label: "Passed", mark: "bar" },
@@ -441,6 +549,7 @@ function ProjectPage({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
+  const vertical = useMediaQuery("(max-width: 540px)");
   const stacks = [...new Set(project.jobs.map((job) => job.stack))].sort();
   const targets = [...new Set(project.jobs.map((job) => job.target))].sort();
   // Legacy lens links still select their original stack or target.
@@ -538,7 +647,7 @@ function ProjectPage({
           <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>
         )}
       </header>
-      <div className="up-kpis up-kpis-page">
+      <div className="up-kpis up-kpis-page" role="group" aria-label="CI metrics">
         <Stat
           value={<>{r.pct === null ? "–" : `${r.pct}%`} <small>of {r.decided}</small></>}
           label="Collected results passed"
@@ -550,9 +659,10 @@ function ProjectPage({
         )}
       </div>
       </div>
+      <MobileFilters label="CI filters" count={[platform, params.get("stack"), params.get("target")].filter(Boolean).length}>
       <div className="build-browser-toolbar build-filters" role="group" aria-label="Filter">
         <fieldset className="build-filter-options" aria-label="Project">
-          <legend><Tooltip label="About Project" content={<TooltipContent heading="Project"><span>Select the project whose configured CI jobs and collected evidence are shown. Source: {project.repository}; default branch: {project.default_branch}.</span></TooltipContent>}>Project</Tooltip></legend>
+          <legend><Tooltip mobileDisclosure={false} label="About Project" content={<TooltipContent heading="Project"><span>Select the project whose configured CI jobs and collected evidence are shown. Source: {project.repository}; default branch: {project.default_branch}.</span></TooltipContent>}>Project</Tooltip></legend>
           {overview.projects.map((item) => (
             <button key={item.id} type="button" aria-pressed={project.id === item.id}
               onClick={() => onNavigate(query(params, { view: "ci", project: item.id, lens: null, stack: null, target: null, platform: null, day: null, activity: null }))}>
@@ -574,7 +684,7 @@ function ProjectPage({
         {([{ key: "stack", label: "Stack", options: stacks, selected: selectedStacks },
           { key: "target", label: "Target", options: targets, selected: selectedTargets }] as const).map((group) => (
           <fieldset key={group.key} className="build-filter-options" aria-label={group.label}>
-            <legend><Tooltip label={`About ${group.label}`} content={<TooltipContent heading={group.label}>
+            <legend><Tooltip mobileDisclosure={false} label={`About ${group.label}`} content={<TooltipContent heading={group.label}>
               <span>{group.key === "stack" ? "Filter jobs by their configured software stack" : "Filter jobs by their configured hardware target"}: {group.options.join(", ")}. Selected values are included together; keep at least one. These are job configurations, not verified hardware availability.</span>
             </TooltipContent>}>{group.label}</Tooltip></legend>
             {group.options.map((value) => <button key={value} type="button"
@@ -585,6 +695,7 @@ function ProjectPage({
         ))}
         <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
       </div>
+      </MobileFilters>
       {open?.key === "all" && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
       {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} runs={runs}
         onClose={() => setOpen(null)} />}
@@ -614,6 +725,7 @@ function ProjectPage({
             <h2>Failing steps on main</h2>
             <div className="up-failures-surface calendar-surface">
             <p className="muted up-failures-caption">Most frequent failed steps · {overview.window.days} days · main</p>
+            <EvidenceRegion>
             {steps.length ? (
               <table className="up-failures-table" aria-label="Failing steps on main">
                 <thead><tr><th scope="col">Failed step</th><th scope="col">Failures</th><th scope="col" title="Number of affected CI jobs">Jobs</th></tr></thead>
@@ -637,6 +749,7 @@ function ProjectPage({
                 ))}</tbody>
               </table>
             ) : <p className="muted">No collected failing-step details.</p>}
+            </EvidenceRegion>
             </div>
           </section>
         </div>
@@ -648,6 +761,33 @@ function ProjectPage({
       </div>
       <section className="up-panel up-jobs" aria-label="CI jobs">
         <h2>CI jobs <span className="muted">{jobs.length} jobs · {days14.length} days · UTC</span></h2>
+        {vertical ? <div className="up-mobile-jobs">{jobs.map((job) => {
+          const key = `job:${job.id}`;
+          const passed = days14.reduce((total, day) => total + (job.daily[day]?.passed ?? 0), 0);
+          const failed = days14.reduce((total, day) => total + (job.daily[day]?.failed ?? 0), 0);
+          return <details className="up-mobile-job" key={job.id} open={open?.key === key}>
+            <summary>{job.label} <span className="muted">· {job.os === "windows" ? "Windows" : "Linux"}</span></summary>
+            <EvidenceBody><TooltipContent heading="Job configuration"><dl>
+              <LatestJobDetails job={job} />
+              <dt>Stack / target</dt><dd>{job.stack} · {job.target}</dd><dt>Workflow</dt><dd>{job.workflow}</dd>
+              <dt>Configured runner</dt><dd>{job.where}</dd><dt>Cadence</dt><dd>{job.cadence}</dd>
+              <dt>Pass rate ({days14.length} days)</dt><dd>{passed + failed ? `${Math.round(100 * passed / (passed + failed))}%` : "Unavailable"} · {passed} passed of {passed + failed} decided</dd>
+            </dl></TooltipContent></EvidenceBody>
+            <EvidenceRegion><table className="up-activity-vertical" aria-label={`${job.label} daily outcomes`}>
+              <thead><tr><th scope="col">Date · UTC</th><th scope="col">Outcome</th></tr></thead>
+              <tbody>{[...days14].reverse().map((day) => {
+                const cell = job.daily[day];
+                const state = cell?.failed ? "bad" : cell && (cell.running + cell.other > 0) ? "none" : cellState(cell);
+                const label = `${job.label} · ${describe(day, cell)}`;
+                return <tr key={day}><th scope="row"><time dateTime={day}>{day}</time></th><td className="table-status" data-outcome={activityOutcomes[state]}>
+                  <Tooltip label={label} contentClassName="up-run-tooltip" triggerClassName="up-tick" isOpen={open?.key === key && open.day === day}
+                    onOpenChange={(next) => { if (next !== (open?.key === key && open.day === day)) pick(key, day, [job.id]); }}
+                    content={<DayPanel project={project} jobs={[job]} day={day} runs={runs} onClose={() => setOpen(null)} />}><ActivityMark state={state} /></Tooltip>
+                </td></tr>;
+              })}</tbody>
+            </table></EvidenceRegion>
+          </details>;
+        })}</div> : <EvidenceRegion>
         <div className="up-table-scroll calendar-surface" role="region" aria-label="CI jobs table" tabIndex={0}>
           <table className="up-activity-table up-jobs-table" aria-label="CI jobs">
             <thead>
@@ -701,6 +841,7 @@ function ProjectPage({
             })}</tbody>
           </table>
         </div>
+        </EvidenceRegion>}
         <OutcomeLegend label="CI job outcomes" className="calendar-legend" items={[
           { outcome: "pass" }, { outcome: "fail" }, { outcome: "skip" },
           { outcome: "not_run" }, { outcome: "unreported", label: "No collected evidence" }, { outcome: "pending" },

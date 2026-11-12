@@ -1,7 +1,48 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { Tooltip, TooltipContent, tooltipTiming } from "./Tooltip";
-afterEach(() => vi.useRealTimers());
+import { EvidenceRegion } from "./EvidenceRegion";
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("expands phone evidence in flow on activation, without hover or focus opening", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  render(<Tooltip label="Package details" content={<a href="#report">Pinned report</a>}>Build b100</Tooltip>);
+  const trigger = screen.getByRole("button", { name: "Package details" });
+  fireEvent.mouseEnter(trigger);
+  act(() => trigger.focus());
+  expect(screen.queryByRole("region", { name: "Package details" })).not.toBeInTheDocument();
+  fireEvent.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("region", { name: "Package details" })).toContainElement(screen.getByRole("link", { name: "Pinned report" }));
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  fireEvent.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
+});
+
+it("reflects selected check evidence in the card disclosure and collapses it from that control", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  render(<EvidenceRegion>
+    <Tooltip label="Check T0.1" content="Check evidence">✓</Tooltip>
+    <Tooltip mobilePrimary label="Package evidence" content="Package metadata">Evidence &amp; configuration</Tooltip>
+  </EvidenceRegion>);
+  fireEvent.click(screen.getByRole("button", { name: "Check T0.1" }));
+  const summary = screen.getByRole("button", { name: "Package evidence" });
+  expect(summary).toHaveAttribute("aria-expanded", "true");
+  expect(screen.queryByRole("button", { name: "Close evidence" })).not.toBeInTheDocument();
+  fireEvent.click(summary);
+  expect(summary).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("region", { name: "Check T0.1" })).not.toBeInTheDocument();
+});
+
+it("keeps phone evidence expanded when using other page controls", () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  const changed = vi.fn();
+  render(<Tooltip label="Selected day" initialOpen onOpenChange={changed} content="Run evidence">27</Tooltip>);
+  fireEvent.pointerDown(document.body);
+  expect(changed).not.toHaveBeenCalled();
+  expect(screen.getByRole("region", { name: "Selected day" })).toBeVisible();
+});
 it("delays opening and cancels incidental pointer passes", async () => {
   vi.useFakeTimers();
   render(

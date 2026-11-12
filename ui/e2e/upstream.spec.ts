@@ -1,4 +1,7 @@
 import { expect, test } from "@playwright/test";
+
+// Baseline table/popup scenarios use desktop dimensions; responsive cases override this.
+test.use({ viewport: { width: 1440, height: 1000 } });
 import {
   index,
   indexUrl,
@@ -87,7 +90,8 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.getByRole("navigation", { name: "Project navigation" })).toHaveCount(0);
       await expect(page.getByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toBeVisible();
       await expect(page.getByRole("link", { name: "lemonade-sdk/llama.cpp" })).toBeVisible();
-      await expect(page.getByRole("table", { name: "Daily CI activity" })).toHaveCount(1);
+      if (width <= 540) await expect(page.getByRole("article", { name: /^CI activity on / })).toHaveCount(14);
+      else await expect(page.getByRole("table", { name: "Daily CI activity" })).toHaveCount(1);
       await page.getByRole("region", { name: "Daily activity", exact: true }).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true }).click();
       await expect(page.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
       await page.screenshot({ path: testInfo.outputPath("before-scroll.png"), fullPage: true });
@@ -100,6 +104,7 @@ for (const theme of ["light", "dark"] as const) {
         await expect.poll(() => coverage.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
       }
       await page.screenshot({ path: testInfo.outputPath("project.png"), fullPage: true });
+      if (width <= 640) await page.getByRole("button", { name: "Navigation", exact: true }).click();
       await page.getByRole("list", { name: "Upstream health views" }).getByRole("link", { name: "Overview", exact: true }).click();
       await expect(page.getByRole("region", { name: "Upstream projects" })).toBeVisible();
     });
@@ -166,15 +171,16 @@ for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.goto("./?track=upstream&view=ci&project=llamacpp");
     const day = page.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
-    await expect(day).toHaveText("");
+    if (width > 540) await expect(day).toHaveText("");
     await day.focus();
-    const table = page.getByRole("table", { name: "Daily CI activity" });
+    const table = width <= 540 ? page.getByRole("article", { name: "CI activity on 2026-10-27 UTC", exact: true }) : page.getByRole("table", { name: "Daily CI activity" });
     const before = await table.boundingBox();
     await day.press("Enter");
-    const popup = page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
+    const popup = width <= 540 ? table.getByRole("region", { name: "Runs on 2026-10-27", exact: true }) : page.getByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
     await expect(popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
     await expect(popup).toContainText("4 runs");
-    expect(await table.boundingBox()).toEqual(before);
+    if (width <= 540) expect((await table.boundingBox())!.height).toBeGreaterThan(before!.height);
+    else expect(await table.boundingBox()).toEqual(before);
     const bounds = await popup.boundingBox();
     expect(bounds).not.toBeNull();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -224,25 +230,33 @@ for (const theme of ["light", "dark"] as const) {
         route.fulfill({ json: { ...upstreamOverview, projects } }));
       for (const project of projects) {
         await page.goto(`./?track=upstream&view=ci&project=${project.id}`);
-        const charts = page.locator(".up-daily-chart");
+        const charts = page.locator(width <= 540 ? ".up-mobile-day-toggle .up-horizontal-chart" : ".up-daily-chart");
         await expect(charts).toHaveCount(14);
         for (const filtered of [false, true]) {
-          if (filtered) await page.getByRole("group", { name: "Stack", exact: true }).getByRole("button", { name: "rocm", exact: true }).click();
+          if (filtered) {
+            if (width <= 640) await page.getByRole("button", { name: /^CI filters/ }).click();
+            await page.getByRole("group", { name: "Stack", exact: true }).getByRole("button", { name: "rocm", exact: true }).click();
+          }
           const geometry = await charts.evaluateAll((elements) => elements.map((element) => {
             const rect = element.getBoundingClientRect();
-            return { bottom: rect.bottom, top: rect.top,
+            return { bottom: rect.bottom, top: rect.top, left: rect.left, right: rect.right,
               segments: [...element.querySelectorAll(".qualification-segment")].map((segment) => {
                 const box = segment.getBoundingClientRect();
-                return { top: box.top, bottom: box.bottom };
+                return { top: box.top, bottom: box.bottom, left: box.left, right: box.right };
               }),
             };
           }));
-          const baseline = geometry[0].bottom;
+          const baseline = width <= 540 ? geometry[0].left : geometry[0].bottom;
           for (const bar of geometry) {
-            expect(Math.abs(bar.bottom - baseline)).toBeLessThan(0.1);
+            expect(Math.abs((width <= 540 ? bar.left : bar.bottom) - baseline)).toBeLessThan(0.1);
             for (const segment of bar.segments) {
-              expect(segment.bottom).toBeLessThanOrEqual(baseline);
-              expect(segment.top).toBeGreaterThanOrEqual(bar.top - 0.1);
+              if (width <= 540) {
+                expect(segment.left).toBeGreaterThanOrEqual(bar.left - 0.1);
+                expect(segment.right).toBeLessThanOrEqual(bar.right + 0.1);
+              } else {
+                expect(segment.bottom).toBeLessThanOrEqual(baseline);
+                expect(segment.top).toBeGreaterThanOrEqual(bar.top - 0.1);
+              }
             }
           }
         }
@@ -257,7 +271,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto("./?track=upstream&view=ci&project=llamacpp&day=2026-10-27&activity=cat:tests");
-      const popup = page.getByRole("dialog");
+      const popup = width <= 540 ? page.locator(".up-mobile-day-evidence") : page.getByRole("dialog");
       await expect(popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
       await expect(popup.getByText("Failed on the merged commit", { exact: true })).toBeVisible();
       const logStyle = await popup.getByRole("link", { name: "Job log at 10:00 UTC · failed" }).evaluate((link) => ({
@@ -305,8 +319,9 @@ for (const theme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto("./?track=upstream");
-      await page.getByRole("button", { name: "devlab", exact: true }).focus();
-      await expect(page.getByRole("tooltip", { name: "devlab" })).toContainText("ephemeral-devlab-*");
+      const devlab = page.getByRole("button", { name: "devlab", exact: true });
+      if (width <= 540) await devlab.click(); else await devlab.focus();
+      await expect(page.getByRole(width <= 540 ? "region" : "tooltip", { name: "devlab" })).toContainText("ephemeral-devlab-*");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath("devlab-overview.png"), fullPage: true });
       await page.keyboard.press("Escape");
@@ -314,23 +329,33 @@ for (const theme of ["light", "dark"] as const) {
       const labels = page.locator(".up-page-head .up-status-labels");
       await expect(labels.getByRole("button", { name: "devlab", exact: true })).toBeVisible();
       await expect(labels.locator("[title]")).toHaveCount(0);
-      await labels.getByRole("button", { name: "upstream", exact: true }).hover();
-      await expect(page.getByRole("tooltip")).toContainText("Configured jobs:");
+      const upstream = labels.getByRole("button", { name: "upstream", exact: true });
+      if (width <= 540) await upstream.click(); else await upstream.focus();
+      await expect(width <= 540 ? page.getByRole("region", { name: "upstream", exact: true }) : page.getByRole("tooltip")).toContainText("Configured jobs:");
       await page.keyboard.press("Escape");
       await page.screenshot({ path: testInfo.outputPath("ci-header-labels.png"), fullPage: true });
-      await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
-      const popup = page.getByRole("dialog", { name: "gpu-rocm", exact: true });
+      const job = page.locator(".up-mobile-job").filter({ has: page.locator("summary").filter({ hasText: /^gpu-rocm/ }) }).first();
+      if (width <= 540) await job.locator("summary").click();
+      else await page.getByRole("button", { name: "gpu-rocm", exact: true }).focus();
+      const popup = width <= 540 ? job.locator(".mobile-evidence").first() : page.getByRole("dialog", { name: "gpu-rocm", exact: true });
       await expect(popup.locator(".up-latest-result")).toContainText("Failed");
-      await expect(popup.getByText("75%", { exact: true })).toBeVisible();
+      if (width <= 540) await expect(popup.getByText(/75%/)).toBeVisible();
+      else await expect(popup.getByText("75%", { exact: true })).toBeVisible();
       await expect(popup.getByText("2026-10-29 11:00 UTC", { exact: true })).toBeVisible();
       await expect(popup.getByText("Observed on devlab · 14-day collection window", { exact: true })).toBeVisible();
       await expect(popup.getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp/actions/runs/100/job/101");
       expect(await popup.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
       await popup.screenshot({ path: testInfo.outputPath("latest-job-tooltip.png") });
       await page.screenshot({ path: testInfo.outputPath("latest-job-page.png"), fullPage: true });
-      await page.keyboard.press("Escape");
-      await expect(popup).toHaveCount(0);
-      await expect(page.getByRole("table", { name: "Daily CI activity" })).toBeVisible();
+      if (width <= 540) {
+        await job.locator("summary").click();
+        await expect(popup).toBeHidden();
+        await expect(page.getByRole("article", { name: /^CI activity on / })).toHaveCount(14);
+      } else {
+        await page.keyboard.press("Escape");
+        await expect(popup).toHaveCount(0);
+        await expect(page.getByRole("table", { name: "Daily CI activity" })).toBeVisible();
+      }
     });
   }
 }
@@ -341,6 +366,7 @@ for (const theme of ["light", "dark"] as const) {
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
       await page.goto("./?view=engine&version=10.1");
+      if (width <= 540) await page.getByRole("button", { name: /^Qualification filters/ }).click();
       await expect(page.getByRole("button", { name: "Measured", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "10.1", exact: true }).focus();
       await expect(page.getByRole("tooltip")).toContainText("Latest stable qualification track");
@@ -377,4 +403,50 @@ test.describe("touch filter help", () => {
     await page.getByRole("button", { name: "About Target", exact: true }).tap();
     await expect(page.getByRole("tooltip")).toContainText("configured hardware target");
   });
+});
+
+
+test.describe("phone daily activity disclosures", () => {
+  test.use({ hasTouch: true });
+  for (const width of [320, 430, 540]) {
+    for (const theme of ["light", "dark"] as const) {
+      test(`day evidence stays in its row at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 932 });
+        await page.emulateMedia({ colorScheme: theme });
+        await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: {
+          ...upstreamOverview, projects: upstreamOverview.projects.map((project) => project.id !== "llamacpp" ? project : {
+            ...project, jobs: [...project.jobs, { ...project.jobs[0], id: "build-example", label: "Example build", category: "builds", daily: { "2026-10-27": { passed: 2, failed: 0, running: 0, other: 0, stalled: 0, skipped: 0, slow: 0 } } }],
+          }),
+        } }));
+        await page.goto("./?track=upstream&view=ci&project=llamacpp");
+        const row = page.getByRole("article", { name: "CI activity on 2026-10-27 UTC", exact: true });
+        const toggle = row.getByRole("button", { name: /^2026-10-27:/ });
+        await toggle.tap();
+        await expect(toggle).toHaveAttribute("aria-expanded", "true");
+        await expect(row.getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeVisible();
+        await expect(row.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();
+        expect(await row.locator(".up-mobile-day-evidence").evaluate((element) => element.closest("table") === null)).toBe(true);
+        await row.getByRole("button", { name: /^builds ·/ }).tap();
+        await expect(page).toHaveURL(/activity=cat%3Abuilds/);
+        await expect(toggle).toHaveAttribute("aria-expanded", "true");
+        await expect(row.locator(".up-run-summary")).toContainText("2");
+        await page.reload();
+        await expect(toggle).toHaveAttribute("aria-expanded", "true");
+        await expect(row.getByRole("button", { name: /^builds ·/ })).toHaveAttribute("aria-pressed", "true");
+        await page.goBack();
+        await expect(row.getByRole("button", { name: /^tests ·/ })).toHaveAttribute("aria-pressed", "true");
+        const stats = page.getByRole("group", { name: "CI metrics", exact: true });
+        const geometry = await stats.locator(".up-stat").evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()));
+        expect(geometry.length).toBeGreaterThan(1);
+        expect(new Set(geometry.map((box) => box.x)).size).toBe(2);
+        expect(geometry[1].y).toBe(geometry[0].y);
+        for (const box of geometry) expect(Math.abs(box.width - box.height)).toBeLessThan(2);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await row.screenshot({ path: testInfo.outputPath("inline-day-evidence.png") });
+        await toggle.tap();
+        await expect(toggle).toHaveAttribute("aria-expanded", "false");
+        await expect(row.getByRole("region", { name: "Runs on 2026-10-27" })).toHaveCount(0);
+      });
+    }
+  }
 });

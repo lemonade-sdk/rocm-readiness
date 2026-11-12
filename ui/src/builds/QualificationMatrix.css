@@ -127,3 +127,34 @@
   padding: 0;
   list-style: none;
 }
+
+.qualification-mobile-card { min-width: 0; padding: 1rem; margin-block: 1rem; border: 1px solid var(--line); background: var(--subpanel); }
+.qualification-mobile-card h5 { font: 600 1.1rem/1.4 ui-monospace, monospace; margin: 0; }
+.qualification-mobile-publishing { font-size: .75rem; margin: .35rem 0 .75rem; }
+.qualification-mobile-details { margin-top: .75rem; padding-top: .35rem; border-top: 1px solid var(--line); font-size: .875rem; font-weight: 600; }
+.qualification-tier-long { display: none; }
+.qualification-mobile-details .comparison-trigger { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
+.qualification-mobile-details .comparison-trigger::before { content: ""; width: .45rem; height: .45rem; flex-shrink: 0; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); }
+.qualification-mobile-details .comparison-trigger[aria-expanded="true"]::before { transform: rotate(45deg); }
+@media (max-width: 640px) {
+  .qualification-mobile-card .qualification-check-strip > .comparison-tooltip { flex-basis: 44px; flex-grow: 0; }
+  .qualification-mobile-card .qualification-check-strip :is(a, button), .qualification-mobile-card .qualification-check-block { min-height: 44px; }
+  .qualification-mobile-card .qualification-check-strip { gap: 4px; }
+  .qualification-mobile-card .mobile-evidence { font-weight: 400; }
+}
+@media (max-width: 540px) {
+  .qualification-mobile-card .qualification-tier-summaries { gap: .875rem; }
+  .qualification-mobile-card .qualification-tier-summaries > li { grid-template-columns: minmax(0, 1fr); gap: .5rem; align-items: start; padding-bottom: .875rem; border-bottom: 1px solid var(--line); }
+  .qualification-mobile-card .qualification-tier-summaries > li:last-child { padding-bottom: .25rem; border-bottom: 0; }
+  .qualification-mobile-card .qualification-tier-short { display: none; }
+  .qualification-mobile-card .qualification-tier-long { display: inline; }
+  .qualification-mobile-card .qualification-tier-summaries > li > code { font: 600 .8125rem/1.4 system-ui, sans-serif; color: var(--text); }
+}
+
+.qualification-mobile-version > h3 { margin: 1rem 0 1.25rem; font: 600 1.25rem/1.4 ui-monospace, monospace; }
+.qualification-mobile-release { padding-block: .5rem 1.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
+.qualification-mobile-group-heading h4 { margin: 0 0 .35rem; font: 600 1.3125rem/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
+.qualification-mobile-group-heading p { margin: 0; color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; }
+.qualification-mobile-release > .qualification-check-legend { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+
+@media (max-width: 640px) { .qualification-check-strip button[aria-expanded="true"] { outline: 2px solid var(--accent); outline-offset: 2px; } }

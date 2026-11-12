@@ -382,6 +382,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect(measured).toHaveAttribute("aria-pressed", "true");
       await expect(page).toHaveURL(/performance=measured/);
       await page.goto("./?track=upstream&view=ci&project=llamacpp");
+      if (width <= 540) await page.getByRole("button", { name: /^CI filters/ }).click();
       const platforms = page.getByRole("group", { name: "Platform", exact: true });
       await expect(platforms.locator('[data-platform="linux"]')).toBeVisible();
       await expect(platforms.locator('[data-platform="windows"]')).toBeVisible();
@@ -400,6 +401,8 @@ test.describe("touch filter help", () => {
   test.use({ hasTouch: true });
   test("opens filter explanations by touch", async ({ page }) => {
     await page.goto("./?track=upstream&view=ci&project=llamacpp");
+    const filters = page.getByRole("button", { name: /^CI filters/ });
+    if (await filters.isVisible()) await filters.tap();
     await page.getByRole("button", { name: "About Target", exact: true }).tap();
     await expect(page.getByRole("tooltip")).toContainText("configured hardware target");
   });

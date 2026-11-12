@@ -122,7 +122,11 @@
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 3px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  line-height: 1.4;
   color: var(--muted);
 }
 .up-badge-up {
@@ -1115,16 +1119,11 @@ button.up-tick {
 
 .comparison-bubble .up-latest-result { display: flex; align-items: center; gap: .35rem; }
 
-/* Status text follows the flat calendar language; detail triggers stay quiet. */
-.up-badge::before {
-  content: "";
-  width: 0.35rem;
-  height: 0.35rem;
-  background: currentColor;
-  flex: none;
-}
+/* Compact lowercase labels beside project titles, with shared evidence tooltips. */
+.up-card-head { justify-content: flex-start; gap: 0.75rem; }
+.up-status-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
 .up-status-trigger.comparison-trigger {
   text-decoration: none;
-  border-radius: 0;
+  border-radius: 3px;
 }
 .up-status-trigger:hover { color: var(--text); }

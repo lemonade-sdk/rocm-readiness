@@ -25,8 +25,8 @@ import "./upstream.css";
 const GH = "https://github.com/";
 const BADGE_LABEL = {
   up: "upstream",
-  partial: "partially upstream",
-  down: "no configured test observed",
+  partial: "partial",
+  down: "unobserved",
 };
 const VERDICT_TEXT = {
   passed: "Passed on the merged commit",
@@ -134,26 +134,26 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 /* ---- shared pieces ------------------------------------------------------------ */
 
 function Badge({ project }: { project: Project }) {
-  if (!project.jobs.length) return <span className="up-badge">No client jobs configured</span>;
-  if (!project.coverage.complete) return <span className="up-badge">Collection incomplete — coverage unknown</span>;
-  return (
-    <span
-      className={`up-badge up-badge-${project.badge.state}`}
-      title={`Configured jobs: ${project.badge.reason}`}
-    >
-      {BADGE_LABEL[project.badge.state]}
-    </span>
-  );
+  const label = !project.jobs.length ? "unconfigured" : !project.coverage.complete ? "incomplete" : BADGE_LABEL[project.badge.state];
+  const explanation = !project.jobs.length
+    ? "No client jobs are configured. This does not establish whether the project tests client hardware elsewhere."
+    : !project.coverage.complete
+      ? "Collection is incomplete, so configured coverage cannot yet be assessed."
+      : `Configured jobs: ${project.badge.reason}`;
+  return <Tooltip floating label={label} triggerClassName="up-status-trigger" content={
+    <TooltipContent heading={label}><span>{explanation}</span></TooltipContent>
+  }><span className={`up-badge${project.jobs.length && project.coverage.complete ? ` up-badge-${project.badge.state}` : ""}`} title={explanation}>{label}</span></Tooltip>;
+
 }
 
 function DevLabIndicator({ project, windowDays }: { project: Project; windowDays: number }) {
   const jobs = project.jobs.filter((job) => job.devlab_observed);
   if (!jobs.length) return null;
-  return <Tooltip floating label="DevLab observed" triggerClassName="up-status-trigger" content={
-    <TooltipContent heading="DevLab observed">
+  return <Tooltip floating label="devlab" triggerClassName="up-status-trigger" content={
+    <TooltipContent heading="devlab">
       <span>{jobs.map((job) => job.label).join(", ")} used an ephemeral-devlab-* runner in the {windowDays}-day collection window. This records observed usage; current availability is not established.</span>
     </TooltipContent>
-  }><span className="up-badge">DevLab observed</span></Tooltip>;
+  }><span className="up-badge">devlab</span></Tooltip>;
 }
 
 function ActivityAssessment({ jobs, complete, windowDays }: { jobs: Job[]; complete: boolean; windowDays: number }) {
@@ -291,8 +291,10 @@ function ProjectGrid({
                   {project.label}
                 </a>
                 </h2>
-                <Badge project={project} />
-                <DevLabIndicator project={project} windowDays={overview.window.days} />
+                <div className="up-status-labels">
+                  <Badge project={project} />
+                  <DevLabIndicator project={project} windowDays={overview.window.days} />
+                </div>
               </div>
               {!project.jobs.length && <p className="muted">
                 No conclusion about upstream support can be drawn from the configured coverage.

@@ -27,7 +27,7 @@ it("shows one card per project with its computed upstream badge", async () => {
   const vllm = screen
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
-  expect(within(vllm).getByText("No client jobs configured")).toBeInTheDocument();
+  expect(within(vllm).getByText("unconfigured")).toBeInTheDocument();
   expect(
     within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
   ).toBeInTheDocument();
@@ -599,16 +599,16 @@ it("shows an overview DevLab indicator from observed upstream runner evidence", 
   data.projects[0].coverage.complete = false;
   mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
-  fireEvent.focus(within(card).getByRole("button", { name: "DevLab observed" }));
+  fireEvent.focus(within(card).getByRole("button", { name: "devlab" }));
   expect(await screen.findByText(/ephemeral-devlab-/)).toBeInTheDocument();
-  expect(screen.getByText("Collection incomplete — coverage unknown")).toBeInTheDocument();
+  expect(screen.getByText("incomplete")).toBeInTheDocument();
 });
 it("does not infer DevLab from configured runner descriptions", async () => {
   const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
   data.projects[0].jobs[0].where = "DevLab";
   mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   await screen.findByRole("heading", { name: "llama.cpp" });
-  expect(screen.queryByRole("button", { name: "DevLab observed" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "devlab" })).not.toBeInTheDocument();
 });
 
 it("separates no-start test jobs from jobs with later unrun requests", async () => {

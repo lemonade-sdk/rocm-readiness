@@ -324,3 +324,9 @@ readiness calendars and per-project aggregate metric lines on Upstream Overview.
 CI Activity retains detailed project metrics. Upstream status labels use plain text
 and a small square status marker, without pill backgrounds. DevLab detail triggers
 have no dotted underline; retain hover details and visible keyboard focus.
+
+Upstream project headings group compact lowercase status labels directly after the
+title: upstream, partial, unobserved, incomplete, or unconfigured, plus an independent
+devlab label when runner evidence exists. Use subtle tinted fills and borders with
+3px corners, without status squares or dotted underlines. Keep full explanations in
+shared hover/focus/touch tooltips. This supersedes the plain-text status treatment.

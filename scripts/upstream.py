@@ -1273,10 +1273,39 @@ def _status_labels(jobs, badge, coverage, window_days):
     labels = [{"id": "coverage", "text": text, "tone": tone, "tooltip": explanation}]
     observed = [job["label"] for job in jobs if job.get("devlab_observed")]
     if observed:
-        labels.append({"id": "devlab", "text": "devlab", "tone": "neutral", "tooltip":
-            f"{', '.join(observed)} used an ephemeral-devlab-* runner in the {window_days}-day collection window. "
-            "This records observed usage; current availability is not established."})
+        running = _devlab_running(jobs, coverage)
+        if running:
+            tone = "positive"
+            tooltip = (f"Devlab runners are running: {', '.join(running)} last finished on an "
+                       f"ephemeral-devlab-* runner within {DEVLAB_RUNNING_HOURS} hours of collection.")
+        else:
+            tone = "neutral"
+            tooltip = (f"{', '.join(observed)} used an ephemeral-devlab-* runner in the {window_days}-day "
+                       f"collection window, but no devlab result finished in the {DEVLAB_RUNNING_HOURS} hours "
+                       "before collection.")
+        labels.append({"id": "devlab", "text": "devlab", "tone": tone, "tooltip": tooltip})
     return labels
+
+
+DEVLAB_RUNNING_HOURS = 24
+
+
+def _devlab_running(jobs, coverage):
+    """Labels of jobs whose newest finished result ran on devlab recently.
+
+    Measured against the collection time, not the wall clock, so the published
+    label stays a pure function of the published data."""
+    collected = _time((coverage or {}).get("collected_at"))
+    if collected is None:
+        return []
+    running = []
+    for job in jobs:
+        latest = job.get("latest") or {}
+        at = _time(latest.get("at"))
+        if ((latest.get("runner") or "").startswith("ephemeral-devlab-") and at is not None
+                and timedelta(0) <= collected - at <= timedelta(hours=DEVLAB_RUNNING_HOURS)):
+            running.append(job["label"])
+    return running
 
 
 def derive_project(project, rows, days, targets, coverage, files):

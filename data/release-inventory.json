@@ -3,7 +3,7 @@
   "heads": {
     "stable": {
       "repository": "lemonade-sdk/llama.cpp",
-      "tag": "b12297",
+      "tag": "b12313",
       "full_scan": "2026-11-11"
     },
     "nightly": {
@@ -26152,6 +26152,66 @@
           "name": "llama-b12297-bin-win-rocm-7.14-x64.zip",
           "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12297/llama-b12297-bin-win-rocm-7.14-x64.zip",
           "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12297/qualification-llama-b12297-bin-win-rocm-7.14-x64.json"
+        }
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/llama.cpp",
+      "channel": "stable",
+      "tag": "b12313",
+      "version": "10.0",
+      "published_at": "2026-11-12T00:57:51Z",
+      "url": "https://github.com/lemonade-sdk/llama.cpp/releases/tag/b12313",
+      "archives": [
+        {
+          "name": "llama-b12313-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-ubuntu-rocm-10.0-x64.tar.gz",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-ubuntu-rocm-10.0-x64.json"
+        },
+        {
+          "name": "llama-b12313-bin-win-rocm-10.0-x64.zip",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-win-rocm-10.0-x64.zip",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-win-rocm-10.0-x64.json"
+        }
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/llama.cpp",
+      "channel": "stable",
+      "tag": "b12313",
+      "version": "10.1",
+      "published_at": "2026-11-12T00:57:51Z",
+      "url": "https://github.com/lemonade-sdk/llama.cpp/releases/tag/b12313",
+      "archives": [
+        {
+          "name": "llama-b12313-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-ubuntu-rocm-10.1-x64.tar.gz",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-ubuntu-rocm-10.1-x64.json"
+        },
+        {
+          "name": "llama-b12313-bin-win-rocm-10.1-x64.zip",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-win-rocm-10.1-x64.zip",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-win-rocm-10.1-x64.json"
+        }
+      ]
+    },
+    {
+      "repository": "lemonade-sdk/llama.cpp",
+      "channel": "stable",
+      "tag": "b12313",
+      "version": "7.14",
+      "published_at": "2026-11-12T00:57:51Z",
+      "url": "https://github.com/lemonade-sdk/llama.cpp/releases/tag/b12313",
+      "archives": [
+        {
+          "name": "llama-b12313-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-ubuntu-rocm-7.14-x64.tar.gz",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-ubuntu-rocm-7.14-x64.json"
+        },
+        {
+          "name": "llama-b12313-bin-win-rocm-7.14-x64.zip",
+          "url": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/llama-b12313-bin-win-rocm-7.14-x64.zip",
+          "attached_report": "https://github.com/lemonade-sdk/llama.cpp/releases/download/b12313/qualification-llama-b12313-bin-win-rocm-7.14-x64.json"
         }
       ]
     },

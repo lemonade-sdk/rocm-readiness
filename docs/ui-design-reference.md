@@ -318,3 +318,9 @@ its tooltip identifies jobs and the collection window. Preserve the flat project
 Coverage labels distinguish no configured jobs from incomplete collection. Do not show
 absence counts for incomplete collection. Name activity metrics by their recorded condition
 and collection window, rather than using the present-tense “tests not running”.
+
+Overview pages keep the calendars prominent: omit publication-summary lines beneath
+readiness calendars and per-project aggregate metric lines on Upstream Overview.
+CI Activity retains detailed project metrics. Upstream status labels use plain text
+and a small square status marker, without pill backgrounds. DevLab detail triggers
+have no dotted underline; retain hover details and visible keyboard focus.

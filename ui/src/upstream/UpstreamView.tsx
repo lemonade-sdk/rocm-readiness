@@ -149,7 +149,7 @@ function Badge({ project }: { project: Project }) {
 function DevLabIndicator({ project, windowDays }: { project: Project; windowDays: number }) {
   const jobs = project.jobs.filter((job) => job.devlab_observed);
   if (!jobs.length) return null;
-  return <Tooltip floating label="DevLab observed" content={
+  return <Tooltip floating label="DevLab observed" triggerClassName="up-status-trigger" content={
     <TooltipContent heading="DevLab observed">
       <span>{jobs.map((job) => job.label).join(", ")} used an ephemeral-devlab-* runner in the {windowDays}-day collection window. This records observed usage; current availability is not established.</span>
     </TooltipContent>
@@ -272,7 +272,6 @@ function ProjectGrid({
     <section aria-label="Upstream projects" className="up-home">
       <div className="up-cards">
         {overview.projects.map((project) => {
-          const r = rate(project.jobs);
           return (
             <article
               key={project.id}
@@ -295,26 +294,9 @@ function ProjectGrid({
                 <Badge project={project} />
                 <DevLabIndicator project={project} windowDays={overview.window.days} />
               </div>
-              {project.jobs.length ? (
-                <div className="up-kpis" role="group" aria-label="CI metrics">
-                  <Stat
-                    value={r.pct === null ? "–" : `${r.pct}%`}
-                    label={`of ${r.decided} ${project.coverage.complete ? "results" : "collected results"} on main passed`}
-                  />
-                  <ActivityAssessment jobs={project.jobs} complete={project.coverage.complete} windowDays={overview.window.days} />
-                  {project.jobs.some((j) => j.gate) && (
-                    <Stat
-                      value={project.kpis.merged_red}
-                      label={project.coverage.complete ? "PRs merged red" : "observed PRs merged red"}
-                      bad={project.kpis.merged_red > 0}
-                    />
-                  )}
-                </div>
-              ) : (
-                <p className="muted">
-                  No conclusion about upstream support can be drawn from the configured coverage.
-                </p>
-              )}
+              {!project.jobs.length && <p className="muted">
+                No conclusion about upstream support can be drawn from the configured coverage.
+              </p>}
               {project.jobs.length > 0 && <ProjectActivity project={project} jobs={project.jobs} days={windowDays(overview, 14)} params={params} />}
 
             </article>

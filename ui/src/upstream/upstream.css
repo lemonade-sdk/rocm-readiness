@@ -120,9 +120,10 @@
 .up-badge {
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.05rem 0.55rem;
-  border-radius: 999px;
-  background: var(--badge);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
 }
 .up-badge-up {
   color: var(--good);
@@ -1113,3 +1114,17 @@ button.up-tick {
 .comparison-bubble .up-run-result { display: flex; align-items: center; gap: .35rem; text-transform: capitalize; }
 
 .comparison-bubble .up-latest-result { display: flex; align-items: center; gap: .35rem; }
+
+/* Status text follows the flat calendar language; detail triggers stay quiet. */
+.up-badge::before {
+  content: "";
+  width: 0.35rem;
+  height: 0.35rem;
+  background: currentColor;
+  flex: none;
+}
+.up-status-trigger.comparison-trigger {
+  text-decoration: none;
+  border-radius: 0;
+}
+.up-status-trigger:hover { color: var(--text); }

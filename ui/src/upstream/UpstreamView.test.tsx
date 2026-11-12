@@ -31,8 +31,8 @@ it("shows one card per project with its computed upstream badge", async () => {
   expect(
     within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
   ).toBeInTheDocument();
-  // Totals across projects come from the job records, not a stored number.
-  expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
+  // Overview keeps the calendar prominent; metrics live in CI Activity.
+  expect(screen.queryByRole("group", { name: "CI metrics" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Upstream health" })).toHaveAttribute(
     "aria-current",
     "true",
@@ -277,10 +277,10 @@ function incompleteFetch(error?: string) {
   }});
 }
 
-it('shows unknown rather than unobserved not-running counts in incomplete project cards and totals', async () => {
+it('omits aggregate metrics from incomplete overview projects', async () => {
   mount('/?track=upstream', incompleteFetch());
   const card = (await screen.findByRole('heading', { name: 'llama.cpp' })).closest('article')!;
-  expect(within(card).getByText('Activity assessment unavailable — collection incomplete.')).toBeInTheDocument();
+  expect(within(card).queryByRole('group', { name: 'CI metrics' })).not.toBeInTheDocument();
   const total = screen.getByRole('region', { name: 'Upstream projects' });
   expect(within(total).queryByText('tests not running')).not.toBeInTheDocument();
 });
@@ -357,7 +357,7 @@ it("separates source links from project navigation and provides a return path", 
   const card = heading.closest("article")!;
   expect(within(card).queryByRole("link", { name: /Repository:/ })).not.toBeInTheDocument();
   expect(within(card).queryByText(/fork/)).not.toBeInTheDocument();
-  fireEvent.click(within(card).getByRole("group", { name: "CI metrics" }));
+  fireEvent.click(card);
   expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
   expect(within(heading).getByRole("link", { name: "llama.cpp" })).toBeInTheDocument();
   expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
@@ -616,8 +616,8 @@ it("separates no-start test jobs from jobs with later unrun requests", async () 
   const job = data.projects[0].jobs[0];
   job.started = 2;
   job.quiet_days = ["2026-10-29"];
-  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
-  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const card = await screen.findByRole("region", { name: "llama.cpp upstream health" });
   expect(within(card).getByText(/test jobs with no observed starts/).parentElement).toHaveTextContent("0");
   expect(within(card).getByText(/test jobs with unrun requests after last start/).parentElement).toHaveTextContent("1");
 });

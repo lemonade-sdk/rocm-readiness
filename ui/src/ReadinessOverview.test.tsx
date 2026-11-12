@@ -130,7 +130,7 @@ it("shows a published track when qualification records are unavailable", async (
     }],
   }, { [new URL("rocm/10.2/overview.json", indexUrl).href]: { ...overview("10.2"), engines: [], history: [] } });
   expect(await screen.findByRole("region", { name: "llama.cpp nightly build history" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "b1352" })).toHaveAttribute("href", releaseUrl);
+  expect(screen.queryByRole("link", { name: "b1352" })).not.toBeInTheDocument();
   expect(screen.queryByText("Downloads and reports")).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "archive.zip" })).not.toBeInTheDocument();
   expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();

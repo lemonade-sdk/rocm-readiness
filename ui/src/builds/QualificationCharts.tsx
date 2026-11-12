@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
+import { OutcomeLegend } from "../overview/OutcomeLegend";
 import type { Build } from "../data";
 import { buildDate, calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import "./QualificationCharts.css";
@@ -94,8 +95,7 @@ export function QualificationCharts({ builds, track, days, platforms, today, foc
         </section>;
       })}
     </div>
-    <ul className="qualification-trend-legend" aria-label="Qualification outcomes">
-      {outcomes.map(({ id, label }) => <li key={id}><span className={`qualification-segment ${id}`} aria-hidden="true" />{label}</li>)}
-    </ul>
+    <OutcomeLegend label="Qualification outcomes" className="qualification-trend-legend"
+      items={outcomes.map(({ id, label }) => ({ outcome: id === "unknown" ? "unreported" : id, label, mark: "bar" }))} />
   </section>;
 }

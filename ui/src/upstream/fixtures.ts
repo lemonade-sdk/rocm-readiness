@@ -48,6 +48,11 @@ export const upstreamOverview = {
           channel: "stable",
         },
       ],
+      activity_assessment: { message: null, metrics: [
+        { id: "no_starts", label: "test jobs with no observed starts · 14 days", tone: "neutral", job_ids: [] },
+        { id: "later_requests", label: "test jobs with unrun requests after last start · 14 days", tone: "negative", job_ids: ["gpu-rocm"] },
+      ] },
+      status_labels: [{ id: "coverage", text: "upstream", tone: "positive", tooltip: "Configured jobs: tested on main on gfx1201 (models-check rocm)" }],
       badge: {
         state: "up",
         reason: "tested on main on gfx1201 (models-check rocm)",
@@ -153,6 +158,7 @@ export const upstreamOverview = {
       default_branch: "main",
       note: "No Radeon or Ryzen AI GPU is tested upstream.",
       forks: [],
+      status_labels: [{ id: "coverage", text: "unconfigured", tone: "neutral", tooltip: "No client jobs are configured." }],
       badge: {
         state: "down",
         reason: "No Radeon or Ryzen AI GPU is tested upstream.",

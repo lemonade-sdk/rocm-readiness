@@ -165,7 +165,7 @@ test("keeps the current UTC date visible when the selected version has no build 
   await nightly.getByRole("link", { name: /Show Nightly packages for 2026-10-29 UTC.*Linux/ }).click();
   await expect(page).toHaveURL(/day=2026-10-29/);
   await expect(page.getByRole("heading", { name: "Package qualification" })).toBeVisible();
-  await page.getByRole("link", { name: "Show all packages in this window" }).click();
+  await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(nightlyToday).toBeAttached();
 });
 
@@ -347,10 +347,22 @@ for (const theme of ["light", "dark"] as const) {
       await expect(tooltip.getByText("Recorded by collection CI", { exact: true })).toBeVisible();
       await expect(tooltip.getByText("GPU offload", { exact: true })).toHaveCount(0);
       expect(producerReads).toEqual([]);
-      expect(await tooltip.evaluate((element) => {
+      await expect.poll(() => tooltip.evaluate((element) => {
         const box = element.getBoundingClientRect();
-        return box.left >= 0 && box.right <= window.innerWidth;
-      })).toBe(true);
+        return { left: box.left, right: box.right, viewport: window.innerWidth,
+          fits: box.left >= 0 && box.right <= window.innerWidth };
+      })).toMatchObject({ fits: true });
     });
   }
 }
+
+test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Clear Date: 2026-10-01", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
+  await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
+  await page.getByRole("button", { name: "Reset filters", exact: true }).click();
+  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/day=/);
+});

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Build, Session } from "../data";
 import { index, indexUrl, overview, pointer } from "../fixtures";
@@ -88,9 +88,7 @@ function historyBuild(overrides: Partial<Build> = {}): Build {
 function sessionFor(
   currentMeasurements: Measurement[],
   options: {
-    compareMeasurements?: Measurement[];
     currentSystems?: typeof system[];
-    compareSystems?: typeof system[];
     performanceStatus?: "available" | "not_measured";
     history?: Build[];
   } = {},
@@ -113,21 +111,6 @@ function sessionFor(
           measurement_count: currentMeasurements.length,
           path: "rocm/10.1/performance.json",
         };
-  const compareOverview = overview("10.2") as unknown as NonNullable<
-    Session["overview"]
-  >;
-  compareOverview.history = [
-    {
-      month: "2026-10",
-      path: "rocm/10.2/history/2026-10.json",
-      build_count: 0,
-    },
-  ];
-  compareOverview.performance = {
-    status: "available",
-    measurement_count: options.compareMeasurements?.length ?? 0,
-    path: "rocm/10.2/performance.json",
-  };
   return {
     session: {
       pointer: pointer as unknown as Session["pointer"],
@@ -147,17 +130,7 @@ function sessionFor(
         month: "2026-10",
         builds: options.history ?? [],
       },
-      [new URL("rocm/10.2/overview.json", indexUrl).href]: compareOverview,
-      [new URL("rocm/10.2/performance.json", indexUrl).href]: performance(
-        options.compareMeasurements ?? [],
-        options.compareSystems,
-      ),
-      [new URL("rocm/10.2/history/2026-10.json", indexUrl).href]: {
-        schema_version: 2,
-        rocm_version: "10.2",
-        month: "2026-10",
-        builds: [],
-      },
+
     },
   };
 }
@@ -235,6 +208,7 @@ describe("PerformanceView", () => {
       })],
     });
 
+    fireEvent.click(await screen.findByRole("button", { name: /^Measurement details for Model A/ }));
     expect(await screen.findByText("12 tok/s")).toBeInTheDocument();
     expect(screen.getByText("nightly", { exact: true })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open matching package record" }))
@@ -242,99 +216,125 @@ describe("PerformanceView", () => {
     expect(findExactQualificationBuild(row, [historyBuild()])).toBeUndefined();
   });
 
-  it("compares deterministic latest observations only when exact hardware and workload identities match", async () => {
-    renderView(
-      [measurement({ metrics: { tg_tps: 12 }, measured_at: "2026-10-29T13:00:00Z" })],
-      {
-        query: "version=10.1&view=performance&compare=10.2",
-        compareMeasurements: [
-          measurement({
-            rocm_version: "10.2",
-            metrics: { tg_tps: 9 },
-            measured_at: "2026-10-28T11:00:00Z",
-          }),
-          measurement({
-            rocm_version: "10.2",
-            metrics: { tg_tps: 10 },
-            measured_at: "2026-10-28T12:00:00Z",
-          }),
-        ],
-        compareSystems: [system],
-      },
-    );
-
-    await waitFor(() =>
-      expect(screen.getByText("ROCm 10.2 comparison")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/Δ \+2(?:\.0+)? tok\/s/)).toBeInTheDocument();
-    expect(screen.getAllByText(/2026/).length).toBeGreaterThanOrEqual(2);
+  it("shows compact metrics in one table and opens evidence without navigating", async () => {
+    const { onNavigate } = renderView([measurement({ scenario: "context-32k", context_size: 32768,
+      metrics: { tps_mean: 42, ttft_ms_mean: 250, vram_peak_gb: 18.5 } })]);
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("42")).toBeInTheDocument();
+    expect(within(table).getByText("0.25")).toBeInTheDocument();
+    expect(within(table).getByText("18.5")).toBeInTheDocument();
+    expect(within(table).getAllByText("32K")).toHaveLength(1);
+    expect(within(table).queryByRole("columnheader", { name: "Test" })).not.toBeInTheDocument();
+    expect(within(table).getByRole("img", { name: "Linux" })).toBeInTheDocument();
+    expect(within(table).queryByText("Linux")).not.toBeInTheDocument();
+    expect(table).toHaveClass("qualification-table");
+    expect(within(table).queryByRole("columnheader", { name: "Quant" })).not.toBeInTheDocument();
+    expect(within(table).getByText("b100")).toBeInTheDocument();
+    const filters = screen.getByLabelText("Performance filters");
+    expect(within(filters).getByRole("combobox", { name: "Model" })).toBeInTheDocument();
+    fireEvent.click(within(table).getByRole("button", { name: /^Measurement details/ }));
+    const evidence = await screen.findByRole("dialog");
+    expect(evidence).toHaveClass("qualification-popup");
+    for (const name of ["Performance", "Test configuration", "Hardware", "Package and benchmark", "Qualification"])
+      expect(within(evidence).getByRole("heading", { name })).toBeInTheDocument();
+    expect(onNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByText("Back to models")).not.toBeInTheDocument();
   });
 
-  it("leaves hardware, quant, workload, and context mismatches explicitly unmatched", async () => {
-    renderView([measurement()], {
-      query: "version=10.1&view=performance&compare=10.2",
-      compareMeasurements: [
-        measurement({ rocm_version: "10.2", system_id: "other-system" }),
-        measurement({ rocm_version: "10.2", quant: "Q8_0" }),
-        measurement({ rocm_version: "10.2", scenario: "long-prompt" }),
-        measurement({ rocm_version: "10.2", context_size: 8192 }),
-      ],
-      compareSystems: [system, { ...system, id: "other-system" }],
-    });
-
-    await waitFor(() =>
-      expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/1 selected observation.*unmatched/)).toBeInTheDocument();
-    expect(screen.getByText(/4 ROCm 10\.2 observations.*unmatched/)).toBeInTheDocument();
-    expect(screen.queryByText(/Δ /)).not.toBeInTheDocument();
+  it("keeps older builds visible while selecting latest configurations within each build", async () => {
+    const { onNavigate } = renderView([
+      measurement({ engine_version: "b99", measured_at: "2026-10-28T12:00:00Z", system_id: null, metrics: { tps_mean: 10 } }),
+      measurement({ engine_version: "b100", metrics: { tps_mean: 42, tps_p95: 44 } }),
+      measurement({ engine_version: "b100", scenario: "context-32k", context_size: 32768 }),
+      measurement({ engine_version: "b100", system_id: "system-b" }),
+    ]);
+    const table = await screen.findByRole("table");
+    expect(table.querySelectorAll(".performance-measurement-row")).toHaveLength(4);
+    expect(within(table).getByText(/b99/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recorded tests" })).not.toBeInTheDocument();
+    expect(within(table).getByText("42")).toBeInTheDocument();
+    expect(within(table).getByText("44")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Show history" })).not.toBeInTheDocument();
   });
 
-  it("does not compare observations whose hardware or context metadata is absent", async () => {
-    renderView(
-      [measurement({ system_id: null, context_size: null, input_tokens: null })],
-      {
-        query: "version=10.1&view=performance&compare=10.2",
-        compareMeasurements: [
-          measurement({
-            rocm_version: "10.2",
-            system_id: null,
-            context_size: null,
-            input_tokens: null,
-          }),
-        ],
-        currentSystems: [],
-        compareSystems: [],
-      },
-    );
-
-    await waitFor(() =>
-      expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/Missing hardware or workload metadata/)).toBeInTheDocument();
+  it("ignores legacy history flags and retains measured builds", async () => {
+    renderView([measurement(), measurement({ engine_version: "b99", measured_at: "2026-10-28T12:00:00Z" })],
+      { query: "version=10.1&view=performance&performance_history=all" });
+    const table = await screen.findByRole("table");
+    expect(table.querySelectorAll(".performance-measurement-row")).toHaveLength(2);
+    expect(within(table).getByText(/b99/)).toBeInTheDocument();
   });
 
-  it("requires complete published hardware records instead of trusting a shared system ID", async () => {
-    const incompleteSystem = {
-      id: "system-a",
-      source_id: "lemonade-performance",
-      cpu: null,
-      gpu: null,
-      os: null,
-      ram_gb: null,
-      vram_gb: null,
-    } as unknown as typeof system;
-    renderView([measurement()], {
-      query: "version=10.1&view=performance&compare=10.2",
-      compareMeasurements: [measurement({ rocm_version: "10.2" })],
-      currentSystems: [incompleteSystem],
-      compareSystems: [incompleteSystem],
-    });
+  it("groups nightly measurements under the build and verified package GPU family", async () => {
+    renderView([measurement({ channel: "nightly", engine_version: "b1355",
+      package_url: "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1355/llama-b1355-ubuntu-rocm-gfx1151-x64.zip" })]);
+    const table = await screen.findByRole("table");
+    expect(screen.getByRole("button", { name: "Build b1355" })).toBeInTheDocument();
+    expect(within(table).getByText("gfx1151")).toBeInTheDocument();
+    expect(within(table).queryByText("nightly")).not.toBeInTheDocument();
+  });
 
-    await waitFor(() =>
-      expect(screen.getByText("No compatible comparison")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/Missing hardware or workload metadata/)).toBeInTheDocument();
+  it("searches builds and resets the performance scope while retaining the version", async () => {
+    const { onNavigate } = renderView([measurement(), measurement({ engine_version: "b99" })],
+      { query: "view=performance&version=10.1&build_filter=b100&model=Model+A&workload=short-prompt&platform=linux" });
+    const table = await screen.findByRole("table");
+    expect(within(table).queryByText("b99")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset filters" }));
+    const next = onNavigate.mock.calls.at(-1)?.[0] as URLSearchParams;
+    expect(next.get("version")).toBe("10.1");
+    for (const key of ["build_filter", "model", "workload", "platform", "build", "observation"]) expect(next.has(key)).toBe(false);
+    expect(screen.queryByText(/All performance data/)).not.toBeInTheDocument();
+  });
+
+  it("sorts model rows within each build and keeps missing values last", async () => {
+    renderView([measurement({ model: "Slow", metrics: { tps_mean: 10 } }),
+      measurement({ model: "Fast", metrics: { tps_mean: 30 } }),
+      measurement({ model: "Missing", metrics: {} }),
+      measurement({ model: "Other build", engine_version: "b99", metrics: { tps_mean: 100 } })],
+      { query: "version=10.1&view=performance&sort=tps&direction=desc" });
+    const table = await screen.findByRole("table");
+    const names = [...table.querySelectorAll(".performance-model-trigger")].map((node) => node.textContent);
+    expect(names).toEqual(["Fast", "Slow", "Missing", "Other build"]);
+    expect(screen.getByRole("button", { name: "TPS definition" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Context definition" })).toBeInTheDocument();
+  });
+
+  it("ranks builds by the selected metric only for one complete compatible cohort", async () => {
+    renderView([measurement({ metrics: { tps_mean: 10 } }),
+      measurement({ engine_version: "b99", metrics: { tps_mean: 30 } })],
+      { query: "version=10.1&view=performance&sort=tps&direction=desc&build_order=metric" });
+    const table = await screen.findByRole("table");
+    expect([...table.querySelectorAll('th[scope="rowgroup"]')].map((node) => node.textContent)).toEqual(["b99", "b100"]);
+    expect(screen.getByRole("option", { name: "Selected metric" })).not.toBeDisabled();
+  });
+
+  it("does not rank unlike workloads even when a metric-order URL requests it", async () => {
+    renderView([measurement(), measurement({ engine_version: "b99", scenario: "other", metrics: { tps_mean: 100 } })],
+      { query: "version=10.1&view=performance&sort=tps&direction=desc&build_order=metric" });
+    const table = await screen.findByRole("table");
+    expect([...table.querySelectorAll('th[scope="rowgroup"]')].map((node) => node.textContent)).toEqual(["b100", "b99"]);
+    expect(screen.getByRole("option", { name: "Selected metric" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Ryzen.*AMD Radeon/ })).toHaveAttribute("title", "system-a");
+  });
+
+  it("highlights individual filters and toggles a choice off without All buttons", async () => {
+    const { onNavigate } = renderView([measurement(), measurement({ package_os: "windows", scenario: "long-prompt" })]);
+    await screen.findAllByRole("button", { name: /^Measurement details for Model A/ });
+    expect(screen.queryByRole("button", { name: /^All (platforms|systems|workloads)$/ })).not.toBeInTheDocument();
+    const platforms = within(screen.getByRole("group", { name: "Measurement platform" }));
+    expect(platforms.getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
+    expect(platforms.getByRole("button", { name: "Windows" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(platforms.getByRole("button", { name: "Windows" }));
+    expect(onNavigate.mock.calls.at(-1)?.[0].getAll("platform")).toEqual(["linux"]);
+    fireEvent.click(within(screen.getByRole("group", { name: "Workload" })).getByRole("button", { name: "long-prompt" }));
+    expect(onNavigate.mock.calls.at(-1)?.[0].getAll("workload")).toEqual(["short-prompt"]);
+  });
+
+  it("ignores legacy comparison parameters without fetching another version", async () => {
+    const { fetcher } = renderView([measurement()], { query: "version=10.1&view=performance&compare=10.2" });
+    await screen.findByRole("button", { name: /^Measurement details for Model A/ });
+    expect(screen.queryByText("Compare ROCm version")).not.toBeInTheDocument();
+    expect(fetcher.mock.calls.some(([url]) => String(url).includes("10.2"))).toBe(false);
   });
 
   it("shows an unmeasured version without requesting its performance file", async () => {
@@ -349,10 +349,11 @@ describe("PerformanceView", () => {
     renderView([measurement({ metrics: {} })], {
       query: "version=10.1&view=model&model=Model%20A",
     });
+    fireEvent.click(await screen.findByRole("button", { name: /^Measurement details for Model A/ }));
     await waitFor(() =>
       expect(screen.getByText("No reported metrics")).toBeInTheDocument(),
     );
-    expect(screen.queryByText(/tok\/s/)).not.toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).queryByText(/tok\/s/)).not.toBeInTheDocument();
   });
 
   it("does not turn package attribution into a qualification verdict without an exact history record", async () => {
@@ -368,6 +369,7 @@ describe("PerformanceView", () => {
         query: "version=10.1&view=model&model=Model%20A",
       },
     );
+    fireEvent.click(await screen.findByRole("button", { name: /^Measurement details for Model A/ }));
     await waitFor(() =>
       expect(
         screen.getByText("No matching qualification history record"),
@@ -392,12 +394,12 @@ describe("PerformanceView", () => {
       },
     );
     await waitFor(() =>
-      expect(screen.getByRole("link", { name: "Model A" })).toBeInTheDocument(),
+      expect(screen.getByRole("button", { name: /^Measurement details for Model A/ })).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("link", { name: "Model B" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("link", { name: "Model A" }));
+    expect(screen.queryByRole("button", { name: /^Measurement details for Model B/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Model" }), { target: { value: "Model A" } });
     const next = onNavigate.mock.calls[0][0] as URLSearchParams;
-    expect(next.get("view")).toBe("model");
+    expect(next.get("view")).toBe("performance");
     expect(next.get("model")).toBe("Model A");
     expect(next.get("system")).toBe("system-a");
     expect(next.get("workload")).toBe("short-prompt");

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { Tooltip, tooltipTiming } from "./Tooltip";
+import { Tooltip, TooltipContent, tooltipTiming } from "./Tooltip";
 afterEach(() => vi.useRealTimers());
 it("delays opening and cancels incidental pointer passes", async () => {
   vi.useFakeTimers();
@@ -56,4 +56,26 @@ it("anchors an interactive popup with an arrow and supports outside dismissal", 
   await screen.findByRole("dialog");
   fireEvent.pointerDown(document.body);
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("defaults to shared evidence rows and explicitly supports custom visualizations", () => {
+  const { container, rerender } = render(<TooltipContent heading="CI run"><dl><dt>Outcome</dt><dd>Failed</dd></dl></TooltipContent>);
+  expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "details");
+  rerender(<TooltipContent heading="Model performance" format="custom"><figure>Comparison chart</figure></TooltipContent>);
+  expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "custom");
+});
+
+it("uses only the styled tooltip by default", async () => {
+  const { container } = render(<Tooltip label="Status" content="Status explanation">partial</Tooltip>);
+  fireEvent.focus(screen.getByRole("button", { name: "Status" }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Status explanation");
+  expect(container.querySelector("[title]")).toBeNull();
+});
+it("uses only the native tooltip when system mode is explicit", () => {
+  render(<Tooltip tooltipMode="system" systemText="Native explanation" label="Status" content="Styled explanation">partial</Tooltip>);
+  const trigger = screen.getByRole("button", { name: "Status" });
+  expect(trigger).toHaveAttribute("title", "Native explanation");
+  fireEvent.focus(trigger);
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 });

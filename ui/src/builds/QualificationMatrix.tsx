@@ -4,6 +4,8 @@ import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher } from "../data";
 import type { PerformanceData } from "../performance/PerformanceView";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
+import { tableOutcomes } from "../overview/outcomes";
+import { OutcomeLegend } from "../overview/OutcomeLegend";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { buildDate, buildIdentity } from "../overview/buildTimeline";
 import { checkOrder, pinnedReport, QualificationCheckEvidence, readQualificationReport, ReportEvidence } from "./BuildBrowser";
@@ -13,12 +15,12 @@ type Report = Awaited<ReturnType<typeof readQualificationReport>>;
 type Outcome = "pass" | "fail" | "warn" | "skip" | "not_applicable" | "unreported";
 
 const outcomes: Record<Outcome, string> = {
-  pass: "Pass",
-  fail: "Fail",
-  warn: "Warn",
-  skip: "Skipped",
-  not_applicable: "Not applicable",
-  unreported: "Unreported",
+  pass: tableOutcomes.pass.label,
+  fail: tableOutcomes.fail.label,
+  warn: tableOutcomes.warn.label,
+  skip: tableOutcomes.skip.label,
+  not_applicable: tableOutcomes.not_applicable.label,
+  unreported: tableOutcomes.unreported.label,
 };
 
 function outcome(status?: string): Outcome {
@@ -83,7 +85,7 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
 
   const observations = matchedPerformanceObservations(packages, performanceMeasurements);
   const hasPerformance = observations.length > 0;
-  return <><Tooltip floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
+  return <><Tooltip side floating interactive contentClassName="qualification-popup" label={run ? `Run details for ${heading}` : `Package details for ${heading}`}
     initialOpen={initialOpen} onOpen={() => setInspect(true)}
     content={<TooltipContent heading={heading}>
       {run && <dl><dt>Date</dt><dd>{buildDate(run)} UTC</dd><dt>Workflow run</dt><dd>
@@ -197,7 +199,7 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
                 const duplicate = checks.filter((item) => item.id === check.id).length > 1;
                 const linked = checkLink && id.toLowerCase() === checkLink.tier.toLowerCase() &&
                   (checkLink.check === `id:${check.id}` ? !duplicate : checkLink.check === String(check.index));
-                return <Tooltip key={JSON.stringify([duplicate ? `${check.id}:${check.index}` : check.id, Boolean(linked)])}
+                return <Tooltip side key={JSON.stringify([duplicate ? `${check.id}:${check.index}` : check.id, Boolean(linked)])}
                   initialOpen={Boolean(linked)} floating contentClassName="qualification-popup" onOpen={() => setInspect(true)}
                   triggerClassName="table-status" label={checkLabel} content={<TooltipContent heading={check.name === check.id ? check.id : `${check.id} · ${check.name}`} status={outcomes[state]}>
                     <dl><dt>Tier</dt><dd>{tier?.name ?? id}</dd><dt>Package</dt><dd>{label}</dd></dl>
@@ -247,7 +249,7 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
 
   function runDetails(build: Build) {
     const release = build.tag ?? "Unreported";
-    return <Tooltip floating contentClassName="qualification-popup" label={`Run details for ${release}`}
+    return <Tooltip side floating contentClassName="qualification-popup" label={`Run details for ${release}`}
       content={<TooltipContent heading={release}>
         <dl><dt>Date</dt><dd>{buildDate(build)} UTC</dd><dt>Workflow run</dt><dd>{build.run_id ?? "Unreported"}</dd></dl>
       </TooltipContent>}>
@@ -287,11 +289,8 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
     });
   }
 
-  const checkLegend = <ul className="qualification-check-legend" aria-label="Check outcomes">
-      {(Object.keys(outcomes) as Outcome[]).map((state) => <li key={state}>
-        <span className="table-status qualification-check-block" data-outcome={state} aria-hidden="true"><BuildOutcomeIcon outcome={state} /></span>{outcomes[state]}
-      </li>)}
-    </ul>;
+  const checkLegend = <OutcomeLegend label="Check outcomes" className="qualification-check-legend"
+    items={(["pass", "fail", "warn", "skip", "not_applicable", "unreported"] as const).map((outcome) => ({ outcome }))} />;
 
   return <section aria-labelledby={title} className="qualification-matrix">
     <h2 id={title}>Package qualification</h2>

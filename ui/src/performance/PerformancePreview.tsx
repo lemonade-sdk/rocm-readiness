@@ -29,10 +29,13 @@ export function matchedPerformanceObservations(
   )).flatMap(([build, rows]) => rows.map((row) => ({ build, row })));
 }
 
-function observationHref({ build, row }: Observation) {
+function observationHref({ build, row }: Observation, exact = true) {
   const query = new URLSearchParams(exactBuildHref(build, "model").slice(1));
   query.set("model", row.model);
-  query.set("observation", measurementIdentity(row));
+  if (exact) {
+    query.set("observation", measurementIdentity(row));
+    query.set("workload", row.scenario);
+  }
   return `?${query}`;
 }
 
@@ -77,7 +80,7 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
         const first = visible.map((os) => entries.get(os)).find((entry) => entry);
         if (!first) return null;
         return <div className="performance-chart-model" key={model}>
-          <Link className="performance-chart-model-name" to={observationHref(first)}
+          <Link className="performance-chart-model-name" to={observationHref(first, false)}
             aria-label={model} title={`${first.build.os} · ${first.row.scenario} · ${first.row.quant ?? "Quantization unreported"} · ${first.row.measured_at}`}>{model}</Link>
           {metrics.map(({ key, label, direction }) => <div className="performance-chart-bars" key={key}
             role="group" aria-label={`${model} · ${label}`}>
@@ -118,9 +121,10 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
 
 export function PerformancePreview({ heading, observations }: { heading: string; observations: Observation[] }) {
   if (!observations.length) return null;
-  return <Tooltip interactive contentClassName="performance-preview-popup"
+  // Decision 0001: model comparisons need chart columns rather than detail rows.
+  return <Tooltip side interactive contentClassName="performance-preview-popup"
     triggerClassName="performance-preview-trigger" label={`Performance data for ${heading}`}
-    content={<TooltipContent heading={`Performance · ${heading}`}>
+    content={<TooltipContent heading={`Performance · ${heading}`} format="custom">
       <PerformanceCharts observations={observations} />
     </TooltipContent>}>
     <PerformanceIndicator />

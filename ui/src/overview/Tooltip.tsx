@@ -10,22 +10,41 @@ import "./Tooltip.css";
 
 export const tooltipTiming = { openDelayMs: 400 };
 
-export function TooltipContent({ heading, status, children }: {
+export function TooltipContent({ heading, status, children, format = "details" }: {
+  format?: "details" | "custom";
   heading: ReactNode;
   status?: ReactNode;
   children: ReactNode;
 }) {
   return <span className="structured-tooltip">
     <span className="structured-tooltip-header"><strong>{heading}</strong>{status}</span>
-    <span className="structured-tooltip-body">{children}</span>
+    <span className="structured-tooltip-body" data-format={format}>{children}</span>
   </span>;
 }
 
-export function Tooltip({
+type TooltipProps = Parameters<typeof StyledTooltip>[0] & (
+  | { tooltipMode?: "styled"; systemText?: never }
+  | { tooltipMode: "system"; systemText: string }
+);
+
+/** Choose a single renderer. Native tooltips require an explicit plain-text alternative. */
+export function Tooltip(props: TooltipProps) {
+  if (props.tooltipMode !== "system") return <StyledTooltip {...props} />;
+  const { label, systemText, children, to, triggerClassName, onLinkClick } = props;
+  return <span className="comparison-tooltip">
+    {to ? <Link to={to} className={triggerClassName} aria-label={label}
+      title={systemText} onClick={onLinkClick}>{children}</Link>
+      : <button type="button" className={`comparison-trigger ${triggerClassName ?? ""}`}
+        aria-label={label} title={systemText}>{children}</button>}
+  </span>;
+}
+
+function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen,
-  interactive = false, contentClassName, initialOpen = false,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange,
 }: {
   label: string;
+  side?: boolean;
   content: ReactNode;
   children: ReactNode;
   to?: string;
@@ -34,10 +53,13 @@ export function Tooltip({
   onOpen?: () => void;
   interactive?: boolean;
   initialOpen?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   floating?: boolean;
   contentClassName?: string;
 }) {
-  const [open, setOpen] = useState(initialOpen);
+  const [localOpen, setOpen] = useState(initialOpen);
+  const open = isOpen ?? localOpen;
   const arrowRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLSpanElement>(null);
@@ -51,14 +73,15 @@ export function Tooltip({
     onOpenChange(next) {
       if (next) onOpen?.();
       setOpen(next);
+      onOpenChange?.(next);
     },
-    placement: "bottom-start",
+    placement: side ? "right-start" : "bottom-start",
     strategy: "fixed",
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(10),
-      flip({ padding: 12 }),
-      shift({ padding: 12 }),
+      flip({ padding: 12, ...(side ? { fallbackPlacements: ["left-start"], flipAlignment: false } : {}) }),
+      shift({ padding: 12, crossAxis: side }),
       size({
         padding: 12,
         apply({ availableWidth, availableHeight, elements }) {
@@ -83,7 +106,9 @@ export function Tooltip({
     move: false,
     handleClose: safePolygon(),
   });
-  const focus = useFocus(context, { visibleOnly: false });
+  // URL-controlled popups open by hover or activation. Restoring focus after
+  // dismissal must not reopen a popup that browser history just closed.
+  const focus = useFocus(context, { visibleOnly: false, enabled: isOpen === undefined });
   const click = useClick(context, { enabled: !to, toggle: !interactive, stickIfOpen: interactive });
   const dismiss = useDismiss(context);
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });

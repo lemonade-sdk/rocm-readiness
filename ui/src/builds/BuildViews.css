@@ -85,3 +85,8 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) .build-filter-options button[aria-pressed="true"] .platform-logo[data-platform="windows"] { filter: brightness(0) invert(1); }
 }
+
+.filter-reset { align-self: flex-end; min-height: 38px; font-size: .8rem; }
+@media (pointer: coarse) { .filter-reset { min-height: 44px; } }
+.filter-scope { align-self: flex-end; min-height: 38px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: .8rem; display: inline-flex; gap: .5rem; align-items: center; }
+@media (pointer: coarse) { .filter-scope { min-height: 44px; } }

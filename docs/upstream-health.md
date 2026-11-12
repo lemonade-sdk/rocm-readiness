@@ -20,6 +20,35 @@ Previous monthly files retain completed scan IDs and job records. `coverage.cach
 
 `index.json` references `upstream/overview.json`, containing project aggregates, coverage and monthly file references. `upstream/<project>/ci/YYYY-MM.json` holds retained executions and scan state. Conformance validates file references and retained records, and reconciles monthly daily-state counts and pass/decided totals with the overview; it does not validate badges, platforms, not-running counts or merged-red totals. Publication pins the whole dataset to one commit.
 
+## Latest job and runner evidence
+
+Jobs optionally expose `latest` (state, original GitHub conclusion, completion
+timestamp `at`, exact job-log URL and observed runner) and `devlab_observed`.
+The newest result is ordered by the job's actual `completed_at`, then attempt and stable run/job identity,
+within the existing workflow-created-date collection window. Rerunning an older
+workflow can therefore replace a newer workflow's result when it finishes later.
+The window is not a promise of current health: ongoing runs and incomplete
+collection may mean newer evidence is unavailable.
+
+The collector retains `completed_at` on monthly run records. Cached legacy rows
+without that field remain valid and are not used to infer a completion order;
+latest evidence fills in as jobs are collected. Missing optional fields display
+as unavailable, never failed. Historical pass rates and daily counts are
+unchanged. Cancelled, skipped, failed, and requested-but-unrun results retain
+their distinct meanings and original conclusion.
+
+`devlab_observed` means at least one saved run in the collection window used a
+runner named `ephemeral-devlab-*`. It does not establish current runner
+availability or verify physical hardware. The CI job tooltip includes the
+window, observed runner, latest completion and job log; individual run evidence
+also exposes observed runner and completion when available. Conformance checks
+latest summaries and devlab observations against the retained monthly records.
+
+llama.cpp's ROCm matrix is collected as separate `gpu-rocm (gfx1151)` and
+`gpu-rocm (gfx1201)` jobs. Updating this source configuration invalidates that
+project's existing collection cache; the API budget can leave it partially
+backfilled during the first collection. Other projects' caches are unaffected.
+
 ## Local preview
 
 ```sh
@@ -32,3 +61,48 @@ npm run dev:local
 ```
 
 The second command refreshes upstream alone. `dev:local` is a development-only preview of `../data/local-preview`, or `LOCAL_DATA_DIR` if set; it does not change the published pointer. Add a project and its typed source to `sources.json`, explicitly select it in `views.upstream.sources`, and run the unit and local collection checks. Job `match` accepts exactly one of `name`, `prefix`, or `regex`; GitHub truncates job names at 100 characters.
+
+## Coverage, activity and DevLab indicators
+
+Overview distinguishes **No client jobs configured** from **Collection incomplete — coverage unknown**.
+Incomplete collection displays **Activity assessment unavailable** instead of an absence count.
+With complete collection, activity metrics count configured test jobs with no observed starts,
+and separately jobs with starts plus requested-but-unrun records on a later UTC date than
+that job's last start. These are collection-window summaries, not assertions about today's
+runner availability or the selected calendar day. Skips and missing observations alone do
+not prove a request was left unrun. Per-day records remain available in CI Activity.
+
+The overview's **DevLab observed** indicator means at least one configured upstream job
+has retained runner evidence beginning with `ephemeral-devlab-` in the collection window.
+It remains useful during incomplete collection: a positive observation does not require
+proving absence elsewhere. Missing evidence produces no indicator, not a negative verdict.
+Fork labels, configured `where` descriptions and readiness model-result runners do not
+establish that upstream CI used DevLab. PR #54 retained runner names; PR #72 adds their
+aggregation and display. This indicator does not establish current DevLab availability.
+
+## Pipeline-owned presentation
+
+Collection publishes ordered project `status_labels` records with `id`, `text`,
+`tone` (`neutral`, `positive`, `warning`, `negative`) and plain-text `tooltip`.
+The collector decides coverage precedence (unconfigured, incomplete, then the
+observed support state), wording and whether DevLab evidence merits a second label.
+Both page headers render the supplied records verbatim. The UI does not infer
+labels from coverage, job targets, fork descriptions or runner names.
+
+Collection also publishes `activity_assessment` with a nullable message and metric
+records (`id`, `label`, `tone`, `job_ids`). CI Activity intersects the supplied job
+IDs with visible jobs to display counts, without deciding which jobs belong in
+those categories or generating their wording. Per-job `runner_evidence_text`
+provides the DevLab evidence description displayed in job tooltips.
+
+These fields are additive and optional for older snapshots. Missing presentation
+fields render no labels or activity assessment; the browser does not manufacture a
+fallback interpretation. After rollout, the next successful collection populates
+these fields. Conformance verifies project labels and activity presentation against
+collected summaries. Changes to visible copy belong in the collector, not React.
+
+Merging code to `main` triggers **Collect dashboard data** automatically. It can
+also be dispatched manually on `main` and runs daily at 11:00 UTC. PR runs validate
+collection but never publish; only non-PR runs on `main` can publish the dataset.
+The UI deployment and data publication must both complete before the production
+site can display new presentation fields on reload.

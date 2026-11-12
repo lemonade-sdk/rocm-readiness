@@ -218,6 +218,60 @@
       "queue_seconds": 165,
       "runner": "GitHub Actions 1001580625",
       "url": "https://github.com/unslothai/unsloth/actions/runs/42762101988/job/129889617893"
+    },
+    {
+      "job": "rocm-image",
+      "run_id": "43053775893",
+      "job_id": "130637767705",
+      "attempt": 1,
+      "day": "2026-11-11",
+      "created_at": "2026-11-11T15:59:18Z",
+      "event": "push",
+      "ref": "v0.1.917-beta",
+      "sha": "475ceee98d8d141423201193c9cf2be2da30e600",
+      "status": "completed",
+      "conclusion": "failure",
+      "state": "failed",
+      "failed_step": "Build and push (by digest)",
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1001590270",
+      "url": "https://github.com/unslothai/unsloth/actions/runs/43053775893/job/130637767705"
+    },
+    {
+      "job": "rocm-smoke-test",
+      "run_id": "43053775893",
+      "job_id": "130640502200",
+      "attempt": 1,
+      "day": "2026-11-11",
+      "created_at": "2026-11-11T15:59:18Z",
+      "event": "push",
+      "ref": "v0.1.917-beta",
+      "sha": "475ceee98d8d141423201193c9cf2be2da30e600",
+      "status": "completed",
+      "conclusion": "skipped",
+      "state": "skipped",
+      "failed_step": null,
+      "queue_seconds": null,
+      "runner": null,
+      "url": "https://github.com/unslothai/unsloth/actions/runs/43053775893/job/130640502200"
+    },
+    {
+      "job": "rocm-studio-image",
+      "run_id": "43053775893",
+      "job_id": "130640498748",
+      "attempt": 1,
+      "day": "2026-11-11",
+      "created_at": "2026-11-11T15:59:18Z",
+      "event": "push",
+      "ref": "v0.1.917-beta",
+      "sha": "475ceee98d8d141423201193c9cf2be2da30e600",
+      "status": "completed",
+      "conclusion": "skipped",
+      "state": "skipped",
+      "failed_step": null,
+      "queue_seconds": null,
+      "runner": null,
+      "url": "https://github.com/unslothai/unsloth/actions/runs/43053775893/job/130640498748"
     }
   ],
   "scanned_runs": [
@@ -226,6 +280,6 @@
     "40456086648#1@2026-10-27",
     "40702672524#1@2026-10-28",
     "41074544573#1@2026-10-30",
-    "42762101988#1@2026-11-10"
+    "43053775893#1@2026-11-11"
   ]
 }

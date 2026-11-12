@@ -20,19 +20,19 @@ it("shows one card per project with its computed upstream badge", async () => {
   const card = (
     await screen.findByRole("heading", { name: "llama.cpp" })
   ).closest("article")!;
-  expect(within(card).getByText("upstream")).toHaveAttribute(
-    "title",
-    expect.stringContaining("gfx1201"),
-  );
+  fireEvent.focus(within(card).getByRole("button", { name: /^upstream$/ }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("gfx1201");
+  expect(card.querySelector(".up-status-labels [title]")).toBeNull();
+  fireEvent.keyDown(within(card).getByRole("button", { name: /^upstream$/ }), { key: "Escape" });
   const vllm = screen
     .getByRole("heading", { name: "vLLM" })
     .closest("article")!;
-  expect(within(vllm).getByText("Configured coverage unknown")).toBeInTheDocument();
+  expect(within(vllm).getByText("unconfigured")).toBeInTheDocument();
   expect(
     within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
   ).toBeInTheDocument();
-  // Totals across projects come from the job records, not a stored number.
-  expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
+  // Overview keeps the calendar prominent; metrics live in CI Activity.
+  expect(screen.queryByRole("group", { name: "CI metrics" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Upstream health" })).toHaveAttribute(
     "aria-current",
     "true",
@@ -43,7 +43,6 @@ it("lists forks with links without opening the project", async () => {
   mount("/?track=upstream&view=ci&project=llamacpp");
   await screen.findByRole("heading", { name: "llama.cpp" });
   const card = screen.getByRole("region", { name: "llama.cpp upstream health" });
-  fireEvent.click(within(card).getByText("1 fork"));
   expect(
     within(card).getByRole("link", { name: "lemonade-sdk/llama.cpp" }),
   ).toHaveAttribute("href", "https://github.com/lemonade-sdk/llama.cpp");
@@ -54,7 +53,7 @@ it("opens a project page whose filter drives the headline numbers", async () => 
   mount("/?track=upstream&project=llamacpp");
   await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
   expect(screen.getByText("of 12 results on main passed")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "vulkan" }));
+  fireEvent.click(screen.getByRole("button", { name: "rocm" }));
   expect(
     await screen.findByText("of 8 results on main passed"),
   ).toBeInTheDocument();
@@ -67,7 +66,7 @@ it("opens a project page whose filter drives the headline numbers", async () => 
 it("opens a day's runs with links to the job, the commit and the pull request", async () => {
   mount("/?track=upstream&project=llamacpp");
   await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
-  const perDay = screen.getByRole("region", { name: "Per day" });
+  const perDay = screen.getByRole("region", { name: "Daily activity" });
   fireEvent.click(
     within(perDay).getByRole("button", {
       name: "2026-10-27: 3 passed, 1 failed of 4 runs",
@@ -76,7 +75,7 @@ it("opens a day's runs with links to the job, the commit and the pull request", 
   const panel = await screen.findByRole("region", {
     name: "Runs on 2026-10-27",
   });
-  await within(panel).findByText("10:00");
+  await within(panel).findByText("10:00 UTC");
   expect(within(panel).getByRole("link", { name: "Job log at 10:00 UTC · failed" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/actions/runs/1/job/11",
@@ -85,7 +84,7 @@ it("opens a day's runs with links to the job, the commit and the pull request", 
     "href",
     `https://github.com/ggml-org/llama.cpp/commit/${"a".repeat(40)}`,
   );
-  expect(within(panel).getByRole("link", { name: "#501 red" })).toHaveAttribute(
+  expect(within(panel).getByRole("link", { name: "#501" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/pull/501",
   );
@@ -111,7 +110,7 @@ it("flags a platform that ships without an AMD hardware test", async () => {
   mount("/?track=upstream&project=llamacpp");
   const platforms = await screen.findByRole("region", { name: "Platforms" });
   const windows = within(platforms).getByRole("row", { name: /Windows/ });
-  expect(windows).toHaveTextContent("✗");
+  expect(windows).toHaveTextContent("?");
 });
 
 it("explains a dataset published before the upstream view existed", async () => {
@@ -172,16 +171,16 @@ it("opens upstream without requesting a readiness overview, even for an unknown 
   expect(requested.some((url) => url.includes('/rocm/'))).toBe(false);
 });
 
-it('does not draw pass bars for failed or running-only days', async () => {
+it('distinguishes failed days from days without a decided result', async () => {
   const project = upstreamOverview.projects[0];
   const empty = { passed: 0, failed: 0, other: 0, stalled: 0, skipped: 0, running: 0, slow: 0 };
   const fetcher = upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
     ...upstreamOverview, projects: [{ ...project, jobs: [{ ...project.jobs[0], daily: { '2026-10-27': { ...empty, failed: 1 }, '2026-10-28': { ...empty, running: 1 } } }] }]
   }});
   mount('/?track=upstream&project=llamacpp', fetcher);
-  const region = await screen.findByRole('region', { name: 'Per day' });
-  expect(within(region).getByRole('button', { name: /2026-10-27:/ }).querySelector('.up-pass')).toBeNull();
-  expect(within(region).getByRole('button', { name: /2026-10-28:/ }).querySelector('.up-pass')).toBeNull();
+  const region = await screen.findByRole('region', { name: 'Daily activity' });
+  expect(within(region).getByRole('button', { name: /2026-10-27:/ }).closest('td')).toHaveAttribute('data-outcome', 'fail');
+  expect(within(region).getByRole('button', { name: /2026-10-28:/ }).closest('td')).toHaveAttribute('data-outcome', 'pending');
 });
 
 it('shows collection errors and labels configured distribution without shipment checks', async () => {
@@ -274,28 +273,29 @@ function incompleteFetch(error?: string) {
   return upstreamFetch({ [new URL('upstream/overview.json', indexUrl).href]: {
     ...upstreamOverview, projects: [{ ...project, jobs, files: [], findings: [],
       kpis: { ...project.kpis, decided: 0, passed: 0, not_running: 2, merged_red: 0 },
+      activity_assessment: { message: "Activity assessment unavailable — collection incomplete.", metrics: [] },
       coverage: { complete: false, ...(error ? { error } : {}) } }],
   }});
 }
 
-it('shows unknown rather than unobserved not-running counts in incomplete project cards and totals', async () => {
+it('omits aggregate metrics from incomplete overview projects', async () => {
   mount('/?track=upstream', incompleteFetch());
   const card = (await screen.findByRole('heading', { name: 'llama.cpp' })).closest('article')!;
-  expect(within(card).getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  expect(within(card).queryByRole('group', { name: 'CI metrics' })).not.toBeInTheDocument();
   const total = screen.getByRole('region', { name: 'Upstream projects' });
-  expect(within(total).getAllByText('tests not running')[0].parentElement).toHaveTextContent('Unknown');
+  expect(within(total).queryByText('tests not running')).not.toBeInTheDocument();
 });
 
 it('does not describe uncollected runs as absent in incomplete project details', async () => {
   mount('/?track=upstream&project=llamacpp', incompleteFetch());
   await screen.findByRole('heading', { level: 2, name: 'llama.cpp' });
-  expect(screen.getByText('tests not running').parentElement).toHaveTextContent('Unknown');
+  expect(screen.getByText('Activity assessment unavailable — collection incomplete.')).toBeInTheDocument();
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
-  const perDay = screen.getByRole('region', { name: 'Per day' });
+  const perDay = screen.getByRole('region', { name: 'Daily activity' });
   fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: no collected evidence/ }));
   expect(await screen.findByText('No collected evidence for this day.')).toBeInTheDocument();
-  fireEvent.click(screen.getByText('By job'));
+  expect(screen.getByRole('table', { name: 'CI jobs' })).toBeInTheDocument();
   expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
 });
 
@@ -313,10 +313,10 @@ it('retains observed failures and stalls when collection is incomplete', async (
     ...upstreamOverview, projects: [{ ...project, coverage: { complete: false } }],
   }});
   mount('/?track=upstream&project=llamacpp', fetcher);
-  const perDay = await screen.findByRole('region', { name: 'Per day' });
-  expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).querySelector('.up-fail')).toBeInTheDocument();
-  expect(within(perDay).getByRole('button', { name: /2026-10-29: 2 requested, none ran/ }).querySelector('.up-stall')).toBeInTheDocument();
-  expect(screen.getByText('Test')).toBeInTheDocument();
+  const perDay = await screen.findByRole('region', { name: 'Daily activity' });
+  expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).closest('td')).toHaveAttribute('data-outcome', 'fail');
+  expect(within(perDay).getByRole('button', { name: /2026-10-29: 2 requested, none ran/ }).querySelector('.up-activity-stall')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Test' })).toBeInTheDocument();
 });
 
 it('does not imply there were no failures when failing-step details are absent', async () => {
@@ -326,8 +326,8 @@ it('does not imply there were no failures when failing-step details are absent',
     ...upstreamOverview, projects: [{ ...project, jobs }],
   }});
   mount('/?track=upstream&project=llamacpp', fetcher);
-  const perDay = await screen.findByRole('region', { name: 'Per day' });
-  expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).querySelector('.up-fail')).toBeInTheDocument();
+  const perDay = await screen.findByRole('region', { name: 'Daily activity' });
+  expect(within(perDay).getByRole('button', { name: /2026-10-27: 3 passed, 1 failed/ }).closest('td')).toHaveAttribute('data-outcome', 'fail');
   expect(screen.getByText('No collected failing-step details.')).toBeInTheDocument();
 });
 
@@ -358,16 +358,16 @@ it("separates source links from project navigation and provides a return path", 
   const card = heading.closest("article")!;
   expect(within(card).queryByRole("link", { name: /Repository:/ })).not.toBeInTheDocument();
   expect(within(card).queryByText(/fork/)).not.toBeInTheDocument();
-  fireEvent.click(within(card).getByRole("group", { name: "CI metrics" }));
+  fireEvent.click(card);
   expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
   expect(within(heading).getByRole("link", { name: "llama.cpp" })).toBeInTheDocument();
   expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
   fireEvent.click(within(heading).getByRole("link", { name: "llama.cpp" }));
   expect(await screen.findByRole("link", { name: "Repository: ggml-org/llama.cpp" })).toHaveAttribute("href", "https://github.com/ggml-org/llama.cpp");
   await screen.findByRole("heading", { level: 2, name: "llama.cpp" });
-  expect(screen.queryByRole("table", { name: "Daily CI activity" })).not.toBeInTheDocument();
-  const navigation = screen.getByRole("navigation", { name: "Project navigation" });
-  fireEvent.click(within(navigation).getByRole("link", { name: /All projects/ }));
+  expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "Project navigation" })).not.toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("list", { name: "Upstream health views" })).getByRole("link", { name: "Overview" }));
   await screen.findByRole("region", { name: "Upstream projects" });
   expect(screen.queryByRole("group", { name: "Project" })).not.toBeInTheDocument();
 });
@@ -413,4 +413,241 @@ it("filters platform evidence while keeping at least one platform selected", asy
   expect(within(platforms).getByRole("button", { name: "Linux" })).toBeDisabled();
   fireEvent.click(within(platforms).getByRole("button", { name: "Windows" }));
   expect(await screen.findByText("of 12 results on main passed")).toBeInTheDocument();
+});
+
+it("uses independent inclusive stack and target toggles and a shared daily calendar", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const stacks = await screen.findByRole("group", { name: "Stack" });
+  const targets = screen.getByRole("group", { name: "Target" });
+  for (const button of [...within(stacks).getAllByRole("button"), ...within(targets).getAllByRole("button")]) {
+    expect(button).toHaveAttribute("aria-pressed", "true");
+  }
+  expect(screen.queryByRole("button", { name: "Everything AMD" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("navigation", { name: "Project navigation" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "lemonade-sdk/llama.cpp" }).closest("details")).toBeNull();
+  fireEvent.click(within(stacks).getByRole("button", { name: "rocm" }));
+  expect(screen.getByText("of 8 results on main passed")).toBeInTheDocument();
+  expect(within(stacks).getByRole("button", { name: "vulkan" })).toBeDisabled();
+  fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
+  expect(screen.getByText("0 jobs")).toBeInTheDocument();
+  fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
+  expect(screen.getByText("of 8 results on main passed")).toBeInTheDocument();
+  fireEvent.click(within(stacks).getByRole("button", { name: "rocm" }));
+  expect(screen.getByText("of 12 results on main passed")).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "Daily CI activity" })).toBeInTheDocument();
+});
+
+it("shows exact daily pass and failure counts and opens run evidence in a popup", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const activity = await screen.findByRole("region", { name: "Daily activity" });
+  const day = within(activity).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+  expect(day.textContent).toBe("");
+  expect(day.querySelector('.up-pass')).toBeInTheDocument();
+  expect(day.querySelector('.up-fail')).toBeInTheDocument();
+  fireEvent.click(day);
+  const popup = await screen.findByRole("dialog", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" });
+  expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Previous day" })).not.toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Next day" })).not.toBeInTheDocument();
+  fireEvent.click(within(popup).getByRole("button", { name: "Close popup" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("keeps one daily failure visible even when more than 95 percent passed", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].daily["2026-10-27"].passed = 39;
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const activity = await screen.findByRole("region", { name: "Daily activity" });
+  const day = within(activity).getByRole("button", { name: "2026-10-27: 39 passed, 1 failed of 40 runs" });
+  expect(day.textContent).toBe("");
+  fireEvent.click(day);
+  expect(await screen.findByText(/40 runs/)).toBeInTheDocument();
+  expect(screen.getByText("39", { selector: "dd" })).toBeInTheDocument();
+  expect(screen.getByText("1", { selector: "dd" })).toBeInTheDocument();
+  expect(day.querySelector(".up-fail")).toBeInTheDocument();
+});
+
+it("keeps saved day evidence accessible outside the visible chart window", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.window = { ...data.window, start: "2026-09-30", days: 30 };
+  mount("/?track=upstream&view=ci&project=llamacpp&day=2026-10-01&activity=cat:tests", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const panel = await screen.findByRole("region", { name: "Runs on 2026-10-01" });
+  fireEvent.click(within(panel).getByRole("button", { name: "Close" }));
+  expect(screen.queryByRole("region", { name: "Runs on 2026-10-01" })).not.toBeInTheDocument();
+});
+
+it("keeps a saved category selection dismissible when filters remove its chart row", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp&stack=vulkan&target=gfx1151&day=2026-10-27&activity=cat:tests");
+  const panel = await screen.findByRole("region", { name: "Runs on 2026-10-27" });
+  expect(within(panel).getByRole("button", { name: "Close" })).toBeInTheDocument();
+});
+
+it("lists individual CI jobs in a visible table with per-job run evidence", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  expect(table.closest("details")).toBeNull();
+  const row = within(table).getByRole("row", { name: /gpu-rocm/ });
+  expect(within(table).queryByRole("columnheader", { name: "Stack" })).not.toBeInTheDocument();
+  expect(within(row).getByRole("cell", { name: "Linux" })).toBeInTheDocument();
+  fireEvent.focus(within(row).getByRole("button", { name: "gpu-rocm" }));
+  const metadata = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  expect(within(metadata).getByText("rocm", { selector: "dd" })).toBeInTheDocument();
+  expect(within(metadata).getByText("gfx1151", { selector: "dd" })).toBeInTheDocument();
+  expect(within(metadata).getByText(/Pass rate.*14 days/)).toBeInTheDocument();
+  fireEvent.blur(within(row).getByRole("button", { name: "gpu-rocm" }));
+  fireEvent.click(within(row).getByRole("button", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  const popup = await screen.findByRole("dialog", { name: "gpu-rocm · 2026-10-27: 3 passed, 1 failed of 4 runs" });
+  expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Previous day" })).not.toBeInTheDocument();
+  expect(within(popup).queryByRole("button", { name: "Next day" })).not.toBeInTheDocument();
+});
+
+it("lists rare failing steps alongside frequent ones with exact counts and affected jobs", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].failed_steps = { "ccache-buckets-restore": 27, "Test archs": 1 };
+  data.projects[0].jobs[1].failed_steps = { "ccache-buckets-restore": 1 };
+  data.projects[0].jobs[1].label = data.projects[0].jobs[0].label;
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "Failing steps on main" });
+  const frequent = within(table).getByRole("row", { name: /ccache-buckets-restore/ });
+  const rare = within(table).getByRole("row", { name: /Test archs/ });
+  expect(within(frequent).getByRole("cell", { name: "28" })).toBeInTheDocument();
+  expect(within(frequent).getByRole("cell", { name: "2" })).toBeInTheDocument();
+  expect(within(rare).getAllByRole("cell", { name: "1" })).toHaveLength(2);
+});
+
+it("shows only 14 job dates even when the collection covers 30 days", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.window = { ...data.window, start: "2026-09-30", days: 30 };
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  expect(table.querySelectorAll("thead time")).toHaveLength(14);
+  expect(within(table).getByRole("columnheader", { name: "2026-10-16 UTC" })).toBeInTheDocument();
+  expect(within(table).queryByRole("columnheader", { name: "2026-10-01 UTC" })).not.toBeInTheDocument();
+});
+
+it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and legends for %s", async (id) => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  const project = data.projects[0];
+  project.id = id;
+  project.label = id;
+  project.jobs[0].daily["2026-10-27"] = { ...project.jobs[0].daily["2026-10-27"], passed: 19, failed: 1 };
+  project.jobs[1].daily["2026-10-28"] = { ...project.jobs[1].daily["2026-10-28"], passed: 0, failed: 0, skipped: 8 };
+  mount(`/?track=upstream&view=ci&project=${id}`, upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  const failure = within(table).getByRole("button", { name: "gpu-rocm · 2026-10-27: 19 passed, 1 failed of 20 runs" });
+  expect(failure.closest("td")).toHaveAttribute("data-outcome", "fail");
+  expect(failure).toHaveTextContent("×");
+  const skipped = within(table).getByRole("button", { name: "models-check vulkan-amd · 2026-10-28: 8 skipped" });
+  expect(skipped).toHaveTextContent("–");
+  const legend = screen.getByRole("list", { name: "CI job outcomes" });
+  expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/–.*Skipped/);
+});
+
+it("formats CI job metadata as labeled qualification-style details", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  fireEvent.click(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  for (const label of ["Category", "Workflow", "Cadence", "Stack", "Target", "Configured runner", "Pass rate (14 days)", "Decided results"])
+    expect(within(tooltip).getByText(label, { selector: "dt" })).toBeInTheDocument();
+});
+
+it("presents run evidence in explicit labeled rows instead of abbreviated link clusters", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp&day=2026-10-27&activity=cat:tests");
+  const panel = await screen.findByRole("region", { name: "Runs on 2026-10-27" });
+  await within(panel).findByRole("link", { name: "Job log at 10:00 UTC · failed" });
+  for (const label of ["Result", "Job log", "Failed step", "Commit", "Pull request", "PR CI result"])
+    expect(within(panel).getAllByText(label, { selector: "dt" }).length).toBeGreaterThan(0);
+});
+
+it("keeps absent latest evidence unavailable instead of implying failure", async () => {
+  mount("/?track=upstream&view=ci&project=llamacpp");
+  fireEvent.focus(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  expect(within(tooltip).getByText("Latest recorded result", { selector: "dt" })).toBeInTheDocument();
+  expect(within(tooltip).getByText("Unavailable", { selector: "dd" })).toBeInTheDocument();
+});
+
+it("shows latest completion, log, and observed runner independently of historical rate", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  Object.assign(data.projects[0].jobs[0], { latest: {
+    state: "other", conclusion: "cancelled", at: "2026-10-29T11:00:00Z",
+    url: "https://github.com/example/demo/actions/runs/100", runner: "ephemeral-devlab-slot-1",
+  }, devlab_observed: true, runner_evidence_text: "Observed on devlab · 14-day collection window" });
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  fireEvent.focus(await screen.findByRole("button", { name: "gpu-rocm" }));
+  const tooltip = await screen.findByRole("dialog", { name: "gpu-rocm" });
+  expect(within(tooltip).getByText("Cancelled")).toBeInTheDocument();
+  expect(within(tooltip).getByText("2026-10-29 11:00 UTC")).toBeInTheDocument();
+  expect(within(tooltip).getByRole("link", { name: "View latest job log" })).toHaveAttribute("href", "https://github.com/example/demo/actions/runs/100");
+  expect(within(tooltip).getByText(/Observed on devlab/)).toBeInTheDocument();
+  expect(within(tooltip).getByText("75%", { selector: "dd" })).toBeInTheDocument();
+});
+
+it("shows an overview DevLab indicator from observed upstream runner evidence", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].devlab_observed = true;
+  data.projects[0].status_labels = [{ id: "coverage", text: "incomplete", tone: "neutral", tooltip: "Collection is incomplete." }, { id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the collection window." }];
+  data.projects[0].coverage.complete = false;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
+  fireEvent.focus(within(card).getByRole("button", { name: "devlab" }));
+  expect(await screen.findByText(/ephemeral-devlab-/)).toBeInTheDocument();
+  expect(screen.getByText("incomplete")).toBeInTheDocument();
+});
+it("does not infer DevLab from configured runner descriptions", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].where = "DevLab";
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  expect(screen.queryByRole("button", { name: "devlab" })).not.toBeInTheDocument();
+});
+
+it("separates no-start test jobs from jobs with later unrun requests", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  const job = data.projects[0].jobs[0];
+  job.started = 2;
+  job.quiet_days = ["2026-10-29"];
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const card = await screen.findByRole("region", { name: "llama.cpp upstream health" });
+  expect(within(card).getByText(/test jobs with no observed starts/).parentElement).toHaveTextContent("0");
+  expect(within(card).getByText(/test jobs with unrun requests after last start/).parentElement).toHaveTextContent("1");
+});
+
+it("includes DevLab beside coverage in the CI Activity header", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].jobs[0].devlab_observed = true;
+  data.projects[0].status_labels = [{ id: "coverage", text: "incomplete", tone: "neutral", tooltip: "Collection is incomplete." }, { id: "devlab", text: "devlab", tone: "neutral", tooltip: "gpu-rocm used an ephemeral-devlab-* runner in the collection window." }];
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  const header = document.querySelector(".up-page-head")! as HTMLElement;
+  expect(within(header).getByRole("button", { name: /^devlab$/ })).toBeInTheDocument();
+});
+
+it("renders pipeline label text and tooltip verbatim without interpreting evidence", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  data.projects[0].status_labels = [{ id: "custom", text: "producer label", tone: "warning", tooltip: "Producer supplied explanation." }];
+  data.projects[0].coverage.complete = false;
+  data.projects[0].jobs[0].devlab_observed = true;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  fireEvent.focus(await screen.findByRole("button", { name: "producer label" }));
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Producer supplied explanation.");
+  expect(screen.queryByRole("button", { name: "devlab" })).not.toBeInTheDocument();
+});
+it("does not invent labels for legacy datasets", async () => {
+  const data = structuredClone(upstreamOverview) as unknown as UpstreamOverview;
+  for (const project of data.projects) delete project.status_labels;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "llama.cpp" });
+  expect(document.querySelectorAll(".up-status-labels button")).toHaveLength(0);
 });

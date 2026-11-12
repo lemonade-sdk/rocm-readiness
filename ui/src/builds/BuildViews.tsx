@@ -184,7 +184,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
         <legend>Performance</legend>
         <button type="button" aria-pressed={measuredOnly}
           onClick={() => onNavigate(next({ performance: measuredOnly ? null : "measured", build: null, source: null, package_identity: null }))}>
-          Has performance data
+          Measured
         </button>
       </fieldset>
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"

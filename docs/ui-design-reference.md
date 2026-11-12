@@ -363,3 +363,6 @@ not started”. Use zero when the published assessment omits a count, including
 incomplete collection. This is a display fallback, not verified absence; retain
 the project-level incomplete-collection indicator. Tooltip descriptions come from the collector’s optional `metric_descriptions`
 fields, including window scope and the zero-fallback limitation.
+
+The Build Qualification Performance filter uses the compact label “Measured”
+for builds with performance data.

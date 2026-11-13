@@ -1301,3 +1301,18 @@ a[target="_blank"]::after { content: " ↗"; }
 
 .build-dates-newer::after { content: " →"; opacity: .65; font-size: .85em; }
 .build-dates-older::before { content: "← "; opacity: .65; font-size: .85em; }
+
+.github-link { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; color: var(--muted); border-radius: 3px; }
+.github-link[target="_blank"]::after { content: none; }
+.github-link:hover { color: var(--text); background: var(--subpanel); }
+.github-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.dashboard-description {
+  margin: .25rem 0 0;
+  color: var(--muted);
+  font: 400 .8125rem/1.45 system-ui, sans-serif;
+  text-wrap: pretty;
+}
+@media (max-width: 640px) {
+  .header-page { padding-block: .5rem; align-items: flex-start; }
+}

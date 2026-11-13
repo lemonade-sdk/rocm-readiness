@@ -646,7 +646,7 @@ function ProjectPage({
           <ProjectLabels project={project} hoverOnly />
         </div>
         {!project.coverage.complete && !project.coverage.error && (
-          <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>
+          <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> <span>Collection incomplete — oldest days may be missing</span></p>
         )}
       </header>
       <div className="up-kpis up-kpis-page" role="group" aria-label="CI metrics">

@@ -446,3 +446,8 @@ Filter help stays in anchored popups on phones so it does not replace filter
 actions or become page evidence. Other evidence keeps the mobile disclosure pattern.
 
 When workspace navigation is collapsed, place its Navigation button at the leading edge of the header, before the ROCm Readiness identity. Keep the theme control on the right and the current page heading below on phones.
+
+The top bar places a plain-language dashboard description beneath the current
+page title, replacing the numbered context label. Keep it visible on phones and
+allow natural wrapping beside the filter control. Collection notices keep the
+warning symbol in its own column and wrap their text without a separator bullet.

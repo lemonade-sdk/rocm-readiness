@@ -1081,7 +1081,7 @@ button.up-tick {
 .up-page .up-jobs-table td.table-status { padding: 0; }
 .up-jobs-table td .comparison-tooltip { display: block; }
 .up-jobs-table td .up-tick { display: grid; min-height: 2.25rem; }
-.up-collection-status { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem; margin: 0; color: var(--muted); font-size: 0.8rem; }
+.up-collection-status { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; gap: 0.25rem; margin: 0; color: var(--muted); font-size: 0.8rem; }
 .up-collection-status > span:first-child { color: var(--warning); }
 
 /* Findings are notices, with restrained symbols rather than failure blocks. */
@@ -1241,4 +1241,19 @@ button.up-tick {
 /* Reserve equal heading space so the coverage tables share a baseline. */
 @media (min-width: 768px) {
   .up-project-coverage > .up-panel > h2 { min-height: 4.5rem; align-content: start; }
+}
+
+/* Give the collected-results caption enough room for one line. */
+@media (min-width: 1101px) {
+  .up-project-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 48rem); }
+}
+.up-project-summary .up-kpis-page .up-stat strong { white-space: nowrap; }
+@media (max-width: 360px) {
+  .up-stat-trigger.comparison-trigger { padding: .5rem; }
+  .up-project-summary .up-kpis-page .up-stat { padding: .5rem; }
+  .up-project-summary .up-kpis-page .up-stat span { font-size: .625rem; }
+}
+
+@media (min-width: 641px) and (max-width: 767px) {
+  .up-project-summary .up-kpis-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

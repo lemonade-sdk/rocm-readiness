@@ -9,13 +9,13 @@ it("expands an empty phone day inside its own dated row", () => {
   fireEvent.click(screen.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux" }));
   const evidence = screen.getByRole("region", { name: "2026-11-02 UTC · 0 packages · Linux" });
   expect(evidence).toHaveTextContent("No packages recorded");
-  expect(screen.getByText("2026-11-02").closest("li")).toContainElement(evidence);
+  expect(screen.getByText("November 2, 2026").closest("li")).toContainElement(evidence);
 });
 
 it("uses dated horizontal bars on narrow phones", () => {
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
   const { container } = render(<QualificationCharts builds={[]} track="stable" days={["2026-11-02"]} platforms={["linux"]} />);
-  expect(screen.getByText("2026-11-02")).toBeVisible();
+  expect(screen.getByText("November 2, 2026")).toBeVisible();
   expect(container.querySelector(".qualification-trend-stack")).toHaveAttribute("data-horizontal", "true");
 });
 

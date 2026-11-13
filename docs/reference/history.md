@@ -148,3 +148,23 @@ This record is the normalized Linux `b11997` example from the
   }]
 }
 ```
+
+## Qualification outcome presentation
+
+Build rows may include optional `qualification_labels`, an object with `tiers`
+and `checks` label maps keyed by the original tier/check identifiers. The dataset
+writer derives these maps with `scripts/qualification_outcomes.py`; the visible
+missing-hardware wording lives in its `NO_HARDWARE_LABEL` constant.
+
+A label is emitted only for Tier 1 `not_applicable` outcomes when the feed's
+`hardware_validated` is exactly `false`. Tier identifiers (`tier1`) and check
+identifiers (`T1.*`) establish scope. T0.11 `not_applicable`, skipped checks,
+unknown hardware claims and other tiers retain their existing outcome vocabulary.
+Underlying result tokens, qualification verdicts, glyphs and colors do not change.
+
+The UI applies supplied labels only while the effective outcome remains `not_applicable`;
+a pinned report that supersedes it with a skipped, failed or other outcome uses
+that outcome’s vocabulary. Supplied text is rendered verbatim in check tooltips, accessible labels,
+tier headings and tier fallbacks. Older snapshots without this optional field
+use the shared outcome registry. Conformance checks any supplied maps against
+these collector rules, including exact label text and eligible identifiers.

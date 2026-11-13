@@ -7,7 +7,7 @@ import "../builds/QualificationMatrix.css";
 import { FilterReset, FilterScope } from "../FilterReset";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { PlatformIcon } from "../PlatformIcon";
-import { usePhoneLayout } from "../mobile";
+import { usePhoneLayout, useMediaQuery } from "../mobile";
 import { MobileFilters } from "../MobileFilters";
 import { EvidenceDisclosure } from "../overview/EvidenceDisclosure";
 
@@ -456,7 +456,7 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
         <dd>
           {row.package_url ? (
             <a href={row.package_url} target="_blank" rel="noreferrer">
-              {packageLabel(row)} ↗
+              {packageLabel(row)}
             </a>
           ) : (
             packageLabel(row)
@@ -465,7 +465,7 @@ function measurementMetadata(row: Measurement, systems: Map<string, SystemRecord
       </div>
       {row.run_url && <div>
         <dt>Benchmark run</dt>
-        <dd><a href={row.run_url} target="_blank" rel="noreferrer">{row.run_id ?? "Open benchmark run"} ↗</a></dd>
+        <dd><a href={row.run_url} target="_blank" rel="noreferrer">{row.run_id ?? "Open benchmark run"}</a></dd>
       </div>}
       <div>
         <dt>Measured (UTC)</dt>
@@ -628,6 +628,7 @@ export function PerformanceView({
   buildHref: (buildId: string, platform: string) => string;
 }) {
   const phone = usePhoneLayout();
+  const wideEvidence = useMediaQuery("(min-width: 1024px)");
   const overview = session.overview;
   const [retry, setRetry] = useState(0);
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -772,7 +773,7 @@ export function PerformanceView({
                   <strong>{group.label}</strong><p>{plural(group.rows.length, "measurement")} · All times UTC</p>
                 </div>}>{group.label}</Tooltip>
               </th>}
-                <th scope="row"><span className="performance-model-identity"><Tooltip side interactive label={`Measurement details for ${row.model} · ${row.package_os ?? "Unknown OS"} · ${row.measured_at}`}
+                <th scope="row"><span className="performance-model-identity"><Tooltip side={!wideEvidence} interactive label={`Measurement details for ${row.model} · ${row.package_os ?? "Unknown OS"} · ${row.measured_at}`}
                   triggerClassName="performance-model-trigger" contentClassName="qualification-popup performance-model-popup"
                   content={<MeasurementEvidence row={row} systems={state.data.systems} history={state.history} buildHref={buildHref} />}>{row.model}</Tooltip>
                 <span className="performance-os" role="img" aria-label={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"} title={row.package_os === "windows" ? "Windows" : row.package_os === "linux" ? "Linux" : "OS unavailable"}><PlatformIcon platform={row.package_os ?? ""} />{!row.package_os && "—"}</span></span></th>

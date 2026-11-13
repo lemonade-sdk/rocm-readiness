@@ -45,7 +45,7 @@ export function Tooltip(props: TooltipProps) {
 
 function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen, buttonProps,
-  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileDisclosure = true,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileDisclosure = true, hoverOnly = false,
 }: {
   label: string;
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
@@ -64,11 +64,12 @@ function StyledTooltip({
   contentClassName?: string;
   mobilePrimary?: boolean;
   mobileDisclosure?: boolean;
+  hoverOnly?: boolean;
 }) {
   const [localOpen, setOpen] = useState(initialOpen);
   const open = isOpen ?? localOpen;
   const phoneLayout = usePhoneLayout();
-  const phone = phoneLayout && mobileDisclosure;
+  const phone = phoneLayout && mobileDisclosure && !hoverOnly;
   const narrow = useMediaQuery("(max-width: 540px)");
   const evidenceTarget = useContext(EvidenceTarget);
   const expansion = useContext(EvidenceExpansion);
@@ -124,14 +125,14 @@ function StyledTooltip({
   }, [open, interactive, elements.floating]);
   const hover = useHover(context, {
     enabled: !phone,
-    delay: { open: tooltipTiming.openDelayMs, close: 180 },
+    delay: { open: tooltipTiming.openDelayMs, close: hoverOnly ? 0 : 180 },
     move: false,
-    handleClose: safePolygon(),
+    handleClose: hoverOnly ? undefined : safePolygon(),
   });
   // URL-controlled popups open by hover or activation. Restoring focus after
   // dismissal must not reopen a popup that browser history just closed.
-  const focus = useFocus(context, { visibleOnly: Boolean(to), enabled: !phone && isOpen === undefined });
-  const click = useClick(context, { enabled: !phone && !to, toggle: !interactive, stickIfOpen: true });
+  const focus = useFocus(context, { visibleOnly: hoverOnly || Boolean(to), enabled: !phone && isOpen === undefined });
+  const click = useClick(context, { enabled: !phone && !to && !hoverOnly, toggle: !interactive, stickIfOpen: true });
   const dismiss = useDismiss(context, { enabled: !phone });
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
@@ -163,7 +164,12 @@ function StyledTooltip({
   }
 
   return <span className="comparison-tooltip">
-    {to ? <Link
+    {hoverOnly ? <span
+      ref={refs.setReference}
+      tabIndex={0}
+      className={`comparison-trigger tooltip-hover-trigger ${triggerClassName ?? ""}`}
+      {...getReferenceProps({ "aria-label": label })}
+    >{children}</span> : to ? <Link
       ref={refs.setReference}
       to={to}
       className={triggerClassName}

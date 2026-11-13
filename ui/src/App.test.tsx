@@ -322,7 +322,7 @@ it.each(["stable", "nightly"] as const)("shows only the exact %s build's measure
     source_id: "lemonade-performance", engine: "llamacpp", channel,
     backend: "rocm", engine_version: "b11972", model: "Matched model", scenario: "prompt",
     measured_at: "2026-10-30T00:00:00Z", rocm_version: "10.1", package_os: "linux",
-    qualification_build_id: "linux-build", metrics: { tps_mean: 65 },
+    qualification_build_id: "linux-build", metrics: { tps_mean: 65, tg_tps: 65, pp_tps: 650 },
   };
   mount(fixtureFetch({
     [new URL("rocm/10.1/performance.json", indexUrl).href]: {
@@ -361,6 +361,7 @@ it("opens legacy build links in Build Qualification and keeps Performance in its
   expect(await screen.findByRole("heading", { name: "Build Qualification", level: 1 })).toBeInTheDocument();
   expect(within(await screen.findByRole("dialog")).getByText("linux-build")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close popup" }));
+  expect(screen.getAllByRole("group", { name: "ROCm version" })).toHaveLength(1);
   fireEvent.change(screen.getByRole("searchbox", { name: "Find build" }), { target: { value: "does-not-exist" } });
   expect(await screen.findByText("No retained packages match this scope.")).toBeInTheDocument();
   fireEvent.click(within(navigation).getByRole("link", { name: "Performance" }));

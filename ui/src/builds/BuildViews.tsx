@@ -1,3 +1,4 @@
+import { calendarDate } from "../overview/formatDate";
 import { useId, type ReactNode } from "react";
 import { useMediaQuery } from "../mobile";
 import { MobileFilters } from "../MobileFilters";
@@ -65,7 +66,7 @@ function DayPerformance({ builds, performance }: {
         <meter min={0} max={max} value={row.metrics.tps_mean} aria-label="Throughput relative to the fastest package in this comparison" />
         <span>First token {row.metrics.ttft_ms_mean == null ? "Unavailable" : metricValue("ttft_ms_mean", row.metrics.ttft_ms_mean)}</span>
         <span>Peak VRAM {row.metrics.vram_peak_gb == null ? "Unavailable" : metricValue("vram_peak_gb", row.metrics.vram_peak_gb)}</span>
-        <time dateTime={row.measured_at}>{row.measured_at.slice(0, 10)} UTC</time>
+        <time dateTime={row.measured_at}>{calendarDate(row.measured_at)}</time>
       </li>)}</ul>
       {matched.size < builds.length && <p className="muted">{builds.length - matched.size} packages have no verified measurement for this comparison.</p>}
     </> : <p className="muted">{performance.message.startsWith("Loading") || performance.retry
@@ -198,7 +199,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>
       {selectedBuild && <FilterScope label={`Build: ${selected?.tag ?? selectedBuild}`} onClear={() => onNavigate(next({ through: end === today ? null : end, build: null, source: null, package_identity: null, tier: null, check: null, focus: null }))} />}
-      {focusedDay && <FilterScope label={`Date: ${focusedDay}`} onClear={() => onNavigate(next({ through: end === today ? null : end, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
+      {focusedDay && <FilterScope label={`Date: ${calendarDate(focusedDay)}`} onClear={() => onNavigate(next({ through: end === today ? null : end, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
       <FilterReset onReset={() => {
         const target = next({ through: end === today ? null : end });
         for (const key of ["platform", "engine", "channel", "performance", "build_filter", "day", "focus", "build", "source", "package_identity", "tier", "check", "report_commit"])
@@ -223,8 +224,8 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       }}
       dayHref={(day, track, os) => `?${next({ day, channel: track, platform: os, focus: "day", build: null, source: null, package_identity: null })}`} />
     {(older || end < today) && <nav className="build-chart-paging" aria-label="Browse qualification dates">
-      {older && <Link to={windowLink(older)}>← Older builds</Link>}
-      {end < today && <Link to={windowLink(nextWindow)}>{nextWindow ? "Newer builds →" : "Back to latest dates →"}</Link>}
+      {older && <Link className="build-dates-older" to={windowLink(older)}>Older builds</Link>}
+      {end < today && <Link className="build-dates-newer" to={windowLink(nextWindow)}>{nextWindow ? "Newer builds" : "Back to latest dates"}</Link>}
     </nav>}
     {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
     {!(inlineDays && focusedDay && days.includes(focusedDay) && visiblePlatforms.length > 0) && (rows.length === 0 ? <div>
@@ -327,7 +328,7 @@ export function BuildReview({ session, history, params, fetcher }: ViewProps) {
   const { build } = selection;
   const rows = performance.matches.get(build) ?? [];
   return <section className="build-charts">
-    <div><h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{rows.length > 0 && <BuildPerformancePreview build={build} measurements={performance.matches} />}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {buildDate(build)} UTC</p>
+    <div><h2 aria-label={build.tag ?? build.build_id}>{build.tag ?? build.build_id}{rows.length > 0 && <BuildPerformancePreview build={build} measurements={performance.matches} />}</h2><p className="muted">{platformName(build.os)} · {build.channel} · {calendarDate(build.generated_at)}</p>
       <Link to={qualificationBuildHref(build)}>View package qualification</Link></div>
     <div className="build-review-panels">
       <CheckBars build={build} />

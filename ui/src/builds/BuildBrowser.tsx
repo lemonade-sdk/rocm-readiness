@@ -1,3 +1,5 @@
+import { archiveHref } from "./packageLinks";
+import { producedAt } from "../overview/formatDate";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useBuildMeasurements } from "./useBuildMeasurements";
 import { matchedPerformanceObservations, PerformancePreview } from "../performance/PerformancePreview";
@@ -101,13 +103,7 @@ function canonicalPlatform(value: string) {
 }
 
 function date(value: string) {
-  return (
-    new Intl.DateTimeFormat("en", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: "UTC",
-    }).format(new Date(value)) + " UTC"
-  );
+  return producedAt(value);
 }
 
 function qualification(build: Build) {
@@ -614,7 +610,7 @@ function BuildList({
             className="build-browser-open"
             href={buildHref(build)}
           >
-            Open build evidence <span aria-hidden="true">→</span>
+            Open build evidence
           </a>
         </article>
       ))}
@@ -706,7 +702,7 @@ function BuildDetail({ build, session, selection, hasPerformance, performanceMea
         </div>
         <div>
           <dt>Package archive</dt>
-          <dd>{build.artifact ?? "Not recorded"}</dd>
+          <dd>{archiveHref(build) ? <a href={archiveHref(build)} target="_blank" rel="noreferrer">{build.artifact}</a> : build.artifact ?? "Not recorded"}</dd>
         </div>
         <div>
           <dt>ROCm SDK</dt>
@@ -727,12 +723,12 @@ function BuildDetail({ build, session, selection, hasPerformance, performanceMea
       </dl>
       {url && (
         <a href={url} target="_blank" rel="noreferrer">
-          Open pinned producer report <span aria-hidden="true">↗</span>
+          Open pinned producer report
         </a>
       )}
       {feedSource && (
         <a href={feedSource} target="_blank" rel="noreferrer">
-          Open pinned feed source <span aria-hidden="true">↗</span>
+          Open pinned feed source
         </a>
       )}
       {reportState.state === "loading" && (

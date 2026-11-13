@@ -135,7 +135,7 @@ test("anchors package performance popups and keeps model names readable", async 
       engine_repository: "lemonade-sdk/llama.cpp",
       fork_id: "llamacpp-rocm-stable",
       package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-ubuntu-rocm-10.1-x64.tar.gz",
-      metrics: { ttft_ms_mean: 10000, tps_mean: 12, vram_peak_gb: 16 },
+      metrics: { pp_tps: 100, tg_tps: 12, ttft_ms_mean: 10000, tps_mean: 12, vram_peak_gb: 16 },
       qualification_build_id: "linux-build",
       run_id: "12345",
       run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12345",
@@ -148,7 +148,7 @@ test("anchors package performance popups and keeps model names readable", async 
       { ...measured, package_os: "windows", qualification_build_id: "history-1",
         package_url: "https://github.com/lemonade-sdk/llama.cpp/releases/download/b100/llama-b100-bin-win-rocm-10.1-x64.zip",
         run_id: "12346", run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12346",
-        metrics: { ttft_ms_mean: 8000, tps_mean: 10, vram_peak_gb: 16 } },
+        metrics: { pp_tps: 80, tg_tps: 10, ttft_ms_mean: 8000, tps_mean: 10, vram_peak_gb: 16 } },
       { ...measured, measured_at: "2026-10-28T12:00:00Z", run_id: "12344",
         run_url: "https://github.com/lemonade-sdk/lemonade/actions/runs/12344",
         metrics: { ttft_ms_mean: 20000, tps_mean: 5, vram_peak_gb: 16 } },
@@ -180,20 +180,20 @@ test("anchors package performance popups and keeps model names readable", async 
   const popup = page.getByRole("dialog");
   await expect(popup).toBeVisible();
   await expect(popup.locator(".tooltip-arrow")).toBeVisible();
-  await expect(popup.getByRole("heading", { name: "Windows", exact: true })).toBeVisible();
-  await expect(popup.getByRole("heading", { name: "Linux", exact: true })).toBeVisible();
+  await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
+  await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
   await expect(popup.locator(".performance-preview")).toHaveCount(0);
   await popup.getByRole("button", { name: "Close popup" }).click();
   const performanceTrigger = page.getByRole("button", { name: "Performance data for b100", exact: true });
   await performanceTrigger.focus();
   await expect(popup).toBeVisible();
-  await expect(popup.getByText("Lower is better", { exact: true })).toBeVisible();
-  await expect(popup.getByText("Higher is better", { exact: true })).toBeVisible();
-  const ttft = popup.getByRole("group", { name: model + " · TTFT", exact: true });
+  await expect(popup.getByText("TTFT", { exact: true })).toHaveCount(0);
+  await expect(popup.getByText("Higher is better", { exact: true })).toHaveCount(2);
+  const ttft = popup.getByRole("group", { name: model + " · Prefill TPS", exact: true });
   await expect(ttft.getByRole("link")).toHaveCount(2);
   await popup.getByRole("button", { name: "Windows", exact: true }).click();
   await expect(ttft.getByRole("link")).toHaveCount(1);
-  await expect(ttft.getByRole("link")).toContainText("10 s");
+  await expect(ttft.getByRole("link")).toContainText("100 tok/s");
   await popup.getByRole("button", { name: "Windows", exact: true }).click();
   await expect(ttft.getByRole("link")).toHaveCount(2);
   await popup.getByRole("button", { name: "Windows", exact: true }).click();
@@ -217,7 +217,7 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(page.locator(".performance-measurement-row")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Clear Build: b100", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /^Measurement details for NVIDIA/ }).first().click();
-  await expect(page.getByRole("dialog")).toHaveAttribute("data-placement", /^(right|left)-/);
+  await expect(page.getByRole("dialog")).toHaveAttribute("data-placement", /^(top|bottom)-/);
   await expect(page.getByRole("link", { name: "12345 ↗", exact: true })).toHaveAttribute("href",
     "https://github.com/lemonade-sdk/lemonade/actions/runs/12345");
   await expect(page.locator(".performance-measurement-row").first()).toContainText("10");
@@ -232,3 +232,34 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(page.locator(".performance-measurement-row").first()).toBeVisible();
   await expect(page.getByRole("checkbox", { name: "Show history" })).toHaveCount(0);
 });
+
+for (const width of [1023, 1024, 1280, 1500]) {
+  for (const theme of ["light", "dark"] as const) {
+    test(`measurement evidence uses the desktop width threshold at ${width}px in ${theme}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.route("https://raw.githubusercontent.com/**", (route) => {
+        const url = route.request().url();
+        if (url.endsWith("/main/data/latest.json")) return route.fulfill({ json: pointer });
+        if (url === indexUrl) return route.fulfill({ json: index });
+        if (url.includes("/overview.json")) return route.fulfill({ json: overview("10.1") });
+        if (url.includes("/history/")) return route.fulfill({ json: historyFixture("10.1") });
+        if (url.endsWith("/performance.json")) return route.fulfill({ json: measurements("10.1") });
+        return route.fulfill({ status: 404, body: "{}" });
+      });
+      await page.goto("./?version=10.1&view=performance");
+      await page.getByRole("button", { name: /^Measurement details for Fixture model/ }).first().click();
+      const popup = page.getByRole("dialog");
+      await expect(popup).toBeVisible();
+      await expect.poll(async () => {
+        const box = await popup.boundingBox();
+        return box ? { wide: box.width >= 540 && box.width <= 580, fits: box.x >= 0 && box.x + box.width <= width } : null;
+      }).toEqual({ wide: width >= 1024, fits: true });
+      await expect(popup.getByText("Test configuration", { exact: true })).toBeVisible();
+      await expect(popup.locator(".qualification-popup-packages > li").first()).toHaveCSS("border-top-width", "0px");
+      await expect(popup.locator(".performance-metrics dd").last()).toHaveCSS("border-bottom-width", "0px");
+      await page.keyboard.press("Escape");
+      await expect(popup).toHaveCount(0);
+    });
+  }
+}

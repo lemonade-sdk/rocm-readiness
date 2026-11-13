@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { ReadinessOverview } from "./ReadinessOverview";
@@ -160,4 +160,30 @@ it("keeps the qualification timeline when a release has recorded builds", async 
   });
   const chart = await screen.findByRole("region", { name: "llama.cpp stable build history" });
   expect(within(chart).getByRole("link", { name: /linux-build/ })).toHaveAttribute("href", expect.stringContaining("focus=day"));
+});
+
+it("reports only measurements matched to the daily packages", async () => {
+  const o = overview();
+  const packageBuild = o.engines[0].latest_builds[0];
+  const measurement = {
+    source_id: "performance-source", engine: "llamacpp", channel: "stable", backend: "rocm",
+    model: "Example model", scenario: "context-4k", measured_at: packageBuild.generated_at,
+    rocm_version: "10.1", package_os: "linux", engine_version: packageBuild.tag,
+    qualification_build_id: packageBuild.build_id, metrics: { tg_tps: 12 },
+  };
+  mount({ ...index, versions: [index.versions[0]] }, {
+    [new URL("rocm/10.1/overview.json", indexUrl).href]: {
+      ...o, performance: { status: "available", path: "rocm/10.1/performance.json", measurement_count: 3 },
+    },
+    [new URL("rocm/10.1/performance.json", indexUrl).href]: {
+      schema_version: 2, systems: [], measurements: [measurement,
+        { ...measurement, qualification_build_id: "another-build" },
+        { ...measurement, metrics: {} }],
+    },
+  });
+  const trigger = await screen.findByRole("link", { name: /Open package qualification.*linux-build/ });
+  fireEvent.focus(trigger);
+  const popup = await screen.findByRole("dialog");
+  expect(await within(popup).findByText("1 benchmark measurement")).toBeInTheDocument();
+  expect(within(popup).getAllByRole("link")).toHaveLength(1);
 });

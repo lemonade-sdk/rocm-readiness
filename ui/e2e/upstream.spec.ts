@@ -327,11 +327,11 @@ for (const theme of ["light", "dark"] as const) {
       await page.keyboard.press("Escape");
       await page.goto("./?track=upstream&view=ci&project=llamacpp");
       const labels = page.locator(".up-page-head .up-status-labels");
-      await expect(labels.getByRole("button", { name: "devlab", exact: true })).toBeVisible();
+      await expect(labels.getByLabel("devlab", { exact: true })).toBeVisible();
       await expect(labels.locator("[title]")).toHaveCount(0);
-      const upstream = labels.getByRole("button", { name: "upstream", exact: true });
-      if (width <= 540) await upstream.click(); else await upstream.focus();
-      await expect(width <= 540 ? page.getByRole("region", { name: "upstream", exact: true }) : page.getByRole("tooltip")).toContainText("Configured jobs:");
+      const upstream = labels.getByLabel("upstream", { exact: true });
+      await upstream.hover();
+      await expect(page.getByRole("tooltip")).toContainText("Configured jobs:");
       await page.keyboard.press("Escape");
       await page.screenshot({ path: testInfo.outputPath("ci-header-labels.png"), fullPage: true });
       const job = page.locator(".up-mobile-job").filter({ has: page.locator("summary").filter({ hasText: /^gpu-rocm/ }) }).first();
@@ -452,4 +452,20 @@ test.describe("phone daily activity disclosures", () => {
       });
     }
   }
+});
+
+test("CI summary tiles are passive and dismiss evidence when the pointer leaves", async ({ page }) => {
+  const data = structuredClone(upstreamOverview);
+  Object.assign(data.projects[0], { metric_descriptions: { pass_rate: "Collected job results that passed.", no_starts: "No observed starts.", later_requests: "Requests not started.", merged_red: "Merged with failed checks." } });
+  await page.route(new URL("upstream/overview.json", indexUrl).href, (route) => route.fulfill({ json: data }));
+  await page.goto("./?track=upstream&view=ci&project=llamacpp");
+  const tile = page.getByLabel("Collected results passed", { exact: true });
+  await expect(tile).toHaveJSProperty("tagName", "SPAN");
+  await expect(tile).toHaveCSS("cursor", "default");
+  await tile.hover();
+  await expect(page.getByRole("tooltip")).toBeVisible();
+  await tile.click();
+  await page.getByRole("heading", { name: "llama.cpp", exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await expect(page).toHaveURL(/view=ci/);
 });

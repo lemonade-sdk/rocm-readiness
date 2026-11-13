@@ -82,6 +82,9 @@
 }
 .qualification-popup .structured-tooltip-body { gap: .45rem; padding: .6rem .8rem; }
 .qualification-popup .qualification-platform-heading {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
   margin: 0 0 .65rem;
   color: var(--text);
   font: 700 .95rem/1.35 system-ui, sans-serif;
@@ -158,3 +161,10 @@
 .qualification-mobile-release > .qualification-check-legend { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--line); }
 
 @media (max-width: 640px) { .qualification-check-strip button[aria-expanded="true"] { outline: 2px solid var(--accent); outline-offset: 2px; } }
+
+.qualification-platform-heading > .build-tooltip-status { margin-left: auto; }
+
+/* Give compact check evidence room for its platform and family value. */
+.comparison-bubble.qualification-check-popup {
+  min-width: min(16rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px));
+}

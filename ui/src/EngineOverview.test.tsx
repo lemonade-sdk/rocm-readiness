@@ -262,13 +262,11 @@ it("uses a formatted custom tooltip on the build link without a native title", (
     expect(link).not.toHaveAttribute("title");
     fireEvent.focus(link);
     act(() => vi.advanceTimersByTime(400));
-    const tooltip = screen.getByRole("tooltip");
-    expect(tooltip).toHaveTextContent("28 Oct 2026, 00:47:16 UTC");
-    expect(tooltip).toHaveTextContent("Revision");
-    expect(tooltip).toHaveTextContent("Source feed did not report a build result");
-    expect(tooltip).toHaveTextContent("Source feed did not report whether this archive shipped");
-    expect(tooltip).toHaveTextContent("aaaaaaaaaaaa");
-    expect(link).toHaveAttribute("aria-describedby", tooltip.id);
+    const tooltip = screen.getByRole("dialog");
+    expect(tooltip).toHaveTextContent("October 28, 2026 · Linux");
+    expect(within(tooltip).getByRole("link", { name: /View qualification details/ })).toBeInTheDocument();
+    expect(tooltip).not.toHaveTextContent("Revision");
+    expect(link).toHaveAttribute("aria-haspopup", "dialog");
   } finally {
     vi.useRealTimers();
   }
@@ -278,9 +276,10 @@ it("keeps qualification separate from an explicit build result and publication",
   mount([build({ qualified: true, overall: "warn", build_result: "pass", published: false })]);
   const link = screen.getByRole("link", { name: /Qualified with warnings/ });
   fireEvent.focus(link);
-  const tooltip = await screen.findByRole("tooltip");
+  const tooltip = await screen.findByRole("dialog");
   expect(tooltip).toHaveTextContent("Build jobpass");
   expect(tooltip).toHaveTextContent("Did not ship in this run");
+  expect(tooltip).toHaveTextContent("Qualified with warnings");
   expect(link).toHaveClass("pass");
 });
 
@@ -304,4 +303,35 @@ it("shows the last nightly result per OS and day even when an earlier result pas
   expect(screen.getByRole("link", { name: /linux-prior-day.*Qualified/ })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: /windows-latest.*Qualified/ })).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: /linux-earlier/ })).not.toBeInTheDocument();
+});
+
+it("keeps a many-package day compact with one day-scoped details link", async () => {
+  mount([
+    build({ build_id: "early", tag: "b1", qualified: false, published: false,
+      gfx_family: "gfx1100", generated_at: "2026-11-01T01:00:00Z" }),
+    build({ build_id: "late", tag: "b2", qualified: true, published: true,
+      gfx_family: "gfx1151", generated_at: "2026-11-01T02:00:00Z" }),
+    build({ build_id: "unknown", tag: "b3", qualified: null, published: null,
+      gfx_family: null, gfx_target: null, generated_at: "2026-11-01T03:00:00Z" }),
+  ]);
+  fireEvent.focus(screen.getByRole("link", { name: /Open package qualification.*b3/ }));
+  const popup = await screen.findByRole("dialog");
+  const links = within(popup).getAllByRole("link");
+  expect(links).toHaveLength(1);
+  expect(links[0]).toHaveTextContent("View qualification details");
+  const params = new URL(links[0].getAttribute("href")!, "https://example.test").searchParams;
+  expect(params.get("view")).toBe("engine");
+  expect(params.get("day")).toBe("2026-11-01");
+  expect(params.get("platform")).toBe("linux");
+  expect(params.has("build")).toBe(false);
+  expect(params.has("source")).toBe(false);
+  expect(popup).toHaveTextContent("November 1, 2026 · Linux");
+  expect(popup).toHaveTextContent("Latest buildb3");
+  expect(popup).toHaveTextContent("Packages3");
+  expect(popup).not.toHaveTextContent("gfx1100");
+  expect(popup).not.toHaveTextContent("gfx1151");
+  expect(popup).not.toHaveTextContent("Revision");
+  expect(popup).not.toHaveTextContent("Channel");
+  expect(popup).toHaveTextContent("November 1, 2026 at 03:00:00 UTC");
+  expect(within(popup).queryByRole("table")).not.toBeInTheDocument();
 });

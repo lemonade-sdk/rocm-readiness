@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import {
   loadVersion,
   loadHistory,
@@ -8,6 +8,8 @@ import {
   type Session,
 } from "./data";
 import { EngineOverview } from "./EngineOverview";
+import { useBuildMeasurements } from "./builds/useBuildMeasurements";
+import { buildIdentity } from "./overview/buildTimeline";
 import sources from "../../sources.json";
 
 type VersionEvidence = {
@@ -115,7 +117,9 @@ export function ReadinessOverview({
             </p>
           )}
           {row.session?.overview && (
-            <EngineOverview
+            <MeasuredEngineOverview
+              session={row.session}
+              fetcher={fetcher}
               version={row.version}
               history={row.builds}
               nested
@@ -152,4 +156,16 @@ function ReleaseDetails({ release }: { release: PublishedRelease }) {
       {!anyReport && <p>Qualification data unavailable</p>}
     </>
   );
+}
+
+function MeasuredEngineOverview({ session, fetcher, ...props }: ComponentProps<typeof EngineOverview> & {
+  session: Session;
+  fetcher: Fetcher;
+}) {
+  const builds = props.history ?? props.engines.flatMap((engine) => engine.latest_builds);
+  const performance = useBuildMeasurements(session, builds, fetcher);
+  const counts = new Map([...performance.matches].map(([build, measurements]) => [buildIdentity(build), measurements.filter((row) => Object.values(row.metrics).some(Number.isFinite)).length]));
+  return <EngineOverview {...props} measurementCounts={counts}
+    measurementStatus={performance.message.startsWith("Loading") ? "Loading measurements…"
+      : performance.retry ? "Measurements unavailable" : "No matched measurements"} />;
 }

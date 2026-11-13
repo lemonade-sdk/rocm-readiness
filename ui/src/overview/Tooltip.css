@@ -245,3 +245,5 @@
   .mobile-evidence .structured-tooltip-body[data-format="details"] dl dd,
   .mobile-evidence .structured-tooltip-body[data-format="details"] dl:not(.build-tooltip-details) dd { padding: 0 0 .75rem; margin: 0; border-bottom: 1px solid var(--line); max-width: 100%; overflow-wrap: anywhere; }
 }
+
+.tooltip-hover-trigger.comparison-trigger { cursor: default; text-decoration: none; }

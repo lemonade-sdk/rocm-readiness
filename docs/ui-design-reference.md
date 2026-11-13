@@ -86,6 +86,10 @@ neutral tint, and retain the existing status foregrounds in both themes.
 
 ### Shared layout conventions
 
+Link arrows come from CSS with a subdued opacity. Do not append arrow glyphs to
+link text or add duplicate arrow elements. External links use the shared external
+indicator; tooltip navigation uses the shared internal indicator.
+
 Ingestion warnings use square neutral surfaces, a restrained warning-color leading
 border, 1rem padding and at least 1rem separation from subsequent content in every
 view. Keep the heading prominent and retain all attempt, success and error details.
@@ -166,7 +170,13 @@ view. Keep the heading prominent and retain all attempt, success and error detai
 - Group packages by release workflow run, then GPU family when reported, then
   platform. List compiled Stable GPU targets by OS in the build-number popup.
   Show the runtime-validated target separately.
-  Put the date and run ID in the build tooltip. Overview links preserve the
+  Overview popups use a month/day/year and platform title. Keep the shared label-left/value-right
+  layout, showing the latest build's qualification, job result, publication and produced
+  timestamp. Include daily package and matched measurement counts without enumerating
+  GPU families. Use one View qualification details link for the date/platform group.
+  Keep channel, revision and internal build identity in detailed evidence. Date-only
+  tooltip labels use full month/day/year without UTC; produced timestamps include date,
+  time and UTC. Published archive filenames link to the corresponding release asset. Overview links preserve the
   selected package and its UTC date, version, track, engine, and platform.
   Use short platform or GPU package labels and compact tinted check cells with distinct glyphs.
   Use plain tier labels. Show each check’s pinned evidence in a tooltip anchored
@@ -187,9 +197,10 @@ view. Keep the heading prominent and retain all attempt, success and error detai
   Tooltip links inherit the surrounding text color with a faint dotted underline
   and a small navigation arrow. Strengthen the underline on hover or keyboard focus.
   Performance glyphs open their own graph popup, separate from build metadata.
-  Show horizontal TTFT and TPS bars on independent shared scales, retaining full
-  model labels and values inside the graph tracks. Label lower TTFT and higher
-  TPS as better. Display TTFT in seconds, converting producer milliseconds.
+  Show horizontal Prefill TPS (pp_tps) and Decode TPS (tg_tps) bars on independent
+  shared scales, retaining full model labels and values inside the graph tracks.
+  Label both as higher is better, in tokens per second. Do not substitute TTFT or
+  generic mean throughput when either throughput metric is absent.
   Use the latest observation per model and OS. Platform bars expose workload,
   hardware and timestamp context and link to that exact observation.
   Windows/Linux toggles can show either platform or paired bars. Gray out

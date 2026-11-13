@@ -1222,3 +1222,23 @@ button.up-tick {
   .up-project-summary .up-kpis-page { grid-template-columns: repeat(2, minmax(0, 1fr)); border: 0; }
   .up-project-summary .up-kpis-page .up-stat strong { font-size: 1.375rem; }
 }
+
+/* Make metric evidence available across the full tile. */
+.up-project-summary .up-kpis-page .up-stat:has(.up-stat-trigger) { padding: 0; }
+.up-stat > .comparison-tooltip { display: contents; }
+.up-stat-trigger.comparison-trigger {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: .5rem;
+  width: 100%;
+  height: 100%;
+  padding: 1rem;
+  border-radius: 0;
+  text-decoration: none;
+}
+/* Reserve equal heading space so the coverage tables share a baseline. */
+@media (min-width: 768px) {
+  .up-project-coverage > .up-panel > h2 { min-height: 4.5rem; align-content: start; }
+}

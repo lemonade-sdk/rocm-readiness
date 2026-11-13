@@ -11,3 +11,8 @@ export const tableOutcomes = {
 } as const;
 
 export type TableOutcome = keyof typeof tableOutcomes;
+
+/** Collector overrides describe not-applicable results, never a report that supersedes them with another outcome. */
+export function qualificationOutcomeLabel(outcome: TableOutcome, supplied?: string): string {
+  return outcome === "not_applicable" ? supplied ?? tableOutcomes[outcome].label : tableOutcomes[outcome].label;
+}

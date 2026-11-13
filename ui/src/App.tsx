@@ -382,7 +382,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </aside>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
-          !performanceView && (view !== "engine" || !currentHistory?.builds || !hasViewData || !platformValid) && (
+          !performanceView && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
         {liveSync?.status === "failed" && (
@@ -600,7 +600,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
               target="_blank"
               rel="noreferrer"
             >
-              Source repository ↗
+              Source repository
             </a>
           </div>
         </div>

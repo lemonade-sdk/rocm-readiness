@@ -456,7 +456,7 @@ it("uses independent inclusive stack and target toggles and a shared daily calen
   expect(screen.getByText("of 8")).toBeInTheDocument();
   expect(within(stacks).getByRole("button", { name: "vulkan" })).toBeDisabled();
   fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
-  expect(screen.getByText("0 jobs")).toBeInTheDocument();
+  expect(screen.getByText("No configured jobs match these filters.")).toBeInTheDocument();
   fireEvent.click(within(targets).getByRole("button", { name: "gfx1201" }));
   expect(screen.getByText("of 8")).toBeInTheDocument();
   fireEvent.click(within(stacks).getByRole("button", { name: "rocm" }));
@@ -658,7 +658,7 @@ it("includes DevLab beside coverage in the CI Activity header", async () => {
   mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   await screen.findByRole("heading", { name: "llama.cpp" });
   const header = document.querySelector(".up-page-head")! as HTMLElement;
-  expect(within(header).getByRole("button", { name: /^devlab$/ })).toBeInTheDocument();
+  expect(within(header).getByLabelText("devlab")).toBeInTheDocument();
 });
 
 it("renders pipeline label text and tooltip verbatim without interpreting evidence", async () => {
@@ -699,7 +699,7 @@ it("shows collector-provided descriptions for all four summary metrics", async (
     ['Requests not started', descriptions.later_requests],
     ['Merged with failed checks', descriptions.merged_red],
   ]) {
-    const trigger = screen.getByRole('button', { name: label });
+    const trigger = screen.getByLabelText(label);
     fireEvent.focus(trigger);
     expect(await screen.findByRole('tooltip')).toHaveTextContent(description);
     fireEvent.blur(trigger);

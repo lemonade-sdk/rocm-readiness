@@ -13,13 +13,13 @@ const build: Build = {
 const row: PerformanceData["measurements"][number] = {
   source_id: "benchmark", engine: "llamacpp", channel: "stable", backend: "rocm",
   model: "Model A", scenario: "chat", measured_at: "2026-11-10T01:00:00Z",
-  metrics: { ttft_ms_mean: 1000, tps_mean: 10 },
+  metrics: { pp_tps: 100, tg_tps: 10, ttft_ms_mean: 1000 },
 };
 
 it("shows proportional bars and marks an unmeasured OS unavailable", async () => {
   render(<MemoryRouter><PerformancePreview heading="b100" observations={[
     { build, row },
-    { build, row: { ...row, model: "Model B", metrics: { ttft_ms_mean: 2000, tps_mean: 20 } } },
+    { build, row: { ...row, model: "Model B", metrics: { pp_tps: 200, tg_tps: 20, ttft_ms_mean: 2000 } } },
   ]} /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Performance data for b100" }));
   const popup = await screen.findByRole("dialog");
@@ -27,12 +27,14 @@ it("shows proportional bars and marks an unmeasured OS unavailable", async () =>
   expect(windows).toBeDisabled();
   expect(windows).toHaveAttribute("title", "Unavailable");
   expect(within(popup).getByRole("button", { name: /^Linux$/ })).toHaveAttribute("aria-pressed", "true");
-  const ttft = within(popup).getByRole("group", { name: "Model A · TTFT" });
+  const ttft = within(popup).getByRole("group", { name: "Model A · Prefill TPS" });
   expect(popup.querySelectorAll(".performance-preview-platforms .platform-logo")).toHaveLength(2);
   expect(popup.querySelectorAll(".performance-chart .platform-logo")).toHaveLength(0);
-  expect(ttft).toHaveTextContent("1 s");
+  expect(ttft).toHaveTextContent("100 tok/s");
   expect(ttft.querySelector(".performance-chart-fill")).toHaveStyle({ width: "50%" });
-  expect(within(popup).getByText("Higher is better")).toBeInTheDocument();
+  expect(within(popup).getAllByText("Higher is better")).toHaveLength(2);
+  expect(within(popup).queryByText("TTFT")).not.toBeInTheDocument();
+  expect(within(popup).getByRole("group", { name: "Model A · Decode TPS" })).toHaveTextContent("10 tok/s");
   expect(within(popup).queryByText("VRAM")).not.toBeInTheDocument();
 });
 

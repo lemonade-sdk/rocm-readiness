@@ -132,9 +132,9 @@ export function UpstreamView({ session, fetcher, params, onNavigate }: Props) {
 
 /* ---- shared pieces ------------------------------------------------------------ */
 
-function ProjectLabels({ project }: { project: Project }) {
+function ProjectLabels({ project, hoverOnly = false }: { project: Project; hoverOnly?: boolean }) {
   return <div className="up-status-labels">
-    {(project.status_labels ?? []).map((label) => <Tooltip key={label.id} floating
+    {(project.status_labels ?? []).map((label) => <Tooltip key={label.id} hoverOnly={hoverOnly} floating
       label={label.text} triggerClassName="up-status-trigger" content={
         <TooltipContent heading={label.text}><span>{label.tooltip}</span></TooltipContent>
       }><span className={`up-badge up-badge-${label.tone}`}>{label.text}</span></Tooltip>)}
@@ -526,8 +526,10 @@ function Stat({
 }) {
   return (
     <div className={`up-stat${bad ? " bad" : ""}`}>
-      <strong>{value}</strong>
-      <span>{description ? <Tooltip label={label} content={<TooltipContent heading={label}><span>{description}</span></TooltipContent>}>{label}</Tooltip> : label}</span>
+      {description ? <Tooltip hoverOnly label={label} triggerClassName="up-stat-trigger"
+        content={<TooltipContent heading={label}><span>{description}</span></TooltipContent>}>
+        <strong>{value}</strong><span>{label}</span>
+      </Tooltip> : <><strong>{value}</strong><span>{label}</span></>}
     </div>
   );
 }
@@ -641,7 +643,7 @@ function ProjectPage({
       <header className="up-project-header">
         <div className="up-page-head">
           <h2>{project.label}</h2>
-          <ProjectLabels project={project} />
+          <ProjectLabels project={project} hoverOnly />
         </div>
         {!project.coverage.complete && !project.coverage.error && (
           <p className="up-collection-status" role="status"><span aria-hidden="true">△</span> Collection incomplete <span className="muted">· oldest days may be missing</span></p>
@@ -693,7 +695,6 @@ function ProjectPage({
               onClick={() => toggle(group.key, value)}>{value}</button>)}
           </fieldset>
         ))}
-        <span className="muted up-filter-sum">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}{r.pct !== null ? ` · ${r.pct}% of ${r.decided} passed` : ""}</span>
       </div>
       </MobileFilters>
       {open?.key === "all" && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
@@ -703,7 +704,7 @@ function ProjectPage({
       <div className="up-cols">
         <div className="up-activity-analysis">
           <section className="up-panel" aria-label="Daily activity">
-            <h2>Daily activity <span className="muted">main only · last 14 days · UTC</span></h2>
+            <h2>Daily activity <span className="muted">Branch {project.default_branch} · last 14 days · UTC</span></h2>
             {jobs.length === 0 ? <p className="muted">No configured jobs match these filters.</p> : !jobs.some((job) => days14.some((day) => job.daily[day])) && <p className="muted">No collected runs on the default branch in the last 14 days.</p>}
             <ProjectActivity project={project} jobs={jobs} days={days14} params={params}
               selected={open} onPick={(category, day) => pick(`cat:${category}`, day, [])}
@@ -985,7 +986,6 @@ function Platforms({ project }: { project: Project }) {
       <h2>
         Platforms <span className="muted">project-wide configured targets</span>
       </h2>
-      <p className="muted">Configured targets and distribution do not verify physical hardware or published artifacts.</p>
       <div className="up-table-scroll" role="region" aria-label="Platform coverage table" tabIndex={0}>
         <table className="up-table">
           <thead>

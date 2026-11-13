@@ -1,3 +1,4 @@
+import { calendarDate } from "../overview/formatDate";
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
 import { EvidenceBody } from "../overview/EvidenceDisclosure";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
@@ -83,7 +84,7 @@ export function QualificationCharts({ builds, track, days, platforms, today, foc
                     return <li key={day} className="qualification-phone-day" aria-current={day === today ? "date" : undefined}>
                       <button type="button" className="qualification-day-toggle" aria-label={`${summary} · ${platform}`} aria-expanded={expanded} aria-controls={`${chartId}-${os}-${day}`}
                         onClick={toggle} onKeyDown={(event) => { if (event.key === "Escape" && expanded) { event.preventDefault(); toggle(); } }}>
-                        <time className="qualification-day-label" dateTime={day}>{day}</time>
+                        <time className="qualification-day-label" dateTime={day}>{calendarDate(day)}</time>
                         <span className="qualification-trend-stack" data-horizontal="true" aria-hidden="true">
                           {outcomes.map(({ id }) => counts[id] > 0 && <span key={id} className={`qualification-segment ${id}`} style={{ width: `${100 * counts[id] / scale}%` }} />)}
                           {total === 0 && <span className="qualification-empty">No packages</span>}
@@ -92,7 +93,7 @@ export function QualificationCharts({ builds, track, days, platforms, today, foc
                         <span className="qualification-day-chevron" aria-hidden="true" />
                       </button>
                       {expanded && <div id={`${chartId}-${os}-${day}`} className="qualification-day-evidence" role="region" aria-label={`${summary} · ${platform}`}>
-                        {renderDay ? renderDay(day, os) : <EvidenceBody><TooltipContent heading={`${platform} · ${day} UTC`} status={`${total} packages`}>
+                        {renderDay ? renderDay(day, os) : <EvidenceBody><TooltipContent heading={`${calendarDate(day)} · ${platform}`} status={`${total} packages`}>
                           {total ? <dl>{outcomes.map(({ id, label }) => <div key={id}><dt>{label}</dt><dd>{counts[id]}</dd></div>)}</dl> : <span>No packages recorded</span>}
                         </TooltipContent></EvidenceBody>}
                       </div>}
@@ -100,9 +101,9 @@ export function QualificationCharts({ builds, track, days, platforms, today, foc
                   }
                   return (
                   <li key={day} aria-current={day === today ? "date" : undefined} data-focused={day === focusedDay || undefined}>
-                    {vertical && <time className="qualification-day-label" dateTime={day}>{day}</time>}
+                    {vertical && <time className="qualification-day-label" dateTime={day}>{calendarDate(day)}</time>}
                     <Tooltip to={to} floating label={accessibleLabel}
-                        content={<TooltipContent heading={`${platform} · ${day} UTC`} status={`${total} packages`}>
+                        content={<TooltipContent heading={`${calendarDate(day)} · ${platform}`} status={`${total} packages`}>
                           {total ? <dl>{outcomes.map(({ id, label }) => <div className="qualification-tooltip-count" key={id}><dt>{label}</dt><dd>{counts[id]}</dd></div>)}</dl>
                             : <span>No packages recorded</span>}
                         </TooltipContent>}>

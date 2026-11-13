@@ -15,10 +15,12 @@ if __package__:
     from .execution_dataset import summarize, validate_execution_file
     from .attribution import RUN, validate_measurement_package
     from .validation import PipelineValidationError
+    from .qualification_outcomes import qualification_labels
 else:
     from execution_dataset import summarize, validate_execution_file
     from attribution import RUN, validate_measurement_package
     from validation import PipelineValidationError
+    from qualification_outcomes import qualification_labels
 
 BUILD_FIELDS = """
 source_id build_id engine tag artifact rocm_version channel os gfx_target hardware_validated gfx
@@ -231,6 +233,7 @@ def _compact_build(row, source_urls=None, strict=False, version=None, month=None
         compact["blocking_tests"] = summary.get("blocking_tests")
     compact["source_url"] = source_url
     _validate_build(compact)
+    compact["qualification_labels"] = qualification_labels(compact)
     return compact
 
 

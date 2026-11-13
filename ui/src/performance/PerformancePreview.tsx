@@ -12,8 +12,8 @@ type Measurement = PerformanceData["measurements"][number];
 type Observation = { build: Build; row: Measurement };
 const platforms = ["windows", "linux"] as const;
 const metrics = [
-  { key: "ttft_ms_mean", label: "TTFT", direction: "Lower is better" },
-  { key: "tps_mean", label: "TPS", direction: "Higher is better" },
+  { key: "pp_tps", label: "Prefill TPS", direction: "Higher is better" },
+  { key: "tg_tps", label: "Decode TPS", direction: "Higher is better" },
 ] as const;
 
 export function matchedPerformanceObservations(

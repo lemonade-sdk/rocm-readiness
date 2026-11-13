@@ -24,6 +24,7 @@ if __package__:
     from .attribution import validate_measurement_package
     from .upstream import validate_upstream_dataset
     from .validation import PipelineValidationError
+    from .qualification_outcomes import qualification_labels
 else:
     from config import load_config
     from readiness import release_policy, select_releases
@@ -36,6 +37,7 @@ else:
     from attribution import validate_measurement_package
     from upstream import validate_upstream_dataset
     from validation import PipelineValidationError
+    from qualification_outcomes import qualification_labels
 
 RAW = re.compile(
     r"https://raw\.githubusercontent\.com/([^/]+/[^/]+)/([a-f0-9]{40})/[^?#]+"
@@ -987,6 +989,13 @@ def validate_dataset(
                         path,
                         ptr + "/report_url",
                         "qualification-v1 report must retain the source commit directory and safe reports/ relative path",
+                        row["source_id"],
+                    )
+                if "qualification_labels" in row:
+                    _check(
+                        row["qualification_labels"] == qualification_labels(row),
+                        path, ptr + "/qualification_labels",
+                        "qualification labels must match tier, check and hardware evidence",
                         row["source_id"],
                     )
                 reference = row.get("report_snapshot")

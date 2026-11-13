@@ -203,3 +203,23 @@
 }
 
 @media (max-width: 640px) { .performance-view > .performance-heading { display: none; } }
+
+/* Desktop measurement evidence uses the viewport, rather than the space beside a row. */
+@media (min-width: 1024px) {
+  .comparison-bubble.qualification-popup.performance-model-popup { width: min(35rem, calc(100vw - 24px)); }
+  .comparison-bubble.performance-model-popup .structured-tooltip-body { --tooltip-label-width: 12rem; }
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  .comparison-bubble.qualification-popup.performance-model-popup { width: min(32rem, calc(100vw - 24px)); }
+}
+
+/* The shared header divider and section rules each appear once. */
+.performance-model-popup .qualification-popup-packages > li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.performance-model-popup .structured-tooltip-body[data-format="details"] dl > dt:last-of-type,
+.performance-model-popup .structured-tooltip-body[data-format="details"] dl > dd:last-of-type,
+.performance-model-popup .structured-tooltip-body[data-format="details"] dl > div:last-child > :is(dt, dd) {
+  border-bottom: 0;
+}

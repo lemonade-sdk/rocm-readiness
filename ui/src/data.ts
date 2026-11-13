@@ -154,6 +154,10 @@ const buildSchema = z.preprocess((value) => {
   published: z.boolean().nullable().optional(),
   overall: z.string().nullable().optional(),
   hardware_validated: z.boolean().nullable().optional(),
+  qualification_labels: z.object({
+    tiers: z.record(z.string(), z.string().min(1)),
+    checks: z.record(z.string(), z.string().min(1)),
+  }).optional(),
   report_url: z.string().nullable().optional(),
   report_snapshot: z.object({
     source_url: z.string(),

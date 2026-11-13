@@ -64,7 +64,7 @@ test("overview build marks open qualification and the exact package popup", asyn
   await details.click();
   const popup = page.getByRole("dialog");
   await expect(popup.getByText("linux-build", { exact: true })).toBeVisible();
-  await expect(popup.getByRole("link", { name: /Pinned producer report/ })).toHaveAttribute("href", historyFixture().builds[0].report_url);
+  await expect(popup.getByRole("link", { name: /View record source/ })).toHaveAttribute("href", historyFixture().builds[0].report_url);
   await popup.getByRole("button", { name: "Close popup" }).click();
   await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
   await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -157,8 +157,8 @@ test("keeps the current UTC date visible when the selected version has no build 
   if (page.viewportSize()!.width <= 640) await page.getByRole("button", { name: /^Qualification filters/ }).click();
   await expect(page.getByRole("button", { name: "10.1", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "All versions" })).toHaveCount(0);
-  await expect(stable.getByText("2026-10-30", { exact: true })).toBeVisible();
-  await expect(stable.getByText("2026-11-02", { exact: true })).toBeVisible();
+  await expect(stable.getByText("October 30, 2026", { exact: true })).toBeVisible();
+  await expect(stable.getByText("November 2, 2026", { exact: true })).toBeVisible();
   const today = stable.getByRole("button", { name: "2026-11-02 UTC · 0 packages · Linux", exact: true });
   await expect(today).toBeAttached();
   await page.getByRole("button", { name: "10.2" }).click();
@@ -303,9 +303,9 @@ test("overview shows qualification without benchmark status", async ({
   await mark.scrollIntoViewIfNeeded();
   await mark.focus();
   await expect(mark).not.toHaveAttribute("title");
-  const tooltip = page.getByRole("tooltip");
+  const tooltip = page.getByRole("dialog");
   await expect(tooltip).toBeVisible();
-  await expect(tooltip).toContainText("Reported");
+  await expect(tooltip.getByRole("link", { name: "View qualification details" })).toBeVisible();
   const box = await tooltip.boundingBox();
   const viewport = page.viewportSize()!;
   expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -364,7 +364,7 @@ for (const theme of ["light", "dark"] as const) {
 
 test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
   await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
-  await page.getByRole("button", { name: "Clear Date: 2026-10-01", exact: true }).click();
+  await page.getByRole("button", { name: "Clear Date: October 1, 2026", exact: true }).click();
   await expect(page).toHaveURL(/through=2026-10-01/);
   await expect(page).not.toHaveURL(/day=/);
   await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");

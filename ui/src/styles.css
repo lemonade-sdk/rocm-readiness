@@ -1284,3 +1284,17 @@ main {
 }
 
 @media (max-width: 640px) { .mobile-filter-content .version-filter-options { grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr)); } }
+
+/* Keep external-link indicators in styling, so link text never duplicates them. */
+a[target="_blank"]::after, .build-browser-open::after {
+  display: inline-block;
+  margin-inline-start: .15em;
+  opacity: .65;
+  font-size: .85em;
+  text-decoration: none;
+}
+a[target="_blank"]::after { content: " ↗"; }
+.build-browser-open::after { content: " →"; }
+
+.build-dates-newer::after { content: " →"; opacity: .65; font-size: .85em; }
+.build-dates-older::before { content: "← "; opacity: .65; font-size: .85em; }

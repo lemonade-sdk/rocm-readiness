@@ -37,6 +37,7 @@ notices are shown.
 Nested sidebar links switch between Overview (`&view=overview`) and CI Activity
 (`&view=ci`). Overview shows one project per row with a 14-day activity calendar. Selecting a
 day opens its UTC date and category in CI Activity, including after reload.
+CI Activity summary tiles and project status labels use a normal cursor and passive hover tooltips; clicking does not activate or pin them. Keyboard focus also exposes their descriptions.
 CI Activity uses the shared Project, Platform, Stack and Target filter controls
 and contains daily run counts and detailed evidence. Project headings use the primary text color. A project
 activity page (`&view=ci&project=<id>`, with legacy `&project=<id>` URLs supported) uses independent inclusive stack (`&stack=<comma-separated values>`) and target
@@ -82,12 +83,11 @@ Page One version selector. One shared legend describes qualification marks; miss
 dates remain neutral gaps. Build timelines cover the last 14 UTC calendar dates.
 
 Page One shows build qualification only. Benchmark execution inventories remain in
-the collected dataset, separate from qualification; the overview neither fetches nor
-renders their statuses, counts or attempt inspector. They do not alter qualification
-marks. Producer reports, build/source/OS identities and the 14-day window remain.
+the collected dataset, separate from qualification; the overview does not render
+execution-attempt statuses or an attempt inspector. Its popups load pinned performance
+data and show measurements matched to each package. Measurements do not alter qualification marks. Producer reports, build/source/OS identities and the 14-day window remain.
 Calendar headings group day numbers under spanning month names with a month boundary.
-Build links use the shared custom tooltip with formatted UTC report time, qualification,
-channel, revision and build identity. The repeated ROCm/channel heading is omitted
+Build links open an interactive popup titled with the UTC date and platform (for example, “November 8, 2026 · Linux”). The compact label-left/value-right summary shows the latest build’s qualification, build-job result, publication status and human-readable produced timestamp, plus the daily package count and matched benchmark measurement count. It does not enumerate nightly GPU families. Unreported results, loading and unavailable measurements remain explicit. One View qualification details link opens the full date/platform group without selecting a single build. The repeated ROCm/channel heading is omitted
 inside a single-channel card; multiple channels retain concise channel headings.
 At 540 CSS pixels and below, overview calendars use date rows with platform
 columns, and qualification trends use horizontal bars down a dated list. Wider
@@ -109,6 +109,9 @@ model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.
 Internal navigation keeps the active dataset revision; reloading reads the latest
 published pointer.
+
+Date-only tooltip labels use a full month, day and year, without a UTC suffix. Produced timestamps include a human-readable date, time and UTC. Published ZIP and tar.gz archive names in package evidence link directly to their release assets. A shared “Data source” row with a “View data source” link appears beside Date and Workflow run. Each platform has its own “Qualification record” row with a “View record source” link. If package sources differ, their source links stay within the owning package.
+Package tooltips place the qualification tag beside the operating system; dataset revision and ROCm SDK are omitted from this summary, while upstream SHA remains linked.
 
 Build history supports platform and package/build searches. Opening a build loads
 its pinned producer report on demand and displays individual checks, tiers,
@@ -206,6 +209,10 @@ in the filter toolbar. Reset clears each view’s selected package/model/day and
 filter scope while keeping the ROCm version (and qualification date window).
 Performance model-name links open all workloads for that model/package; metric
 bars retain exact-observation links and highlight their recorded workload.
+
+Package qualification performance previews show Prefill TPS and Decode TPS in tokens per second, with higher values better; TTFT is omitted from that preview.
+
+Performance measurement popups use a compact 35rem viewport-constrained surface at 1024 CSS pixels and above, anchored above or below the model to avoid a narrow side column. Below 1024 CSS pixels the popup remains narrower; phone evidence keeps its inline layout.
 
 Performance headers keep units in shared definition tooltips. Context means the
 configured token window capacity. Header arrows sort rows inside each build/GPU

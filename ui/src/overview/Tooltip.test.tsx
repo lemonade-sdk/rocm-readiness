@@ -130,3 +130,20 @@ it("keeps a tooltip open when a tap focuses the trigger before clicking", () => 
   fireEvent.click(trigger);
   expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 });
+
+it("uses a passive hover trigger without click activation or a mobile disclosure", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  render(<Tooltip hoverOnly label="CI summary" content="Collected results">92%</Tooltip>);
+  const trigger = screen.getByLabelText("CI summary");
+  expect(trigger.tagName).toBe("SPAN");
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  fireEvent.click(trigger);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  fireEvent.mouseEnter(trigger);
+  await act(async () => vi.advanceTimersByTime(tooltipTiming.openDelayMs));
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Collected results");
+  fireEvent.mouseLeave(trigger);
+  await act(async () => vi.advanceTimersByTime(1));
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});

@@ -1,3 +1,5 @@
+import { calendarDate, producedAt } from "./overview/formatDate";
+import { Link } from "react-router";
 import { useMediaQuery } from "./mobile";
 import { useUtcToday } from "./overview/useUtcToday";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
@@ -21,88 +23,46 @@ type Props = {
   now?: Date;
   nested?: boolean;
   emptyChannel?: Build["channel"];
+  measurementCounts?: ReadonlyMap<string, number>;
+  measurementStatus?: string;
 };
 
 function platformLabel(os: string) {
   return os === "linux" ? "Linux" : os === "windows" ? "Windows" : os;
 }
 
-function BuildMark({ build, dayCount = 1 }: { build: Build; dayCount?: number }) {
+function BuildMark({ build, packages, measurementCounts, measurementStatus }: {
+  build: Build;
+  packages: Build[];
+  measurementCounts?: ReadonlyMap<string, number>;
+  measurementStatus?: string;
+}) {
   const outcome = qualificationOutcome(build);
   const mark = outcome === "pass" && build.overall === "warn" ? "warn" : outcome;
-  const failureReasons = [
-    ...(build.blocked_by ?? []),
-    ...(build.blocking_tests ?? []),
-    ...Object.entries(build.results ?? {})
-      .filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase()))
-      .map(([test]) => `${test} failed`),
-  ];
-  const status = outcome === null
-    ? "Evidence unavailable"
-    : outcome === "fail"
-      ? "Failed"
-      : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
+  const status = outcome === null ? "Evidence unavailable" : outcome === "fail" ? "Failed"
+    : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
-  return (
-    <Tooltip side
-      to={qualificationBuildHref(build, dayCount > 1 ? "day" : "package")}
-      label={`Open package qualification · ${label}${dayCount > 1 ? ` · ${dayCount} packages` : ""}`}
-      triggerClassName={
-        outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`
-      }
-      content={
-        <TooltipContent
-          heading={<>{dayCount > 1 && `${dayCount} packages · latest: `}{build.tag ?? "Build"} · {platformLabel(build.os)}</>}
-          status={<span className={`build-tooltip-status ${outcome ?? "unknown"}`}>{status}</span>}
-        >
-          <dl className="build-tooltip-details">
-            {outcome === "fail" && (
-              <>
-                <dt>Failure reason</dt>
-                <dd>{failureReasons.length ? [...new Set(failureReasons)].join("; ") : "Not reported"}</dd>
-              </>
-            )}
-            <dt>Build job</dt>
-            <dd>{build.build_result == null
-              ? "Source feed did not report a build result"
-              : build.build_result === "unknown"
-                ? "Source feed could not determine the build result"
-                : build.build_result}</dd>
-            <dt>Publication</dt>
-            <dd>{build.published == null
-              ? "Source feed did not report whether this archive shipped"
-              : build.published ? "Shipped in this run" : "Did not ship in this run"}</dd>
-            <dt>Reported</dt>
-            <dd>
-              {new Intl.DateTimeFormat("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hourCycle: "h23",
-                timeZone: "UTC",
-              }).format(new Date(build.generated_at))}{" "}
-              UTC
-            </dd>
-            <dt>Channel</dt>
-            <dd>{build.channel === "stable" ? "Stable" : "Nightly"}</dd>
-            {build.upstream_sha && (
-              <>
-                <dt>Revision</dt>
-                <dd>{build.upstream_sha.slice(0, 12)}</dd>
-              </>
-            )}
-            <dt>Build</dt>
-            <dd>{build.build_id}</dd>
-          </dl>
-        </TooltipContent>
-      }
-    >
-      <BuildOutcomeIcon outcome={mark} />
-    </Tooltip>
-  );
+  const measurementCount = packages.reduce((sum, item) => sum + (measurementCounts?.get(buildIdentity(item)) ?? 0), 0);
+  const failureReasons = [...new Set([...(build.blocked_by ?? []), ...(build.blocking_tests ?? []),
+    ...Object.entries(build.results ?? {}).filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase())).map(([test]) => `${test} failed`)])];
+  return <Tooltip side interactive
+    to={qualificationBuildHref(build, "day")}
+    label={`Open package qualification · ${label}${packages.length > 1 ? ` · ${packages.length} packages` : ""}`}
+    triggerClassName={outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`}
+    content={<TooltipContent heading={`${calendarDate(build.generated_at)} · ${platformLabel(build.os)}`}
+      status={<span className={`build-tooltip-status ${outcome ?? "unknown"}`}>{status}</span>}>
+      <dl className="build-tooltip-details">
+        <dt>{packages.length > 1 ? "Latest build" : "Build"}</dt><dd>{build.tag ?? build.build_id}</dd>
+        {packages.length > 1 && <><dt>Packages</dt><dd>{packages.length}</dd></>}
+        {outcome === "fail" && <><dt>Failure reason</dt><dd>{failureReasons.join("; ") || "Not reported"}</dd></>}
+        <dt>Build job</dt><dd>{build.build_result ?? "Unreported"}</dd>
+        <dt>Publication</dt><dd>{build.published == null ? "Unreported" : build.published ? "Shipped in this run" : "Did not ship in this run"}</dd>
+        <dt>Produced</dt><dd>{producedAt(build.generated_at)}</dd>
+        <dt>Measured</dt><dd>{measurementCount ? `${measurementCount} benchmark ${measurementCount === 1 ? "measurement" : "measurements"}` : measurementStatus || "No matched measurements"}</dd>
+      </dl>
+      <Link className="overview-summary-details" to={qualificationBuildHref(build, "day")}>View qualification details</Link>
+    </TooltipContent>}
+  ><BuildOutcomeIcon outcome={mark} /></Tooltip>;
 }
 
 export function EngineOverview({
@@ -112,6 +72,8 @@ export function EngineOverview({
   now,
   nested = false,
   emptyChannel,
+  measurementCounts,
+  measurementStatus = "Measurements not loaded",
 }: Props) {
   const vertical = useMediaQuery("(max-width: 540px)");
   const EngineHeading = nested ? "h3" : "h2";
@@ -188,14 +150,14 @@ export function EngineOverview({
                       {vertical ? <table className="build-calendar-vertical">
                         <thead><tr><th scope="col">Date · UTC</th>{platforms.map((os) => <th scope="col" key={os}><OSHeading>{platformLabel(os)}</OSHeading></th>)}</tr></thead>
                         <tbody>{[...days].reverse().map((day) => <tr key={day}>
-                          <th scope="row" aria-label={`${day} UTC`} aria-current={day === today ? "date" : undefined}><time dateTime={day}>{day}</time></th>
+                          <th scope="row" aria-label={`${day} UTC`} aria-current={day === today ? "date" : undefined}><time dateTime={day}>{calendarDate(day)}</time></th>
                           {platforms.map((os) => {
                             const dayBuilds = channelBuilds.filter((build) => build.os === os && buildDate(build) === day);
                             const latest = dayBuilds.at(-1);
                             const verdict = latest ? qualificationOutcome(latest) : null;
                             const status = verdict === "pass" && latest?.overall === "warn" ? "warn" : verdict;
                             return <td key={os} className="table-status" data-outcome={latest ? status ?? "unreported" : undefined}>
-                              {latest ? <BuildMark build={latest} dayCount={dayBuilds.length} /> : <span className="build-no-data">No data</span>}
+                              {latest ? <BuildMark build={latest} packages={dayBuilds} measurementCounts={measurementCounts} measurementStatus={measurementStatus} /> : <span className="build-no-data">No data</span>}
                             </td>;
                           })}
                         </tr>)}</tbody>
@@ -281,7 +243,9 @@ export function EngineOverview({
                                         {latestBuild ? (
                                           <BuildMark
                                             build={latestBuild}
-                                            dayCount={dayBuilds.length}
+                                            packages={dayBuilds}
+                                            measurementCounts={measurementCounts}
+                                            measurementStatus={measurementStatus}
                                           />
                                         ) : (
                                           <span className="build-no-data">No data</span>

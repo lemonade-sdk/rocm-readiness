@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { QualificationMatrix } from "./QualificationMatrix";
-import { buildFixture } from "./fixtures";
+import { buildFixture, producerReport } from "./fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -51,4 +51,87 @@ it("uses GPU family headings and scoped legends for phone nightly packages", () 
     expect(within(group).getByRole("heading", { name: family })).toBeVisible();
     expect(group.lastElementChild).toBe(within(group).getByRole("list", { name: "Check outcomes" }));
   }
+});
+
+it.each(["llama-test.tar.gz", "llama-test.zip"])("links a published %s archive and formats its produced time", async (artifact) => {
+  const build = buildFixture({ artifact, published: true, generated_at: "2026-11-11T12:34:56Z", report_url: undefined });
+  render(<QualificationMatrix builds={[build]} selected={build} openPackage fetcher={vi.fn()} />);
+  const popup = await screen.findByRole("dialog");
+  expect(within(popup).getByRole("heading", { name: /Linux.*Qualified/ })).toBeVisible();
+  expect(popup.querySelector(".qualification-platform-heading .build-tooltip-status")).toHaveTextContent("Qualified");
+  expect(within(popup).queryByText("Dataset revision", { selector: "dt" })).not.toBeInTheDocument();
+  expect(within(popup).queryByText("ROCm SDK", { selector: "dt" })).not.toBeInTheDocument();
+  expect(within(popup).queryByText("Qualification", { selector: "dt" })).not.toBeInTheDocument();
+  expect(within(popup).getByText("Upstream SHA", { selector: "dt" })).toBeVisible();
+  const archive = within(popup).getByRole("link", { name: artifact });
+  expect(archive).toHaveAttribute("href", `https://github.com/lemonade-sdk/llama.cpp/releases/download/${build.tag}/${artifact}`);
+  expect(popup).toHaveTextContent("November 11, 2026 at 12:34:56 UTC");
+});
+
+it("does not link an archive that did not ship", async () => {
+  const build = buildFixture({ published: false, report_url: undefined });
+  render(<QualificationMatrix builds={[build]} selected={build} openPackage fetcher={vi.fn()} />);
+  const popup = await screen.findByRole("dialog");
+  expect(within(popup).queryByRole("link", { name: build.artifact! })).not.toBeInTheDocument();
+  expect(popup).toHaveTextContent(build.artifact!);
+});
+
+it("puts a shared qualification source above the platform groups and keeps separate report rows", async () => {
+  const linux = buildFixture({ build_id: "linux" });
+  const windows = buildFixture({ build_id: "windows", os: "windows" });
+  render(<QualificationMatrix builds={[linux, windows]} selected={linux} openPackage fetcher={vi.fn()} />);
+  const popup = await screen.findByRole("dialog");
+  const source = within(popup).getByRole("link", { name: "View data source" });
+  expect(source).toHaveAttribute("href", linux.source_url);
+  expect(source.closest(".qualification-popup-packages")).toBeNull();
+  const reports = within(popup).getAllByRole("link", { name: "View record source" });
+  expect(reports.map((link) => link.getAttribute("href"))).toEqual([windows.report_url, linux.report_url]);
+  for (const link of reports) {
+    expect(link.closest("dl")).toHaveTextContent("Qualification record");
+    expect(link.closest("li")).not.toContainElement(source);
+  }
+});
+
+it("renders collector qualification labels verbatim without relabeling other outcomes", async () => {
+  const build = Object.assign(buildFixture({ hardware_validated: false, report_url: undefined,
+    tier_verdicts: { tier0: "not_applicable", tier1: "not_applicable" },
+    results: { "T0.11": "not_applicable", "T1.1": "not_applicable", "T1.2": "skip" },
+  }), { qualification_labels: { tiers: { tier1: "Collector hardware explanation" },
+    checks: { "T1.1": "Collector hardware explanation" } } });
+  render(<QualificationMatrix builds={[build]} selected={null} fetcher={vi.fn()} />);
+  const trigger = screen.getByRole("button", { name: "T1.1 · Collector hardware explanation" });
+  fireEvent.focus(trigger);
+  expect(await screen.findByRole("tooltip")).toHaveTextContent("Collector hardware explanation");
+  expect(screen.getByRole("button", { name: "T0.11 · Not applicable" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "T1.2 · Skipped" })).toBeInTheDocument();
+  expect(screen.getByLabelText("Tier 1 · Collector hardware explanation")).toBeInTheDocument();
+});
+
+it("keeps legacy qualification labels when presentation fields are absent", () => {
+  const build = buildFixture({ hardware_validated: false, report_url: undefined,
+    tier_verdicts: { tier1: "not_applicable" }, results: { "T1.1": "not_applicable" },
+  });
+  render(<QualificationMatrix builds={[build]} selected={null} fetcher={vi.fn()} />);
+  expect(screen.getByRole("button", { name: "T1.1 · Not applicable" })).toBeInTheDocument();
+});
+
+it("does not reuse compact not-applicable labels for skipped or failed report outcomes", async () => {
+  const build = Object.assign(buildFixture({ hardware_validated: false,
+    tier_verdicts: { tier1: "not_applicable" }, results: { "T1.1": "not_applicable" },
+  }), { qualification_labels: { tiers: { tier1: "Collector hardware explanation" },
+    checks: { "T1.1": "Collector hardware explanation" } } });
+  const report = producerReport(build, { tiers: { tier1: {
+    tier_name: "Runtime", status: "skip", tests: [
+      { id: "T1.1", name: "Skipped attempt", status: "skip" },
+      { id: "T1.1", name: "Failed attempt", status: "fail" },
+      { id: "T1.1", name: "Unattempted check", status: "not_applicable" },
+    ],
+  } } });
+  const fetcher = vi.fn(async () => new Response(JSON.stringify(report)));
+  render(<QualificationMatrix builds={[build]} selected={null} fetcher={fetcher} />);
+  fireEvent.focus(screen.getByRole("button", { name: "T1.1 · Collector hardware explanation" }));
+  expect(await screen.findByRole("button", { name: "T1.1 · Skipped" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "T1.1 · Fail" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "T1.1 · Collector hardware explanation" })).toBeInTheDocument();
+  expect(screen.getByLabelText("Tier 1 · Skipped")).toBeInTheDocument();
 });

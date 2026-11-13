@@ -352,6 +352,58 @@
         "verdict": "passed",
         "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/42756736964/job/129658195482"
       }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "43383130159",
+      "job_id": "131745312362",
+      "attempt": 1,
+      "day": "2026-11-13",
+      "created_at": "2026-11-13T07:04:41Z",
+      "completed_at": "2026-11-13T07:06:54Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "5922450fbce1ed9d1648babd0d5ac4520055b436",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 87,
+      "runner": "ephemeral-devlab-x2-la03-s04-d01-131745312362",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/43383130159/job/131745312362",
+      "pr": {
+        "number": 4168,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4168",
+        "author": "amirthn6533",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/43188435924/job/131201213802"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "43383130159",
+      "job_id": "131745312319",
+      "attempt": 1,
+      "day": "2026-11-13",
+      "created_at": "2026-11-13T07:04:41Z",
+      "completed_at": "2026-11-13T07:08:01Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "5922450fbce1ed9d1648babd0d5ac4520055b436",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 104,
+      "runner": "ephemeral-devlab-x2-la03-s02-d01-131745312319",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/43383130159/job/131745312319",
+      "pr": {
+        "number": 4168,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4168",
+        "author": "amirthn6533",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/43188435924/job/131201213379"
+      }
     }
   ],
   "scanned_runs": [
@@ -368,6 +420,7 @@
     "42384467131#1@2026-11-07",
     "42445117201#1@2026-11-08",
     "42622000996#1@2026-11-09",
-    "42784369493#1@2026-11-10"
+    "42784369493#1@2026-11-10",
+    "43383130159#1@2026-11-13"
   ]
 }

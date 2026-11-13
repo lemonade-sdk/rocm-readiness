@@ -1227,9 +1227,9 @@ main {
 #mobile-filter-slot { display: none; }
 @media (width < 1280px) {
   #root { grid-template-columns: minmax(0, 1fr); grid-template-areas: "header" "rail" "main" "provenance"; grid-template-rows: auto auto 1fr auto; }
-  .header { padding: .5rem 1rem; gap: .5rem; }
+  .header { padding: .5rem 1rem; gap: .5rem; grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-areas: "navigation brand page controls"; }
   .header-controls { display: flex; align-items: center; gap: .25rem; }
-  .mobile-nav-toggle { display: grid; place-items: center; min-width: 44px; min-height: 44px; color: var(--text); background: transparent; border: 0; cursor: pointer; }
+  .mobile-nav-toggle { grid-area: navigation; flex-shrink: 0; display: grid; place-items: center; min-width: 44px; min-height: 44px; color: var(--text); background: transparent; border: 0; cursor: pointer; }
   .deck-rail { display: none; padding: .5rem 1rem; border-inline-end: 0; border-bottom: 1px solid var(--line); }
   .deck-rail[data-open] { display: block; }
   .deck-rail .deck-kicker { display: none; }
@@ -1246,14 +1246,17 @@ main {
   .compact-navigation a[aria-current="page"] { background: var(--selection-bg); color: var(--selection-text); font-weight: 600; }
   .deck-provenance { border-inline-end: 0; }
 }
+@media (max-width: 1024px) {
+  .compact-workspace-list > li + li { border-top: 0; }
+}
 @media (max-width: 640px) {
-  .header { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand controls" "page page"; row-gap: 0; }
+  .header { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "navigation brand controls" "page page page"; row-gap: 0; }
   .header .brand { font-size: .875rem; min-width: 0; }
   .header .deck-label, .header .deck-context { display: none; }
   .mobile-engine { display: block; color: var(--muted); font: .75rem/1.2 system-ui, sans-serif; }
-  .header-page { padding: 0; border: 0; gap: .5rem; justify-content: space-between; min-height: 44px; }
+  .header-page { padding: 0; border: 0; gap: .5rem; min-height: 44px; }
   .header-page h1, .header-page-title { font-size: 1.25rem; white-space: normal; overflow-wrap: anywhere; margin: 0; }
-  #mobile-filter-slot { display: block; flex-shrink: 0; }
+  #mobile-filter-slot { display: block; flex-shrink: 0; margin-inline-start: auto; }
   #mobile-filter-slot:empty { display: none; }
   main { padding: .75rem 1rem 1.5rem; }
   .mobile-filter-toggle { display: grid; place-items: center; position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--text); cursor: pointer; }

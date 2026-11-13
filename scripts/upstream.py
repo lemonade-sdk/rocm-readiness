@@ -42,6 +42,7 @@ Rules carried over from the investigation that produced this view:
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+from time import monotonic
 from datetime import datetime, timedelta, timezone
 import json
 import hashlib
@@ -1422,9 +1423,17 @@ def collect_upstream(
     calls = [0]
     lock = Lock()
 
+    started = monotonic()
+    last_progress = [started]
+
     def counted(url):
         with lock:
             calls[0] += 1
+            elapsed = monotonic()
+            if elapsed - last_progress[0] >= 30:
+                print(f"upstream progress: {calls[0]} API calls started, "
+                      f"{elapsed - started:.0f}s elapsed; fetching {url}", flush=True)
+                last_progress[0] = elapsed
         return fetch(url)
 
     previous, scanned, prior_coverage = load_previous(previous_data)
@@ -1437,6 +1446,7 @@ def collect_upstream(
         # repository cannot spend the whole budget on its backfill.
         left = len(config["projects"]) - pos
         budget = Budget(max(0, budget_calls - used) // left)
+        print(f"upstream {pid}: starting collection with {budget_calls - used} total API calls remaining", flush=True)
         try:
             collected[pid] = collect_project(
                 project,
@@ -1487,6 +1497,7 @@ def collect_upstream(
         pid = project["id"]
         rows, scanned_rows, coverage = collected[pid]
         prior_rows = {(r["job"], r["run_id"], r["job_id"]): r for r in rows}
+        print(f"upstream {pid} backfill: starting with {remaining} total API calls remaining", flush=True)
         try:
             collected[pid] = collect_project(
                 project, counted, budget, now, config["window_days"],

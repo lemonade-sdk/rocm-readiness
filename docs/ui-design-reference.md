@@ -444,3 +444,5 @@ help tooltips and consistently pair OS names with shared platform icons.
 
 Filter help stays in anchored popups on phones so it does not replace filter
 actions or become page evidence. Other evidence keeps the mobile disclosure pattern.
+
+When workspace navigation is collapsed, place its Navigation button at the leading edge of the header, before the ROCm Readiness identity. Keep the theme control on the right and the current page heading below on phones.

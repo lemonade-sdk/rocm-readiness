@@ -283,6 +283,9 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         Skip to content
       </a>
       <header className="header">
+          <button ref={navigationButton} type="button" className="mobile-nav-toggle"
+          aria-label="Navigation" aria-expanded={navigationOpen} aria-controls="workspace-navigation"
+          onClick={() => setNavigationOpen(!navigationOpen)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>
         <Link className="brand" to={href("overview")}>
           ROCm Readiness
           <span className="deck-label">Signal Deck</span>
@@ -297,9 +300,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </div>
           <span id="mobile-filter-slot" />
         </div>
-        <div className="header-controls"><ThemeControl /><button ref={navigationButton} type="button" className="mobile-nav-toggle"
-          aria-label="Navigation" aria-expanded={navigationOpen} aria-controls="workspace-navigation"
-          onClick={() => setNavigationOpen(!navigationOpen)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button></div>
+        <div className="header-controls"><ThemeControl /></div>
       </header>
       <aside id="workspace-navigation" className="deck-rail" aria-label="Workspaces" data-open={navigationOpen || undefined}
         onKeyDown={(event) => {

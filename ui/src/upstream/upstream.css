@@ -1257,3 +1257,9 @@ button.up-tick {
 @media (min-width: 641px) and (max-width: 767px) {
   .up-project-summary .up-kpis-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+.up-collection-notice { color: var(--muted); font-size: .8rem; }
+.up-findings .up-collection-notice p { margin: 0; padding: 0; border: 0; background: transparent; }
+.up-collection-notice details { margin-top: .35rem; }
+.up-collection-notice summary { cursor: pointer; }
+.up-collection-notice details p { margin-top: .5rem; overflow-wrap: anywhere; }

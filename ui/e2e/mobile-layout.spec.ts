@@ -111,8 +111,9 @@ for (const theme of ["light", "dark"] as const) {
         await expect(page.getByRole("table")).toHaveCount(0);
         await expect(card.getByText("72.4 tok/s", { exact: true }).first()).toBeVisible();
         await expect(card.getByText("Not recorded", { exact: true }).first()).toBeVisible();
-        // The initial screen puts the first card near the top, not below repeated headings.
-        expect((await card.boundingBox())!.y).toBeLessThan(240);
+        // Keep the first card near the header as its description wraps on phones.
+        const header = await page.locator("header.header").boundingBox();
+        expect((await card.boundingBox())!.y - (header!.y + header!.height)).toBeLessThan(160);
         await card.locator("summary").tap();
         await expect(card.getByText("Test configuration")).toBeVisible();
         await expect(card.getByText("Hardware metadata unavailable")).toBeVisible();

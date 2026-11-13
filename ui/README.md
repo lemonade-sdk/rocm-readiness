@@ -226,3 +226,5 @@ All project views share the outcome registry, glyph component and legend compone
 used by Build Qualification. CI jobs show any recorded failure as Fail, distinguish
 skipped/requested/pending/missing evidence, and include their own legend. See the
 shared outcome conventions in `docs/ui-design-reference.md` before adding tables.
+
+When workspace navigation is collapsed, place its Navigation button at the leading edge of the header, before the ROCm Readiness identity. Keep the theme control on the right and the current page heading below on phones.

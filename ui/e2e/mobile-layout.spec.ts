@@ -76,6 +76,10 @@ for (const theme of ["light", "dark"] as const) {
       const navigation = page.getByRole("button", { name: "Navigation", exact: true });
       if (compact) {
         await expect(navigation).toBeVisible();
+        const menuButton = await navigation.boundingBox();
+        const brand = await page.locator(".header .brand").boundingBox();
+        expect(menuButton!.x + menuButton!.width).toBeLessThanOrEqual(brand!.x);
+        expect(Math.abs(menuButton!.y + menuButton!.height / 2 - (brand!.y + brand!.height / 2))).toBeLessThan(2);
         await expect(page.getByRole("complementary", { name: "Workspaces" })).toBeHidden();
         await navigation.click();
         const menu = page.getByRole("complementary", { name: "Workspaces" });

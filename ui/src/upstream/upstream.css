@@ -1253,3 +1253,7 @@ button.up-tick {
   .up-project-summary .up-kpis-page .up-stat { padding: .5rem; }
   .up-project-summary .up-kpis-page .up-stat span { font-size: .625rem; }
 }
+
+@media (min-width: 641px) and (max-width: 767px) {
+  .up-project-summary .up-kpis-page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

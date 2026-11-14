@@ -2852,12 +2852,113 @@
         "verdict": "passed",
         "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43471088018/job/132043138997"
       }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "43570807735",
+      "job_id": "132374557149",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T07:22:34Z",
+      "completed_at": "2026-11-14T07:29:18Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "4b51674b662fe71688a63e06321f09cb3e7915a1",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000041543",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43570807735/job/132374557149",
+      "pr": {
+        "number": 2351,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2351",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43566377194/job/132361122265"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "43570807735",
+      "job_id": "132374556987",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T07:22:34Z",
+      "completed_at": "2026-11-14T07:31:39Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "4b51674b662fe71688a63e06321f09cb3e7915a1",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000041536",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43570807735/job/132374556987",
+      "pr": {
+        "number": 2351,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2351",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43566377194/job/132361122115"
+      }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "43572697324",
+      "job_id": "132380299391",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T07:47:06Z",
+      "completed_at": "2026-11-14T07:51:55Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "b521db48355fe2257a68100cda742900ed883999",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 2,
+      "runner": "GitHub Actions 1000041563",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43572697324/job/132380299391",
+      "pr": {
+        "number": 2353,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2353",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43571545172/job/132376816825"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "43572697324",
+      "job_id": "132380299684",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T07:47:06Z",
+      "completed_at": "2026-11-14T07:55:05Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "b521db48355fe2257a68100cda742900ed883999",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 159,
+      "runner": "GitHub Actions 1000041572",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43572697324/job/132380299684",
+      "pr": {
+        "number": 2353,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2353",
+        "author": "leejet",
+        "verdict": "passed",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43571545172/job/132376816847"
+      }
     }
   ],
   "scanned_runs": [
-    "38751419575#1@2026-10-15",
-    "38757689037#1@2026-10-15",
-    "38787806915#1@2026-10-15",
     "38935030412#1@2026-10-16",
     "38935101605#1@2026-10-16",
     "38949062924#1@2026-10-16",
@@ -2976,6 +3077,8 @@
     "43258220061#1@2026-11-12",
     "43472435394#1@2026-11-13",
     "43480823351#1@2026-11-13",
-    "43480996539#1@2026-11-13"
+    "43480996539#1@2026-11-13",
+    "43570807735#1@2026-11-14",
+    "43572697324#1@2026-11-14"
   ]
 }

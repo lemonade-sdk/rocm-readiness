@@ -84,15 +84,19 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
             aria-label={model} title={`${first.build.os} · ${first.row.scenario} · ${first.row.quant ?? "Quantization unreported"} · ${first.row.measured_at}`}>{model}</Link>
           {metrics.map(({ key, label, direction }) => <div className="performance-chart-bars" key={key}
             role="group" aria-label={`${model} · ${label}`}>
+            <div className="performance-chart-metric-label" aria-hidden="true">
+              <strong>{label}</strong><small>{direction}</small>
+            </div>
             {visible.map((os) => {
               const entry = entries.get(os);
               const value = entry?.row.metrics[key];
               const maximum = maxima.get(key) ?? 0;
               const width = value == null || maximum === 0 ? 0 : value / maximum * 100;
               return <div className="performance-chart-platform" key={os}>
-                {visible.length > 1 && <span className="performance-chart-platform-label">
-                  {os === "windows" ? "Windows" : "Linux"}
-                </span>}
+                <span className="performance-chart-platform-label" role="img"
+                  aria-label={os === "windows" ? "Windows" : "Linux"} title={os === "windows" ? "Windows" : "Linux"}>
+                  <PlatformIcon platform={os} />
+                </span>
                 {entry && value != null ? <Link className="performance-chart-track" data-platform={os}
                   to={observationHref(entry)}
                   aria-label={`${model} · ${os} · ${label} ${metricValue(key, value)} · ${direction}`}
@@ -122,7 +126,7 @@ function PerformanceCharts({ observations }: { observations: Observation[] }) {
 export function PerformancePreview({ heading, observations }: { heading: string; observations: Observation[] }) {
   if (!observations.length) return null;
   // Decision 0001: model comparisons need chart columns rather than detail rows.
-  return <Tooltip side interactive contentClassName="performance-preview-popup"
+  return <Tooltip side interactive mobileIndependent contentClassName="performance-preview-popup"
     triggerClassName="performance-preview-trigger" label={`Performance data for ${heading}`}
     content={<TooltipContent heading={`Performance · ${heading}`} format="custom">
       <PerformanceCharts observations={observations} />

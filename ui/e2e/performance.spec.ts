@@ -118,7 +118,7 @@ function measurements(version: string, quant = "Q4_K_M") {
   );
 }
 
-test("anchors package performance popups and keeps model names readable", async ({ page }) => {
+test("anchors package performance popups and keeps model names readable", async ({ page }, testInfo) => {
   await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
   const original = historyFixture();
   const history = {
@@ -166,6 +166,54 @@ test("anchors package performance popups and keeps model names readable", async 
     return route.fulfill({ status: 404, body: "{}" });
   });
   await page.goto("./?version=10.1&view=engine&platform=all");
+  if (page.viewportSize()!.width <= 640) {
+    const trigger = page.getByRole("button", { name: "Performance data for b100", exact: true }).first();
+    expect(await trigger.evaluate((element) => getComputedStyle(element, "::before").content)).not.toBe("none");
+    expect(await trigger.evaluate((element) => parseFloat(getComputedStyle(element).borderInlineStartWidth))).toBe(0);
+    const card = page.getByRole("article").filter({ has: trigger });
+    const evidence = card.getByRole("button", { name: "Package details for b100", exact: true });
+    await expect(evidence).toHaveAttribute("aria-expanded", "false");
+    await trigger.click();
+    await expect(evidence).toHaveAttribute("aria-expanded", "false");
+    await evidence.click();
+    await expect(evidence).toHaveAttribute("aria-expanded", "true");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await evidence.click();
+    await expect(evidence).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    const panel = page.getByRole("region", { name: "Performance data for b100", exact: true });
+    const prefill = panel.getByRole("group", { name: model + " · Prefill TPS", exact: true });
+    const decode = panel.getByRole("group", { name: model + " · Decode TPS", exact: true });
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+      await expect(prefill.getByRole("link")).toHaveCount(2);
+      for (const os of ["windows", "linux"]) {
+        await expect(prefill.locator(`.platform-logo[data-platform="${os}"]`)).toBeVisible();
+      }
+      const a = await prefill.boundingBox();
+      const b = await decode.boundingBox();
+      expect(b!.y).toBeGreaterThanOrEqual(a!.y + a!.height);
+      expect(Math.abs(a!.x - b!.x)).toBeLessThan(1);
+      for (const bar of await prefill.locator(".performance-chart-track").all()) {
+        const track = await bar.boundingBox();
+        const fill = await bar.locator(".performance-chart-fill").boundingBox();
+        expect(track!.width).toBeGreaterThan(80);
+        expect(fill!.height).toBeGreaterThan(0);
+        expect(fill!.width).toBeGreaterThan(0);
+      }
+      await page.screenshot({ path: testInfo.outputPath(`performance-${theme}.png`) });
+    }
+    await panel.getByRole("button", { name: "Windows", exact: true }).click();
+    await expect(prefill.getByRole("link")).toHaveCount(1);
+    await panel.getByRole("button", { name: "Windows", exact: true }).click();
+    await expect(prefill.getByRole("link")).toHaveCount(2);
+    const bounds = await panel.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await trigger.click();
+    await expect(panel).toHaveCount(0);
+    return;
+  }
   const platforms = page.getByRole("group", { name: "Platforms", exact: true });
   await expect(platforms.locator("img")).toHaveCount(2);
   const windows = platforms.getByRole("button", { name: "Windows", exact: true });
@@ -185,12 +233,39 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(popup.locator(".performance-preview")).toHaveCount(0);
   await popup.getByRole("button", { name: "Close popup" }).click();
   const performanceTrigger = page.getByRole("button", { name: "Performance data for b100", exact: true });
+  expect(await performanceTrigger.evaluate((element) => parseFloat(getComputedStyle(element).marginInlineStart))).toBeGreaterThan(0);
+  expect(await performanceTrigger.evaluate((element) => parseFloat(getComputedStyle(element).borderInlineStartWidth))).toBe(0);
   await performanceTrigger.focus();
   await expect(popup).toBeVisible();
   await expect(popup.getByText("TTFT", { exact: true })).toHaveCount(0);
-  await expect(popup.getByText("Higher is better", { exact: true })).toHaveCount(2);
+  await expect(popup.getByText("Higher is better", { exact: true }).filter({ visible: true }).first()).toBeVisible();
   const ttft = popup.getByRole("group", { name: model + " · Prefill TPS", exact: true });
   await expect(ttft.getByRole("link")).toHaveCount(2);
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((value) => { document.documentElement.dataset.theme = value; }, theme);
+    const bars = ttft.locator(".performance-chart-track");
+    for (const bar of await bars.all()) {
+      const track = await bar.boundingBox();
+      const fill = await bar.locator(".performance-chart-fill").boundingBox();
+      expect(track!.width).toBeGreaterThan(80);
+      expect(fill!.height).toBeGreaterThan(0);
+      expect(fill!.width).toBeGreaterThan(0);
+    }
+    await expect(ttft.locator('.platform-logo[data-platform="windows"]')).toBeVisible();
+    await expect(ttft.locator('.platform-logo[data-platform="linux"]')).toBeVisible();
+    if (page.viewportSize()!.width <= 600) {
+      const tps = popup.getByRole("group", { name: model + " · Decode TPS", exact: true });
+      const ttftBox = await ttft.boundingBox();
+      const tpsBox = await tps.boundingBox();
+      expect(tpsBox!.y).toBeGreaterThanOrEqual(ttftBox!.y + ttftBox!.height);
+      expect(Math.abs(tpsBox!.x - ttftBox!.x)).toBeLessThan(1);
+      await expect(ttft.getByText("Prefill TPS", { exact: true })).toBeVisible();
+      const bounds = await popup.boundingBox();
+      expect(bounds!.x).toBeGreaterThanOrEqual(0);
+      expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+      await page.screenshot({ path: testInfo.outputPath(`performance-${theme}.png`) });
+    }
+  }
   await popup.getByRole("button", { name: "Windows", exact: true }).click();
   await expect(ttft.getByRole("link")).toHaveCount(1);
   await expect(ttft.getByRole("link")).toContainText("100 tok/s");

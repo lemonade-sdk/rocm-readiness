@@ -35,6 +35,27 @@ it("reflects selected check evidence in the card disclosure and collapses it fro
   expect(screen.queryByRole("region", { name: "Check T0.1" })).not.toBeInTheDocument();
 });
 
+it("keeps independent phone disclosures separate from package evidence", () => {
+  vi.stubGlobal("matchMedia", vi.fn().mockImplementation(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+  render(<EvidenceRegion>
+    <Tooltip mobilePrimary label="Package evidence" content="Package metadata">Evidence &amp; configuration</Tooltip>
+    <Tooltip mobileIndependent label="Performance evidence" content="Performance chart">Performance</Tooltip>
+  </EvidenceRegion>);
+  const evidence = screen.getByRole("button", { name: "Package evidence" });
+  const performance = screen.getByRole("button", { name: "Performance evidence" });
+  fireEvent.click(performance);
+  expect(performance).toHaveAttribute("aria-expanded", "true");
+  expect(evidence).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(evidence);
+  expect(evidence).toHaveAttribute("aria-expanded", "true");
+  expect(performance).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(evidence);
+  expect(evidence).toHaveAttribute("aria-expanded", "false");
+  expect(performance).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(performance);
+  expect(performance).toHaveAttribute("aria-expanded", "false");
+});
+
 it("keeps phone evidence expanded when using other page controls", () => {
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
   const changed = vi.fn();

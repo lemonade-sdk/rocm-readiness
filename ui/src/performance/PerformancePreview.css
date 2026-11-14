@@ -1,5 +1,6 @@
 .comparison-bubble.performance-preview-popup { width: max-content; max-width: min(68rem, var(--tooltip-available-width, 100vw), calc(100vw - 24px)); }
-.performance-preview-trigger { display: inline-flex; vertical-align: middle; text-decoration: none; }
+.performance-preview-trigger { display: inline-flex; align-items: center; vertical-align: middle; text-decoration: none; margin-inline-start: .65rem; min-height: 1.75rem; }
+.performance-preview-trigger .qualification-performance-indicator { margin-inline-start: 0; }
 .performance-preview { font-size: .7rem; }
 .performance-preview-platforms { display: flex; flex-wrap: wrap; margin: 0 0 .5rem; padding: 0; border: 0; gap: .35rem; }
 .performance-preview-platforms button { font-size: .7rem; min-height: 30px; }
@@ -21,13 +22,15 @@
 .performance-chart-model { padding-block: .2rem; border-bottom: 1px solid var(--line); }
 .performance-chart-model-name { overflow-wrap: anywhere; font-weight: 600; }
 .performance-chart-bars { display: grid; gap: .2rem; }
+.performance-chart-metric-label { display: none; }
 .performance-chart-platform { display: grid; align-items: center; }
 .performance-chart-platform:has(.performance-chart-platform-label) {
-  grid-template-columns: 3.4rem minmax(0, 1fr);
+  grid-template-columns: 1.25rem minmax(0, 1fr);
   gap: .25rem;
 }
 .performance-chart-platform-label { color: var(--muted); font-size: .65rem; }
-.comparison-bubble a.performance-chart-track {
+.performance-chart-platform-label .platform-logo { width: 1rem; height: 1rem; }
+:is(.comparison-bubble, .mobile-evidence) a.performance-chart-track {
   position: relative;
   display: block;
   height: 1.15rem;
@@ -35,10 +38,10 @@
   text-decoration: none;
   overflow: hidden;
 }
-.comparison-bubble a.performance-chart-track::after { content: none; }
-.comparison-bubble .performance-chart-fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 35%, var(--subpanel)); }
+.comparison-bubble .tooltip-content a.performance-chart-track::after { content: none; }
+:is(.comparison-bubble, .mobile-evidence) .performance-chart-fill { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 35%, var(--subpanel)); }
 .performance-chart-track[data-platform="windows"] .performance-chart-fill { background: color-mix(in srgb, var(--accent) 20%, var(--subpanel)); border-top: 1px solid var(--accent); }
-.comparison-bubble .performance-chart-value { position: absolute; inset: 0 .3rem 0 auto; display: flex; align-items: center; font-variant-numeric: tabular-nums; }
+:is(.comparison-bubble, .mobile-evidence) .performance-chart-value { position: absolute; inset: 0 .3rem 0 auto; display: flex; align-items: center; font-variant-numeric: tabular-nums; }
 .performance-chart-track:hover { outline: 1px solid var(--muted); }
 .performance-chart-unavailable { font-size: .65rem; }
 @media (max-width: 900px) {
@@ -46,6 +49,19 @@
   .performance-chart-headings > span:first-child { display: none; }
   .performance-chart-model-name { grid-column: 1 / -1; }
   .comparison-bubble.performance-preview-popup { width: min(42rem, calc(100vw - 24px)); }
+}
+
+@media (max-width: 640px) {
+  .performance-chart { display: block; }
+  .performance-chart-headings { display: none; }
+  .performance-chart-model { display: grid; grid-template-columns: minmax(0, 1fr); gap: .65rem; padding-block: .75rem; }
+  .performance-chart-model-name { grid-column: auto; }
+  .performance-chart-metric-label { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  .performance-chart-metric-label small { margin: 0; }
+  .performance-chart-bars { gap: .35rem; }
+  .performance-preview-platforms button { min-height: 44px; }
+  :is(.comparison-bubble, .mobile-evidence) a.performance-chart-track { height: 2rem; }
+  .performance-preview-trigger { min-width: 2.75rem; min-height: 2.75rem; justify-content: center; }
 }
 
 .performance-preview-details { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .65rem; }

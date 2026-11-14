@@ -6795,6 +6795,63 @@
       "queue_seconds": 68,
       "runner": "linux.rocm.gpu.rx7900.1-2rp5k-runner-nnllg",
       "url": "https://github.com/pytorch/pytorch/actions/runs/43558492401/job/132356134185"
+    },
+    {
+      "job": "rx7900-build",
+      "run_id": "43596638911",
+      "job_id": "132452511564",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T12:48:48Z",
+      "completed_at": "2026-11-14T13:41:23Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "242a9cf0e013551eaada7827cfff1aa8d293dfb1",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 48,
+      "runner": "mt-l-x86iavx512-8-64-hlcrq-runner-fnq6g",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/43596638911/job/132452511564"
+    },
+    {
+      "job": "rx7900-tests",
+      "run_id": "43596638911",
+      "job_id": "132465598390",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T12:48:48Z",
+      "completed_at": "2026-11-14T16:42:11Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "242a9cf0e013551eaada7827cfff1aa8d293dfb1",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 28,
+      "runner": "linux.rocm.gpu.rx7900.1-2rp5k-runner-ptk56",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/43596638911/job/132465598390"
+    },
+    {
+      "job": "rx7900-tests",
+      "run_id": "43596638911",
+      "job_id": "132465598408",
+      "attempt": 1,
+      "day": "2026-11-14",
+      "created_at": "2026-11-14T12:48:48Z",
+      "completed_at": "2026-11-14T16:17:17Z",
+      "event": "schedule",
+      "ref": "main",
+      "sha": "242a9cf0e013551eaada7827cfff1aa8d293dfb1",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 62,
+      "runner": "linux.rocm.gpu.rx7900.1-2rp5k-runner-66msb",
+      "url": "https://github.com/pytorch/pytorch/actions/runs/43596638911/job/132465598408"
     }
   ],
   "scanned_runs": [
@@ -6872,7 +6929,6 @@
     "41028933138#1@2026-10-30",
     "41043450824#1@2026-10-30",
     "41058227449#1@2026-10-30",
-    "41202762582#1@2026-10-31",
     "41274533253#1@2026-11-01",
     "41308235870#1@2026-11-01",
     "41369536016#1@2026-11-02",
@@ -6999,6 +7055,7 @@
     "43486158744#1@2026-11-13",
     "43504920444#1@2026-11-13",
     "43522257804#1@2026-11-13",
-    "43558492401#1@2026-11-14"
+    "43558492401#1@2026-11-14",
+    "43596638911#1@2026-11-14"
   ]
 }

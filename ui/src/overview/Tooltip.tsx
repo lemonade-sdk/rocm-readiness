@@ -45,7 +45,7 @@ export function Tooltip(props: TooltipProps) {
 
 function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen, buttonProps,
-  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileDisclosure = true, hoverOnly = false,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileIndependent = false, mobileDisclosure = true, hoverOnly = false,
 }: {
   label: string;
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
@@ -63,6 +63,7 @@ function StyledTooltip({
   floating?: boolean;
   contentClassName?: string;
   mobilePrimary?: boolean;
+  mobileIndependent?: boolean;
   mobileDisclosure?: boolean;
   hoverOnly?: boolean;
 }) {
@@ -79,9 +80,9 @@ function StyledTooltip({
   mobileClose.current = () => { setOpen(false); onOpenChange?.(false); };
   const registerExpansion = expansion?.register;
   useEffect(() => {
-    if (!phone || !registerExpansion) return;
+    if (!phone || mobileIndependent || !registerExpansion) return;
     return registerExpansion(evidenceId, open, () => mobileClose.current());
-  }, [phone, open, evidenceId, registerExpansion]);
+  }, [phone, mobileIndependent, open, evidenceId, registerExpansion]);
   const arrowRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLSpanElement>(null);
   const contentRef = useRef<HTMLSpanElement>(null);

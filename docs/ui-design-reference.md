@@ -205,6 +205,16 @@ view. Keep the heading prominent and retain all attempt, success and error detai
   hardware and timestamp context and link to that exact observation.
   Windows/Linux toggles can show either platform or paired bars. Gray out
   unmeasured platforms with an Unavailable hover label. Keep VRAM out of this preview.
+  On mobile, stack models and metric groups vertically with full-width horizontal
+  graph tracks. Keep Windows and Linux bars together under each metric, identify
+  each bar with its OS icon, and retain values and independent metric scales.
+  Separate the performance trigger from adjacent evidence controls with spacing
+  only. Performance controls must not have a left selection stripe or vertical
+  divider. Retain their disclosure chevron, reflecting the expanded state,
+  accessible name, and keyboard focus indicator.
+  Performance and Evidence & configuration disclosures have independent expanded
+  states. Opening or closing either must not change the other's chevron or panel;
+  the evidence control may still reflect and collapse qualification check details.
   Show the same matched-performance glyph on qualification build/family labels,
   and selected build headings. Only verified package matches
   establish the indicator. Pair OS packages only within the same qualification

@@ -326,9 +326,14 @@ it('does not describe uncollected runs as absent in incomplete project details',
   expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
 });
 
-it('shows a plain collection failure with optional diagnostics', async () => {
+it('shows retrieval limitations as a neutral project finding with optional diagnostics', async () => {
   mount('/?track=upstream&project=llamacpp', incompleteFetch('OSError: https://example.com/private'));
-  expect(await screen.findByText('Collection failed. The displayed results may be incomplete.')).toBeInTheDocument();
+  const notice = await screen.findByText('Some CI data could not be retrieved. Results may be incomplete.');
+  const findings = screen.getByRole('region', { name: 'Project findings' });
+  expect(findings).toContainElement(notice);
+  expect(within(findings).getByRole('status')).not.toHaveClass('error');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(within(findings).queryByText('No project-wide findings recorded.')).not.toBeInTheDocument();
   const details = screen.getByText('Technical details').closest('details')!;
   expect(details).not.toHaveAttribute('open');
   expect(within(details).getByText('OSError: https://example.com/private')).toBeInTheDocument();
@@ -715,3 +720,27 @@ it("explains upstream filter scopes and shows OS icons", async () => {
   expect(await screen.findByRole("tooltip")).toHaveTextContent(/stack/i);
   expect(screen.queryByRole("button", { name: "About Platform" })).not.toBeInTheDocument();
 });
+
+for (const [start, end, shortMonth, fullMonth] of [
+  ["2026-10-31", "2026-11-13", "Oct", "October 2026"],
+  ["2026-10-19", "2026-11-01", "Nov", "November 2026"],
+]) {
+  it(`abbreviates a one-day month group (${shortMonth}) in both CI calendars`, async () => {
+    mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({
+      [new URL("upstream/overview.json", indexUrl).href]: {
+        ...upstreamOverview, window: { start, end, days: 14 },
+      },
+    }));
+    await screen.findByRole("heading", { name: "llama.cpp", level: 2 });
+    const headings = screen.getAllByRole("columnheader", { name: fullMonth });
+    expect(headings).toHaveLength(2);
+    for (const heading of headings) {
+      expect(heading).toHaveAttribute("colspan", "1");
+      expect(heading).toHaveTextContent(new RegExp(`^${shortMonth}$`));
+    }
+    const otherMonth = shortMonth === "Oct" ? "November" : "October";
+    for (const heading of screen.getAllByRole("columnheader", { name: `${otherMonth} 2026` })) {
+      expect(heading).toHaveTextContent(otherMonth);
+    }
+  });
+}

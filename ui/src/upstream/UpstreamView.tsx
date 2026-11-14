@@ -430,7 +430,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
               <th key={month.key} scope="colgroup" colSpan={month.days}
                 className={index ? "month-boundary" : undefined}
                 aria-label={`${month.label} ${month.key.slice(0, 4)}`}>
-                {month.label}
+                {month.days === 1 ? month.label.slice(0, 3) : month.label}
               </th>
             ))}
           </tr>
@@ -501,14 +501,17 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
   );
 }
 
-function CollectionFailure({ error }: { error: string }) {
+function CollectionNotice({ error }: { error: string }) {
   return (
-    <div className="notice error" role="alert" onClick={(event) => event.stopPropagation()}>
-      <p>Collection failed. The displayed results may be incomplete.</p>
-      <details>
-        <summary>Technical details</summary>
-        <p>{error}</p>
-      </details>
+    <div className="up-finding-notice up-collection-notice" role="status">
+      <span aria-hidden="true">△</span>
+      <div>
+        <p>Some CI data could not be retrieved. Results may be incomplete.</p>
+        <details>
+          <summary>Technical details</summary>
+          <p>{error}</p>
+        </details>
+      </div>
     </div>
   );
 }
@@ -700,7 +703,6 @@ function ProjectPage({
       {open?.key === "all" && <div className="up-selected-day">Selected day: <strong><time dateTime={open.day}>{open.day}</time> UTC</strong></div>}
       {open?.key === "all" && <DayPanel project={project} jobs={jobs} day={open.day} runs={runs}
         onClose={() => setOpen(null)} />}
-      {project.coverage.error && <CollectionFailure error={project.coverage.error} />}
       <div className="up-cols">
         <div className="up-activity-analysis">
           <section className="up-panel" aria-label="Daily activity">
@@ -795,7 +797,7 @@ function ProjectPage({
               <tr className="calendar-months">
                 {["Job", "Platform"].map((label) => <th key={label} scope="col" rowSpan={2} aria-label={label}>{label === "Platform" ? "OS" : label}</th>)}
                 {calendarMonthGroups(days14).map((month, index) => <th key={month.key} scope="colgroup" colSpan={month.days}
-                  className={index ? "month-boundary" : undefined} aria-label={`${month.label} ${month.key.slice(0, 4)}`}>{month.label}</th>)}
+                  className={index ? "month-boundary" : undefined} aria-label={`${month.label} ${month.key.slice(0, 4)}`}>{month.days === 1 ? month.label.slice(0, 3) : month.label}</th>)}
               </tr>
               <tr>{days14.map((day, index) => <th key={day} scope="col" aria-label={`${day} UTC`}
                 className={isCalendarMonthBoundary(days14, index) ? "month-boundary" : undefined}><time dateTime={day}>{Number(day.slice(8))}</time></th>)}</tr>
@@ -858,9 +860,10 @@ function ProjectPage({
         </section>
         <section className="up-panel up-findings" aria-label="Project findings">
           <h2>Project findings</h2>
+          {project.coverage.error && <CollectionNotice error={project.coverage.error} />}
           {findings.length ? findings.map((finding) => (
             <p key={finding.head} className="up-finding-notice"><span aria-hidden="true">△</span><span><strong>{finding.head}</strong> {finding.body}</span></p>
-          )) : <p className="muted">No project-wide findings recorded.</p>}
+          )) : !project.coverage.error && <p className="muted">No project-wide findings recorded.</p>}
         </section>
       </div>
     </section>

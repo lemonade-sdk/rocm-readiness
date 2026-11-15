@@ -3060,13 +3060,61 @@
         "verdict": "no_result",
         "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43579504713/job/132400989258"
       }
+    },
+    {
+      "job": "rocm-build-linux",
+      "run_id": "43704689565",
+      "job_id": "132783133294",
+      "attempt": 1,
+      "day": "2026-11-15",
+      "created_at": "2026-11-15T10:33:56Z",
+      "completed_at": null,
+      "event": "push",
+      "ref": "master",
+      "sha": "532d2c15c430a785a712b2d94281f04e733008a4",
+      "status": "in_progress",
+      "conclusion": null,
+      "state": "running",
+      "failed_step": null,
+      "queue_seconds": 1,
+      "runner": "GitHub Actions 1000041705",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43704689565/job/132783133294",
+      "pr": {
+        "number": 2365,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2365",
+        "author": "leejet",
+        "verdict": "no_result",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43704141621/job/132781824668"
+      }
+    },
+    {
+      "job": "rocm-build-windows",
+      "run_id": "43704689565",
+      "job_id": "132783133274",
+      "attempt": 1,
+      "day": "2026-11-15",
+      "created_at": "2026-11-15T10:33:56Z",
+      "completed_at": null,
+      "event": "push",
+      "ref": "master",
+      "sha": "532d2c15c430a785a712b2d94281f04e733008a4",
+      "status": "in_progress",
+      "conclusion": null,
+      "state": "running",
+      "failed_step": null,
+      "queue_seconds": 1,
+      "runner": "GitHub Actions 1000041698",
+      "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43704689565/job/132783133274",
+      "pr": {
+        "number": 2365,
+        "url": "https://github.com/leejet/stable-diffusion.cpp/pull/2365",
+        "author": "leejet",
+        "verdict": "no_result",
+        "check_url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/43704141621/job/132781824842"
+      }
     }
   ],
   "scanned_runs": [
-    "38935030412#1@2026-10-16",
-    "38935101605#1@2026-10-16",
-    "38949062924#1@2026-10-16",
-    "38956424743#1@2026-10-16",
     "39009185406#1@2026-10-17",
     "39105478168#1@2026-10-18",
     "39109922825#1@2026-10-18",

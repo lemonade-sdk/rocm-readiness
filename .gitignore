@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 /data/
 /.execution-cache/
+/provenance/
 
 # Local planning artifacts
 /docs/superpowers/

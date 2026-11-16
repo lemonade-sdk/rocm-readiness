@@ -155,11 +155,11 @@ with its qualification build. Older measurements keep their verified tag/package
 when the producer index no longer lists that build.
 Missing or conflicting package evidence fails collection.
 
-The committed [provenance/llamacpp-stable-packages.json](../provenance/llamacpp-stable-packages.json)
-is read by the collector for historical stable mappings when rebuilding from
-scratch. Normal runs can also reuse
-mappings in the previous published dataset.
+An optional local `provenance/llamacpp-stable-packages.json` file can supply
+historical stable mappings when rebuilding from scratch. The `provenance/`
+directory is ignored by Git. Normal runs can also reuse mappings in the previous
+published dataset.
 
 CI saves source copies and a generated `provenance/packages.json` diagnostic copy
 in its artifact. Artifacts expire after 30 days; the
-committed mappings and evidence embedded in published measurements survive them.
+evidence embedded in published measurements survives them.

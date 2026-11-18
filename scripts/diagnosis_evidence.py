@@ -185,6 +185,7 @@ class EvidenceCollector:
         item = {"id": f"E{len(self.evidence) + 1}", "text": text, "url": url, "kind": kind}
         if kind == "workflow":
             item["workflow_complete"] = text == safe
+            item["workflow_job_names_complete"] = text == safe
         self.bytes += len(text.encode("utf-8"))
         self.evidence.append(item)
         self.cache[key] = item
@@ -286,6 +287,22 @@ class EvidenceCollector:
                 "run_verified": self.verified_run,
                 "incident": json.loads(redact(json.dumps({key: assessment[key] for key in ("scope", "observed", "summary", "anomaly") if key in assessment}), self.secrets)),
                 "evidence_hash": hashlib.sha256(json.dumps(self.evidence, sort_keys=True).encode()).hexdigest()}
+        if self.verified_run and assessment.get("observed", {}).get("status") in ("skip", "skipped"):
+            try:
+                if __package__:
+                    from .diagnosis_support import workflow_jobs
+                else:
+                    from diagnosis_support import workflow_jobs
+                definitions = workflow_jobs(self.workflow_text or "") or {}
+                target = next((job for job in self.jobs if job.get("id") == self.provenance.get("job_id")), {})
+                name = target.get("name", "")
+                candidates = [key for key, data in definitions.items()
+                              if name == (data.get("name") or key).strip("'\"")
+                              or ("name" not in data and name.startswith(key + " (") and name.endswith(")"))]
+                if len(candidates) == 1:
+                    self.get_workflow(job=candidates[0], max_lines=400)
+            except (EvidenceUnavailable, ValueError, KeyError, TypeError):
+                pass
         diagnosis = self._known_runtime_diagnosis(assessment)
         if diagnosis is not None:
             package["diagnosis"] = diagnosis
@@ -297,6 +314,16 @@ class EvidenceCollector:
         Match only selected runtime log evidence, not workflow source or an
         unselected region of the cached full log. Do not infer why PATH lacks it.
         """
+        if self.verified_run and assessment.get("observed", {}).get("status") in ("skip", "skipped"):
+            if __package__:
+                from .diagnosis_support import supported_skip_cause
+            else:
+                from diagnosis_support import supported_skip_cause
+            ids = [row["id"] for row in self.evidence if row.get("kind") == "jobs"
+                   or (row.get("kind") == "workflow" and row.get("workflow_complete") is True)]
+            cause = supported_skip_cause(self.evidence, assessment, self.provenance, ids)
+            if cause is not None:
+                return {"method": "deterministic", "certainty": "verified", "cause": cause, "evidence_ids": ids}
         if not self.verified_run or assessment.get("observed", {}).get("status") not in ("fail", "failure"):
             return None
         if not any(job.get("id") == self.provenance.get("job_id") and job.get("conclusion") == "failure"
@@ -419,7 +446,7 @@ class EvidenceCollector:
                     raise EvidenceUnavailable("workflow_job_unavailable")
                 names = [job] + (_needs(definitions[job].get("needs", "")) or [])
                 blocks = []
-                for name in dict.fromkeys(names):
+                for name in dict.fromkeys(names + list(definitions)):
                     definition = definitions.get(name)
                     if definition is None:
                         selection_complete = False
@@ -428,12 +455,12 @@ class EvidenceCollector:
                     # job-level field relevant to dependency gating. Step bodies
                     # cannot consume the budget or conceal a later job-level if.
                     blocks.append("  " + name + ":")
-                    for field in ("name", "needs", "if", "continue-on-error"):
+                    for field in (("name", "needs", "if", "continue-on-error", "strategy") if name in names else ("name", "strategy")):
                         if field not in definition:
                             continue
                         values = definition[field].split("\n")
                         blocks.append("    " + field + ": " + values[0])
-                        blocks.extend("      " + value for value in values[1:])
+                        blocks.extend(values[1:] if field == "strategy" else ("      " + value for value in values[1:]))
                 selected = ["jobs:"] + blocks
                 selection_complete = selection_complete and len(selected) <= max_lines
                 return "\n".join(selected[:max_lines])
@@ -445,6 +472,7 @@ class EvidenceCollector:
         # Reserve space for tool-selected late job blocks and log excerpts.
         item = self._add(key, url, load, count_document=self.workflow_text is None, max_selected=8192)
         item["workflow_complete"] = item.get("workflow_complete", False) and selection_complete
+        item["workflow_job_names_complete"] = item.get("workflow_job_names_complete", False) and selection_complete
         return item
 
     def get_report(self):

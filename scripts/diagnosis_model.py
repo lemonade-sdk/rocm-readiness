@@ -253,7 +253,7 @@ class LemonadeClient:
                 remaining -= size
                 known[row["id"]] = text
                 kinds[row["id"]] = row.get("kind")
-                metadata[row["id"]] = {k: row[k] for k in ("url", "workflow_complete") if k in row}
+                metadata[row["id"]] = {k: row[k] for k in ("url", "workflow_complete", "workflow_job_names_complete") if k in row}
                 entry = {"id": row["id"], "text": text, **metadata[row["id"]]}
                 if isinstance(row.get("kind"), str):
                     entry["kind"] = row["kind"]

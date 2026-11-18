@@ -42,8 +42,11 @@ another step does not block an independently evidenced prerequisite explanation.
 A model skip explanation must also cite exact same-attempt prerequisite outcomes
 and a complete workflow job definition at the run revision that proves the gate.
 Ambiguous YAML, incomplete excerpts, and tolerated prerequisite failures stay unknown.
-Supported dependency skips use a fixed sentence derived from the proof, rather
-than publishing the model's free-form causal wording.
+Supported dependency skips use a fixed sentence derived from the proof before
+inference. This includes unambiguous matrix jobs and status-free expressions
+subject to GitHub's implicit success gate. The complete job-label registry is
+checked to reject ambiguous matrix bindings. Hidden input values are not inferred;
+status-function overrides and tolerated failures remain conservative.
 Cancelled jobs stay unknown when existing rules cannot explain them: the current
 packet contains no verified actor or evaluated cancellation trigger. A cancellation
 status, manual-trigger capability or concurrency setting cannot establish why it stopped.

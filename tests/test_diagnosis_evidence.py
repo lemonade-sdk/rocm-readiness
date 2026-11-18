@@ -290,6 +290,34 @@ class EvidenceTests(unittest.TestCase):
         collector.log_text = 'lld-link: error: unable to find mt.exe in PATH: no such file or directory'
         self.assertIsNone(collector._known_runtime_diagnosis(self.assessment))
 
+    def test_matrix_dependency_skip_is_explained_before_inference(self):
+        # Source-derived shape from two real nightly workflows: the OR is
+        # still subject to GitHub's implicit success gate across required jobs.
+        workflow = ("jobs:\n  build-windows:\n    strategy:\n      matrix:\n        gfx: [gfx110X]\n"
+                    "  build-ubuntu:\n    strategy:\n      matrix:\n        gfx: [gfx110X]\n"
+                    "  test-stx-halo:\n    needs: [build-windows, build-ubuntu]\n"
+                    "    if: |\n      (needs.build-windows.result == 'success' || needs.build-ubuntu.result == 'success') &&\n"
+                    "      contains(github.event.inputs.gfx_target || 'gfx1151', 'gfx1151')\n"
+                    "    strategy:\n      matrix:\n        os: [Linux]\n"
+                    "  unrelated:\n    name: Another named job\n")
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(workflow.encode()).decode()
+        self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100'] = {
+            'total_count': 3, 'jobs': [
+                {'id': 22, 'name': 'test-stx-halo (Linux)', 'run_id': 11, 'run_attempt': 2, 'conclusion': 'skipped'},
+                {'id': 31, 'name': 'build-windows (gfx110X)', 'run_id': 11, 'run_attempt': 2, 'conclusion': 'failure'},
+                {'id': 32, 'name': 'build-ubuntu (gfx110X)', 'run_id': 11, 'run_attempt': 2, 'conclusion': 'success'}]}
+        self.assessment['observed'] = {'status': 'skip'}
+        collector = self.collector()
+        package = collector.collect(self.assessment)
+        self.assertEqual(package['diagnosis']['method'], 'deterministic')
+        self.assertEqual(package['diagnosis']['certainty'], 'verified')
+        selected = collector.get_workflow(job='test-stx-halo', max_lines=400)
+        self.assertTrue(selected['workflow_job_names_complete'])
+        self.assertIn('Another named job', selected['text'])
+        self.assertIn('      matrix:', selected['text'])
+        self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100']['jobs'][1]['conclusion'] = 'success'
+        self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
+
     def test_redaction_and_controls(self):
         value = redact('\x1b[31msecret=abc 10.0.0.1 user@example.com\x00 https://example.com/a?token=x CANARY', ['CANARY'])
         for forbidden in ['abc', '10.0.0.1', 'user@example.com', '\x00', '?token', 'CANARY', '\x1b']:

@@ -66,7 +66,7 @@ class SupportTests(unittest.TestCase):
         self.assertTrue(self.check())
 
     def test_always_or_failure_condition_not_proof(self):
-        for condition in ('always()', "needs.approval.result == 'failure'", "needs.approval.result == 'success' || always()"):
+        for condition in ('always()', 'failure()', 'cancelled()', "needs.approval.result == 'success' || always()"):
             self.workflow = 'jobs:\n  approval:\n    runs-on: ubuntu-latest\n  build:\n    needs: approval\n    if: ' + condition + '\n'
             self.assertFalse(self.check())
 
@@ -152,6 +152,78 @@ class SupportTests(unittest.TestCase):
         self.assertEqual(result["cause"], "A required job failed, so this job was skipped.")
         raw["evidence_ids"] = ["E1"]
         self.assertEqual(LemonadeClient(request=request).diagnose(package)["certainty"], "unknown")
+
+    def matrix_fixture(self):
+        self.workflow = self.workflow.replace('  approval:\n',
+            '  approval:\n    strategy:\n      matrix: ${{fromJson(needs.prepare.outputs.matrix)}}\n      fail-fast: false\n')
+        self.packet['jobs'][0]['name'] = 'approval (gfx1151)'
+        self.packet['jobs'].append({'id': 21, 'name': 'approval (gfx908)', 'conclusion': 'success'})
+
+    def matrix_check(self, names_complete=True):
+        evidence = self.evidence()
+        evidence[1]['workflow_job_names_complete'] = names_complete
+        return validate_support(self.result, evidence, self.incident)
+
+    def test_multiline_or_has_implicit_success_gate(self):
+        self.matrix_fixture()
+        self.workflow = self.workflow.replace('    needs: approval',
+            "    needs: approval\n    if: |\n      (needs.approval.result == 'success' || needs.other.result == 'success') &&\n      contains(inputs.targets || 'gfx1151', 'gfx1151')")
+        self.assertTrue(self.matrix_check())
+        self.assertFalse(self.matrix_check(False))
+
+    def test_matrix_requires_declared_strategy_and_exact_name_format(self):
+        original = self.workflow
+        self.matrix_fixture()
+        self.assertTrue(self.matrix_check())
+        self.workflow = self.workflow.replace('      matrix: ${{fromJson(needs.prepare.outputs.matrix)}}\n', '')
+        self.assertFalse(self.matrix_check())
+        self.workflow = original
+        self.packet['jobs'] = self.packet['jobs'][:2]
+        self.matrix_fixture()
+        self.packet['jobs'][0]['name'] = 'approval-similar (gfx1151)'
+        self.assertFalse(self.matrix_check())
+
+    def test_matrix_conflicting_labels_and_tolerated_failure(self):
+        self.matrix_fixture()
+        self.workflow += '  unrelated:\n    name: approval (gfx1151)\n'
+        self.assertFalse(self.matrix_check())
+        self.workflow = self.workflow[:self.workflow.index('  unrelated:')]
+        self.workflow = self.workflow.replace('  approval:\n', '  approval:\n    continue-on-error: true\n')
+        self.assertFalse(self.matrix_check())
+
+    def test_matrix_custom_and_ambiguous_dynamic_names(self):
+        self.matrix_fixture()
+        self.workflow += '  unrelated:\n    name: ${{ inputs.custom_name }}\n'
+        self.assertFalse(self.matrix_check())
+        self.workflow = self.workflow[:self.workflow.index('  unrelated:')]
+        self.workflow = self.workflow.replace('  approval:\n', '  approval:\n    name: custom-name\n')
+        self.assertFalse(self.matrix_check())
+
+    def test_multiline_matrix_status_overrides_do_not_imply_success_gate(self):
+        original = self.workflow
+        for status_function in ('always()', 'failure()', 'cancelled()', '!cancelled()'):
+            self.workflow = original
+            self.packet['jobs'] = self.packet['jobs'][:2]
+            self.matrix_fixture()
+            self.workflow = self.workflow.replace('    needs: approval',
+                "    needs: approval\n    if: |\n      " + status_function + " &&\n      (needs.approval.result == 'success' || needs.other.result == 'success')")
+            self.assertFalse(self.matrix_check(), status_function)
+
+    def test_status_function_detection_ignores_quoted_function_names(self):
+        for condition in ("contains(inputs.message, 'always()')",
+                          "contains(inputs.message, 'failure() cancelled() success()')",
+                          "contains(inputs.message, 'it''s always()')"):
+            self.workflow = self.workflow.replace('    needs: approval', '    needs: approval\n    if: ' + condition)
+            self.assertTrue(self.check(), condition)
+            self.workflow = self.workflow[:self.workflow.index('    if:')] + self.workflow[self.workflow.index('    steps:'):]
+        self.workflow = self.workflow.replace('    needs: approval', "    needs: approval\n    if: 'always()'")
+        self.assertFalse(self.check())
+
+    def test_implicit_success_does_not_reconstruct_hidden_value(self):
+        self.workflow = self.workflow.replace('    needs: approval', "    needs: approval\n    if: vars.UNKNOWN == 'true'")
+        self.assertTrue(self.check())
+        self.packet['jobs'][0]['conclusion'] = 'success'
+        self.assertFalse(self.check())
 
     def test_other_status_outside_skip_guard(self):
         self.incident['observed']['status'] = 'fail'

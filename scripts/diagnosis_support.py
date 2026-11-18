@@ -52,8 +52,8 @@ def workflow_jobs(text):
             if field == '<<' or value.startswith(('&', '*', '{')):
                 return None
             jobs[current][field] = value
-        elif indent > 4 and current and field in ('needs', 'if', 'name'):
-            jobs[current][field] += '\n' + line.strip()
+        elif indent > 4 and current and field in ('needs', 'if', 'name', 'strategy'):
+            jobs[current][field] += '\n' + (line if field == 'strategy' else line.strip())
         elif indent < 4:
             return None
     return jobs or None
@@ -73,17 +73,87 @@ def _needs(value):
     return parsed if parsed and all(parsed) and len(set(parsed)) == len(parsed) else None
 
 
+def _expression(condition):
+    """Read a scalar/block expression without evaluating its historical inputs."""
+    condition = condition.strip()
+    if condition.split('\n', 1)[0] in ('|', '|-', '|+', '>', '>-', '>+'):
+        condition = ' '.join(condition.splitlines()[1:]).strip()
+    elif '\n' in condition:
+        return None
+    if condition[:1] in ("'", '"'):
+        quote = condition[0]
+        if len(condition) < 2 or condition[-1] != quote or quote in condition[1:-1]:
+            return None
+        condition = condition[1:-1]
+    if condition.startswith('${{') and condition.endswith('}}'):
+        condition = condition[3:-2].strip()
+    # Mask expression literals (GitHub escapes a single quote by doubling it).
+    masked, index, stack = [], 0, []
+    while index < len(condition):
+        char = condition[index]
+        if char == "'":
+            index += 1
+            while index < len(condition):
+                if condition[index] == "'":
+                    if index + 1 < len(condition) and condition[index + 1] == "'":
+                        index += 2
+                        continue
+                    break
+                index += 1
+            if index == len(condition):
+                return None
+            masked.append(' LITERAL ')
+        elif char in '([':
+            stack.append(char)
+            masked.append(char)
+        elif char in ')]':
+            if not stack or stack.pop() != ( '(' if char == ')' else '[' ):
+                return None
+            masked.append(char)
+        elif char == '"' or not re.fullmatch(r'[A-Za-z0-9_\s.,!<>=&|*-]', char):
+            return None
+        else:
+            masked.append(char)
+        index += 1
+    return (condition, ''.join(masked)) if not stack else None
+
+
+def _matrix(definition):
+    strategy = definition.get('strategy', '')
+    if not strategy.startswith('\n'):
+        return False
+    return sum(bool(re.fullmatch(r'      matrix:\s*(?:\$\{\{.+\}\})?\s*', line))
+               for line in strategy.splitlines()) == 1
+
+
+def _job_matches(identity, definition, name):
+    label = (definition.get('name') or identity).strip("'\"")
+    if name == label:
+        return True
+    return (not definition.get('name') and _matrix(definition)
+            and isinstance(name, str)
+            and re.fullmatch(re.escape(identity) + r' \([A-Za-z0-9_. /,:=-]+\)', name) is not None)
+
+
 def _gate_blocks(condition, dependency):
     """Prove default success gate or a literal result gate excludes failure.
 
-    A narrow conjunction grammar permits unknown surrounding conditions, but
-    never infers their values. OR outside the recognized result gate is rejected.
+    Status-free expressions retain GitHub's implicit success check. Expressions
+    overriding that default need a narrow explicit blocking result conjunction;
+    surrounding historical input values are never reconstructed.
     """
     if not condition:
         return True
-    condition = condition.strip()
-    if condition.startswith('${{') and condition.endswith('}}'):
-        condition = condition[3:-2].strip()
+    expression = _expression(condition)
+    if expression is None:
+        return False
+    condition, masked = expression
+    # GitHub adds success() unless the expression contains a status function.
+    # This is syntax inspection only: neither variables nor the OR expression
+    # need evaluation when a required prerequisite demonstrably failed.
+    # https://docs.github.com/en/actions/reference/workflows-and-actions/expressions
+    if not re.search(r'(?<![\w.])(?:success|failure|cancelled|always)\s*\(', masked, re.I):
+        return True
     # Collapse exactly the common success-or-skipped result gate.
     term = r"needs\." + re.escape(dependency) + r"\.result\s*==\s*(['\"])(success|skipped)\1"
     pair = r'\(\s*' + term + r'\s*\|\|\s*' + term + r'\s*\)'
@@ -138,6 +208,7 @@ def supported_skip_cause(evidence, incident, provenance=None, cited_ids=None):
     workflow_url = f'https://github.com/{repo}/blob/{revision}/{path}'
     definitions = []
     observed = []
+    names_complete = False
     for row in cited:
         if row.get('kind') == 'workflow' and row.get('url') == workflow_url:
             if row.get('workflow_complete') is not True:
@@ -145,6 +216,7 @@ def supported_skip_cause(evidence, incident, provenance=None, cited_ids=None):
             parsed = workflow_jobs(row.get('text', ''))
             if parsed:
                 definitions.append(parsed)
+                names_complete = names_complete or row.get('workflow_job_names_complete') is True
         if row.get('kind') == 'jobs' and row.get('url') == jobs_url:
             try:
                 packet = json.loads(row.get('text', ''))
@@ -169,10 +241,12 @@ def supported_skip_cause(evidence, incident, provenance=None, cited_ids=None):
     if len(targets) != 1:
         return None
     target = targets[0]
-    matches = [key for key, data in definitions.items() if target.get('name') == (data.get('name') or key).strip("'\"")]
+    matches = [key for key, data in definitions.items() if _job_matches(key, data, target.get('name'))]
     if len(matches) != 1:
         return None
     data = definitions[matches[0]]
+    if target.get('name') != (data.get('name') or matches[0]).strip("'\"") and not names_complete:
+        return None
     dependencies = _needs(data.get('needs', ''))
     if not dependencies:
         return None
@@ -180,13 +254,29 @@ def supported_skip_cause(evidence, incident, provenance=None, cited_ids=None):
         definition = definitions.get(dependency)
         if definition is None or definition.get('continue-on-error', 'false') != 'false':
             continue
-        name = (definition.get('name') or dependency).strip("'\"")
-        prerequisites = [job for job in jobs if job.get('name') == name]
-        if len(prerequisites) != 1 or prerequisites[0].get('conclusion') not in ('failure', 'cancelled'):
+        prerequisites = []
+        for job in jobs:
+            if not _job_matches(dependency, definition, job.get('name')):
+                continue
+            bindings = [key for key, value in definitions.items() if _job_matches(key, value, job.get('name'))]
+            if bindings != [dependency]:
+                return None
+            if job.get('name') != (definition.get('name') or dependency).strip("'\""):
+                if not names_complete:
+                    return None
+                if any('${{' in value.get('name', '') for value in definitions.values()):
+                    return None
+            prerequisites.append(job)
+        if not prerequisites or (not _matrix(definition) and len(prerequisites) != 1):
+            continue
+        if len({job.get('id') for job in prerequisites}) != len(prerequisites) or len({job.get('name') for job in prerequisites}) != len(prerequisites):
+            return None
+        failures = [job for job in prerequisites if job.get('conclusion') in ('failure', 'cancelled')]
+        if not failures:
             continue
         if not _gate_blocks(data.get('if', ''), dependency):
             continue
         return ('A required job failed, so this job was skipped.'
-                if prerequisites[0]['conclusion'] == 'failure'
+                if failures[0]['conclusion'] == 'failure'
                 else 'A required job was cancelled, so this job was skipped.')
     return None

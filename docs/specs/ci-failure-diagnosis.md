@@ -50,6 +50,9 @@ status-function overrides and tolerated failures remain conservative.
 Cancelled jobs stay unknown when existing rules cannot explain them: the current
 packet contains no verified actor or evaluated cancellation trigger. A cancellation
 status, manual-trigger capability or concurrency setting cannot establish why it stopped.
+The runner persists a bounded evidence-rules artifact before checking or starting
+Lemonade. Known-only datasets need no model setup; if provisioning fails, verified
+findings remain available and unresolved cases retain investigation.
 The literal linker error that `mt.exe` cannot be found in PATH is explained by a
 deterministic runtime rule before inference; it does not infer installation state
 or the tool's purpose.

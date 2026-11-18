@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 if __package__:
+    from .diagnosis import validate_cache
     from .notifications import validate_document, validate_state
     from .execution_dataset import validate_execution_file
     from .dataset import (
@@ -23,6 +24,7 @@ if __package__:
     from .sync import load_last_success
     from .upstream import validate_upstream_dataset
 else:
+    from diagnosis import validate_cache
     from notifications import validate_document, validate_state
     from execution_dataset import validate_execution_file
     from dataset import (
@@ -160,6 +162,7 @@ def manifest(root, allow_legacy=False):
     for filename, validate in (
         ("notifications.json", validate_document),
         ("notification-state.json", validate_state),
+        ("diagnosis-cache.json", validate_cache),
     ):
         if (root / filename).exists():
             validate(read_json(checked(root, filename)))
@@ -544,6 +547,7 @@ def publish(
             for filename, validate in (
                 ("notifications.json", validate_document),
                 ("notification-state.json", validate_state),
+                ("diagnosis-cache.json", validate_cache),
             ):
                 if (data_root / filename).exists():
                     try:
@@ -556,9 +560,10 @@ def publish(
                             "producer publication continues, notification recovery required.",
                             file=sys.stderr,
                         )
-                        live_notifications["notification-state.json"] = {
-                            "schema_version": 1, "incidents": {}, "blocked": True,
-                        }
+                        if filename != "diagnosis-cache.json":
+                            live_notifications["notification-state.json"] = {
+                                "schema_version": 1, "incidents": {}, "blocked": True,
+                            }
             if data_root.exists():
                 if not data_root.is_dir():
                     raise ValueError("unsafe data directory")

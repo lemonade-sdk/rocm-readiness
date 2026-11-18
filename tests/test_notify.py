@@ -23,6 +23,21 @@ class NotifyRunnerTests(unittest.TestCase):
             "github": {"enabled": True, "targets": ["fixture-owner"]},
         }))
 
+    def test_diagnosis_only_needs_no_output_and_never_loads_routing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rules = root / "rules.json"
+            rules.write_text('{"schema_version":1,"rules":[]}')
+            artifact = root / "diagnosis.json"
+            with patch("scripts.notify.evaluate_dataset", return_value=[]), \
+                    patch("scripts.notify.channel_callbacks", side_effect=AssertionError("routing loaded")), \
+                    patch("scripts.diagnosis_evidence.EvidenceCollector"), \
+                    patch("scripts.diagnosis_model.LemonadeClient"):
+                self.assertEqual(main(["--dataset", str(root), "--rules", str(rules),
+                                       "--diagnose-only", str(artifact)]), 0)
+            self.assertEqual(json.loads(artifact.read_text())["results"], [])
+            self.assertFalse((root / "notification-state.json").exists())
+
     def test_trust_rejects_pr_fork_and_local_execution(self):
         trusted = {
             "GITHUB_ACTIONS": "true", "GITHUB_REF": "refs/heads/main",

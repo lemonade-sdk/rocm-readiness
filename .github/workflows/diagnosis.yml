@@ -1,0 +1,41 @@
+name: Read-only CI diagnosis
+run-name: CI diagnosis ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Parent notification run and attempt
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diagnose:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      vars.ROCM_READINESS_DIAGNOSIS_ENABLED == 'true' &&
+      vars.ROCM_READINESS_DIAGNOSIS_RUNNER != ''
+    # Runner owner supplies labels with exclusive capacity/reservation for this job.
+    runs-on: ${{ fromJSON(vars.ROCM_READINESS_DIAGNOSIS_RUNNER || '["self-hosted","rocm-readiness-diagnosis-unconfigured"]') }}
+    environment: diagnosis
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Apply rules and diagnose unexplained public evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ROCM_READINESS_MODEL_CACHE: ${{ vars.ROCM_READINESS_MODEL_CACHE }}
+        run: bash scripts/run-diagnosis.sh "$RUNNER_TEMP/diagnosis-results.json"
+      - name: Retain bounded diagnosis results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnosis-results-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnosis-results.json
+          retention-days: 1

@@ -18,6 +18,27 @@ const assessment: Assessment = {
 };
 const document = { schema_version: 1, generated_at: assessment.evaluated_at, assessments: [assessment] };
 
+it("shows a supported short diagnosis in the existing Finding without escalation", () => {
+  render(<AssessmentDetails assessment={{ ...assessment,
+    escalation_required: false,
+    diagnosis: { method: "model", certainty: "likely", cause: "The linker could not find libamdhip64.", evidence_ids: ["E1"] },
+    notification: { github: { status: "sent", url: "https://github.com/owner/repo/issues/123" }, status: "sent" },
+  }} />);
+  expect(screen.getByText("Likely: The linker could not find libamdhip64.")).toBeVisible();
+  expect(screen.getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
+  expect(screen.queryByRole("link", { name: "View investigation" })).not.toBeInTheDocument();
+});
+
+it("shows investigation pending only for persisted accepted escalation", () => {
+  render(<AssessmentDetails assessment={{ ...assessment, escalation_required: true,
+    diagnosis: { method: "model", certainty: "unknown" },
+    notification: { github: { status: "sent", url: "https://github.com/owner/repo/issues/123" }, status: "sent" },
+  }} />);
+  expect(screen.getByText("Investigation pending.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "View investigation" })).toHaveAttribute("href", "https://github.com/owner/repo/issues/123");
+  expect(screen.queryByText("Team notified.")).not.toBeInTheDocument();
+});
+
 describe("optional persisted notification data", () => {
   it("keeps older datasets readable without fetching a notification document", async () => {
     const fetcher = vi.fn(fixtureFetch());

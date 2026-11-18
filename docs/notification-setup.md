@@ -36,6 +36,11 @@ mention settings. Verify secret existence by name without printing its value.
 
 ## Rollout
 
+Diagnosis has its own enable variable, approved runner, and reviewed model pilot.
+Configure it using [CI diagnosis](specs/ci-failure-diagnosis.md) before enabling
+analysis. Known rules run first; only unresolved actionable cases create team
+investigations. Diagnosis failure falls back to that same unresolved path.
+
 1. Verify `bug`, `upstream-incident`, and labels selected by
    `alert-rules.json.incident_labels`. Existing `engine:*` labels are reused.
 2. Protect the `notifications` environment with approved reviewers and main-only

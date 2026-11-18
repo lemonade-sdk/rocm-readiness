@@ -24,6 +24,13 @@ export const notificationsSchema = z.object({
     classification: z.enum(["expected", "explained_abnormal", "unexplained"]),
     summary: z.string(),
     explanation: z.string(),
+    escalation_required: z.boolean().optional(),
+    diagnosis: z.object({
+      method: z.enum(["model", "deterministic"]).optional(),
+      certainty: z.enum(["likely", "verified", "unknown"]),
+      cause: z.string().max(160).optional(),
+      evidence_ids: z.array(z.string()).optional(),
+    }).optional(),
     scope: z.object({
       repository: z.string().optional(), source_id: z.string().optional(),
       workflow: z.string().optional(), job: z.string().optional(),
@@ -89,13 +96,15 @@ export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
   const { dryRun } = useContext(Notifications);
   const dispatch = assessment.notification;
   const github = dispatch?.github.status;
-  const finding = assessment.classification === "unexplained"
+  const cause = assessment.diagnosis?.certainty !== "unknown" ? assessment.diagnosis?.cause : undefined;
+  const finding = cause ? `${assessment.diagnosis?.method === "model" ? "Likely: " : ""}${cause}`
+    : assessment.classification === "unexplained"
     ? assessment.summary : assessment.explanation;
   const githubText = dryRun ? "Preview only; no new notification sent."
-    : github === "sent" ? "Team notified." : null;
+    : github === "sent" ? assessment.escalation_required === true ? "Investigation pending." : "Team notified." : null;
   const needsInvestigation = (
     assessment.actionable || assessment.classification === "explained_abnormal"
-  ) && (githubText || dispatch?.github.url);
+  ) && assessment.escalation_required !== false && (githubText || dispatch?.github.url);
   return <div className="assessment-explanation">
     <dl>
       <dt>Finding</dt><dd>{finding}</dd>

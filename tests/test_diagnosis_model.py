@@ -31,6 +31,9 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(result["method"], "model")
         self.assertEqual(self.requests[0][1]["model"], DEFAULT_MODEL)
         self.assertNotIn("tools", self.requests[0][1])
+        self.assertEqual(self.requests[0][1]["temperature"], 0.7)
+        self.assertEqual(self.requests[0][1]["presence_penalty"], 1.5)
+        self.assertEqual(self.requests[0][1]["chat_template_kwargs"], {"enable_thinking": False})
 
     def test_read_tool_loop_and_new_citation(self):
         call = {"id": "call1", "type": "function", "function": {
@@ -44,7 +47,86 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(result["evidence_ids"], ["E2"])
         self.assertEqual(received, [{"start_line": 1, "max_lines": 20}])
         self.assertEqual(self.requests[1][1]["messages"][-1]["role"], "tool")
+        self.assertEqual(self.requests[0][1]["tool_choice"], "auto")
+        self.assertEqual(self.requests[1][1]["tool_choice"], "auto")
         self.assertLessEqual(sum(p[1]["max_tokens"] for p in self.requests), 1500)
+
+    def test_cached_tool_read_returns_reference_instead_of_empty_evidence(self):
+        call = {"id": "c", "function": {"name": "get_workflow", "arguments": "{}"}}
+        client = self.client([{"choices": [{"message": {"tool_calls": [call]}}]}, answer()])
+        result = client.diagnose(EVIDENCE, tools={"get_workflow": lambda: EVIDENCE})
+        self.assertEqual(result["certainty"], "likely")
+        content = json.loads(self.requests[1][1]["messages"][-1]["content"])
+        self.assertEqual(content["evidence"], [{"id": "E1", "already_provided": True}])
+
+    def test_assistant_context_is_preserved_when_it_also_requests_a_tool(self):
+        call = {"id": "c", "function": {"name": "get_workflow", "arguments": "{}"}}
+        client = self.client([{"choices": [{"message": {"content": "The header lookup failed; checking its build configuration.", "tool_calls": [call]}}]}, answer()])
+        client.diagnose(EVIDENCE, tools={"get_workflow": lambda: EVIDENCE})
+        self.assertEqual(self.requests[1][1]["messages"][-2]["content"], "The header lookup failed; checking its build configuration.")
+
+    def test_reported_generation_usage_leaves_room_for_final_tool_diagnosis(self):
+        call = {"id": "c", "function": {"name": "get_job_log", "arguments": "{}"}}
+        first = {"usage": {"completion_tokens": 125}, "choices": [{"message": {"tool_calls": [call]}}]}
+        final = answer() | {"usage": {"completion_tokens": 650}}
+        client = self.client([first, final])
+        result = client.diagnose(EVIDENCE, tools={"get_job_log": lambda: EVIDENCE})
+        self.assertEqual(result["certainty"], "likely")
+        self.assertGreaterEqual(self.requests[1][1]["max_tokens"], 650)
+
+    def test_generated_budget_never_exceeds_remaining_tokens(self):
+        call = {"id": "c", "function": {"name": "get_job_log", "arguments": "{}"}}
+        first = {"usage": {"completion_tokens": 950}, "choices": [{"message": {"tool_calls": [call]}}]}
+        client = self.client([first, answer()])
+        client.diagnose(EVIDENCE, tools={"get_job_log": lambda: EVIDENCE})
+        self.assertEqual(self.requests[1][1]["max_tokens"], 550)
+
+    def test_hidden_skip_variables_are_not_inferred_even_by_the_writer(self):
+        evidence = [{"id": "E1", "text": "if: vars.ENABLE_GPU == 'true'; historical value unavailable"}]
+        incident = {"observed": {"status": "skip"}}
+        client = self.client([answer(cause="ENABLE_GPU was false.")])
+        result = client.diagnose({"evidence": evidence, "incident": incident})
+        self.assertEqual(result["code"], "unsupported_output")
+        self.assertEqual(len(self.requests), 1)
+        guessed = {"method": "model", "certainty": "likely", "cause": "ENABLE_GPU was false.", "evidence_ids": ["E1"]}
+        self.assertFalse(validate_result(guessed, evidence, incident))
+        self.assertTrue(validate_result(guessed, evidence, {"observed": {"status": "fail"}}))
+        for reference in ["vars['ENABLE_GPU']", 'vars["ENABLE_GPU"]', "secrets.ENABLE_GPU"]:
+            self.assertFalse(validate_result(guessed, [{"id":"E1","text":reference}], incident))
+        paraphrase = guessed | {"cause": "GPU builds were disabled for this run."}
+        self.assertFalse(validate_result(paraphrase, [{"id":"E1","text":"if: vars['ENABLE_GPU'] == 'true'; historical value unavailable"}], incident))
+        gate = {"id":"E1", "kind":"workflow", "text":"needs: build\nif: vars['ENABLE_GPU'] == 'true'"}
+        skipped = {"id":"E2", "kind":"jobs", "text":json.dumps({"jobs":[{"conclusion":"skipped"}]})}
+        self.assertFalse(validate_result(paraphrase | {"evidence_ids":["E1","E2"]}, [gate,skipped], incident))
+        failed = skipped | {"text":json.dumps({"jobs":[{"conclusion":"failure"}]})}
+        self.assertTrue(validate_result(guessed | {"cause":"The required build job failed.","evidence_ids":["E1","E2"]}, [gate,failed], incident))
+        dependency = guessed | {"cause": "The required build job failed in the same run and attempt."}
+        self.assertTrue(validate_result(dependency, [{"id":"E1","text":"Deploy step uses secrets.GITHUB_TOKEN; build prerequisite failed."}], incident))
+
+    def test_non_object_usage_charges_allowance_without_discarding_valid_answer(self):
+        for usage in [None, [], "unknown", 5]:
+            result = self.client([answer() | {"usage": usage}]).diagnose(EVIDENCE)
+            self.assertEqual(result["certainty"], "likely")
+
+    def test_missing_interval_cannot_be_explained_by_absence_itself(self):
+        client = self.client([])
+        incident = {"status": "missing"}
+        result = client.diagnose({"evidence": EVIDENCE, "incident": incident})
+        self.assertEqual(result["code"], "missing_interval_evidence_unavailable")
+        self.assertEqual(self.requests, [])
+        guessed = {"method":"model", "certainty":"likely", "cause":"The scheduler did not run.", "evidence_ids":["E1"]}
+        self.assertFalse(validate_result(guessed,EVIDENCE,incident))
+
+    def test_status_metadata_alone_cannot_explain_a_failed_job(self):
+        metadata = [{"id":"E1", "kind":"jobs", "text":"Job conclusion=failure"}]
+        guessed = {"method":"model", "certainty":"likely", "cause":"The fixture explicitly failed with status failure.", "evidence_ids":["E1"]}
+        self.assertFalse(validate_result(guessed,metadata,{"observed":{"status":"fail"}}))
+
+    def test_unknown_extra_fields_are_discarded_without_publishing_them(self):
+        value = answer(cause="token=must-not-escape", certainty="unknown")
+        result = self.client([value]).diagnose(EVIDENCE)
+        self.assertEqual(result["code"], "insufficient_evidence")
+        self.assertNotIn("must-not-escape", json.dumps(result))
 
     def test_model_cannot_verify_or_invent_citations(self):
         for response in [answer(certainty="verified"), answer(ids=["not-present"]), answer(method="deterministic")]:

@@ -171,7 +171,8 @@ class EvidenceCollector:
             safe = (_trim(safe, chunk) + "\n[excerpt]\n" + _trim("\n".join(lines[i] for i in sorted(matches)), chunk)
                     + "\n[tail]\n" + safe.encode("utf-8")[-chunk:].decode("utf-8", errors="ignore")) if chunk else ""
         text = _trim(safe, remaining)
-        item = {"id": f"E{len(self.evidence) + 1}", "text": text, "url": url}
+        kind = "log" if (isinstance(key, tuple) or key == "log-initial") else key
+        item = {"id": f"E{len(self.evidence) + 1}", "text": text, "url": url, "kind": kind}
         self.bytes += len(text.encode("utf-8"))
         self.evidence.append(item)
         self.cache[key] = item
@@ -283,7 +284,15 @@ class EvidenceCollector:
             if self.provenance.get("job_id") and not any(job.get("id") == self.provenance["job_id"] for job in jobs):
                 raise EvidenceUnavailable("job_not_in_attempt")
             self.jobs = jobs
-            return result
+            # Job API envelopes contain large amounts of runner/URL boilerplate.
+            # Preserve all exact-attempt outcomes and failed steps for reasoning.
+            return {"run_id": run, "attempt": attempt, "jobs": [
+                {"id": job.get("id"), "name": job.get("name"),
+                 "status": job.get("status"), "conclusion": job.get("conclusion"),
+                 "failed_steps": [step.get("name") for step in job.get("steps", [])
+                                  if step.get("conclusion") == "failure"]}
+                for job in jobs
+            ]}
         return self._add("jobs", url, load)
 
     def _load_log(self):

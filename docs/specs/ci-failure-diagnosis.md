@@ -28,11 +28,24 @@ Missing builds cannot be explained by inventing a runner outage.
 
 `scripts/diagnosis_model.py` uses **Qwen3.6-35B-A3B-MTP-GGUF** through a loopback
 Lemonade server. Its read-tool loop has a 120-second deadline, at most five tool
-calls, and at most 1,500 requested output tokens in aggregate. Supported results
+calls, and at most 1,500 generated output tokens in aggregate. Each response can
+use up to 1,000 tokens; valid server usage deducts the tokens actually generated,
+including reasoning. Missing usage deducts the full requested allowance. Supported results
 contain a cause of at most 160 characters and valid numbered evidence references.
 Model certainty is `likely`, never `verified`; malformed, generic, unsupported,
 or unavailable output becomes `unknown`. Citation validation establishes source
 membership; real diagnosis accuracy requires a reviewed model evaluation.
+For skipped jobs, model claims about historical `vars` or `secrets` remain
+unresolved unless existing verified rules already explain them. Dot and bracket
+references are checked again at the trusted writer; an unrelated secret used by
+another step does not block an independently evidenced prerequisite explanation.
+The client uses Qwen's direct-answer sampling preset (temperature 0.7, top-p 0.8,
+presence penalty 1.5, thinking disabled). The Strix Halo pilot verified this API
+option and tool calls on Lemonade 11.9.0. Thinking mode sometimes exhausted the
+short budget on repetitive reasoning. The application preloads relevant logs and
+workflow evidence; the model requests additional reads only when needed. Repeated
+reads reference existing evidence IDs without discarding earlier assistant context.
+See the [model's sampling guidance](https://huggingface.co/Qwen/Qwen3.6-35B-A3B#best-practices).
 
 ## Publish findings, escalate unknowns
 
@@ -71,11 +84,13 @@ Before enabling, the runner owner must:
 2. Provision `lemond` **11.9.0**, Python 3.12 or later, curl, and a persistent cache
    path in `ROCM_READINESS_MODEL_CACHE`. Protect the `diagnosis` environment for
    trusted main-only execution. The runner script starts an isolated loopback
-   server, uses only its own PID for cleanup, and pulls the pinned model recipe.
+   server with isolated temporary user configuration, uses only its own PID for
+   cleanup, and pulls the pinned model recipe with a 32K Vulkan context.
 3. Run an authorized, reserved-runner evaluation before setting the enable variable.
    Check API/tool compatibility, thinking behavior, context/memory, latency,
    supported explanations, and correctly unresolved cases. The serving pattern
-   is demonstrated elsewhere; diagnosis accuracy has not been measured here.
+   must match the qualified recipe; fixture results and isolated public cases do
+   not establish broad production accuracy.
 
 Notification delivery retains its separate protected environment and enable flag.
 Disabling diagnosis makes no model requests; known rules still explain known

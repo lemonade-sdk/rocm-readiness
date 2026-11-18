@@ -133,7 +133,8 @@ test("upstream sub-pages preserve project and filter scope through navigation an
 test("overview day links restore the selected date and run evidence after reload", async ({ page }) => {
   await page.goto("./?track=upstream");
   const calendar = page.getByRole("region", { name: "llama.cpp activity calendar" });
-  await calendar.getByRole("link", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true }).click();
+  await calendar.getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true }).click();
+  await page.getByRole("link", { name: "View CI activity" }).click();
   await expect(page).toHaveURL(/view=ci/);
   await expect(page).toHaveURL(/day=2026-10-27/);
   await expect(page.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();

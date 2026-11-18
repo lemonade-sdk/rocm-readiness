@@ -1205,7 +1205,7 @@ main {
 .outcome-key-bar[data-outcome="fail"] { color: var(--bad); }
 .outcome-key-bar[data-outcome="warn"] { color: var(--warning); }
 .outcome-key-bar:is([data-outcome="unreported"], [data-outcome="pending"]) { color: var(--muted); background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px); }
-.table-status:is([data-outcome="not_run"], [data-outcome="pending"]) { background: color-mix(in srgb, var(--muted) 16%, var(--subpanel)); color: var(--muted); }
+.table-status:is([data-outcome="not_run"], [data-outcome="pending"], [data-outcome="running"], [data-outcome="cancelled"]) { background: color-mix(in srgb, var(--muted) 16%, var(--subpanel)); color: var(--muted); }
 
 /* Align app identity with the workspace rail and page heading with content. */
 @media (min-width: 1280px) {

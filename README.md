@@ -36,6 +36,7 @@ data; failed runs preserve the last good pointer and report errors in sync statu
 - [Data pipeline](docs/data-pipeline.md): source setup, adapters, channels, and package mappings.
 - [Upstream health](docs/upstream-health.md): sources.json, collection rules, the upstream badge and local runs.
 - [Data publication](docs/data-publication.md): runtime files and ROCm directory names.
+- [Build-issue notifications](docs/notifications.md): post-collection build alerts, delivery state, and safe setup.
 - [JSON reference](docs/reference/README.md): field contracts, source mappings, and validation.
 - [Dashboard UI](ui/README.md): local browser preview, static build and UI checks.
 - [Signal Deck design language](docs/ui-design-reference.md) governs dashboard UI changes.

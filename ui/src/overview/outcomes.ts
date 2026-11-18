@@ -3,11 +3,13 @@ export const tableOutcomes = {
   pass: { glyph: "✓", label: "Pass" },
   warn: { glyph: "!", label: "Warn" },
   fail: { glyph: "×", label: "Fail" },
-  skip: { glyph: "–", label: "Skipped" },
+  skip: { glyph: "↷", label: "Skipped" },
   not_applicable: { glyph: "∕", label: "Not applicable" },
-  unreported: { glyph: "?", label: "Unreported" },
+  unreported: { glyph: "—", label: "No observation" },
   not_run: { glyph: "□", label: "Requested, no runs" },
-  pending: { glyph: "○", label: "No pass or fail result" },
+  pending: { glyph: "○", label: "Nonbinary result (see evidence)" },
+  running: { glyph: "◷", label: "Running" },
+  cancelled: { glyph: "⊘", label: "Cancelled" },
 } as const;
 
 export type TableOutcome = keyof typeof tableOutcomes;

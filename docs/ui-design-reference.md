@@ -359,17 +359,20 @@ applies to every project, including empty and partially collected projects.
 | Pass | ✓ | Recorded results passed |
 | Warn | ! | Recorded warning; explain its meaning in the evidence |
 | Fail | × | At least one recorded failure |
-| Skipped | – | The job/check was explicitly skipped |
+| Skipped | ↷ | The job/check was explicitly skipped; collected evidence, not absence |
 | Not applicable | ∕ | The check does not apply |
-| Unreported | ? | Evidence is unavailable or unreported |
+| No observation | — | No observation or qualification verdict was collected for this scope |
 | Requested, no runs | □ | A requested job never ran; not a failed execution |
-| Pending / undecided | ○ | Collected activity has no final pass/fail verdict |
+| Nonbinary result | ○ | Collected activity has no binary verdict; consult evidence, not necessarily pending |
+| Running | ◷ | An observed run has not completed |
+| Cancelled | ⊘ | The source explicitly recorded cancellation |
 
 Use the same compact wrapping legend layout beneath each related table or chart.
 Cell legends show the same tinted block and glyph as their cells; stacked-bar
 legends use matching outcome swatches. Keep skipped, unreported, pending and
-requested-but-unrun evidence neutral. Do not reuse the skipped dash for missing
-evidence, or the not-applicable slash for running jobs. Give icons accessible
+requested-but-unrun evidence neutral. The neutral em dash replaces both the former
+readiness “No data” text and upstream question mark. Skips use a distinct turn arrow;
+never reuse the not-applicable slash for running jobs. Give icons accessible
 labels through the cell, control or tooltip, and keep the legend labels visible.
 
 Domain labels may clarify what an outcome means, without changing its glyph or
@@ -377,8 +380,24 @@ color role. Package qualification uses the established check labels. Coverage
 uses “Observed” and “Not observed / unreported,” with unknown evidence remaining
 neutral. Upstream Overview retains explicitly labeled pass-rate bands; these are
 aggregates, not individual job verdicts. In the CI jobs table, any recorded
-failure renders Fail, while running/other undecided results render Pending.
+failure renders Fail; mixed running/other aggregates use the nonbinary symbol and
+explicit “Running / other recorded result” wording. Individual evidence distinguishes
+running, cancellation and other source conclusions.
 No project gets its own icon set, legend layout or tooltip format.
+
+Place a domain-specific legend directly below every overview calendar. Readiness
+labels refer to qualification; upstream bands refer to decided-run pass rates.
+No decided tests is unavailable, never 0% passing. Do not add impossible graph states.
+No-observation controls support hover, focus and touch through shared evidence
+surfaces. Include UTC date, track/job/platform and snapshot freshness; keep the basic
+observation concise. Observed state remains separate from assessment classification
+(expected/normal, explained abnormal, unexplained). Absence does not prove a daily
+schedule, retirement, hardware outage or hidden workflow condition.
+
+Only exact-scope persisted assessments supply causes and investigation URLs.
+Collection incompleteness must not be relabeled producer inactivity. Team-notified
+wording requires persisted GitHub `sent`; acceptance does not imply reading or
+acknowledgment. Show unavailable notification data honestly.
 
 Use the declarative heading **Failing steps on main** for the failure ranking.
 
@@ -398,6 +417,12 @@ and collection window, rather than using the present-tense “tests not running�
 
 Overview pages keep the calendars prominent: omit publication-summary lines beneath
 readiness calendars and per-project aggregate metric lines on Upstream Overview.
+Put incident notification status and its investigation link inside the matching
+status element's hover/focus/touch evidence; do not add a page-level incident panel.
+Keep healthy tooltips and navigation unchanged. Use one Finding sentence and an
+Investigation row in the shared grid only for relevant abnormal results, without generic
+fallback copy or repeated footnotes. Missing titles use `YYYY-MM-DD · Platform`.
+Calendar markers have no link-like underline; preserve accessible names and focus.
 CI Activity retains detailed project metrics. Upstream status labels use plain text
 and a small square status marker, without pill backgrounds. DevLab detail triggers
 have no dotted underline; retain hover details and visible keyboard focus.

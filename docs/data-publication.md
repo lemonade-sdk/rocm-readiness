@@ -15,6 +15,9 @@ all other dataset paths relative to that index URL. Refresh by reading the point
 again. `latest.json.sync` and the live `main/data/sync.json` report the latest
 ingestion attempt and any errors. Files read through the pinned index URL describe
 that successful dataset, including its original sync status.
+When present, `latest.json.notifications_url` identifies live, recipient-free
+incident assessments independently of that pinned dataset. See
+[notifications](notifications.md) for dispatch policy and operational setup.
 
 ## Published files
 
@@ -27,6 +30,8 @@ that successful dataset, including its original sync status.
 | `rocm/<version>/history/YYYY-MM.json` | All retained build records for that version and calendar month, including engine, channel, date, qualification results, and evidence links. |
 | `rocm/<version>/performance.json` | Model measurement history and hardware for one ROCm version, with workload, metrics, and verified package associations. |
 | `sync.json` | Live ingestion status: attempt time, success/failure, last successful time, and errors. Updated alongside `latest.json` on success and failure. |
+| `notifications.json` | Live evidence assessments and independent GitHub/email dispatch states; never recipient configuration. |
+| `notification-state.json` | Public incident identity/lifecycle and delivery retry ledger, preserved across dataset replacement. |
 | `upstream/overview.json` | Upstream health: one card per configured project with its computed badge, per-job daily aggregates, merge gate and platforms. Referenced from `index.json` `upstream`. See [Upstream health](upstream-health.md). |
 | `upstream/<project>/ci/YYYY-MM.json` | Every retained default-branch job execution for that project and month, with result, failing step, queue wait, links and merge verdict. |
 

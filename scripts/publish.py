@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 if __package__:
+    from .notifications import validate_document, validate_state
     from .execution_dataset import validate_execution_file
     from .dataset import (
         _load_previous,
@@ -22,6 +23,7 @@ if __package__:
     from .sync import load_last_success
     from .upstream import validate_upstream_dataset
 else:
+    from notifications import validate_document, validate_state
     from execution_dataset import validate_execution_file
     from dataset import (
         _load_previous,
@@ -150,6 +152,18 @@ def manifest(root, allow_legacy=False):
             from conformance import validate_dataset
         validate_dataset(root, check_live_pointer=False)
     paths = {"index.json"}
+    if "notifications" in index:
+        if index["notifications"] != "notifications.json":
+            raise ValueError("invalid notifications path")
+        validate_document(read_json(checked(root, "notifications.json")))
+        paths.add("notifications.json")
+    for filename, validate in (
+        ("notifications.json", validate_document),
+        ("notification-state.json", validate_state),
+    ):
+        if (root / filename).exists():
+            validate(read_json(checked(root, filename)))
+            paths.add(filename)
     if "release_inventory" in index:
         paths.add(index["release_inventory"])
     for item in index["versions"]:
@@ -526,6 +540,25 @@ def publish(
         if success:
             git(root, "switch", "-c", "dashboard-data")
             data_root = root / "data"
+            live_notifications = {}
+            for filename, validate in (
+                ("notifications.json", validate_document),
+                ("notification-state.json", validate_state),
+            ):
+                if (data_root / filename).exists():
+                    try:
+                        live_notifications[filename] = validate(
+                            read_json(checked(data_root, filename))
+                        )
+                    except (ValueError, TypeError, KeyError, OSError):
+                        print(
+                            f"Invalid notification sidecar {filename}; "
+                            "producer publication continues, notification recovery required.",
+                            file=sys.stderr,
+                        )
+                        live_notifications["notification-state.json"] = {
+                            "schema_version": 1, "incidents": {}, "blocked": True,
+                        }
             if data_root.exists():
                 if not data_root.is_dir():
                     raise ValueError("unsafe data directory")
@@ -540,6 +573,8 @@ def publish(
                     write(target, index)
                 else:
                     shutil.copyfile(checked(dataset, relative), target)
+            for filename, document in live_notifications.items():
+                write(data_root / filename, document)
             write(data_root / "sync.json", {"schema_version": 1, "sync": sync})
             git(root, "add", "-f", "-A", "--", "data")
             git(root, "commit", "--allow-empty", "-qm", "Stage dashboard data")
@@ -557,6 +592,10 @@ def publish(
             "index_url": prior["index_url"],
             "sync": sync,
         }
+        if (root / "data/notifications.json").is_file():
+            latest["notifications_url"] = (
+                f"https://raw.githubusercontent.com/{repository}/main/data/notifications.json"
+            )
         if (root / "data/sync.json").is_symlink():
             raise ValueError("unsafe sync status file")
         write(root / "data/latest.json", latest)

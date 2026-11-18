@@ -63,6 +63,7 @@ const pointerSchema = z.object({
     .regex(/^[a-f0-9]{40}$/)
     .nullable(),
   index_url: z.string().nullable(),
+  notifications_url: z.literal("https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/notifications.json").optional(),
   sync: syncSchema,
 });
 const httpsUrl = z.url({ protocol: /^https$/ });
@@ -86,6 +87,7 @@ const indexSchema = z.object({
   generated_at: time,
   default_version: z.string().nullable(),
   readiness: z.object({ stable_anchor: z.string().min(1) }).optional(),
+  notifications: z.string().optional(),
   sources: z
     .array(
       z.object({

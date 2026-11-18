@@ -5,6 +5,10 @@ import { useUtcToday } from "./overview/useUtcToday";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
 import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
+import { OutcomeLegend } from "./overview/OutcomeLegend";
+import { EvidenceRegion } from "./overview/EvidenceRegion";
+import { CellExplanation, type AssessmentScope } from "./notifications";
+import sources from "../../sources.json";
 import {
   buildDate,
   buildIdentity,
@@ -38,13 +42,16 @@ function BuildMark({ build, packages, measurementCounts, measurementStatus }: {
   measurementStatus?: string;
 }) {
   const outcome = qualificationOutcome(build);
-  const mark = outcome === "pass" && build.overall === "warn" ? "warn" : outcome;
-  const status = outcome === null ? "Evidence unavailable" : outcome === "fail" ? "Failed"
+  const mark = outcome === "pass" && build.overall === "warn" ? "warn" : outcome ??
+    (build.build_result === "cancelled" ? "cancelled" : build.build_result === "skipped" ? "skip" : null);
+  const status = outcome === null ? build.build_result === "cancelled" ? "Cancelled · qualification unavailable"
+    : build.build_result === "skipped" ? "Skipped · qualification unavailable" : "Evidence unavailable" : outcome === "fail" ? "Failed"
     : build.overall === "warn" ? "Qualified with warnings" : "Qualified";
   const label = `${build.tag ?? build.build_id} · ${build.build_id} · ${platformLabel(build.os)} · ${build.generated_at} · ${status}`;
   const measurementCount = packages.reduce((sum, item) => sum + (measurementCounts?.get(buildIdentity(item)) ?? 0), 0);
   const failureReasons = [...new Set([...(build.blocked_by ?? []), ...(build.blocking_tests ?? []),
     ...Object.entries(build.results ?? {}).filter(([, result]) => ["fail", "failed", "error"].includes(result.toLowerCase())).map(([test]) => `${test} failed`)])];
+  const needsExplanation = mark !== "pass" || ["fail", "cancelled", "skipped"].includes(build.build_result ?? "");
   return <Tooltip side interactive
     to={qualificationBuildHref(build, "day")}
     label={`Open package qualification · ${label}${packages.length > 1 ? ` · ${packages.length} packages` : ""}`}
@@ -60,9 +67,26 @@ function BuildMark({ build, packages, measurementCounts, measurementStatus }: {
         <dt>Produced</dt><dd>{producedAt(build.generated_at)}</dd>
         <dt>Measured</dt><dd>{measurementCount ? `${measurementCount} benchmark ${measurementCount === 1 ? "measurement" : "measurements"}` : measurementStatus || "No matched measurements"}</dd>
       </dl>
+      {needsExplanation && <CellExplanation scope={readinessScope(build.engine, build.channel, build.rocm_version, build.os, buildDate(build), build.source_id ?? undefined, build.gfx_target ?? undefined)} />}
       <Link className="overview-summary-details" to={qualificationBuildHref(build, "day")}>View qualification details</Link>
     </TooltipContent>}
   ><BuildOutcomeIcon outcome={mark} /></Tooltip>;
+}
+
+function readinessScope(engine: string, channel: string, version: string, platform: string, date: string, sourceId?: string, target?: string): AssessmentScope & { date: string; platform: string } {
+  const configured = sources.sources.filter((source) => source.engine === engine && source.channel === channel && source.adapter === "qualification-v1");
+  const source = sourceId ? sources.sources.find((source) => source.id === sourceId) : configured.length === 1 ? configured[0] : undefined;
+  return { source_id: sourceId ?? source?.id, repository: source?.repository, rocm_version: version, channel, platform, target, date };
+}
+
+function MissingBuild({ scope }: { scope: ReturnType<typeof readinessScope> }) {
+  const label = `${scope.date} UTC · ROCm ${scope.rocm_version} ${scope.channel} · ${platformLabel(scope.platform)} · No observation`;
+  return <Tooltip side interactive label={label} triggerClassName="build-no-data"
+    content={<TooltipContent heading={`${scope.date} · ${platformLabel(scope.platform)}`} status="No observation">
+      <CellExplanation scope={scope} observation="No qualification result collected for this date." missingObservation />
+    </TooltipContent>}>
+    <BuildOutcomeIcon outcome="unreported" />
+  </Tooltip>;
 }
 
 export function EngineOverview({
@@ -141,6 +165,7 @@ export function EngineOverview({
                     )}
                   </div>
                   {platforms.length > 0 && (
+                    <EvidenceRegion>
                     <div
                       className="build-timeline-scroll calendar-surface"
                       tabIndex={0}
@@ -157,7 +182,7 @@ export function EngineOverview({
                             const verdict = latest ? qualificationOutcome(latest) : null;
                             const status = verdict === "pass" && latest?.overall === "warn" ? "warn" : verdict;
                             return <td key={os} className="table-status" data-outcome={latest ? status ?? "unreported" : undefined}>
-                              {latest ? <BuildMark build={latest} packages={dayBuilds} measurementCounts={measurementCounts} measurementStatus={measurementStatus} /> : <span className="build-no-data">No data</span>}
+                              {latest ? <BuildMark build={latest} packages={dayBuilds} measurementCounts={measurementCounts} measurementStatus={measurementStatus} /> : <MissingBuild scope={readinessScope(engine.id, channel, version, os, day)} />}
                             </td>;
                           })}
                         </tr>)}</tbody>
@@ -248,7 +273,7 @@ export function EngineOverview({
                                             measurementStatus={measurementStatus}
                                           />
                                         ) : (
-                                          <span className="build-no-data">No data</span>
+                                          <MissingBuild scope={readinessScope(engine.id, channel, version, os, day)} />
                                         )}
                                       </div>
                                     </td>
@@ -260,6 +285,13 @@ export function EngineOverview({
                         </tbody>
                       </table>}
                     </div>
+                  <OutcomeLegend label={`${engine.label} ${channel} qualification legend`} className="calendar-legend" items={[
+                    { outcome: "pass", label: "Qualified" }, { outcome: "warn", label: "Qualified with warnings" },
+                    { outcome: "fail", label: "Not qualified" }, { outcome: "unreported", label: "No qualification observation" },
+                    ...(channelBuilds.some((build) => qualificationOutcome(build) === null && build.build_result === "cancelled") ? [{ outcome: "cancelled" as const, label: "Cancelled build job" }] : []),
+                    ...(channelBuilds.some((build) => qualificationOutcome(build) === null && build.build_result === "skipped") ? [{ outcome: "skip" as const, label: "Skipped build job" }] : []),
+                  ]} />
+                    </EvidenceRegion>
                   )}
                 </section>
               );

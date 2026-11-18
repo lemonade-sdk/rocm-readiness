@@ -1175,7 +1175,7 @@ main {
   background: color-mix(in srgb, var(--status-ink, var(--muted)) var(--status-tint, 16%), var(--subpanel));
   color: var(--status-ink, var(--muted));
 }
-.table-status-glyph { font: 700 .8rem/1 ui-monospace, monospace; }
+.table-status-glyph { display: inline-block; width: 1rem; height: 1rem; flex-shrink: 0; vertical-align: middle; }
 
 .workspace-build-details {
   margin-inline-start: .65rem;

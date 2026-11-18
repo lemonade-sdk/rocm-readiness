@@ -152,7 +152,7 @@ it("flags a platform that ships without an AMD hardware test", async () => {
   mount("/?track=upstream&project=llamacpp");
   const platforms = await screen.findByRole("region", { name: "Platforms" });
   const windows = within(platforms).getByRole("row", { name: /Windows/ });
-  expect(windows).toHaveTextContent("—");
+  expect(windows.querySelector('svg[data-outcome="unreported"]')).toHaveAttribute("aria-hidden", "true");
 });
 
 it("explains a dataset published before the upstream view existed", async () => {
@@ -593,11 +593,11 @@ it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and leg
   const table = await screen.findByRole("table", { name: "CI jobs" });
   const failure = within(table).getByRole("button", { name: "gpu-rocm · 2026-10-27: 19 passed, 1 failed of 20 runs" });
   expect(failure.closest("td")).toHaveAttribute("data-outcome", "fail");
-  expect(failure).toHaveTextContent("×");
+  expect(failure.querySelector('svg[data-outcome="fail"]')).toHaveAttribute("aria-hidden", "true");
   const skipped = within(table).getByRole("button", { name: "models-check vulkan-amd · 2026-10-28: 8 skipped" });
-  expect(skipped).toHaveTextContent("↷");
+  expect(skipped.querySelector('svg[data-outcome="skip"]')).toHaveAttribute("aria-hidden", "true");
   const legend = screen.getByRole("list", { name: "CI job outcomes" });
-  expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/↷.*Skipped/);
+  expect(within(legend).getByText("Skipped").closest("li")?.querySelector('svg[data-outcome="skip"]')).toBeInTheDocument();
 });
 
 it("formats CI job metadata as labeled qualification-style details", async () => {

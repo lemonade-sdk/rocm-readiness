@@ -92,7 +92,7 @@ it("expands missing evidence by touch outside the phone calendar and restores fo
 it("distinguishes source cancellation from no observation without turning it into qualification failure", async () => {
   mount([build({ build_result: "cancelled", qualified: null })]);
   const recorded = screen.getByRole("link", { name: /Cancelled · qualification unavailable/ });
-  expect(recorded).toHaveTextContent("⊘");
+  expect(recorded.querySelector('svg[data-outcome="cancelled"]')).toHaveAttribute("aria-hidden", "true");
   fireEvent.focus(recorded);
   expect(await screen.findByText("cancelled", { exact: true })).toBeVisible();
   expect(screen.getByRole("list", { name: /qualification legend/ })).toHaveTextContent("Cancelled build job");

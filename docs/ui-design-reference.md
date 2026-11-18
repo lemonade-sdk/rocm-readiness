@@ -353,6 +353,10 @@ Use [the shared outcome registry](../ui/src/overview/outcomes.ts),
 [OutcomeLegend](../ui/src/overview/OutcomeLegend.tsx) for new evidence tables and
 charts. Do not introduce local glyph maps or handwritten legend markup. This
 applies to every project, including empty and partially collected projects.
+Render status symbols as the shared inline SVGs: a centered 24 × 24 viewBox,
+2.3-unit rounded strokes and a consistent 1rem display box. Circular outcomes
+share an 8-unit radius. Inherit the status color; keep each icon decorative
+with its accessible name supplied by the owning cell, control or legend.
 
 | Outcome | Glyph | Meaning |
 | --- | --- | --- |

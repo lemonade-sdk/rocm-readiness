@@ -560,6 +560,58 @@
         "verdict": "passed",
         "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44112166201/job/134140404183"
       }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "44330509546",
+      "job_id": "134893348221",
+      "attempt": 1,
+      "day": "2026-11-18",
+      "created_at": "2026-11-18T15:00:05Z",
+      "completed_at": "2026-11-18T15:01:02Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "6680804f99c3982b7d59f27ae315ce880570017e",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 11,
+      "runner": "ephemeral-devlab-x2-la03-s03-d07-134893348221",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44330509546/job/134893348221",
+      "pr": {
+        "number": 4188,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4188",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44284492542/job/134733509656"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "44330509546",
+      "job_id": "134893347170",
+      "attempt": 1,
+      "day": "2026-11-18",
+      "created_at": "2026-11-18T15:00:05Z",
+      "completed_at": "2026-11-18T15:02:08Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "6680804f99c3982b7d59f27ae315ce880570017e",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 18,
+      "runner": "ephemeral-devlab-x2-la03-s05-d02-134893347170",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44330509546/job/134893347170",
+      "pr": {
+        "number": 4188,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4188",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44284492542/job/134733509448"
+      }
     }
   ],
   "scanned_runs": [
@@ -577,6 +629,7 @@
     "43383130159#1@2026-11-13",
     "43813934917#1@2026-11-16",
     "44128307152#1@2026-11-17",
-    "44246573472#1@2026-11-18"
+    "44246573472#1@2026-11-18",
+    "44330509546#1@2026-11-18"
   ]
 }

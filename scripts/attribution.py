@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import subprocess
+import time
 from urllib.parse import urlparse
 
 if __package__:
@@ -230,9 +231,14 @@ def _matches(row, evidence):
 
 
 def _gh(args):
-    process = subprocess.run(
-        ["gh", *args], capture_output=True, text=True, timeout=60, check=False
-    )
+    for attempt in range(3):
+        process = subprocess.run(
+            ["gh", *args], capture_output=True, text=True, timeout=60, check=False
+        )
+        transient = re.search(r"\bHTTP (500|502|503|504)\b", process.stderr)
+        if process.returncode == 0 or not transient or attempt == 2:
+            break
+        time.sleep(2 ** attempt)
     if process.returncode:
         http_status = re.search(r"HTTP [0-9]{3}", process.stderr)
         raise OSError(

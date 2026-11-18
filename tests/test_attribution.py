@@ -2,8 +2,11 @@ import copy
 import hashlib
 import json
 import unittest
+from unittest.mock import patch
+import subprocess
 
 from scripts.attribution import (
+    _gh,
     attribute_stable,
     resolve_package,
     validate_measurement_package,
@@ -791,3 +794,34 @@ class AttributionTests(unittest.TestCase):
                 {"measurements": [measurement(engine_version="b11513")]},
                 [explicit, conflict],
             )
+
+
+class GitHubEvidenceRetryTests(unittest.TestCase):
+    def test_temporary_errors_retry_then_return_evidence(self):
+        for status in (500, 502, 503, 504):
+            with (
+                self.subTest(status=status),
+                patch("scripts.attribution.subprocess.run") as run,
+                patch("time.sleep") as sleep,
+            ):
+                run.side_effect = [
+                    subprocess.CompletedProcess([], 1, "", f"HTTP {status}"),
+                    subprocess.CompletedProcess([], 0, "evidence", ""),
+                ]
+                self.assertEqual(_gh(["api", "repos/a/b/actions/jobs/1/logs"]), "evidence")
+                self.assertEqual(run.call_count, 2)
+                sleep.assert_called_once()
+
+    def test_retries_are_bounded_and_permanent_errors_are_not_retried(self):
+        for status, attempts in ((502, 3), (401, 1), (403, 1), (404, 1)):
+            with (
+                self.subTest(status=status),
+                patch("scripts.attribution.subprocess.run") as run,
+                patch("time.sleep"),
+            ):
+                run.return_value = subprocess.CompletedProcess(
+                    [], 1, "", f"HTTP {status}"
+                )
+                with self.assertRaisesRegex(OSError, f"HTTP {status}"):
+                    _gh(["api", "repos/a/b/actions/jobs/1/logs"])
+                self.assertEqual(run.call_count, attempts)

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { fixtureFetch, index, indexUrl, pointer } from "../src/fixtures";
 import { upstreamOverview } from "../src/upstream/fixtures";
 import type { UpstreamOverview } from "../src/upstream/data";
@@ -15,6 +15,21 @@ const assessment = {
     email: { status: "disabled" }, status: "pending",
   },
 };
+
+async function expectConsistentStatusIconSize(page: Page) {
+  const sizes = await page.locator("svg.table-status-glyph:visible").evaluateAll((icons) => {
+    const expected = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return icons.map((icon) => {
+      const { width, height } = icon.getBoundingClientRect();
+      return { outcome: icon.getAttribute("data-outcome"), width, height, expected };
+    });
+  });
+  expect(sizes.length).toBeGreaterThan(0);
+  for (const { outcome, width, height, expected } of sizes) {
+    expect(width, `${outcome} icon width`).toBeCloseTo(expected, 1);
+    expect(height, `${outcome} icon height`).toBeCloseTo(expected, 1);
+  }
+}
 
 test.use({ hasTouch: true });
 for (const theme of ["light", "dark"] as const) {
@@ -77,7 +92,8 @@ for (const theme of ["light", "dark"] as const) {
         await page.mouse.move(0, 0);
       }
       const missing = page.getByRole("button", { name: "2026-11-02 UTC · ROCm 10.1 stable · Linux · No observation", exact: true });
-      await expect(missing).toHaveText("—");
+      await expect(missing.locator('svg[data-outcome="unreported"]')).toBeVisible();
+      await expectConsistentStatusIconSize(page);
       await expect(missing).toHaveCSS("text-decoration-line", "none");
       await expect(page.locator("details.notification-summary")).toHaveCount(0);
       await expect(page.getByText("Team notified.")).toHaveCount(0);
@@ -117,7 +133,8 @@ for (const theme of ["light", "dark"] as const) {
         await page.mouse.move(0, 0);
       }
       const upstreamMissing = calendar.getByRole("button", { name: "2026-10-26: No observation", exact: true }).first();
-      await expect(upstreamMissing).toHaveText("—");
+      await expect(upstreamMissing.locator('svg[data-outcome="unreported"]')).toBeVisible();
+      await expectConsistentStatusIconSize(page);
       if (width > 540) await upstreamMissing.hover();
       else await upstreamMissing.tap();
       const upstreamEvidence = width <= 540

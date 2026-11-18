@@ -1005,8 +1005,10 @@ def collect(
     evidence = list(package_evidence or [])
     previous_measurements = []
     system_matches = None
-    if readiness_previous is not None:
-        _, prior_measurements, prior_systems = _load_previous(readiness_previous)
+    # Reuse attribution only for matching observations, independently of whether
+    # old readiness rows may be carried into the current snapshot.
+    if previous_data is not None:
+        _, prior_measurements, prior_systems = _load_previous(previous_data)
         current_systems = {
             (system["source_id"], system["id"]): system for system in output["systems"]
         }
@@ -1032,7 +1034,10 @@ def collect(
     )
     if output["executions"]:
         execution_output = {"measurements": output["executions"]}
-        attribute_stable(execution_output, output["package_evidence"], resolve_packages)
+        attribute_stable(
+            execution_output, output["package_evidence"], resolve_packages,
+            previous_measurements, system_matches,
+        )
         output["package_evidence"] = execution_output["package_evidence"]
         output["executions"] = select_latest(output["executions"], per_version=True)
     for field in ("builds", "measurements", "executions"):

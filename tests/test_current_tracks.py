@@ -55,6 +55,7 @@ class CurrentTracksTests(unittest.TestCase):
         nightly=("10.2.0a20261027", "10.3.0a20261027", "10.10.0a20261027"),
         previous=None,
         performance=False,
+        reuse_evidence=False,
     ):
         def document(versions, is_nightly):
             d = fixture("llama.json")
@@ -139,13 +140,17 @@ class CurrentTracksTests(unittest.TestCase):
                 return perf
             raise AssertionError(url)
 
+        def unexpected_lookup(row):
+            raise AssertionError("unchanged evidence must not be fetched")
+
         return collect(
             config,
             root,
             fetch=fetch,
             now="2026-10-29T12:00:00Z",
             previous_data=previous,
-            package_evidence=[proof] if performance else None,
+            package_evidence=[proof] if performance and not reuse_evidence else None,
+            resolve_packages=unexpected_lookup if reuse_evidence else None,
         )
 
     def test_selects_next_two_tracks_numerically_and_preserves_exact_failed_sdk(self):
@@ -285,3 +290,19 @@ class CurrentTracksTests(unittest.TestCase):
             path.write_text(json.dumps(d))
             with self.assertRaises(PipelineValidationError):
                 validate_dataset(root, self.config(), check_live_pointer=False)
+
+    def test_current_snapshot_reuses_verified_package_without_restoring_old_tracks(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.run_collection(root / "previous", stable=("10.0",), performance=True)
+            out = self.run_collection(
+                root / "current", previous=root / "previous",
+                performance=True, reuse_evidence=True,
+            )
+            self.assertTrue(out["measurements"])
+            self.assertFalse(any(row["rocm_version"] == "10.0" for row in out["builds"]))
+            self.assertTrue(all(row.get("package_url") for row in out["measurements"]))
+            self.assertEqual(
+                [v["rocm_version"] for v in out["dataset"]["versions"]],
+                ["10.1", "10.2.0", "10.3.0"],
+            )

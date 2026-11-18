@@ -24,7 +24,7 @@ it("shows a supported short diagnosis in the existing Finding without escalation
     diagnosis: { method: "model", certainty: "likely", cause: "The linker could not find libamdhip64.", evidence_ids: ["E1"] },
     notification: { github: { status: "sent", url: "https://github.com/owner/repo/issues/123" }, status: "sent" },
   }} />);
-  expect(screen.getByText("Likely: The linker could not find libamdhip64.")).toBeVisible();
+  expect(screen.getByText("The linker could not find libamdhip64.")).toBeVisible();
   expect(screen.getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
   expect(screen.queryByRole("link", { name: "View investigation" })).not.toBeInTheDocument();
 });

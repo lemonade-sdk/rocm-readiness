@@ -419,7 +419,8 @@ Overview pages keep the calendars prominent: omit publication-summary lines bene
 readiness calendars and per-project aggregate metric lines on Upstream Overview.
 Put incident notification status and its investigation link inside the matching
 status element's hover/focus/touch evidence; do not add a page-level incident panel.
-Keep healthy tooltips and navigation unchanged. Use one Finding sentence and an
+Keep healthy tooltips and navigation unchanged. Findings show direct cause text
+without a confidence prefix. Use one Finding sentence and an
 Investigation row in the shared grid only for relevant abnormal results, without generic
 fallback copy or repeated footnotes. Missing titles use `YYYY-MM-DD · Platform`.
 Calendar markers have no link-like underline; preserve accessible names and focus.

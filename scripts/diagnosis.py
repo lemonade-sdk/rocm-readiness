@@ -61,7 +61,7 @@ def supported_result(result, evidence, incident=None, provenance=None):
 def _apply(assessment, result):
     assessment["diagnosis"] = {key: result[key] for key in
                                 ("method", "certainty", "cause", "evidence_ids")}
-    assessment["explanation"] = ("Likely: " if result["method"] == "model" else "") + result["cause"]
+    assessment["explanation"] = result["cause"]
     assessment["escalation_required"] = False
 
 

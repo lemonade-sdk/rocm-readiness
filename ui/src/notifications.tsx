@@ -97,7 +97,7 @@ export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
   const dispatch = assessment.notification;
   const github = dispatch?.github.status;
   const cause = assessment.diagnosis?.certainty !== "unknown" ? assessment.diagnosis?.cause : undefined;
-  const finding = cause ? `${assessment.diagnosis?.method === "model" ? "Likely: " : ""}${cause}`
+  const finding = cause ? cause
     : assessment.classification === "unexplained"
     ? assessment.summary : assessment.explanation;
   const githubText = dryRun ? "Preview only; no new notification sent."

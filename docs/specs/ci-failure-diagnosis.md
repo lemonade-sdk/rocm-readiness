@@ -75,7 +75,8 @@ See the [model's sampling guidance](https://huggingface.co/Qwen/Qwen3.6-35B-A3B#
 
 `scripts/diagnosis.py` runs known rules before inference and sets
 `escalation_required` independently from qualification/actionability. A supported
-cause appears in the existing Finding, prefixed “Likely:” for model output.
+cause appears as a direct, concise sentence in the existing Finding. Model
+provenance and certainty remain in the retained data without a visible prefix.
 Unresolved actionable cases create/reuse the ordinary deduplicated GitHub issue.
 After saved GitHub acceptance the UI shows “Investigation pending.” and the issue
 link. Failed delivery does not claim an issue was accepted. Healthy tooltips gain

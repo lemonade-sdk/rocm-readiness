@@ -19,7 +19,7 @@ See [alert rules](alert-rules.md) for classifications and
   labels. All configured targets are mentioned in the initial body; no automatic
   assignment is performed.
 - Matching status tooltips add one concise Finding sentence and an Investigation row with the
-  exact issue link. Supported model explanations use “Likely:”; accepted unresolved
+  exact issue link. Supported explanations use direct cause text; accepted unresolved
   escalations show “Investigation pending.” Healthy tooltips stay unchanged. Pending/failed dispatch must
   never claim the team was notified; transient creation/retry states stay in CI
   logs and persisted data, not tooltip messages.

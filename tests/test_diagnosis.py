@@ -68,7 +68,7 @@ class DiagnosisTests(unittest.TestCase):
             for _ in range(2):
                 result = prepare_assessments([assessment()], enabled=True, collector=Collector(), client=client, cache_path=cache)[0]
                 self.assertFalse(result["escalation_required"])
-                self.assertEqual(result["explanation"], "Likely: The compiler ran out of memory.")
+                self.assertEqual(result["explanation"], "The compiler ran out of memory.")
             self.assertEqual(client.calls, 1)
             prepare_assessments([assessment(observation_id="rerun")], enabled=True, collector=Collector(), client=client, cache_path=cache)
             self.assertEqual(client.calls, 2)

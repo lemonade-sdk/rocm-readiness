@@ -54,7 +54,8 @@
 }
 .build-day > .comparison-tooltip, .build-day .build-mark, .build-day .build-evidence-missing { width: 100%; color: inherit; }
 .build-mark:focus-visible,
-.build-evidence-missing:focus-visible {
+.build-evidence-missing:focus-visible,
+.build-no-data:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
@@ -81,6 +82,9 @@
 .build-no-data {
   color: var(--muted);
   font-size: 0.65rem;
+}
+.build-timeline-card .table-status .comparison-trigger {
+  text-decoration: none;
 }
 .readiness-version {
   margin: 2.5rem 0;
@@ -173,6 +177,7 @@
 .build-calendar-vertical .build-mark, .build-calendar-vertical .build-evidence-missing { color: inherit; display: grid; place-items: center; width: 100%; min-height: 44px; }
 @media (max-width: 540px) { .build-timeline-scroll:has(.build-calendar-vertical) { padding: .5rem; overflow: visible; } }
 
-.build-calendar-vertical .build-no-data { display: grid; place-items: center; min-height: 44px; }
+.build-no-data { display: inline-grid; place-items: center; min-width: 24px; min-height: 32px; color: var(--muted); }
+.build-calendar-vertical .build-no-data { min-width: 44px; min-height: 44px; }
 
 .overview-summary-details { display: inline-block; margin: .75rem 1.125rem 1rem; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }

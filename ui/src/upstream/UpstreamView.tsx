@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { useMediaQuery } from "../mobile";
 import { EvidenceRegion } from "../overview/EvidenceRegion";
 import { EvidenceBody } from "../overview/EvidenceDisclosure";
@@ -9,6 +10,7 @@ import type { Fetcher, Session } from "../data";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { BuildOutcomeIcon } from "../overview/BuildOutcomeIcon";
 import { OutcomeLegend } from "../overview/OutcomeLegend";
+import { CellExplanation } from "../notifications";
 import { calendarMonthGroups, isCalendarMonthBoundary } from "../overview/buildTimeline";
 import {
   CATEGORIES,
@@ -178,8 +180,8 @@ const activityStates = {
   bad: { label: "Below 80% passed" },
   stall: { label: "Requested, no runs" },
   skip: { label: "Skipped" },
-  idle: { label: "No collected evidence" },
-  none: { label: "No pass or fail result" },
+  idle: { label: "No observation" },
+  none: { label: "Running / other recorded result" },
 } as const;
 
 const activityOutcomes = { good: "pass", warn: "warn", bad: "fail", stall: "not_run", skip: "skip", idle: "unreported", none: "pending" } as const;
@@ -236,15 +238,35 @@ export function Ticks({
 }
 
 function describe(day: string, cell: Cell | undefined) {
-  if (!cell) return `${day}: no collected evidence`;
+  if (!cell) return `${day}: No observation`;
   const ran = cell.passed + cell.failed + cell.other + cell.running;
   if (!ran)
     return cell.stalled
       ? `${day}: ${cell.stalled} requested, none ran`
       : cell.skipped
         ? `${day}: ${cell.skipped} skipped`
-        : `${day}: no collected evidence`;
-  return `${day}: ${cell.passed} passed, ${cell.failed} failed of ${ran} runs`;
+        : `${day}: No observation`;
+  return `${day}: ${cell.passed} passed, ${cell.failed} failed of ${ran} runs${cell.running ? `, ${cell.running} running` : ""}${cell.other ? `, ${cell.other} other results` : ""}`;
+}
+
+function allResultsPassed(cell: Cell) {
+  return cell.passed > 0 &&
+    cell.failed + cell.other + cell.stalled + cell.skipped + cell.running === 0;
+}
+
+function UpstreamExplanation({ project, jobs, day }: { project: Project; jobs: Job[]; day: string }) {
+  const cell = sumCells(jobs, day);
+  if (allResultsPassed(cell)) return null;
+  const state = cellState(cell);
+  const observation = state === "idle" ? "No run collected for this date."
+    : state === "skip" ? "Skipped; no test verdict."
+    : state === "stall" ? "Requested; no run observed."
+    : state === "none" ? `${cell.running} running; ${cell.other} other results.`
+    : undefined;
+  return <CellExplanation observation={observation} scope={jobs.map((job) => ({
+    repository: project.repository, source_id: `${project.id}-upstream`, workflow: job.workflow,
+    job: job.id, platform: job.os, target: job.target, date: day,
+  }))} />;
 }
 
 /* ---- home: one card per project ------------------------------------------------ */
@@ -369,7 +391,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
         scale={dayScale} selected={selected} onPick={onPick} renderDay={renderDay} />)}</div>
       <OutcomeLegend label="Daily CI activity legend" className="calendar-legend" items={[
         { outcome: "pass", label: "Passed", mark: "bar" }, { outcome: "fail", label: "Failed", mark: "bar" },
-        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No collected evidence" },
+        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No observation" },
       ]} />
     </section>;
   }
@@ -385,6 +407,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
               {categories.map((category) => {
                 const cell = sumCells(jobs.filter((job) => job.category === category), day);
                 const state = cellState(cell), text = describe(day, cell);
+                const healthy = allResultsPassed(cell);
                 return <td key={category} className={onPick ? "up-vertical-bar-cell" : "table-status"} data-outcome={activityOutcomes[state]}>
                   {onPick ? <Tooltip interactive label={text} triggerClassName="up-vertical-day-trigger" contentClassName="up-run-tooltip"
                     isOpen={selected?.key === `cat:${category}` && selected.day === day}
@@ -396,19 +419,23 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                       {cell.other + cell.running > 0 && <span className="qualification-segment unknown" style={{ width: `${100 * (cell.other + cell.running) / scale}%` }} />}
                       {!totalRuns(cell) && <ActivityMark state={state} />}
                     </span>
-                  </Tooltip> : <Tooltip label={text} triggerClassName="up-tick"
-                    to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}
-                    content={text}><ActivityMark state={state} /></Tooltip>}
+                  </Tooltip> : <Tooltip interactive={!healthy} label={text} triggerClassName="up-tick"
+                    to={healthy ? `?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}` : undefined}
+                    content={<TooltipContent heading={day} status={activityStates[state].label}>
+                      <span>{text}</span>
+                      <UpstreamExplanation project={project} jobs={jobs.filter((job) => job.category === category)} day={day} />
+                      {!healthy && <Link className="overview-summary-details" to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}>View CI activity</Link>}
+                    </TooltipContent>}><ActivityMark state={state} /></Tooltip>}
                 </td>;
               })}
             </tr>)}</tbody>
           </table>
         </div>
-      </EvidenceRegion>
       <OutcomeLegend label="Daily CI activity legend" className="calendar-legend" items={onPick ? [
         { outcome: "pass", label: "Passed", mark: "bar" }, { outcome: "fail", label: "Failed", mark: "bar" },
-        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No collected evidence" },
+        { outcome: "pending", label: "Running / other", mark: "bar" }, { outcome: "not_run" }, { outcome: "skip" }, { outcome: "unreported", label: "No observation" },
       ] : (Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => ({ outcome: activityOutcomes[state], label: activityStates[state].label }))} />
+      </EvidenceRegion>
     </section>;
   }
   return (
@@ -454,6 +481,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                   const cell = sumCells(group, day);
                   const state = cellState(cell);
                   const text = describe(day, cell);
+                  const healthy = allResultsPassed(cell);
                   return (
                     <td key={day} data-outcome={activityOutcomes[state]} className={`${onPick ? "up-daily-cell" : "table-status"}${isCalendarMonthBoundary(last14, index) ? " month-boundary" : ""}`}>
                       {onPick ? (
@@ -473,9 +501,13 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                           </span>
                         </Tooltip>
                       ) : (
-                        <Tooltip side floating label={text} triggerClassName="up-tick"
-                          to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}
-                          content={<TooltipContent heading={day} status={activityStates[state].label}><span>{text}</span></TooltipContent>}>
+                        <Tooltip side floating interactive={!healthy} label={text} triggerClassName="up-tick"
+                          to={healthy ? `?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}` : undefined}
+                          content={<TooltipContent heading={day} status={activityStates[state].label}>
+                            <span>{text}</span>
+                            <UpstreamExplanation project={project} jobs={group} day={day} />
+                            {!healthy && <Link className="overview-summary-details" to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}>View CI activity</Link>}
+                          </TooltipContent>}>
                           <ActivityMark state={state} />
                         </Tooltip>
                       )}
@@ -488,15 +520,15 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
         </tbody>
       </table>
     </div>
-    </EvidenceRegion>
     <OutcomeLegend label="Daily CI activity legend" className="calendar-legend"
       items={onPick ? [
         { outcome: "pass", label: "Passed", mark: "bar" },
         { outcome: "fail", label: "Failed", mark: "bar" },
         { outcome: "pending", label: "Running / other", mark: "bar" },
         { outcome: "not_run" }, { outcome: "skip" },
-        { outcome: "unreported", label: "No collected evidence" },
+        { outcome: "unreported", label: "No observation" },
       ] : (Object.keys(activityStates) as (keyof typeof activityStates)[]).map((state) => ({ outcome: activityOutcomes[state], label: activityStates[state].label }))} />
+    </EvidenceRegion>
     </section>
   );
 }
@@ -845,7 +877,7 @@ function ProjectPage({
         </EvidenceRegion>}
         <OutcomeLegend label="CI job outcomes" className="calendar-legend" items={[
           { outcome: "pass" }, { outcome: "fail" }, { outcome: "skip" },
-          { outcome: "not_run" }, { outcome: "unreported", label: "No collected evidence" }, { outcome: "pending" },
+          { outcome: "not_run" }, { outcome: "unreported", label: "No observation" }, { outcome: "pending" },
         ]} />
         {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
           <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
@@ -872,14 +904,14 @@ const runResults = {
   failed: { outcome: "fail", label: "Failed" },
   skipped: { outcome: "skip", label: "Skipped" },
   stalled: { outcome: "not_run", label: "Requested, no runs" },
-  running: { outcome: "pending", label: "Running" },
+  running: { outcome: "running", label: "Running" },
   other: { outcome: "pending", label: "Other result" },
 } as const;
 
 function RunResult({ state, conclusion }: { state: Run["state"]; conclusion?: string | null }) {
   const labels: Record<string, string> = { cancelled: "Cancelled", timed_out: "Timed out", neutral: "Neutral", action_required: "Action required", stale: "Stale" };
   const result = runResults[state];
-  return <><BuildOutcomeIcon outcome={result.outcome} />{state === "other" ? labels[conclusion ?? ""] ?? result.label : result.label}</>;
+  return <><BuildOutcomeIcon outcome={conclusion === "cancelled" ? "cancelled" : result.outcome} />{state === "other" ? labels[conclusion ?? ""] ?? result.label : result.label}</>;
 }
 
 function LatestJobDetails({ job }: { job: Job }) {
@@ -931,6 +963,7 @@ function DayPanel({
           {cell.running > 0 && <div className="up-tooltip-detail"><dt>Running</dt><dd>{cell.running}</dd></div>}
           {cell.other > 0 && <div className="up-tooltip-detail"><dt>Other results</dt><dd>{cell.other}</dd></div>}
         </dl>
+        <UpstreamExplanation project={project} jobs={jobs} day={day} />
       {runs.error ? (
         <p className="bad">{runs.error}</p>
       ) : !runs.rows ? (
@@ -961,15 +994,7 @@ function DayPanel({
             </li>
           ))}
         </ul></div>
-      ) : (
-        <p className="muted">
-          {cell.skipped && !cell.stalled
-            ? "Skipped by the job's own condition."
-            : cell.stalled
-              ? "Requested, and no machine took it."
-              : "No collected evidence for this day."}
-        </p>
-      )}
+      ) : cell.passed + cell.failed > 0 ? <p className="muted">No run details collected.</p> : null}
       </TooltipContent>
     </div>
   );

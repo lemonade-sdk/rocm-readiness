@@ -39,6 +39,24 @@ function mount(entry = "/?track=upstream", fetcher = upstreamFetch()) {
   );
 }
 
+it("preserves the compact date-and-count tooltip for a healthy upstream observation", async () => {
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  data.projects[0].jobs[0].daily["2026-10-27"].passed = 2;
+  data.projects[0].jobs[0].daily["2026-10-27"].failed = 0;
+  mount("/?track=upstream", upstreamFetch({
+    [new URL("upstream/overview.json", indexUrl).href]: data,
+  }));
+  const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
+  const mark = within(calendar).getByLabelText("2026-10-27: 2 passed, 0 failed of 2 runs");
+  fireEvent.mouseEnter(mark);
+  const tooltip = await screen.findByRole("tooltip");
+  expect(within(tooltip).getByText("2026-10-27", { exact: true })).toBeVisible();
+  expect(within(tooltip).getByText("2026-10-27: 2 passed, 0 failed of 2 runs")).toBeVisible();
+  expect(tooltip.querySelector(".cell-explanation")).toBeNull();
+  expect(within(tooltip).queryByText(/reason is not established|Snapshot collected|notification|Collected CI outcomes/)).not.toBeInTheDocument();
+  expect(mark).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+});
+
 it("shows one card per project with its computed upstream badge", async () => {
   mount();
   const card = (
@@ -134,7 +152,7 @@ it("flags a platform that ships without an AMD hardware test", async () => {
   mount("/?track=upstream&project=llamacpp");
   const platforms = await screen.findByRole("region", { name: "Platforms" });
   const windows = within(platforms).getByRole("row", { name: /Windows/ });
-  expect(windows).toHaveTextContent("?");
+  expect(windows).toHaveTextContent("—");
 });
 
 it("explains a dataset published before the upstream view existed", async () => {
@@ -320,8 +338,8 @@ it('does not describe uncollected runs as absent in incomplete project details',
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
   const perDay = screen.getByRole('region', { name: 'Daily activity' });
-  fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: no collected evidence/ }));
-  expect(await screen.findByText('No collected evidence for this day.')).toBeInTheDocument();
+  fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: No observation/ }));
+  expect(await screen.findByText('No run collected for this date.')).toBeInTheDocument();
   expect(screen.getByRole('table', { name: 'CI jobs' })).toBeInTheDocument();
   expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
 });
@@ -420,7 +438,8 @@ it("opens overview activity on the selected UTC day with platform filters", asyn
   mount();
   const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
   expect(screen.queryByText(/Upstream means a test/)).not.toBeInTheDocument();
-  fireEvent.click(within(card).getByRole("link", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  fireEvent.click(within(card).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  fireEvent.click(await screen.findByRole("link", { name: "View CI activity" }));
   expect(await screen.findByRole("region", { name: "Runs on 2026-10-27" })).toBeInTheDocument();
   const platforms = screen.getByRole("group", { name: "Platform" });
   expect(within(platforms).getByRole("button", { name: "Linux" })).toHaveAttribute("aria-pressed", "true");
@@ -576,9 +595,9 @@ it.each(["llamacpp", "unsloth", "whispercpp"])("uses shared job outcomes and leg
   expect(failure.closest("td")).toHaveAttribute("data-outcome", "fail");
   expect(failure).toHaveTextContent("×");
   const skipped = within(table).getByRole("button", { name: "models-check vulkan-amd · 2026-10-28: 8 skipped" });
-  expect(skipped).toHaveTextContent("–");
+  expect(skipped).toHaveTextContent("↷");
   const legend = screen.getByRole("list", { name: "CI job outcomes" });
-  expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/–.*Skipped/);
+  expect(within(legend).getByText("Skipped").closest("li")).toHaveTextContent(/↷.*Skipped/);
 });
 
 it("formats CI job metadata as labeled qualification-style details", async () => {

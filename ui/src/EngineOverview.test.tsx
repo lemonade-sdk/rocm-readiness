@@ -1,9 +1,10 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
-import type { Build } from "./data";
+import { loadSession, type Build } from "./data";
 import { EngineOverview } from "./EngineOverview";
-import { overview } from "./fixtures";
+import { fixtureFetch, indexUrl, overview } from "./fixtures";
+import { NotificationsProvider } from "./notifications";
 
 const now = new Date("2026-11-02T15:00:00Z");
 afterEach(() => vi.unstubAllGlobals());
@@ -16,6 +17,85 @@ it("uses date rows with platform columns at narrow phone widths", () => {
   const day = within(table).getByRole("rowheader", { name: "2026-11-01 UTC" });
   expect(within(day.closest("tr")!).getByRole("link", { name: /b1/ })).toHaveAttribute("href", expect.stringContaining("day=2026-11-01"));
   expect(within(table).getAllByRole("rowheader")).toHaveLength(14);
+});
+
+it("offers missing observations through focus without inventing a schedule", async () => {
+  mount([build()]);
+  const control = screen.getByRole("button", { name: "2026-11-02 UTC · ROCm 10.1 stable · Linux · No observation" });
+  fireEvent.focus(control);
+  expect(await screen.findByText("No qualification result collected for this date.")).toBeVisible();
+  const tooltip = screen.getByRole("dialog");
+  expect(tooltip.querySelector(".structured-tooltip-header strong")?.textContent).toBe("2026-11-02 · Linux");
+  expect(within(tooltip).getAllByText("No observation", { exact: true })).toHaveLength(1);
+  expect(screen.queryByText(/reason is not established|daily build|retired track/)).not.toBeInTheDocument();
+});
+
+it("keeps healthy build tooltips limited to recorded evidence without incident fallback text", async () => {
+  mount([build({ qualified: true, overall: "pass" })]);
+  fireEvent.focus(screen.getByRole("link", { name: /Qualified$/ }));
+  const tooltip = await screen.findByRole("dialog");
+  expect(within(tooltip).getByText("Produced")).toBeVisible();
+  expect(within(tooltip).getByRole("link", { name: "View qualification details" })).toBeVisible();
+  expect(tooltip.querySelector(".cell-explanation")).toBeNull();
+  expect(within(tooltip).queryByText(/No applicable assessment|reason is not established|notification|Recorded qualification/)).not.toBeInTheDocument();
+});
+
+it("binds a failed build to its GPU-target investigation without borrowing another target's issue", async () => {
+  const failed = build({ qualified: false, overall: "fail", gfx_target: "gfx1151" });
+  const loaded = await loadSession(undefined, fixtureFetch());
+  const session = { ...loaded, index: { ...loaded.index, notifications: "notifications.json" } };
+  const finding = {
+    id: "matching-target", rule_id: "result", rule_version: 1, evaluated_at: now.toISOString(),
+    actionable: true, classification: "unexplained", summary: "Matching target failure",
+    explanation: "Investigation required.", observed: {}, expected: {}, evidence: [],
+    scope: { source_id: "llamacpp-stable-qualification", repository: "lemonade-sdk/llama.cpp",
+      channel: "stable", platform: "linux", rocm_version: "10.1",
+      date: failed.generated_at.slice(0, 10), target: "gfx1151" },
+    notification: { github: { status: "sent", url: "https://github.com/owner/repo/issues/123" }, status: "sent" },
+  };
+  const fetcher = fixtureFetch({
+    [new URL("notifications.json", indexUrl).href]: { schema_version: 1, generated_at: now.toISOString(), assessments: [
+      finding, { ...finding, id: "different-target", summary: "Different target failure",
+        scope: { ...finding.scope, target: "gfx1201" } },
+    ] },
+  });
+  render(<MemoryRouter><NotificationsProvider session={session} fetcher={fetcher}>
+    <EngineOverview version="10.1" engines={[{ ...overview().engines[0], latest_builds: [failed] }]}
+      history={[failed]} now={now} />
+  </NotificationsProvider></MemoryRouter>);
+  fireEvent.focus(screen.getByRole("link", { name: /Failed$/ }));
+  expect(await screen.findByText("Matching target failure")).toBeVisible();
+  expect(screen.queryByText("Different target failure")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "View investigation" })).toHaveAttribute("href", finding.notification.github.url);
+});
+
+it("preserves an observed cancellation in the evidence table even if retained qualification passed", async () => {
+  mount([build({ qualified: true, overall: "pass", build_result: "cancelled" })]);
+  fireEvent.focus(screen.getByRole("link", { name: /Qualified$/ }));
+  expect(await screen.findByText("cancelled", { exact: true })).toBeVisible();
+});
+
+it("expands missing evidence by touch outside the phone calendar and restores focus on Escape", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  mount([build()]);
+  const control = screen.getByRole("button", { name: "2026-11-02 UTC · ROCm 10.1 stable · Linux · No observation" });
+  fireEvent.click(control);
+  expect(control).toHaveAttribute("aria-expanded", "true");
+  const evidence = screen.getByRole("region", { name: control.getAttribute("aria-label")! });
+  expect(evidence.closest("table")).toBeNull();
+  expect(evidence).toHaveTextContent("No qualification result collected for this date.");
+  fireEvent.keyDown(evidence, { key: "Escape" });
+  expect(control).toHaveAttribute("aria-expanded", "false");
+  expect(control).toHaveFocus();
+});
+
+it("distinguishes source cancellation from no observation without turning it into qualification failure", async () => {
+  mount([build({ build_result: "cancelled", qualified: null })]);
+  const recorded = screen.getByRole("link", { name: /Cancelled · qualification unavailable/ });
+  expect(recorded).toHaveTextContent("⊘");
+  fireEvent.focus(recorded);
+  expect(await screen.findByText("cancelled", { exact: true })).toBeVisible();
+  expect(screen.getByRole("list", { name: /qualification legend/ })).toHaveTextContent("Cancelled build job");
 });
 function build(overrides: Partial<Build> = {}): Build {
   return {
@@ -92,7 +172,8 @@ it("shows only the last fourteen UTC dates and leaves no-build dates empty", () 
     screen.queryByRole("columnheader", { name: "2026-10-19 UTC" }),
   ).not.toBeInTheDocument();
   expect(screen.getAllByRole("link")).toHaveLength(1);
-  expect(screen.getAllByText("No data")).toHaveLength(27);
+  expect(screen.getAllByRole("button", { name: /No observation/ })).toHaveLength(27);
+  expect(screen.getByRole("list", { name: "llama.cpp stable qualification legend" })).toHaveTextContent("No qualification observation");
 });
 
 it("keeps unknown evidence neutral and respects explicit qualification despite warnings", () => {
@@ -119,7 +200,7 @@ it("keeps unknown evidence neutral and respects explicit qualification despite w
     "build-mark",
     "pass",
   );
-  for (const text of ["Compiled GPU targets", "Qualified", "Checks passed"])
+  for (const text of ["Compiled GPU targets", "Checks passed"])
     expect(screen.queryByText(text, { exact: true })).not.toBeInTheDocument();
 });
 

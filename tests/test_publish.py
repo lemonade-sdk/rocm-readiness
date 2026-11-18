@@ -301,6 +301,16 @@ class PublicationTest(unittest.TestCase):
             index_path = data / "index.json"
             index = json.loads(index_path.read_text())
             index["sync"] = json.loads((data / "sync.json").read_text())["sync"]
+            notifications = {
+                "schema_version": 1,
+                "generated_at": "2026-01-01T00:00:00Z",
+                "assessments": [],
+            }
+            (data / "notifications.json").write_text(json.dumps(notifications))
+            (data / "notification-state.json").write_text(
+                json.dumps({"schema_version": 1, "incidents": {}})
+            )
+            index["notifications"] = "notifications.json"
             index_path.write_text(json.dumps(index))
             state = root / "state.json"
             publish.restore(
@@ -321,6 +331,44 @@ class PublicationTest(unittest.TestCase):
             )
             previous = root / "previous"
             self.assertTrue((previous / "rocm/7.14/history/2026-10.json").is_file())
+            self.assertEqual(
+                json.loads((previous / "notifications.json").read_text()),
+                notifications,
+            )
+            self.assertEqual(
+                json.loads((previous / "latest.json").read_text())["notifications_url"],
+                "https://raw.githubusercontent.com/owner/repo/main/data/notifications.json",
+            )
+            notifications["generated_at"] = "2026-01-02T00:00:00Z"
+            (data / "notifications.json").write_text(json.dumps(notifications))
+            self.assertTrue(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", data, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertEqual(
+                json.loads((previous / "notifications.json").read_text())["generated_at"],
+                "2026-01-01T00:00:00Z",
+            )
+            head = publish.remote_head(str(remote), "main")
+            scratch, checkout = publish.scratch(root / "work", str(remote), head)
+            try:
+                (checkout / "data/notification-state.json").write_text(
+                    '{"schema_version":1,"recipients":["private@example.test"]}'
+                )
+                publish.git(checkout, "add", "-f", "data/notification-state.json")
+                publish.git(checkout, "commit", "-qm", "Invalid operational state fixture")
+                publish.git(checkout, "push", str(remote), "HEAD:main")
+            finally:
+                scratch.cleanup()
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertTrue(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", data, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertEqual(
+                json.loads((previous / "notification-state.json").read_text()),
+                {"schema_version": 1, "incidents": {}, "blocked": True},
+            )
             self.assertNotIn(
                 "snapshot",
                 json.loads((previous / "index.json").read_text())["sources"][0],

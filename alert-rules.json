@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "current_nightly_tracks": {
+    "llamacpp-nightly-qualification": "latest"
+  },
+  "incident_labels": {
+    "llamacpp-stable-qualification": "engine:llamacpp",
+    "llamacpp-nightly-qualification": "engine:llamacpp",
+    "llamacpp-upstream": "engine:llamacpp",
+    "vllm-upstream": "engine:vllm",
+    "whispercpp-upstream": "engine:whisper",
+    "sdcpp-upstream": "engine:stable-diffusion",
+    "pytorch-upstream": "project:pytorch",
+    "unsloth-upstream": "project:unsloth"
+  },
+  "rules": [
+    {
+      "id": "producer-results",
+      "version": 6,
+      "kind": "result",
+      "enabled": true,
+      "match": {},
+      "recovery_states": ["pass", "warn", "fail"],
+      "expected_status": "pass",
+      "outcomes": [
+        {
+          "anomaly": "producer_failure",
+          "status": "fail",
+          "failed_steps": ["Test", "Tests"],
+          "responses": {
+            "active": {
+              "classification": "unexplained",
+              "summary": "Job failed; cause unknown.",
+              "explanation": "The job failed without a recorded cause. Review the linked logs to determine why."
+            },
+            "with_details": {
+              "classification": "explained_abnormal",
+              "summary": "Job failed: {details}.",
+              "explanation": "Job failed: {details}."
+            },
+            "with_failed_step": {
+              "classification": "explained_abnormal",
+              "summary": "Some tests in the job have failed.",
+              "explanation": "Some tests in the job have failed."
+            },
+            "recovered": {
+              "classification": "expected",
+              "summary": "Producer failure not present",
+              "explanation": "Latest result: {status}."
+            },
+            "suppressed": {
+              "classification": "expected",
+              "summary": "Producer failure not monitored",
+              "explanation": "{exception}"
+            }
+          }
+        },
+        {
+          "anomaly": "producer_warning",
+          "status": "warn",
+          "responses": {
+            "active": {
+              "classification": "unexplained",
+              "summary": "Warning reported; cause unknown.",
+              "explanation": "A warning was recorded without a cause. Review the linked qualification report."
+            },
+            "with_details": {
+              "classification": "explained_abnormal",
+              "summary": "Warning reported: {details}.",
+              "explanation": "Warning reported: {details}."
+            },
+            "recovered": {
+              "classification": "expected",
+              "summary": "Producer warning not present",
+              "explanation": "Latest result: {status}."
+            },
+            "suppressed": {
+              "classification": "expected",
+              "summary": "Producer warning not monitored",
+              "explanation": "{exception}"
+            }
+          }
+        },
+        {
+          "anomaly": "producer_cancelled",
+          "status": "cancelled",
+          "responses": {
+            "active": {
+              "classification": "explained_abnormal",
+              "summary": "Producer cancelled",
+              "explanation": "Build job cancelled."
+            },
+            "with_details": {
+              "classification": "explained_abnormal",
+              "summary": "Producer cancelled",
+              "explanation": "Build job cancelled."
+            },
+            "recovered": {
+              "classification": "expected",
+              "summary": "Producer cancelled not present",
+              "explanation": "Latest result: {status}."
+            },
+            "suppressed": {
+              "classification": "expected",
+              "summary": "Producer cancelled not monitored",
+              "explanation": "{exception}"
+            }
+          }
+        }
+      ],
+      "skip": {
+        "status": "skip",
+        "anomaly": "skipped_result",
+        "dependency_anomaly": "producer_failure",
+        "expected_status": "pass or verified permitted skip",
+        "responses": {
+          "permitted": {
+            "classification": "expected",
+            "summary": "Permitted skip",
+            "explanation": "{reason}"
+          },
+          "dependency": {
+            "classification": "explained_abnormal",
+            "summary": "Dependency skip",
+            "explanation": "A required job failed."
+          },
+          "unexplained": {
+            "classification": "unexplained",
+            "summary": "Job skipped; cause unknown.",
+            "explanation": "The job was skipped without a verified condition or failed prerequisite explaining it. Inspect the workflow and linked run."
+          },
+          "recovered": {
+            "classification": "expected",
+            "summary": "Skipped result not present",
+            "explanation": "Latest result: {status}."
+          }
+        }
+      }
+    },
+    {
+      "id": "unsloth-pass-rate",
+      "version": 1,
+      "kind": "pass_rate",
+      "enabled": true,
+      "match": {"source_id": "unsloth-upstream"},
+      "threshold_percent": 80,
+      "window_days": 30,
+      "minimum_samples": 1
+    },
+    {
+      "id": "current-nightly-evidence",
+      "version": 4,
+      "kind": "missing",
+      "enabled": true,
+      "match": {"source_id": "llamacpp-nightly-qualification", "channel": "nightly"},
+      "max_age_hours": 48,
+      "grace_hours": 0,
+      "older_track_response": {
+        "summary": "Monitoring paused",
+        "explanation": "Nightly monitoring has moved from ROCm {track} to ROCm {current_track}."
+      }
+    }
+  ]
+}

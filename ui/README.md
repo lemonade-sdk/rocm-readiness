@@ -79,8 +79,8 @@ numerically ascending, with stable first. The UI renders that catalog and uses
 metadata retain an explicit legacy-scope notice.
 
 Page One nests engines and recorded channels under each version. There is no
-Page One version selector. One shared legend describes qualification marks; missing
-dates remain neutral gaps. Build timelines cover the last 14 UTC calendar dates.
+Page One version selector. A legend beneath each calendar describes qualification marks;
+missing dates use the shared neutral dash with accessible evidence. Build timelines cover the last 14 UTC calendar dates.
 
 Page One shows build qualification only. Benchmark execution inventories remain in
 the collected dataset, separate from qualification; the overview does not render
@@ -143,8 +143,9 @@ Only engines and channels with recorded builds render. Expected OS rows come
 from JSON metadata within populated groups. Each tile has a 14-day UTC calendar
 ending today, with one selectable mark per build. Multiple same-day builds stay
 distinct. Explicit producer qualification determines pass/fail; missing verdicts
-are neutral evidence links, and dates without builds say “No data” without an
-outcome mark. Links open
+are neutral evidence links, and dates without builds use “—” (No observation).
+Hover, keyboard focus or touch reveals the scoped observation and assessment without
+assuming a daily schedule or track retirement. Links open
 exact-build details with OS/source context. Today's date is highlighted in the
 calendar header. Dates are grouped internally in UTC. Qualification does not
 establish actual artifact publication. Page 1
@@ -226,5 +227,28 @@ All project views share the outcome registry, glyph component and legend compone
 used by Build Qualification. CI jobs show any recorded failure as Fail, distinguish
 skipped/requested/pending/missing evidence, and include their own legend. See the
 shared outcome conventions in `docs/ui-design-reference.md` before adding tables.
+
+### Persisted assessments and notification state
+
+Optional `index.notifications` references a pinned assessment preview.
+`latest.notifications_url` takes precedence and is restricted to this repository's
+live notification file. Failures are explicit; stale previews are not substituted.
+Older datasets remain readable without either field.
+
+Only exact-scope/date matches add a concise Finding sentence and Investigation row to existing
+status tooltips, with dispatch state and the exact issue link. Healthy tooltips
+retain their original evidence and navigation; no page-level panel, generic
+unknown-reason prose, or repeated delivery footnotes are added. Missing results
+use a compact `YYYY-MM-DD · Platform` title and observation/collection rows.
+An expected `applies_to: missing_observation` assessment can instead supply a
+configured retained-track explanation to empty cells; it never matches builds
+or another source/track/platform and never shows notification status.
+Preserve hover/focus/touch access and focus outlines without marker underlines.
+Outcome counts and Finding/Investigation/Evidence rows form one continuous
+label/value table, without an extra divider or gap between those groups.
+“Team notified” requires saved successful GitHub acceptance. Pending/failed
+creation and retry status remain in CI data/logs rather than the static tooltip.
+The browser never sends alerts. See [notification lifecycle](../docs/notifications.md)
+and the shared tooltip conventions in `docs/ui-design-reference.md`.
 
 When workspace navigation is collapsed, place its Navigation button at the leading edge of the header, before the ROCm Readiness identity. Keep the theme control on the right and the current page heading below on phones.

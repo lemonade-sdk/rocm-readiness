@@ -16,6 +16,7 @@ import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import { ThemeControl } from "./ThemeControl";
 import { UpstreamView } from "./upstream/UpstreamView";
 import { useMediaQuery } from "./mobile";
+import { NotificationsProvider } from "./notifications";
 
 function date(value: string | null) {
   return value
@@ -388,6 +389,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </ul>
         </nav>}
       </aside>
+      <NotificationsProvider session={session} fetcher={fetcher}>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
           !performanceView && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
@@ -546,6 +548,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             </>
           )}
       </main>
+      </NotificationsProvider>
       <footer className="deck-provenance" aria-label="Dashboard provenance">
         <div className="deck-kicker">About this data</div>
         {session && (

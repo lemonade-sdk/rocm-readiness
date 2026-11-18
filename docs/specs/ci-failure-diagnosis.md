@@ -65,7 +65,9 @@ Workflow reads support bounded line paging or a complete projection of named-job
 gating fields and direct prerequisites, excluding large step bodies.
 The prompt requests one sentence for a nontechnical director. One format/length
 correction is allowed inside the existing time, round and generated-token budgets;
-the corrected answer must pass the same evidence and output checks.
+the corrected answer must pass the same evidence and output checks. Generic build
+subjects omit optional GPU/CPU/NPU adjectives so model phrasing cannot invent the
+job target; the existing portal scope supplies that context.
 The client uses Qwen's direct-answer sampling preset (temperature 0.7, top-p 0.8,
 presence penalty 1.5, thinking disabled). The Strix Halo pilot verified this API
 option and tool calls on Lemonade 11.9.0. Thinking mode sometimes exhausted the

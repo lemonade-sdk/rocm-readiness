@@ -13,8 +13,8 @@ else:
     from notifications import write_atomic
 
 DEFAULT_MODEL = "Qwen3.6-35B-A3B-MTP-GGUF"
-ANALYZER_VERSION = "ci-diagnosis-9"
-PROMPT_VERSION = "ci-diagnosis-9"
+ANALYZER_VERSION = "ci-diagnosis-10"
+PROMPT_VERSION = "ci-diagnosis-10"
 TOOLS = ("get_job_log", "search_job_log", "get_workflow", "get_run_jobs", "get_report")
 
 

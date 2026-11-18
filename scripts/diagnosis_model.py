@@ -120,6 +120,15 @@ def unverifiable_skip(evidence, incident=None, cause=None, cited_ids=None):
     )
 
 
+def plain_build_subject(cause):
+    """Keep the build subject generic; the portal already supplies its scope.
+
+    Removing an optional hardware adjective preserves the reported immediate
+    cause without letting a stock model phrase invent the job's target.
+    """
+    return re.sub(r"^The (?:GPU|CPU|NPU) build\b", "The build", cause, flags=re.I) if isinstance(cause, str) else cause
+
+
 def validate_result(result, evidence, incident=None, provenance=None):
     """Validate public model output again at the trusted artifact writer boundary.
 
@@ -129,6 +138,8 @@ def validate_result(result, evidence, incident=None, provenance=None):
     if not isinstance(result, dict) or result.get("method") != "model" or result.get("certainty") != "likely":
         return False
     cause, ids = result.get("cause"), result.get("evidence_ids")
+    if plain_build_subject(cause) != cause:
+        return False
     if (not isinstance(evidence, list) or any(not isinstance(row, dict) for row in evidence)
             or not isinstance(cause, str) or not isinstance(ids, list) or not ids
             or any(not isinstance(identity, str) for identity in ids)):
@@ -372,6 +383,7 @@ class LemonadeClient:
                 if not isinstance(result, dict) or set(result) != {"certainty", "cause", "evidence_ids"}:
                     return unknown("invalid_output")
                 candidate = {"method": "model", **result}
+                candidate["cause"] = plain_build_subject(candidate.get("cause"))
                 validation_evidence = [{"id": identity, "text": text, "kind": kinds[identity], **metadata[identity]}
                                        for identity, text in known.items()]
                 if status in ("skip", "skipped"):

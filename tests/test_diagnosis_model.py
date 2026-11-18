@@ -40,6 +40,20 @@ class ModelTests(unittest.TestCase):
             self.assertEqual(client.diagnose(EVIDENCE)["certainty"], "unknown")
             self.assertEqual(len(self.requests), 2)
 
+    def test_generic_build_subject_cannot_invent_hardware_scope(self):
+        evidence = [{"id": "E1", "kind": "log", "text": "error: ProfilingInfo has no member named start_time"}]
+        for device in ("GPU", "CPU", "NPU"):
+            raw = "The " + device + " build could not compile because it references a feature missing from the code."
+            result = self.client([answer(cause=raw)]).diagnose(evidence)
+            self.assertEqual(result["cause"], "The build could not compile because it references a feature missing from the code.")
+            self.assertFalse(validate_result(result | {"cause": raw}, evidence))
+            self.assertTrue(validate_result(result, evidence))
+        # A recorded GPU failure is meaningful causal content, not an optional
+        # adjective in the generic build subject.
+        result = self.client([answer(cause="The GPU ran out of memory.")]).diagnose(
+            [{"id": "E1", "kind": "log", "text": "GPU allocation failed: out of memory"}])
+        self.assertEqual(result["cause"], "The GPU ran out of memory.")
+
     def test_supported_short_cause(self):
         client = self.client([answer()])
         result = client.diagnose({"evidence": EVIDENCE})

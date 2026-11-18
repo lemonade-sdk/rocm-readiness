@@ -44,6 +44,9 @@ and a complete workflow job definition at the run revision that proves the gate.
 Ambiguous YAML, incomplete excerpts, and tolerated prerequisite failures stay unknown.
 Supported dependency skips use a fixed sentence derived from the proof, rather
 than publishing the model's free-form causal wording.
+Cancelled jobs stay unknown when existing rules cannot explain them: the current
+packet contains no verified actor or evaluated cancellation trigger. A cancellation
+status, manual-trigger capability or concurrency setting cannot establish why it stopped.
 Run-command echoes are excluded from log evidence. Runtime errors and failed-step
 output take priority; a failed document read does not block other documents.
 Workflow reads support bounded line paging or a complete projection of named-job

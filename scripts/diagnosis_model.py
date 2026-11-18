@@ -135,6 +135,10 @@ def validate_result(result, evidence, incident=None, provenance=None):
         return False
     incident = incident or {}
     status = incident.get("observed", {}).get("status") or incident.get("status")
+    if status in ("cancelled", "canceled"):
+        # Current evidence has no verified actor, concurrency event or evaluated
+        # cancellation trigger. A stopped operation does not establish why.
+        return False
     if incident.get("anomaly") == "missing_evidence" or status == "missing":
         # No due-interval producer/scheduler evidence is collected for this case.
         # Absence itself cannot support a model-generated causal explanation.
@@ -262,6 +266,8 @@ class LemonadeClient:
                 return unknown("insufficient_evidence")
             incident = evidence.get("incident", {}) if isinstance(evidence, dict) else {}
             status = incident.get("observed", {}).get("status") or incident.get("status")
+            if status in ("cancelled", "canceled"):
+                return unknown("cancellation_reason_unavailable")
             if incident.get("anomaly") == "missing_evidence" or status == "missing":
                 return unknown("missing_interval_evidence_unavailable")
             context = {}

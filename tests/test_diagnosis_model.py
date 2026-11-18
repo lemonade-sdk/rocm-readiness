@@ -124,6 +124,16 @@ class ModelTests(unittest.TestCase):
             result = self.client([answer() | {"usage": usage}]).diagnose(EVIDENCE)
             self.assertEqual(result["certainty"], "likely")
 
+    def test_cancelled_status_does_not_prove_manual_cancellation(self):
+        incident = {"observed": {"status": "cancelled"}}
+        evidence = [{"id": "E1", "kind": "log", "text": "##[error]The operation was canceled."},
+                    {"id": "E2", "kind": "workflow", "text": "on: workflow_dispatch\nconcurrency:\n  cancel-in-progress: true"}]
+        result = {"method": "model", "certainty": "likely", "cause": "The build was manually cancelled.", "evidence_ids": ["E1", "E2"]}
+        self.assertFalse(validate_result(result, evidence, incident))
+        client = self.client([])
+        self.assertEqual(client.diagnose({"incident": incident, "evidence": evidence})["code"], "cancellation_reason_unavailable")
+        self.assertEqual(self.requests, [])
+
     def test_missing_interval_cannot_be_explained_by_absence_itself(self):
         client = self.client([])
         incident = {"status": "missing"}

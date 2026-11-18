@@ -456,12 +456,113 @@
         "verdict": "passed",
         "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/43433945493/job/131919188834"
       }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "44128307152",
+      "job_id": "134198085871",
+      "attempt": 1,
+      "day": "2026-11-17",
+      "created_at": "2026-11-17T16:39:47Z",
+      "completed_at": "2026-11-17T16:40:44Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "8302b819fc3096c03cedbc91ef1fe982cc6ebb77",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 10,
+      "runner": "ephemeral-devlab-x2-la03-s04-d06-134198085871",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44128307152/job/134198085871",
+      "pr": {
+        "number": 4184,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4184",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44068327579/job/133987743800"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "44128307152",
+      "job_id": "134198086179",
+      "attempt": 1,
+      "day": "2026-11-17",
+      "created_at": "2026-11-17T16:39:47Z",
+      "completed_at": "2026-11-17T16:41:46Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "8302b819fc3096c03cedbc91ef1fe982cc6ebb77",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 17,
+      "runner": "ephemeral-devlab-x2-la03-s05-d04-134198086179",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44128307152/job/134198086179",
+      "pr": {
+        "number": 4184,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4184",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44068327579/job/133987743452"
+      }
+    },
+    {
+      "job": "npu-amd-linux",
+      "run_id": "44246573472",
+      "job_id": "134606847986",
+      "attempt": 1,
+      "day": "2026-11-18",
+      "created_at": "2026-11-18T05:46:30Z",
+      "completed_at": "2026-11-18T05:50:20Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "5f9823760117f500ebce2527cbb2314572f5fcd6",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 185,
+      "runner": "ephemeral-devlab-x2-la03-s04-d04-134606847986",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44246573472/job/134606847986",
+      "pr": {
+        "number": 4186,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4186",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44112166201/job/134140404036"
+      }
+    },
+    {
+      "job": "npu-amd-windows",
+      "run_id": "44246573472",
+      "job_id": "134606847944",
+      "attempt": 1,
+      "day": "2026-11-18",
+      "created_at": "2026-11-18T05:46:30Z",
+      "completed_at": "2026-11-18T05:48:36Z",
+      "event": "push",
+      "ref": "master",
+      "sha": "5f9823760117f500ebce2527cbb2314572f5fcd6",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 25,
+      "runner": "ephemeral-devlab-x2-la03-s02-d06-134606847944",
+      "url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44246573472/job/134606847944",
+      "pr": {
+        "number": 4186,
+        "url": "https://github.com/ggml-org/whisper.cpp/pull/4186",
+        "author": "danbev",
+        "verdict": "passed",
+        "check_url": "https://github.com/ggml-org/whisper.cpp/actions/runs/44112166201/job/134140404183"
+      }
     }
   ],
   "scanned_runs": [
-    "39266049278#1@2026-10-19",
-    "39266669551#1@2026-10-19",
-    "39266836861#1@2026-10-19",
     "40654570744#1@2026-10-28",
     "40893039012#1@2026-10-29",
     "40897394198#1@2026-10-29",
@@ -474,6 +575,8 @@
     "42622000996#1@2026-11-09",
     "42784369493#1@2026-11-10",
     "43383130159#1@2026-11-13",
-    "43813934917#1@2026-11-16"
+    "43813934917#1@2026-11-16",
+    "44128307152#1@2026-11-17",
+    "44246573472#1@2026-11-18"
   ]
 }

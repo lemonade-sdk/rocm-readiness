@@ -1,6 +1,7 @@
 """Bounded, read-only public CI evidence for diagnosis; never persist raw logs."""
 
 import base64
+from datetime import datetime, timezone
 import hashlib
 from http.client import HTTPException
 import ipaddress
@@ -173,10 +174,20 @@ class EvidenceCollector:
                 return any(step.get("started_at") and step.get("completed_at")
                            and step["started_at"][:19] <= stamp <= step["completed_at"][:19]
                            for step in failed_steps)
-            matches = {j for i, line in enumerate(lines) if re.search(r"##\[error\]|fatal|error:|exception|traceback|failed", line, re.I)
-                       for j in range(max(0, i - 2), min(len(lines), i + 4))}
+            # Keep concrete compiler/tool diagnostics ahead of repetitive
+            # generic "failed" chatter, without increasing the evidence budget.
+            concrete = re.compile(
+                r"##\[error\]|\bfatal error\b|\berror(?:\s+(?:C|LNK)\d+)?\s*:|"
+                r"End-of-central-directory signature not found|unzip:\s+cannot find zipfile directory", re.I)
+            general = re.compile(r"fatal|exception|traceback|failed", re.I)
+            matches = {}
+            for i, line in enumerate(lines):
+                priority = 0 if concrete.search(line) else 1 if general.search(line) else None
+                if priority is not None:
+                    for j in range(max(0, i - 2), min(len(lines), i + 4)):
+                        matches[j] = min(matches.get(j, 2), priority)
             chunk = max(0, remaining // 4 - 64)
-            safe = ("[runtime errors]\n" + _trim("\n".join(lines[i] for i in sorted(matches, key=lambda i: (not failed_step_line(lines[i]), i))), chunk * 2)
+            safe = ("[runtime errors]\n" + _trim("\n".join(lines[i] for i in sorted(matches, key=lambda i: (matches[i], not failed_step_line(lines[i]), i))), chunk * 2)
                     + "\n[tail]\n" + safe.encode("utf-8")[-chunk:].decode("utf-8", errors="ignore")
                     + "\n[start]\n" + _trim(safe, chunk)) if chunk else ""
         text = _trim(safe, remaining)
@@ -331,16 +342,62 @@ class EvidenceCollector:
         if not any(job.get("id") == self.provenance.get("job_id") and job.get("conclusion") == "failure"
                    for job in getattr(self, "jobs", [])):
             return None
-        diagnostic = re.compile(
-            r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?"
-            r"lld-link: error: unable to find mt\.exe in PATH: no such file or directory"
-        )
+        job = next(job for job in self.jobs if job.get("id") == self.provenance.get("job_id"))
+        def second(value):
+            try:
+                value = re.sub(r"\.\d+(?=Z|[+-]\d{2}:\d{2}$)", "", value)
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    return None
+                # The Actions API reports step boundaries to whole seconds.
+                return parsed.astimezone(timezone.utc).replace(microsecond=0)
+            except (AttributeError, TypeError, ValueError):
+                return None
+        intervals = []
+        steps = job.get("steps")
+        if not isinstance(steps, list):
+            return None
+        for index, step in enumerate(steps):
+            if not isinstance(step, dict) or step.get("conclusion") != "failure":
+                continue
+            start, end = second(step.get("started_at")), second(step.get("completed_at"))
+            if start is not None and end is not None and start <= end:
+                intervals.append((index, start, end))
+        def failed_step(line):
+            match = re.match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)\s+", line)
+            stamp = second(match[1]) if match else None
+            matches = [index for index, start, end in intervals if stamp is not None and start <= stamp <= end]
+            return matches[0] if len(matches) == 1 else None
+        timestamp = r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?"
+        tool_diagnostic = re.compile(timestamp +
+            r"lld-link: error: unable to find mt\.exe in PATH: no such file or directory")
+        unavailable_version = re.compile(timestamp +
+            r"##\[error\]ROCm [0-9][A-Za-z0-9_.+-]* is not published for: "
+            r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:,\s*[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)*")
+        zip_signature = re.compile(
+            r"End-of-central-directory signature not found\.(?:\s+Either this file is not)?")
+        zip_directory = re.compile(
+            r"unzip:\s+cannot find zipfile directory in one of .*[\\/]ccache-[A-Za-z0-9_.-]+\.zip or")
         for row in self.evidence:
             if row.get("kind") != "log" or row.get("url") != self._log_url():
                 continue
-            if any(diagnostic.fullmatch(line.strip()) for line in row.get("text", "").splitlines()):
-                return {"method": "deterministic", "certainty": "verified",
-                        "cause": "A required build tool could not be located by the job.",
+            lines = [line.strip() for line in row.get("text", "").splitlines()]
+            cause = None
+            if any(tool_diagnostic.fullmatch(line) and failed_step(line) is not None for line in lines):
+                cause = "A required build tool could not be located by the job."
+            elif any(unavailable_version.fullmatch(line) and failed_step(line) is not None for line in lines):
+                cause = "The requested software version was unavailable for the selected hardware and operating systems."
+            else:
+                runtime = [re.sub(r"^\d{4}-\d{2}-\d{2}T\S+\s+", "", line).strip() for line in lines]
+                signatures = [i for i, line in enumerate(runtime) if zip_signature.fullmatch(line)]
+                directories = [i for i, line in enumerate(runtime) if zip_directory.fullmatch(line)]
+                if any(0 < directory - signature <= 12
+                       and failed_step(lines[signature]) is not None
+                       and failed_step(lines[signature]) == failed_step(lines[directory])
+                       for signature in signatures for directory in directories):
+                    cause = "A downloaded build tool archive could not be opened as a valid ZIP file."
+            if cause is not None:
+                return {"method": "deterministic", "certainty": "verified", "cause": cause,
                         "evidence_ids": [row["id"]]}
         return None
 
@@ -457,7 +514,7 @@ class EvidenceCollector:
                     # job-level field relevant to dependency gating. Step bodies
                     # cannot consume the budget or conceal a later job-level if.
                     blocks.append("  " + name + ":")
-                    for field in (("name", "needs", "if", "continue-on-error", "strategy") if name in names else ("name", "strategy")):
+                    for field in ("name", "needs", "if", "continue-on-error", "strategy"):
                         if field not in definition:
                             continue
                         values = definition[field].split("\n")

@@ -55,7 +55,10 @@ Lemonade. Known-only datasets need no model setup; if provisioning fails, verifi
 findings remain available and unresolved cases retain investigation.
 The literal linker error that `mt.exe` cannot be found in PATH is explained by a
 deterministic runtime rule before inference; it does not infer installation state
-or the tool's purpose.
+or the tool's purpose. Explicit unavailable-version and invalid build-tool ZIP
+diagnostics are also handled by rules. Literal runtime rules require matching
+timestamps inside a recorded failed step of the same job; errors in successful
+optional steps cannot explain a later failure.
 Run-command echoes are excluded from log evidence. Runtime errors and failed-step
 output take priority; a failed document read does not block other documents.
 Workflow reads support bounded line paging or a complete projection of named-job

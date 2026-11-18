@@ -70,9 +70,9 @@ class EvidenceCollector(RealCollector):
             f'/repos/org/project/actions/runs/{run}/attempts/2': {
                 'id': run, 'run_attempt': 2, 'head_sha': SHA, 'path': '.github/workflows/ci.yml'},
             f'/repos/org/project/actions/runs/{run}/attempts/2/jobs?per_page=100': {
-                'total_count': 1, 'jobs': [{'id': job, 'run_id': run, 'run_attempt': 2, 'conclusion': 'failure'}]},
+                'total_count': 1, 'jobs': [{'id': job, 'run_id': run, 'run_attempt': 2, 'conclusion': 'failure', 'steps': [{'conclusion': 'failure', 'started_at': '2026-11-18T10:00:00Z', 'completed_at': '2026-11-18T10:01:00Z'}]}]},
             f'/repos/org/project/actions/jobs/{job}/logs': {'raw': (
-                'lld-link: error: unable to find mt.exe in PATH: no such file or directory\n'
+                '2026-11-18T10:00:30.100Z lld-link: error: unable to find mt.exe in PATH: no such file or directory\n'
                 if known else 'some unexplained runtime failure\n')},
         })
 

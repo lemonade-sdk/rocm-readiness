@@ -82,6 +82,7 @@ class EvidenceCollector:
         self.requests = 0
         self.started = monotonic()
         self.log_text = None
+        self.workflow_text = None
         self.verified_run = False
 
     def _request(self, url, headers, max_bytes):
@@ -162,17 +163,27 @@ class EvidenceCollector:
         safe = redact(raw, self.secrets)
         remaining = min(MAX_EVIDENCE_BYTES - self.bytes, max_selected or MAX_EVIDENCE_BYTES)
         if key == "log-initial" and len(safe.encode("utf-8")) > remaining:
-            # Keep beginning, explicit-error context, and end rather than losing a
-            # compiler/test error after a long dependency-install preamble.
+            # Runtime annotations and compiler failures precede setup chatter.
             lines = safe.splitlines()
-            matches = {j for i, line in enumerate(lines) if re.search(r"error|fatal|failed|exception|traceback", line, re.I)
+            failed_steps = [step for job in getattr(self, "jobs", []) if job.get("id") == self.provenance.get("job_id")
+                            for step in job.get("steps", []) if step.get("conclusion") == "failure"]
+            def failed_step_line(line):
+                stamp = line[:19]
+                return any(step.get("started_at") and step.get("completed_at")
+                           and step["started_at"][:19] <= stamp <= step["completed_at"][:19]
+                           for step in failed_steps)
+            matches = {j for i, line in enumerate(lines) if re.search(r"##\[error\]|fatal|error:|exception|traceback|failed", line, re.I)
                        for j in range(max(0, i - 2), min(len(lines), i + 4))}
-            chunk = max(0, remaining // 3 - 32)
-            safe = (_trim(safe, chunk) + "\n[excerpt]\n" + _trim("\n".join(lines[i] for i in sorted(matches)), chunk)
-                    + "\n[tail]\n" + safe.encode("utf-8")[-chunk:].decode("utf-8", errors="ignore")) if chunk else ""
+            chunk = max(0, remaining // 4 - 64)
+            safe = ("[runtime errors]\n" + _trim("\n".join(lines[i] for i in sorted(matches, key=lambda i: (not failed_step_line(lines[i]), i))), chunk * 2)
+                    + "\n[tail]\n" + safe.encode("utf-8")[-chunk:].decode("utf-8", errors="ignore")
+                    + "\n[start]\n" + _trim(safe, chunk)) if chunk else ""
         text = _trim(safe, remaining)
-        kind = "log" if (isinstance(key, tuple) or key == "log-initial") else key
+        kind = ("workflow" if isinstance(key, tuple) and key[0] == "workflow" else
+                "log" if (isinstance(key, tuple) or key == "log-initial") else key)
         item = {"id": f"E{len(self.evidence) + 1}", "text": text, "url": url, "kind": kind}
+        if kind == "workflow":
+            item["workflow_complete"] = text == safe
         self.bytes += len(text.encode("utf-8"))
         self.evidence.append(item)
         self.cache[key] = item
@@ -245,19 +256,26 @@ class EvidenceCollector:
                 if self.repo is None:
                     raise
                 run_error = str(error) if isinstance(error, EvidenceUnavailable) else "invalid_evidence"
-            # Immutable producer reports are preferable to downloading another log.
-            if assessment.get("report_snapshot") or assessment.get("report_url"):
-                self.get_report()
-            elif any(e.get("label") == "Qualification report" for e in assessment.get("evidence", [])):
-                self.get_report()
+            # A missing document must not hide independent workflow/report evidence.
+            errors = []
+            def attempt(load):
+                try:
+                    load()
+                except (EvidenceUnavailable, ValueError, KeyError, TypeError) as error:
+                    errors.append(str(error) if isinstance(error, EvidenceUnavailable) else "invalid_evidence")
+            if (assessment.get("report_snapshot") or assessment.get("report_url")
+                    or any(e.get("label") == "Qualification report" for e in assessment.get("evidence", []))):
+                attempt(self.get_report)
             if self.verified_run:
-                self.get_run_jobs()
+                attempt(self.get_run_jobs)
                 if self.provenance.get("job_id"):
-                    self._initial_log()
+                    attempt(self._initial_log)
                 if self.provenance.get("workflow"):
-                    self.get_workflow()
+                    attempt(self.get_workflow)
+            if errors:
+                run_error = errors[0]
             availability = "available" if self.evidence else "insufficient"
-            code = ("report_only_run_unavailable" if self.evidence and run_error else
+            code = ("report_only_run_unavailable" if self.evidence and run_error and not self.verified_run else
                     run_error or ("ok" if self.evidence else "no_evidence"))
             if run_error and not self.evidence:
                 availability = "unavailable"
@@ -303,7 +321,16 @@ class EvidenceCollector:
             self.documents += 1
             job = self.provenance["job_id"]
             raw = self._fetch(f"{API}/repos/{self.repo}/actions/jobs/{job}/logs", authenticated=True, log=True)
-            self.log_text = redact(raw.decode("utf-8", errors="replace"), self.secrets)
+            lines = redact(raw.decode("utf-8", errors="replace"), self.secrets).splitlines()
+            retained, echo = [], False
+            for line in lines:
+                if re.match(r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?##\[group\]Run(?:\s|$)", line):
+                    echo = True
+                elif echo and re.match(r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?##\[endgroup\]", line):
+                    echo = False
+                elif not echo:
+                    retained.append(line)
+            self.log_text = "\n".join(retained)
         return self.log_text
 
     def _log_url(self):
@@ -330,19 +357,65 @@ class EvidenceCollector:
                          lambda: "\n".join(lines[i] for i in sorted(positions)),
                          count_document=False, max_selected=8192)
 
-    def get_workflow(self):
+    def get_workflow(self, job=None, start_line=None, max_lines=200):
         if not self.verified_run:
             raise EvidenceUnavailable("run_not_verified")
         path, revision = self.provenance["workflow"], self.provenance["revision"]
         if not isinstance(path, str) or not re.fullmatch(r"\.github/workflows/[A-Za-z0-9_.-]+\.ya?ml", path):
             raise EvidenceUnavailable("invalid_workflow_path")
         url = f"https://github.com/{self.repo}/blob/{revision}/{path}"
+        if job is not None and (not isinstance(job, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", job)):
+            raise EvidenceUnavailable("invalid_workflow_job")
+        if (start_line is not None and (type(start_line) is not int or start_line < 1)) or type(max_lines) is not int or not 1 <= max_lines <= 400:
+            raise EvidenceUnavailable("invalid_workflow_range")
+        if job is not None and start_line is not None:
+            raise EvidenceUnavailable("invalid_workflow_range")
+        selection_complete = True
         def load():
-            data = self._json(f"/repos/{self.repo}/contents/{quote(path, safe='/')}?ref={revision}")
-            if data.get("encoding") != "base64":
-                raise EvidenceUnavailable("workflow_unavailable")
-            return base64.b64decode(data["content"]).decode("utf-8")
-        return self._add("workflow", url, load)
+            nonlocal selection_complete
+            if self.workflow_text is None:
+                data = self._json(f"/repos/{self.repo}/contents/{quote(path, safe='/')}?ref={revision}")
+                if data.get("encoding") != "base64":
+                    raise EvidenceUnavailable("workflow_unavailable")
+                self.workflow_text = base64.b64decode(data["content"]).decode("utf-8")
+            lines = self.workflow_text.splitlines()
+            if job is not None:
+                if __package__:
+                    from .diagnosis_support import workflow_jobs, _needs
+                else:
+                    from diagnosis_support import workflow_jobs, _needs
+                definitions = workflow_jobs(self.workflow_text)
+                if not definitions or job not in definitions:
+                    raise EvidenceUnavailable("workflow_job_unavailable")
+                names = [job] + (_needs(definitions[job].get("needs", "")) or [])
+                blocks = []
+                for name in dict.fromkeys(names):
+                    definition = definitions.get(name)
+                    if definition is None:
+                        selection_complete = False
+                        continue
+                    # Parse the whole immutable document before projecting every
+                    # job-level field relevant to dependency gating. Step bodies
+                    # cannot consume the budget or conceal a later job-level if.
+                    blocks.append("  " + name + ":")
+                    for field in ("name", "needs", "if", "continue-on-error"):
+                        if field not in definition:
+                            continue
+                        values = definition[field].split("\n")
+                        blocks.append("    " + field + ": " + values[0])
+                        blocks.extend("      " + value for value in values[1:])
+                selected = ["jobs:"] + blocks
+                selection_complete = selection_complete and len(selected) <= max_lines
+                return "\n".join(selected[:max_lines])
+            if start_line is not None:
+                selection_complete = start_line == 1 and len(lines) <= max_lines
+                return "\n".join(lines[start_line - 1:start_line - 1 + max_lines])
+            return self.workflow_text
+        key = "workflow" if job is None and start_line is None else ("workflow", job, start_line, max_lines)
+        # Reserve space for tool-selected late job blocks and log excerpts.
+        item = self._add(key, url, load, count_document=self.workflow_text is None, max_selected=8192)
+        item["workflow_complete"] = item.get("workflow_complete", False) and selection_complete
+        return item
 
     def get_report(self):
         if self.repo is None:
@@ -363,7 +436,7 @@ class EvidenceCollector:
         if not isinstance(arguments, dict):
             return {"error": "invalid_arguments"}
         methods = {"get_job_log": self.get_job_log, "get_run_jobs": self.get_run_jobs, "get_workflow": self.get_workflow, "get_report": self.get_report, "search_job_log": self.search_job_log}
-        if name not in methods or set(arguments) - ({"query"} if name == "search_job_log" else {"start_line", "max_lines"} if name == "get_job_log" else set()):
+        if name not in methods or set(arguments) - ({"query"} if name == "search_job_log" else {"start_line", "max_lines"} if name == "get_job_log" else {"job", "start_line", "max_lines"} if name == "get_workflow" else set()):
             return {"error": "tool_not_allowed"}
         try:
             return methods[name](**arguments)

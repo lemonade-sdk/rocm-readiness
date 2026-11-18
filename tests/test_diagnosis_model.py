@@ -24,6 +24,22 @@ class ModelTests(unittest.TestCase):
             return result
         return LemonadeClient(request=request)
 
+    def test_overlong_answer_has_one_bounded_format_correction(self):
+        long = answer(cause="A required download timed out. " * 7)
+        long["usage"] = {"completion_tokens": 100}
+        client = self.client([long, answer(cause="A required download timed out.")])
+        result = client.diagnose(EVIDENCE)
+        self.assertEqual(result["cause"], "A required download timed out.")
+        self.assertEqual(len(self.requests), 2)
+        self.assertIn("Correct only", self.requests[1][1]["messages"][-1]["content"])
+
+    def test_format_correction_cannot_bypass_citations_or_loop(self):
+        malformed = {"usage": {"completion_tokens": 100}, "choices": [{"message": {"content": "Here is JSON: {}"}}]}
+        for corrected in [answer(ids=["invented"]), malformed]:
+            client = self.client([malformed, corrected])
+            self.assertEqual(client.diagnose(EVIDENCE)["certainty"], "unknown")
+            self.assertEqual(len(self.requests), 2)
+
     def test_supported_short_cause(self):
         client = self.client([answer()])
         result = client.diagnose({"evidence": EVIDENCE})
@@ -99,9 +115,9 @@ class ModelTests(unittest.TestCase):
         skipped = {"id":"E2", "kind":"jobs", "text":json.dumps({"jobs":[{"conclusion":"skipped"}]})}
         self.assertFalse(validate_result(paraphrase | {"evidence_ids":["E1","E2"]}, [gate,skipped], incident))
         failed = skipped | {"text":json.dumps({"jobs":[{"conclusion":"failure"}]})}
-        self.assertTrue(validate_result(guessed | {"cause":"The required build job failed.","evidence_ids":["E1","E2"]}, [gate,failed], incident))
+        self.assertFalse(validate_result(guessed | {"cause":"The required build job failed.","evidence_ids":["E1","E2"]}, [gate,failed], incident))
         dependency = guessed | {"cause": "The required build job failed in the same run and attempt."}
-        self.assertTrue(validate_result(dependency, [{"id":"E1","text":"Deploy step uses secrets.GITHUB_TOKEN; build prerequisite failed."}], incident))
+        self.assertFalse(validate_result(dependency, [{"id":"E1","text":"Deploy step uses secrets.GITHUB_TOKEN; build prerequisite failed."}], incident))
 
     def test_non_object_usage_charges_allowance_without_discarding_valid_answer(self):
         for usage in [None, [], "unknown", 5]:

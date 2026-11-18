@@ -39,6 +39,18 @@ For skipped jobs, model claims about historical `vars` or `secrets` remain
 unresolved unless existing verified rules already explain them. Dot and bracket
 references are checked again at the trusted writer; an unrelated secret used by
 another step does not block an independently evidenced prerequisite explanation.
+A model skip explanation must also cite exact same-attempt prerequisite outcomes
+and a complete workflow job definition at the run revision that proves the gate.
+Ambiguous YAML, incomplete excerpts, and tolerated prerequisite failures stay unknown.
+Supported dependency skips use a fixed sentence derived from the proof, rather
+than publishing the model's free-form causal wording.
+Run-command echoes are excluded from log evidence. Runtime errors and failed-step
+output take priority; a failed document read does not block other documents.
+Workflow reads support bounded line paging or a complete projection of named-job
+gating fields and direct prerequisites, excluding large step bodies.
+The prompt requests one sentence for a nontechnical director. One format/length
+correction is allowed inside the existing time, round and generated-token budgets;
+the corrected answer must pass the same evidence and output checks.
 The client uses Qwen's direct-answer sampling preset (temperature 0.7, top-p 0.8,
 presence penalty 1.5, thinking disabled). The Strix Halo pilot verified this API
 option and tool calls on Lemonade 11.9.0. Thinking mode sometimes exhausted the

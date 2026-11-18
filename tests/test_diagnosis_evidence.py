@@ -175,6 +175,85 @@ class EvidenceTests(unittest.TestCase):
             self.assertIn('error', collector.call_tool(name, args))
         self.assertIn('get_workflow', collector.tools())
 
+    def test_command_echo_is_not_runtime_failure_evidence(self):
+        # Sanitized releaseNov18 and compileOct31 source-derived fragments.
+        self.body = ('##[group]Run if [ -z "$files" ]; then\n'
+                     'echo "::error::No release artifacts found"\n##[endgroup]\n'
+                     + 'ordinary output\n' * 1500
+                     + 'lld-link: error: unable to find mt.exe in PATH: no such file or directory\n'
+                     + 'ordinary output\n' * 1500
+                     + '##[error]Unhandled error: HttpError: Not Found\n').encode()
+        collector = self.collector()
+        result = collector.collect(self.assessment)
+        log = next(e["text"] for e in result["evidence"] if e["kind"] == "log")
+        self.assertNotIn("No release artifacts", log)
+        self.assertIn("unable to find mt.exe", log)
+        self.assertIn("HttpError: Not Found", log)
+        self.assertNotIn("No release artifacts", collector.search_job_log("artifacts")["text"])
+
+    def test_runtime_groups_and_actual_error_output_survive(self):
+        self.body = (b"##[group]Run echo hypothetical\necho ::error::hypothetical\n##[endgroup]\n"
+                     b"##[group]Runtime compiler details\nlld-link: error: unable to find mt.exe\n##[endgroup]\n")
+        collector = self.collector()
+        collector.collect(self.assessment)
+        text = collector.get_job_log()["text"]
+        self.assertIn("Runtime compiler details", text)
+        self.assertIn("unable to find mt.exe", text)
+        self.assertNotIn("hypothetical", text)
+
+    def test_failed_report_does_not_prevent_job_and_workflow(self):
+        self.assessment["report_url"] = "https://example.com/not-pinned.json"
+        result = self.collector().collect(self.assessment)
+        self.assertEqual({e["kind"] for e in result["evidence"]}, {"jobs", "log", "workflow"})
+
+    def test_unavailable_log_does_not_prevent_workflow(self):
+        self.redirect = "https://attacker.example/log"
+        result = self.collector().collect(self.assessment)
+        self.assertTrue(any(e["kind"] == "workflow" for e in result["evidence"]))
+
+    def test_late_workflow_job_and_pages_use_cached_document(self):
+        workflow = "name: test\njobs:\n  early:\n" + "    # padding\n" * 5000
+        workflow += "  build-windows:\n    needs: build-ubuntu\n    steps: []\n"
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(workflow.encode()).decode()
+        collector = self.collector()
+        collector.collect(self.assessment)
+        before = len(self.calls)
+        selected = collector.call_tool("get_workflow", {"job": "build-windows"})
+        self.assertIn("needs: build-ubuntu", selected["text"])
+        self.assertTrue(selected["text"].startswith("jobs:\n"))
+        self.assertFalse(selected["workflow_complete"])  # missing prerequisite definition
+        page = collector.call_tool("get_workflow", {"start_line": 5004, "max_lines": 3})
+        self.assertIn("build-windows:", page["text"])
+        self.assertFalse(page["workflow_complete"])
+        self.assertEqual(len(self.calls), before)
+        self.assertEqual(selected["kind"], "workflow")
+
+    def test_selected_workflow_contains_complete_prerequisite_blocks(self):
+        workflow = "jobs:\n  approve:\n    runs-on: ubuntu-latest\n  build:\n    needs: approve\n    runs-on: ubuntu-latest\n"
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(workflow.encode()).decode()
+        collector = self.collector()
+        collector.collect(self.assessment)
+        selected = collector.get_workflow(job="build")
+        self.assertTrue(selected["workflow_complete"])
+        self.assertIn("  approve:", selected["text"])
+        clipped = collector.get_workflow(job="build", max_lines=2)
+        self.assertFalse(clipped["workflow_complete"])
+
+    def test_workflow_projection_preserves_late_gates_after_large_steps(self):
+        workflow = ("jobs:\n  prerequisite:\n    steps:\n"
+                    + "      - run: echo harmless\n" * 2000
+                    + "    continue-on-error: true\n  dependent:\n    needs: prerequisite\n"
+                    + "    steps:\n" + "      - run: echo harmless\n" * 2000
+                    + "    if: vars.ENABLED\n")
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(workflow.encode()).decode()
+        collector = self.collector()
+        collector.collect(self.assessment)
+        selected = collector.get_workflow(job="dependent")
+        self.assertTrue(selected["workflow_complete"])
+        self.assertIn("continue-on-error: true", selected["text"])
+        self.assertIn("if: vars.ENABLED", selected["text"])
+        self.assertNotIn("harmless", selected["text"])
+
     def test_redaction_and_controls(self):
         value = redact('\x1b[31msecret=abc 10.0.0.1 user@example.com\x00 https://example.com/a?token=x CANARY', ['CANARY'])
         for forbidden in ['abc', '10.0.0.1', 'user@example.com', '\x00', '?token', 'CANARY', '\x1b']:

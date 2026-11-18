@@ -38,6 +38,15 @@ unobserved deeper causes, such as installation state, physical hardware absence,
 driver faults, corruption, or tampering. A checksum mismatch establishes failed
 verification, not why the bytes differ. A missing header establishes a lookup
 failure, not an incomplete SDK installation.
+Write for a nontechnical director: one short sentence explaining what prevented
+completion. Prefer everyday language; omit source paths, test IDs, commands and
+compiler symbols unless essential to understanding. Examples of style only:
+"A required download timed out before testing could start."
+"The release upload failed because the destination returned an error."
+Never treat printed shell commands or hypothetical error branches as executed errors.
+For a skipped dependency, cite both the same-attempt job outcomes and the workflow
+at the run revision proving that dependency and gate. Read the relevant workflow
+job block if the initial workflow excerpt is incomplete.
 Tool results may reference evidence IDs already supplied above. Use that earlier
 content rather than repeatedly requesting the same evidence.
 If the cause is not yet in the supplied evidence and an available read tool can
@@ -105,7 +114,7 @@ def unverifiable_skip(evidence, incident=None, cause=None, cited_ids=None):
     )
 
 
-def validate_result(result, evidence, incident=None):
+def validate_result(result, evidence, incident=None, provenance=None):
     """Validate public model output again at the trusted artifact writer boundary.
 
     Citation membership is necessary, not a proof of semantic support; the model
@@ -114,7 +123,9 @@ def validate_result(result, evidence, incident=None):
     if not isinstance(result, dict) or result.get("method") != "model" or result.get("certainty") != "likely":
         return False
     cause, ids = result.get("cause"), result.get("evidence_ids")
-    if not isinstance(evidence, list):
+    if (not isinstance(evidence, list) or any(not isinstance(row, dict) for row in evidence)
+            or not isinstance(cause, str) or not isinstance(ids, list) or not ids
+            or any(not isinstance(identity, str) for identity in ids)):
         return False
     incident = incident or {}
     status = incident.get("observed", {}).get("status") or incident.get("status")
@@ -128,6 +139,12 @@ def validate_result(result, evidence, incident=None):
             # Status metadata or a workflow definition alone is not the recorded
             # error that caused a job to fail. Never suppress an issue with it.
             return False
+    if __package__:
+        from .diagnosis_support import validate_support
+    else:
+        from diagnosis_support import validate_support
+    if not validate_support(result, evidence, incident, provenance):
+        return False
     if unverifiable_skip(evidence, incident, cause, ids):
         return False
     known = {row.get("id") for row in evidence if isinstance(row, dict) and isinstance(row.get("id"), str)}
@@ -174,10 +191,10 @@ def _tools(handlers):
     schemas = {
         "get_job_log": {"start_line": {"type": "integer", "minimum": 1}, "max_lines": {"type": "integer", "minimum": 1, "maximum": 200}},
         "search_job_log": {"query": {"type": "string", "maxLength": 200}},
-        "get_workflow": {}, "get_run_jobs": {}, "get_report": {},
+        "get_workflow": {"job": {"type": "string", "maxLength": 100}, "start_line": {"type": "integer", "minimum": 1}, "max_lines": {"type": "integer", "minimum": 1, "maximum": 400}}, "get_run_jobs": {}, "get_report": {},
     }
     return [{"type": "function", "function": {"name": name,
-             "description": "Read evidence for this incident only; no commands or writes.",
+             "description": ("Read the immutable workflow; use job for a complete named job and its direct prerequisites, or start_line/max_lines for paging." if name == "get_workflow" else "Read evidence for this incident only; no commands or writes."),
              "parameters": {"type": "object", "properties": schemas[name],
                             "additionalProperties": False,
                             "required": ["query"] if name == "search_job_log" else []}}}
@@ -200,6 +217,7 @@ class LemonadeClient:
         entries = evidence.get("evidence", []) if isinstance(evidence, dict) else evidence
         known = {}
         kinds = {}
+        metadata = {}
         remaining = MAX_EVIDENCE_BYTES
 
         def ingest(value):
@@ -225,7 +243,8 @@ class LemonadeClient:
                 remaining -= size
                 known[row["id"]] = text
                 kinds[row["id"]] = row.get("kind")
-                entry = {"id": row["id"], "text": text}
+                metadata[row["id"]] = {k: row[k] for k in ("url", "workflow_complete") if k in row}
+                entry = {"id": row["id"], "text": text, **metadata[row["id"]]}
                 if isinstance(row.get("kind"), str):
                     entry["kind"] = row["kind"]
                 added.append(entry)
@@ -252,6 +271,7 @@ class LemonadeClient:
             deadline = self.clock() + 120
             token_budget = 1500
             calls = 0
+            repaired = False
             for _ in range(4):
                 timeout = deadline - self.clock()
                 if timeout <= 0 or token_budget <= 0:
@@ -295,8 +315,11 @@ class LemonadeClient:
                         properties = next(t["function"]["parameters"]["properties"] for t in _tools(handlers) if t["function"]["name"] == name)
                         if set(arguments) - set(properties):
                             return unknown("invalid_tool")
-                        if any(type(v) is not int or v < 1 or (k == "max_lines" and v > 200) for k,v in arguments.items() if k in ("start_line", "max_lines")):
+                        if any(type(v) is not int or v < 1 or (k == "max_lines" and v > (400 if name == "get_workflow" else 200)) for k,v in arguments.items() if k in ("start_line", "max_lines")):
                             return unknown("invalid_tool")
+                        if name == "get_workflow" and "job" in arguments:
+                            if (not isinstance(arguments["job"], str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", arguments["job"]) or "start_line" in arguments):
+                                return unknown("invalid_tool")
                         if name == "search_job_log":
                             query = arguments.get("query")
                             if (not isinstance(query, str) or not 1 <= len(query) <= 200
@@ -312,13 +335,44 @@ class LemonadeClient:
                     continue
                 if choices[0].get("finish_reason") not in (None, "stop"):
                     return unknown("incomplete_output")
-                result = json.loads(message["content"])
+                try:
+                    result = json.loads(message["content"])
+                except (ValueError, TypeError):
+                    result = None
+                format_problem = (not isinstance(result, dict) or
+                                  set(result) != {"certainty", "cause", "evidence_ids"})
+                too_long = (isinstance(result, dict) and result.get("certainty") == "likely"
+                            and isinstance(result.get("cause"), str) and len(result["cause"]) > 160)
+                if (format_problem or too_long) and not repaired and token_budget > 0:
+                    # One correction uses the same evidence, deadline and total
+                    # token allowance. The corrected answer still faces all guards.
+                    if isinstance(result, dict) and result.get("certainty") == "unknown":
+                        return unknown("insufficient_evidence")
+                    repaired = True
+                    messages.append({"role": "assistant", "content": redact(message.get("content", ""))[:4096]})
+                    messages.append({"role": "user", "content":
+                        "Correct only the answer format/length. Return one JSON object, no prose or Markdown. "
+                        "Keep the same evidence-supported immediate cause and citations; shorten cause to at most 160 characters "
+                        "in everyday language. If unsupported, return {\"certainty\":\"unknown\"}."})
+                    continue
                 if isinstance(result, dict) and result.get("certainty") == "unknown":
                     return unknown("insufficient_evidence")
                 if not isinstance(result, dict) or set(result) != {"certainty", "cause", "evidence_ids"}:
                     return unknown("invalid_output")
                 candidate = {"method": "model", **result}
-                if not validate_result(candidate, [{"id": identity, "text": text, "kind": kinds[identity]} for identity, text in known.items()], incident):
+                validation_evidence = [{"id": identity, "text": text, "kind": kinds[identity], **metadata[identity]}
+                                       for identity, text in known.items()]
+                if status in ("skip", "skipped"):
+                    if __package__:
+                        from .diagnosis_support import supported_skip_cause
+                    else:
+                        from diagnosis_support import supported_skip_cause
+                    supported_cause = supported_skip_cause(validation_evidence, incident,
+                                                           context.get("provenance"), candidate.get("evidence_ids"))
+                    if supported_cause is None:
+                        return unknown("unsupported_output")
+                    candidate["cause"] = supported_cause
+                if not validate_result(candidate, validation_evidence, incident, context.get("provenance")):
                     return unknown("unsupported_output")
                 candidate["evidence_ids"] = list(dict.fromkeys(candidate["evidence_ids"]))
                 return candidate

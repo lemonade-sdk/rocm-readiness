@@ -13,8 +13,8 @@ else:
     from notifications import write_atomic
 
 DEFAULT_MODEL = "Qwen3.6-35B-A3B-MTP-GGUF"
-ANALYZER_VERSION = "ci-diagnosis-2"
-PROMPT_VERSION = "ci-diagnosis-2"
+ANALYZER_VERSION = "ci-diagnosis-3"
+PROMPT_VERSION = "ci-diagnosis-3"
 TOOLS = ("get_job_log", "search_job_log", "get_workflow", "get_run_jobs", "get_report")
 
 
@@ -36,7 +36,7 @@ def rule_explains(assessment):
             {"dependency", "permitted", "suppressed", "recovered", "configured"})
 
 
-def supported_result(result, evidence, incident=None):
+def supported_result(result, evidence, incident=None, provenance=None):
     if not isinstance(result, dict):
         return False
     if result.get("method") == "model":
@@ -44,7 +44,7 @@ def supported_result(result, evidence, incident=None):
             from .diagnosis_model import validate_result
         else:
             from diagnosis_model import validate_result
-        return validate_result(result, evidence, incident)
+        return validate_result(result, evidence, incident, provenance)
     cause = result.get("cause")
     ids = result.get("evidence_ids")
     known = {item.get("id") for item in evidence if isinstance(item, dict)}
@@ -116,6 +116,13 @@ def validate_cache(value):
                         or any(type(v) is not int or v < 1 for v in args.values())
                         or args.get("max_lines", 200) > 200):
                     raise ValueError("invalid diagnosis log range")
+            elif call["name"] == "get_workflow":
+                if (set(args) - {"job", "start_line", "max_lines"}
+                        or any(type(v) is not int or v < 1 for k, v in args.items() if k != "job")
+                        or args.get("max_lines", 200) > 400
+                        or ("job" in args and (not isinstance(args["job"], str)
+                            or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", args["job"]) or "start_line" in args))):
+                    raise ValueError("invalid diagnosis workflow range")
             elif args:
                 raise ValueError("invalid diagnosis arguments")
     return value
@@ -171,7 +178,7 @@ def prepare_assessments(assessments, *, cache_path=None, enabled=False,
                     result, cached, calls = None, None, []
             if result is None:
                 result = package.get("diagnosis")
-                if not supported_result(result, evidence, assessment):
+                if not supported_result(result, evidence, assessment, package.get("provenance")):
                     if not evidence:
                         _unknown(assessment, package.get("code", "evidence_unavailable"))
                         continue
@@ -191,7 +198,7 @@ def prepare_assessments(assessments, *, cache_path=None, enabled=False,
                 evidence = getattr(collector, "evidence", evidence)
                 if not isinstance(evidence, list):
                     evidence = package.get("evidence", [])
-                if not supported_result(result, evidence, assessment):
+                if not supported_result(result, evidence, assessment, package.get("provenance")):
                     if not isinstance(result, dict) or result.get("certainty") != "unknown" or result.get("code") != "insufficient_evidence":
                         _unknown(assessment, result.get("code", "unsupported") if isinstance(result, dict) else "unsupported")
                         continue
@@ -199,7 +206,7 @@ def prepare_assessments(assessments, *, cache_path=None, enabled=False,
                 entry = {"result": result, "tool_calls": calls, "evidence_hash": digest(evidence)}
                 validate_cache({"schema_version": 1, "results": {key: entry}})
                 cache["results"][key] = entry
-            if supported_result(result, evidence, assessment):
+            if supported_result(result, evidence, assessment, package.get("provenance")):
                 _apply(assessment, result)
             else:
                 _unknown(assessment, result.get("code", "unsupported") if isinstance(result, dict) else "unsupported")
@@ -283,7 +290,7 @@ def import_results(assessments, artifact, *, collector, cache_path=None, clock=t
                 continue
             if result.get("certainty") == "unknown":
                 cache["results"][key] = {"result": {"certainty": "unknown", "code": "insufficient_evidence"}, "tool_calls": calls, "evidence_hash": digest(evidence)}
-            elif supported_result(result, evidence, original):
+            elif supported_result(result, evidence, original, package.get("provenance")):
                 _apply(assessment, result)
                 cache["results"][key] = {"result": {k: result[k] for k in ("method", "certainty", "cause", "evidence_ids")}, "tool_calls": calls, "evidence_hash": digest(evidence)}
         except (OSError, ValueError, TypeError, KeyError, RuntimeError):

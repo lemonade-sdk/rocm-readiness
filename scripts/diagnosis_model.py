@@ -38,11 +38,17 @@ unobserved deeper causes, such as installation state, physical hardware absence,
 driver faults, corruption, or tampering. A checksum mismatch establishes failed
 verification, not why the bytes differ. A missing header establishes a lookup
 failure, not an incomplete SDK installation.
-Write for a nontechnical director: one short sentence explaining what prevented
-completion. Prefer everyday language; omit source paths, test IDs, commands and
-compiler symbols unless essential to understanding. Examples of style only:
-"A required download timed out before testing could start."
-"The release upload failed because the destination returned an error."
+The cause is displayed to a nontechnical director. Explain the immediate reason
+work stopped in everyday language, not a developer diagnostic. Never include
+source paths, code identifiers, struct/member names, test numbers, compiler error
+codes, command names, or configuration syntax in the cause. Keep technical proof
+in the cited evidence, not the sentence. Do not merely say the job failed.
+Examples of style only (use them only when actual evidence supports that cause):
+- Missing compiler member: "The GPU build could not compile because it references a feature missing from the code."
+- Missing local action files: "Build setup could not start because required automation files were missing."
+- Download timeout: "A required download timed out before testing could start."
+- Release upload HTTP error: "The release could not be published because uploading its files returned an error."
+- Model tensor beyond file bounds: "Testing stopped because a model file could not be read in full."
 Never treat printed shell commands or hypothetical error branches as executed errors.
 For a skipped dependency, cite both the same-attempt job outcomes and the workflow
 at the run revision proving that dependency and gate. Read the relevant workflow

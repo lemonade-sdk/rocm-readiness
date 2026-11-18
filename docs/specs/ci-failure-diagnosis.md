@@ -47,6 +47,9 @@ than publishing the model's free-form causal wording.
 Cancelled jobs stay unknown when existing rules cannot explain them: the current
 packet contains no verified actor or evaluated cancellation trigger. A cancellation
 status, manual-trigger capability or concurrency setting cannot establish why it stopped.
+The literal linker error that `mt.exe` cannot be found in PATH is explained by a
+deterministic runtime rule before inference; it does not infer installation state
+or the tool's purpose.
 Run-command echoes are excluded from log evidence. Runtime errors and failed-step
 output take priority; a failed document read does not block other documents.
 Workflow reads support bounded line paging or a complete projection of named-job

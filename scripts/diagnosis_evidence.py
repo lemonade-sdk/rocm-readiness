@@ -83,6 +83,7 @@ class EvidenceCollector:
         self.started = monotonic()
         self.log_text = None
         self.workflow_text = None
+        self.jobs = []
         self.verified_run = False
 
     def _request(self, url, headers, max_bytes):
@@ -281,10 +282,39 @@ class EvidenceCollector:
                 availability = "unavailable"
         except (EvidenceUnavailable, ValueError, KeyError, TypeError) as error:
             availability, code = "unavailable", str(error) if isinstance(error, EvidenceUnavailable) else "invalid_evidence"
-        return {"evidence": list(self.evidence), "provenance": dict(self.provenance), "availability": availability, "code": code,
+        package = {"evidence": list(self.evidence), "provenance": dict(self.provenance), "availability": availability, "code": code,
                 "run_verified": self.verified_run,
                 "incident": json.loads(redact(json.dumps({key: assessment[key] for key in ("scope", "observed", "summary", "anomaly") if key in assessment}), self.secrets)),
                 "evidence_hash": hashlib.sha256(json.dumps(self.evidence, sort_keys=True).encode()).hexdigest()}
+        diagnosis = self._known_runtime_diagnosis(assessment)
+        if diagnosis is not None:
+            package["diagnosis"] = diagnosis
+        return package
+
+    def _known_runtime_diagnosis(self, assessment):
+        """Explain a literal recorded build error before asking a language model.
+
+        Match only selected runtime log evidence, not workflow source or an
+        unselected region of the cached full log. Do not infer why PATH lacks it.
+        """
+        if not self.verified_run or assessment.get("observed", {}).get("status") not in ("fail", "failure"):
+            return None
+        if not any(job.get("id") == self.provenance.get("job_id") and job.get("conclusion") == "failure"
+                   for job in getattr(self, "jobs", [])):
+            return None
+        diagnostic = re.compile(
+            r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?"
+            r"lld-link: error: unable to find mt\.exe in PATH: no such file or directory"
+        )
+        for row in self.evidence:
+            if row.get("kind") != "log" or row.get("url") != self._log_url():
+                continue
+            if any(diagnostic.fullmatch(line.strip()) for line in row.get("text", "").splitlines()):
+                return {"method": "deterministic", "certainty": "verified",
+                        "cause": "A required build tool could not be located by the job.",
+                        "evidence_ids": [row["id"]]}
+        return None
+
 
     def get_run_jobs(self):
         if not self.verified_run:

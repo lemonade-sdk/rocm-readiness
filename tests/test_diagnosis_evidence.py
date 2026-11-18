@@ -254,6 +254,42 @@ class EvidenceTests(unittest.TestCase):
         self.assertIn("if: vars.ENABLED", selected["text"])
         self.assertNotIn("harmless", selected["text"])
 
+    def test_literal_missing_build_tool_diagnosed_before_inference(self):
+        self.assessment['observed'] = {'status': 'fail'}
+        self.body = b"2026-11-18T10:00:00.000Z lld-link: error: unable to find mt.exe in PATH: no such file or directory\n"
+        result = self.collector().collect(self.assessment)
+        diagnosis = result['diagnosis']
+        self.assertEqual(diagnosis, {
+            'method': 'deterministic', 'certainty': 'verified',
+            'cause': "A required build tool could not be located by the job.",
+            'evidence_ids': [next(row['id'] for row in result['evidence'] if row['kind'] == 'log')],
+        })
+        self.assertNotIn('Windows', diagnosis['cause'])
+        self.assertNotIn('system', diagnosis['cause'])
+
+    def test_missing_tool_rule_rejects_echo_hypothesis_and_nonfailure(self):
+        error = 'lld-link: error: unable to find mt.exe in PATH: no such file or directory'
+        self.assessment['observed'] = {'status': 'fail'}
+        for body in ('##[group]Run script\n' + error + '\n##[endgroup]\nother failure',
+                     'echo "' + error + '"',
+                     'if missing: ' + error,
+                     'lld-link: error: unable to find other.exe in PATH: no such file or directory'):
+            self.body = body.encode()
+            self.assertNotIn('diagnosis', self.collector().collect(self.assessment), body)
+        self.body = error.encode()
+        self.assessment['observed'] = {'status': 'skip'}
+        self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
+        self.assessment['observed'] = {'status': 'fail'}
+        self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100']['jobs'][0]['conclusion'] = 'success'
+        self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
+
+    def test_missing_tool_rule_does_not_use_unselected_full_log(self):
+        self.assessment['observed'] = {'status': 'fail'}
+        collector = self.collector()
+        collector.collect(self.assessment)
+        collector.log_text = 'lld-link: error: unable to find mt.exe in PATH: no such file or directory'
+        self.assertIsNone(collector._known_runtime_diagnosis(self.assessment))
+
     def test_redaction_and_controls(self):
         value = redact('\x1b[31msecret=abc 10.0.0.1 user@example.com\x00 https://example.com/a?token=x CANARY', ['CANARY'])
         for forbidden in ['abc', '10.0.0.1', 'user@example.com', '\x00', '?token', 'CANARY', '\x1b']:

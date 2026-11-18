@@ -229,6 +229,8 @@ def supported_skip_cause(evidence, incident, provenance=None, cited_ids=None):
     merged = {}
     for definition in definitions:
         for key, value in definition.items():
+            value = {field: content for field, content in value.items()
+                     if field in ("name", "needs", "if", "continue-on-error", "strategy")}
             if key in merged and merged[key] != value:
                 return None
             merged[key] = value

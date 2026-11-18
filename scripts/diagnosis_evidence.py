@@ -306,6 +306,8 @@ class EvidenceCollector:
         diagnosis = self._known_runtime_diagnosis(assessment)
         if diagnosis is not None:
             package["diagnosis"] = diagnosis
+        package["evidence"] = list(self.evidence)
+        package["evidence_hash"] = hashlib.sha256(json.dumps(self.evidence, sort_keys=True).encode()).hexdigest()
         return package
 
     def _known_runtime_diagnosis(self, assessment):

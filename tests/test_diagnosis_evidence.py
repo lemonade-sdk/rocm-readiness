@@ -318,6 +318,32 @@ class EvidenceTests(unittest.TestCase):
         self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100']['jobs'][1]['conclusion'] = 'success'
         self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
 
+    def test_focused_dependency_proof_is_in_returned_packet_and_bypasses_model(self):
+        from scripts.diagnosis import prepare_assessments
+        workflow = ("jobs:\n  approval:\n    runs-on: ubuntu-latest\n    steps:\n"
+                    + "      - run: echo harmless\n" * 1000
+                    + "  build:\n    needs: approval\n    runs-on: ubuntu-latest\n")
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(workflow.encode()).decode()
+        self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100'] = {
+            'total_count': 2, 'jobs': [
+                {'id': 22, 'name': 'build', 'run_id': 11, 'run_attempt': 2, 'conclusion': 'skipped'},
+                {'id': 31, 'name': 'approval', 'run_id': 11, 'run_attempt': 2, 'conclusion': 'failure'}]}
+        self.assessment.update(id='case', actionable=True, observed={'status':'skip'})
+        collector = self.collector()
+        client = MagicMock()
+        result = prepare_assessments([self.assessment], enabled=True, collector=collector, client=client)[0]
+        self.assertEqual(result['diagnosis']['method'], 'deterministic')
+        self.assertFalse(result['escalation_required'])
+        client.diagnose.assert_not_called()
+        # Short complete source plus its projection are the same proof even
+        # though runs-on and step bodies are absent from the focused packet.
+        short = "jobs:\n  approval:\n    runs-on: ubuntu-latest\n  build:\n    needs: approval\n    runs-on: ubuntu-latest\n"
+        self.data["/repos/org/project/contents/.github/workflows/test.yml?ref=" + SHA]["content"] = base64.b64encode(short.encode()).decode()
+        client.reset_mock()
+        result = prepare_assessments([self.assessment], enabled=True, collector=self.collector(), client=client)[0]
+        self.assertEqual(result['diagnosis']['method'], 'deterministic')
+        client.diagnose.assert_not_called()
+
     def test_redaction_and_controls(self):
         value = redact('\x1b[31msecret=abc 10.0.0.1 user@example.com\x00 https://example.com/a?token=x CANARY', ['CANARY'])
         for forbidden in ['abc', '10.0.0.1', 'user@example.com', '\x00', '?token', 'CANARY', '\x1b']:

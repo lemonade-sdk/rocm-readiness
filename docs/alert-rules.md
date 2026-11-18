@@ -82,6 +82,11 @@ Use the shipped result rule as the complete example:
   an outcome in the same rule for prerequisite matching and incident correlation.
 
 Every response contains `classification`, `summary`, and `explanation`.
+An outcome response may also set `explains_cause: true` when a narrowly matched,
+maintainer-established rule actually explains the cause. That response bypasses
+Lemonade and GitHub escalation. Leave it absent for generic result or failed-step
+wording; “Some tests in the job have failed.” alone does not establish why.
+Verified permitted/dependency skips and expected inactivity also bypass inference.
 Text supports `{status}`, `{matched_status}`, `{details}`, `{reason}`, and
 `{exception}` only. Classifications are `expected`, `explained_abnormal`, or
 `unexplained`, validated against the evidence case. Invalid/duplicate mappings,

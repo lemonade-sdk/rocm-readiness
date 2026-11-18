@@ -100,7 +100,32 @@ class AssessmentTests(unittest.TestCase):
         self.assertEqual(set(active), {
             "id", "rule_id", "rule_version", "evaluated_at", "actionable", "classification",
             "summary", "explanation", "scope", "observed", "expected", "evidence", "observation_id",
+            "provenance", "explanation_basis", "anomaly",
         })
+        self.assertEqual(active["explanation_basis"], "failed_step")
+
+    def test_diagnosis_provenance_preserves_attempt_job_and_revision(self):
+        self.dataset([run("failure", job_id="71", attempt=3, sha="a" * 40)])
+        active = next(a for a in self.evaluate() if a["actionable"])
+        self.assertEqual(active["provenance"], {
+            "repository": "org/upstream", "run_id": "100", "attempt": 3,
+            "job_id": "71", "revision": "a" * 40,
+            "workflow": "build.yml", "job": "base",
+        })
+        self.assertEqual(active["explanation_basis"], "active")
+
+    def test_operator_rule_can_explicitly_establish_a_known_cause(self):
+        configured = rule()
+        configured["outcomes"][0]["responses"]["active"].update(
+            explains_cause=True, explanation="Approved producer maintenance window.",
+        )
+        self.dataset([run("failure")])
+        active = next(a for a in self.evaluate([configured]) if a["actionable"])
+        self.assertTrue(active["explanation_verified"])
+        bad = copy.deepcopy(configured)
+        bad["outcomes"][0]["responses"]["active"]["explains_cause"] = "true"
+        with self.assertRaises(ValueError):
+            assessments.validate_config({"schema_version": 1, "rules": [bad]})
 
     def test_result_policy_controls_match_responses_and_stable_recovery(self):
         configured = rule()

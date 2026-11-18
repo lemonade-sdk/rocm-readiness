@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 if __package__:
+    from .diagnosis import prepare_assessments, diagnosis_artifact, import_results
     from .assessments import evaluate_dataset, validate_config
     from .notification_channels import (
         ApiError, ConfigurationError, GitHubTransport, Notification,
@@ -18,6 +19,7 @@ if __package__:
     )
     from .notifications import dispatch, write_atomic
 else:
+    from diagnosis import prepare_assessments, diagnosis_artifact, import_results
     from assessments import evaluate_dataset, validate_config
     from notification_channels import (
         ApiError, ConfigurationError, GitHubTransport, Notification,
@@ -59,6 +61,7 @@ class GitCheckpoint:
         paths = [
             path for path in (
                 "data/notification-state.json", "data/notifications.json", "data/latest.json",
+                "data/diagnosis-cache.json",
             ) if (self.root / path).is_file()
         ]
         if not paths:
@@ -177,20 +180,32 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=root / "data")
     parser.add_argument("--rules", type=Path, default=root / "alert-rules.json")
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--repository", default="lemonade-sdk/rocm-readiness")
     parser.add_argument("--now", help="Fixed timezone-aware evaluation timestamp")
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--diagnose", action="store_true", help="Analyze unexplained results using a local Lemonade server")
+    parser.add_argument("--lemonade-url", default="http://127.0.0.1:13305/v1")
+    parser.add_argument("--diagnosis-cache", type=Path)
+    parser.add_argument("--diagnose-only", type=Path, metavar="OUTPUT", help="Write read-only diagnosis artifact; never dispatch")
+    parser.add_argument("--diagnosis-results", type=Path, help="Validate results from the read-only diagnosis job")
     parser.add_argument("--checkpoint-git", action="store_true")
     parser.add_argument("--test-notification", metavar="TEST_ID",
                         help="Use only the separate test-recipient secret")
     args = parser.parse_args(argv)
+    if args.output is None and not args.diagnose_only:
+        parser.error("--output is required unless --diagnose-only is used")
     if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", args.repository):
         parser.error("invalid repository")
     if (args.live or args.checkpoint_git) and not trusted_run(os.environ, args.repository):
         parser.error("live publication requires a trusted main-branch Actions run")
     if args.live and not args.checkpoint_git:
         parser.error("live dispatch requires durable Git checkpoints")
+    if args.diagnose_only and (args.live or args.checkpoint_git or args.test_notification):
+        parser.error("diagnosis-only cannot dispatch or publish")
+    if args.diagnosis_results and (args.diagnose or args.diagnose_only):
+        parser.error("choose diagnosis execution or imported results")
+    args.diagnosis_cache = args.diagnosis_cache or args.dataset / "diagnosis-cache.json"
     now = args.now or datetime.now(timezone.utc).isoformat()
     rules = validate_config(json.loads(args.rules.read_text(encoding="utf-8")))
     if args.test_notification:
@@ -207,6 +222,45 @@ def main(argv=None):
         }]
     else:
         assessments = evaluate_dataset(args.dataset, rules, now)
+    if not args.test_notification:
+        collector = None
+        client = None
+        if args.diagnose or args.diagnose_only or args.diagnosis_results:
+            if __package__:
+                from .diagnosis_evidence import EvidenceCollector
+                from .diagnosis_model import LemonadeClient
+            else:
+                from diagnosis_evidence import EvidenceCollector
+                from diagnosis_model import LemonadeClient
+            sources = json.loads((root / "sources.json").read_text(encoding="utf-8"))
+            repositories = {source["repository"] for source in sources["sources"] if source.get("repository")}
+            repositories.update(project["repository"] for project in sources.get("projects", []) if project.get("repository"))
+            collector = EvidenceCollector(repositories, token=os.environ.get("GH_TOKEN"))
+            if args.diagnose or args.diagnose_only:
+                client = LemonadeClient(endpoint=args.lemonade_url)
+        original_assessments = assessments
+        if args.diagnosis_results:
+            try:
+                if args.diagnosis_results.stat().st_size > 2 * 1024 * 1024:
+                    raise ValueError("diagnosis artifact too large")
+                artifact = json.loads(args.diagnosis_results.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                artifact = {}
+            assessments = import_results(assessments, artifact, collector=collector, cache_path=args.diagnosis_cache)
+        else:
+            assessments = prepare_assessments(
+                assessments, enabled=bool(args.diagnose or args.diagnose_only),
+                collector=collector, client=client,
+                cache_path=args.diagnosis_cache,
+            )
+        if args.diagnose_only:
+            write_atomic(args.diagnose_only, diagnosis_artifact(original_assessments, assessments))
+            return 0
+        for assessment in assessments:
+            if "diagnosis" in assessment:
+                assessment["diagnosis"].pop("cache_key", None)
+                assessment["diagnosis"].pop("tool_calls", None)
+                assessment["diagnosis"].pop("evidence_hash", None)
     secret_name = (
         "ROCM_READINESS_TEST_NOTIFICATION_LIST" if args.test_notification
         else "ROCM_READINESS_NOTIFICATION_LIST"

@@ -158,7 +158,7 @@ def dispatch(
         first_run = not state.get("initialized_at")
         baseline_ids = {
             item.get("causal_incident_id") or item["id"]
-            for item in assessments if item["actionable"]
+            for item in assessments if item["actionable"] and item.get("escalation_required") is not False
         } if first_run and baseline else set()
         if not preview and initialize:
             state.setdefault("initialized_at", now.isoformat())
@@ -179,6 +179,7 @@ def dispatch(
             incident["last_seen_at"] = now.isoformat()
             if (
                 new and incident["baseline"] and not preview
+                and assessment.get("escalation_required") is not False
                 and reconcile is not None
                 and policy.get("github", {}).get("enabled") is True
             ):
@@ -202,6 +203,9 @@ def dispatch(
                 if incident["github"]["status"] == "sent":
                     incident["github"]["status"] = "pending"
                     incident["github"]["attempts"] = 0
+            if assessment.get("escalation_required") is False:
+                # Explained abnormalities remain abnormal; only escalation is suppressed.
+                continue
             row = incident["github"]
             routing = policy.get("github", {})
             enabled = routing.get("enabled")

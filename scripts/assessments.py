@@ -49,7 +49,9 @@ def _validate_responses(responses, cases, optional=()):
     for case, response in responses.items():
         if (
             not isinstance(response, dict)
-            or set(response) != {"classification", "summary", "explanation"}
+            or not {"classification", "summary", "explanation"} <= set(response)
+            or set(response) - {"classification", "summary", "explanation", "explains_cause"}
+            or ("explains_cause" in response and type(response["explains_cause"]) is not bool)
             or not isinstance(response["classification"], str)
             or response["classification"] not in RESPONSE_CLASSIFICATIONS[case]
         ):
@@ -279,6 +281,7 @@ def _assessment(rule, now, scope, anomaly, actionable, classification,
     identity = {k: scope[k] for k in SCOPE_FIELDS if k in scope}
     result = {
         "id": _digest({"scope": identity, "anomaly": anomaly}),
+        "anomaly": anomaly,
         "rule_id": rule["id"], "rule_version": rule["version"],
         "evaluated_at": now.isoformat(), "actionable": actionable,
         "classification": classification, "summary": summary,
@@ -288,6 +291,22 @@ def _assessment(rule, now, scope, anomaly, actionable, classification,
     }
     if occurrence is not None:
         result["observation_id"] = _digest(occurrence)
+        row = occurrence.get("row", {})
+        result["provenance"] = {
+            key: value for key, value in {
+                "repository": scope.get("repository"),
+                "run_id": occurrence.get("run_id"),
+                "attempt": occurrence.get("attempt"),
+                "job_id": row.get("job_id"),
+                "revision": row.get("sha") or row.get("head_sha"),
+                "workflow": scope.get("workflow"),
+                "job": scope.get("job"),
+            }.items() if value is not None
+        }
+        for key in ("run_id", "attempt", "job_id"):
+            value = result["provenance"].get(key)
+            if not isinstance(value, (str, int)) or isinstance(value, bool) or not str(value).isdigit() or int(value) < 1:
+                result["provenance"].pop(key, None)
     return result
 
 
@@ -494,6 +513,13 @@ def _result(rule, now, scope, rows, complete, exception, all_rows):
             *_response(outcome["responses"][case], context),
             observed, {"status": rule["expected_status"]}, evidence, occurrence,
         ))
+        results[-1]["explanation_basis"] = (
+            "failed_step" if case in ("with_details", "with_failed_step")
+            and not (row.get("blocking_tests") or row.get("blocked_by")) else
+            "details" if case == "with_details" else case
+        )
+        if outcome["responses"][case].get("explains_cause") is True:
+            results[-1]["explanation_verified"] = True
     skip = rule["skip"]
     if state == skip["status"] and not exception:
         verified = row.get("verified_skip", {})
@@ -533,6 +559,7 @@ def _result(rule, now, scope, rows, complete, exception, all_rows):
             {"status": state, "complete": complete}, {"status": skip["expected_status"]},
             skip_evidence, occurrence,
         )
+        result["explanation_basis"] = case
         if cause:
             result["causal_incident_id"] = _digest({
                 "scope": cause["scope"], "anomaly": prerequisite["anomaly"],
@@ -572,7 +599,7 @@ def _pass_rate(rule, now, scope, rows, complete, exception):
         f"{passed}/{total} decided results passed in the configured window. "
         "Cancelled, skipped, running and unknown results are excluded."
     )
-    return _assessment(
+    result = _assessment(
         rule, now, scope, "pass_rate", active,
         "expected" if exception or known and not active else "explained_abnormal" if active else "unexplained",
         "Pass rate below threshold" if active else "Pass rate" if known else "Pass rate unknown",
@@ -583,6 +610,8 @@ def _pass_rate(rule, now, scope, rows, complete, exception):
          for e in _evidence(r["row"])],
         {"observed": observed, "runs": sorted((str(r["run_id"]), r["attempt"]) for r in rows)},
     )
+    result["explanation_basis"] = "configured"
+    return result
 
 
 def _due(rule, now, rows):

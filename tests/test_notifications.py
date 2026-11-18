@@ -34,6 +34,29 @@ class NotificationsTest(unittest.TestCase):
         options.update(kwargs)
         return dispatch([assessment()], self.path, NOW, **options)
 
+    def test_explained_recurrence_reopens_lifecycle_without_sending(self):
+        self.run_dispatch()
+        dispatch([assessment(actionable=False)], self.path, NOW,
+                 policy=POLICY, trusted=True, dry_run=False)
+        dispatch([{**assessment(), "escalation_required": False}], self.path, NOW,
+                 policy=POLICY, trusted=True, dry_run=False,
+                 github=lambda a, i: self.fail("explained recurrence sent"))
+        state = json.loads(self.path.read_text())["incidents"]["incident"]
+        self.assertEqual(state["lifecycle"], "open")
+
+    def test_explained_first_observation_is_not_baselined_or_marked_recovered(self):
+        known = {**assessment(), "escalation_required": False}
+        dispatch([known], self.path, NOW, policy=POLICY, trusted=True, dry_run=False,
+                 baseline=True, github=lambda a, i: self.fail("explained issue sent"))
+        state = json.loads(self.path.read_text())["incidents"]["incident"]
+        self.assertFalse(state["baseline"])
+        self.assertEqual(state["lifecycle"], "open")
+        calls = []
+        dispatch([{**assessment(), "escalation_required": True}], self.path, NOW,
+                 policy=POLICY, trusted=True, dry_run=False, baseline=True,
+                 github=lambda a, i: calls.append(a) or {"status": "sent"})
+        self.assertEqual(len(calls), 1)
+
     def test_github_retries_survive_restart(self):
         calls = []
 

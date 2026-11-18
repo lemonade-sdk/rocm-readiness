@@ -23,9 +23,44 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dispatch:
+  diagnose:
     if: >-
       github.ref == 'refs/heads/main' &&
+      vars.ROCM_READINESS_DIAGNOSIS_ENABLED == 'true' &&
+      vars.ROCM_READINESS_DIAGNOSIS_RUNNER != '' &&
+      (github.event_name != 'workflow_dispatch' || inputs.test_id == '') &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event != 'pull_request'))
+    # Bound queue time as well as execution time before unresolved escalation.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Request bounded read-only diagnosis
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/request_diagnosis.py --output-dir "$RUNNER_TEMP/diagnosis"
+      - name: Retain bounded diagnosis results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: diagnosis-results-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnosis/diagnosis-results.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  dispatch:
+    needs: diagnose
+    if: >-
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.head_repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main' &&
@@ -40,12 +75,20 @@ jobs:
     permissions:
       contents: write
       issues: write
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
           fetch-depth: 1
           persist-credentials: false
+      - name: Read optional diagnosis artifact
+        if: needs.diagnose.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: diagnosis-results-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnosis
       - name: Persist intent and dispatch approved GitHub notifications
         env:
           GH_TOKEN: ${{ github.token }}
@@ -60,6 +103,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           args=(--dataset data --live --checkpoint-git --repository "$GH_REPO")
+          if [ -f "$RUNNER_TEMP/diagnosis/diagnosis-results.json" ]; then
+            args+=(--diagnosis-results "$RUNNER_TEMP/diagnosis/diagnosis-results.json")
+          fi
           if [ -n "$NOTIFICATION_TEST_ID" ]; then
             args+=(--test-notification "$NOTIFICATION_TEST_ID"
                    --output "$RUNNER_TEMP/notification-test.json")
@@ -76,8 +122,9 @@ jobs:
           retention-days: 7
 
   publish-assessments:
+    needs: diagnose
     if: >-
-      github.ref == 'refs/heads/main' &&
+      always() && !cancelled() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.head_repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main' &&
@@ -89,11 +136,19 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
           persist-credentials: false
+      - name: Read optional diagnosis artifact
+        if: needs.diagnose.result == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: diagnosis-results-${{ github.run_id }}
+          path: ${{ runner.temp }}/diagnosis
       - name: Publish public assessments without recipients or delivery
         env:
           GH_TOKEN: ${{ github.token }}
@@ -104,5 +159,8 @@ jobs:
           gh auth setup-git
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          python3 scripts/notify.py --dataset data --checkpoint-git \
-            --repository "$GH_REPO" --output data/notifications.json
+          args=(--dataset data --checkpoint-git --repository "$GH_REPO" --output data/notifications.json)
+          if [ -f "$RUNNER_TEMP/diagnosis/diagnosis-results.json" ]; then
+            args+=(--diagnosis-results "$RUNNER_TEMP/diagnosis/diagnosis-results.json")
+          fi
+          python3 scripts/notify.py "${args[@]}"

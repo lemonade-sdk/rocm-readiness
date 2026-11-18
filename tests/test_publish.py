@@ -310,6 +310,8 @@ class PublicationTest(unittest.TestCase):
             (data / "notification-state.json").write_text(
                 json.dumps({"schema_version": 1, "incidents": {}})
             )
+            diagnosis_cache = {"schema_version": 1, "results": {}}
+            (data / "diagnosis-cache.json").write_text(json.dumps(diagnosis_cache))
             index["notifications"] = "notifications.json"
             index_path.write_text(json.dumps(index))
             state = root / "state.json"
@@ -330,6 +332,7 @@ class PublicationTest(unittest.TestCase):
                 str(remote), "main", root / "work", root / "previous", state
             )
             previous = root / "previous"
+            self.assertEqual(json.loads((previous / "diagnosis-cache.json").read_text()), diagnosis_cache)
             self.assertTrue((previous / "rocm/7.14/history/2026-10.json").is_file())
             self.assertEqual(
                 json.loads((previous / "notifications.json").read_text()),

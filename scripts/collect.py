@@ -1171,7 +1171,11 @@ def main():
         last_success = load_last_success(args.output_dir, args.previous_data)
         write_json(args.output_dir / "errors.json", {"errors": []})
         errors_initialized = True
-        evidence = json.loads(args.package_evidence.read_text(encoding="utf-8"))
+        evidence = (
+            json.loads(args.package_evidence.read_text(encoding="utf-8"))
+            if args.package_evidence.exists()
+            else {"schema_version": 1, "packages": []}
+        )
         if (
             not isinstance(evidence, dict)
             or evidence.get("schema_version") != 1

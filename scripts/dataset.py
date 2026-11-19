@@ -917,6 +917,12 @@ def write_dataset(
                 destination / snapshot["path"],
                 _read_previous(Path(previous_data).resolve(), snapshot["path"]),
             )
+    # Measurements may outlive the qualification build they originally matched.
+    # Keep their verified package evidence, but refresh links against retained builds.
+    prior_measurements = {
+        key: _join_measurement(row, compact.values())
+        for key, row in prior_measurements.items()
+    }
     systems = {}
     for system in _project(output["systems"], SYSTEM_FIELDS):
         _require(

@@ -72,3 +72,30 @@ class RetentionTests(unittest.TestCase):
             index = write_dataset(output, Path(folder))
             self.assertEqual(index['versions'][0]['rocm_version'], '7.14')
             self.assertEqual(index['versions'][0]['build_count'], 0)
+
+    def test_retained_measurements_release_expired_build_links_without_losing_proof(self):
+        from scripts.attribution import attribute_stable
+        from tests.test_attribution import measurement, evidence, PACKAGE
+        row = measurement(model='model', scenario='chat', kind='latest', source_url=SOURCE_A,
+                          measured_at='2026-10-28T10:05:00Z')
+        proof = evidence(completed_at='2026-10-28T11:00:00Z')
+        qualification = build('linked', rocm_version='10.1',
+                              generated_at='2026-10-27T10:00:00Z',
+                              artifact=PACKAGE.rsplit('/', 1)[-1])
+        first = normalized([qualification], [row])
+        first['generated_at'] = '2026-10-28T12:00:00Z'
+        first['sources'][0]['url'] = 'https://raw.githubusercontent.com/lemonade-sdk/llama.cpp/' + 'a' * 40 + '/qualification/index.json'
+        attribute_stable(first, [proof])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_dataset(first, root / 'prior')
+            for when, expected in [('2026-11-09', 'linked'), ('2026-11-10', None)]:
+                output = normalized()
+                output['generated_at'] = when + 'T12:00:00Z'
+                destination = root / when
+                write_dataset(output, destination, previous_data=root / 'prior')
+                result = json.loads((destination / 'rocm/10.1/performance.json').read_text())['measurements'][0]
+                self.assertEqual(result['qualification_build_id'], expected)
+                self.assertEqual(result['attribution']['status'], 'matched' if expected else 'rocm_identified')
+                for field in ('evidence_url', 'log_sha256', 'package_url'):
+                    self.assertEqual(result['attribution'][field], proof[field])

@@ -362,13 +362,13 @@ for (const theme of ["light", "dark"] as const) {
   }
 }
 
-test("reset and date-scope removal preserve an implicitly selected historical window", async ({ page }) => {
+test("reset and date-scope removal return to the current fourteen-day window", async ({ page }) => {
   await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
   await page.getByRole("button", { name: "Clear Date: October 1, 2026", exact: true }).click();
-  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/through=/);
   await expect(page).not.toHaveURL(/day=/);
   await page.goto("./?view=engine&version=10.1&day=2026-10-01&focus=day");
   await page.getByRole("button", { name: "Reset filters", exact: true }).click();
-  await expect(page).toHaveURL(/through=2026-10-01/);
+  await expect(page).not.toHaveURL(/through=/);
   await expect(page).not.toHaveURL(/day=/);
 });

@@ -1359,7 +1359,8 @@ def write_upstream(destination, config, collected, now, write_json):
         rows, scanned, coverage = collected.get(
             project["id"], ([], set(), {"complete": True})
         )
-        rows = [r for r in rows if r["day"] >= days[0]]
+        rows = [r for r in rows if days[0] <= r["day"] <= days[-1]]
+        scanned = {key for key in scanned if _scan_day(key) >= days[0]}
         months = {}
         for row in rows:
             months.setdefault(row["day"][:7], []).append(row)
@@ -1396,6 +1397,13 @@ def write_upstream(destination, config, collected, now, write_json):
         "projects": projects,
     }
     write_json(Path(destination) / "upstream/overview.json", overview)
+    keep = {item["path"] for project in projects for item in project["files"]}
+    root = Path(destination) / "upstream"
+    _ok(not root.is_symlink(), "upstream", "", "unsafe generated directory")
+    for path in root.glob("*/ci/*.json"):
+        _ok(not path.is_symlink() and not path.parent.is_symlink() and not path.parent.parent.is_symlink(), "upstream", "", "unsafe generated file")
+        if re.fullmatch(r"\d{4}-\d{2}\.json", path.name) and path.relative_to(destination).as_posix() not in keep:
+            path.unlink()
     complete = all(p["coverage"].get("complete", True) for p in projects)
     return {
         "schema_version": SCHEMA_VERSION,

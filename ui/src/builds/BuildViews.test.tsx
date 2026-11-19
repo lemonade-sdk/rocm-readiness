@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EngineBuilds } from "./BuildViews";
 import { buildFixture, session } from "./fixtures";
 import type { PerformanceData } from "../performance/PerformanceView";
@@ -11,7 +11,10 @@ vi.mock("./useBuildMeasurements", () => ({ useBuildMeasurements: useMeasurements
 const measured = buildFixture({ build_id: "measured", tag: "b100", run_id: "run-measured" });
 const sibling = buildFixture({ build_id: "measured-windows", tag: "b100", run_id: "run-measured", os: "windows" });
 const unmatched = buildFixture({ build_id: "unmeasured", tag: "b101", run_id: "run-unmeasured" });
-const history = [measured, sibling, unmatched];
+const expired = buildFixture({ build_id: "expired", tag: "expired-build", generated_at: "2026-10-19T23:59:59Z" });
+const history = [measured, sibling, unmatched, expired];
+beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-02T15:00:00Z")); });
+afterEach(() => vi.useRealTimers());
 const row = { model: "Model A", measured_at: "2026-10-29T02:00:00Z" } as PerformanceData["measurements"][number];
 
 function mount(query = "view=engine&version=10.1&through=2026-10-29", unavailable = false) {
@@ -59,7 +62,7 @@ describe("Build qualification performance filter", () => {
     expect(params.has("performance")).toBe(false);
     expect(params.has("platform")).toBe(false);
     expect(params.get("version")).toBe("10.1");
-    expect(params.get("through")).toBe("2026-10-29");
+    expect(params.has("through")).toBe(false);
     expect(screen.getAllByText("b101").length).toBeGreaterThan(0);
   });
 });
@@ -74,4 +77,11 @@ it("keeps date-scoped phone packages visible without a platform filter", () => {
   const toggles = document.querySelectorAll<HTMLButtonElement>('.qualification-day-toggle[aria-expanded="true"]');
   fireEvent.click(toggles[1]);
   expect(document.querySelectorAll(".qualification-day-evidence")).toHaveLength(0);
+});
+
+it("ignores historical paging URLs and excludes packages outside the current fourteen dates", () => {
+  mount("view=engine&version=10.1&through=2026-10-19");
+  expect(screen.queryByRole("navigation", { name: "Browse qualification dates" })).not.toBeInTheDocument();
+  expect(screen.queryByText("expired-build")).not.toBeInTheDocument();
+  expect(screen.getAllByText("b100").length).toBeGreaterThan(0);
 });

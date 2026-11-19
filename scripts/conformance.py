@@ -754,7 +754,7 @@ def validate_dataset(
     if raw_execution is not None:
         try:
             expected_execution_versions = validate_execution_completeness(
-                [], raw_execution, package_execution, None
+                [], raw_execution, package_execution, None, generated_at=index["generated_at"]
             )
         except (ValueError, KeyError, TypeError, AttributeError) as error:
             _fail("index.json", "/versions", str(error))
@@ -1437,6 +1437,7 @@ def validate_dataset(
                         read("provenance/executions.json"),
                         read("provenance/packages.json"),
                         version,
+                        generated_at=index["generated_at"],
                     )
             except (ValueError, KeyError, TypeError, AttributeError) as error:
                 _fail(epath, "/attempts", str(error))
@@ -1474,7 +1475,7 @@ def validate_dataset(
         elif raw_execution is not None:
             try:
                 validate_execution_completeness(
-                    [], raw_execution, package_execution, version
+                    [], raw_execution, package_execution, version, generated_at=index["generated_at"]
                 )
             except (ValueError, KeyError, TypeError, AttributeError) as error:
                 _fail(overview_path, "/execution", str(error))

@@ -23,7 +23,8 @@
 .qualification-table[data-multiple-platforms] { min-width: 32rem; }
 .qualification-table :is(th, td) { padding: .4rem .65rem; text-align: start; vertical-align: top; border-bottom: 1px solid var(--line); }
 .qualification-table thead th { color: var(--muted); font: 600 .75rem ui-monospace, monospace; }
-.qualification-family-column { width: 6.5rem; }
+.qualification-family-column { width: 9rem; }
+.qualification-family-label { display: inline-flex; align-items: center; white-space: nowrap; }
 .qualification-table tbody th { font: 600 .9rem ui-monospace, monospace; }
 .qualification-table td { background: var(--subpanel); }
 .qualification-table td + td { border-inline-start: 1px solid var(--line); }

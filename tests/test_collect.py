@@ -852,6 +852,7 @@ class StableIntegrationTests(unittest.TestCase):
         original_collect = collect
 
         def injected(config, destination, **kwargs):
+            kwargs["now"] = "2026-10-29T12:00:00Z"
             return original_collect(config, destination, fetch=fetch, **kwargs)
 
         def denied(*args, **kwargs):
@@ -862,9 +863,6 @@ class StableIntegrationTests(unittest.TestCase):
             output = root / "data"
             publish_sync(output, "2026-10-01T00:00:00Z", "success", None, [])
             (root / "sources.json").write_text(json.dumps(config))
-            (root / "evidence.json").write_text(
-                json.dumps({"schema_version": 1, "packages": []})
-            )
             with patch(
                 "sys.argv",
                 [
@@ -873,8 +871,6 @@ class StableIntegrationTests(unittest.TestCase):
                     str(root / "sources.json"),
                     "--output-dir",
                     str(output),
-                    "--package-evidence",
-                    str(root / "evidence.json"),
                 ],
             ), patch("scripts.collect.collect", side_effect=injected), patch(
                 "scripts.collect.resolve_package", side_effect=denied

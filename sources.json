@@ -488,7 +488,7 @@
         "sdcpp-upstream",
         "vllm-upstream"
       ],
-      "window_days": 30,
+      "window_days": 14,
       "client_rule": {
         "targets": [
           "gfx1151",

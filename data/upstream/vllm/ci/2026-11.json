@@ -1,7 +1,1 @@
-{
-  "schema_version": 1,
-  "project": "vllm",
-  "month": "2026-11",
-  "runs": [],
-  "scanned_runs": []
-}
+{"schema_version":1,"project":"vllm","month":"2026-11","runs":[],"scanned_runs":[]}

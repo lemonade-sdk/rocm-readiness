@@ -72,8 +72,10 @@ qualified llama.cpp archive. Full dated nightly SDK identifiers remain in each
 build's provenance; numeric SDK version identifiers remain unchanged for package mapping.
 
 Every collection rebuilds readiness from current producer snapshots, without
-carrying forward previous downstream records. Records present in those producer
-snapshots remain available within the selected tracks. The catalog is ordered
+carrying forward previous downstream records. Only the current UTC date and preceding 13 dates are published for build qualification,
+performance measurements and execution attempts. Expired records, unreferenced
+report snapshots and obsolete generated month files are removed on collection.
+Upstream Health uses the same 14-day retention window. The catalog is ordered
 numerically ascending, with stable first. The UI renders that catalog and uses
 `index.readiness.stable_anchor` to label stable. Older datasets without scope
 metadata retain an explicit legacy-scope notice.
@@ -207,7 +209,8 @@ performed. Legacy history URL flags no longer alter the table.
 
 Build Qualification and Performance share Find build and Reset filters controls
 in the filter toolbar. Reset clears each view’s selected package/model/day and
-filter scope while keeping the ROCm version (and qualification date window).
+filter scope while keeping the ROCm version. Build Qualification always uses the
+current 14 UTC dates; legacy `through` parameters no longer move the window.
 Performance model-name links open all workloads for that model/package; metric
 bars retain exact-observation links and highlight their recorded workload.
 

@@ -1,7 +1,7 @@
 """UI execution projection; benchmark completion is separate from accuracy/speed."""
 
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import json
 import math
 
@@ -303,7 +303,7 @@ def validate_execution_provenance(attempts, evidence):
         )
 
 
-def validate_execution_completeness(attempts, evidence, packages, version):
+def validate_execution_completeness(attempts, evidence, packages, version, generated_at=None):
     """Reconstruct latest raw attempts independently, including metricless failures."""
     import hashlib
 
@@ -318,6 +318,8 @@ def validate_execution_completeness(attempts, evidence, packages, version):
 
     def stamp(value):
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+    cutoff = (stamp(generated_at).astimezone(timezone.utc).date() - timedelta(days=13)) if generated_at else None
 
     def key(
         sid, fork, model, checkpoints, quant, scenario, context, args, hardware, rocm
@@ -351,6 +353,8 @@ def validate_execution_completeness(attempts, evidence, packages, version):
             models = raw.get("models", [raw])
             for mi, model in enumerate(models):
                 when = model.get("timestamp", raw.get("timestamp"))
+                if cutoff is not None and stamp(when).astimezone(timezone.utc).date() < cutoff:
+                    continue
                 matches = [
                     (p, identity)
                     for p, identity in proofs

@@ -1,6 +1,6 @@
 """Write the compact, versioned dataset consumed by the readiness UI."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import hashlib
 import json
 import os
@@ -56,6 +56,65 @@ def _timestamp(value):
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     _require(parsed.tzinfo is not None, "timestamp must include timezone")
     return parsed
+
+
+RETENTION_DAYS = 14
+
+
+def retained(value, generated_at):
+    """The current UTC calendar date and preceding thirteen dates."""
+    cutoff = _timestamp(generated_at).astimezone(timezone.utc).date() - timedelta(
+        days=RETENTION_DAYS - 1
+    )
+    return _timestamp(value).astimezone(timezone.utc).date() >= cutoff
+
+
+def retained_release(release, builds):
+    """Drop qualification links whose build aged out; keep release asset metadata."""
+    identities = {(row["source_id"], row["build_id"]) for row in builds}
+    archives = []
+    for original in release["archives"]:
+        archive = dict(original)
+        if archive.get("qualification_build_id") is not None and (
+            archive.get("qualification_source_id"), archive["qualification_build_id"]
+        ) not in identities:
+            for key in ("qualification_build_id", "qualification_source_id", "report_url", "qualified", "overall"):
+                archive.pop(key, None)
+        archives.append(archive)
+    return {**release, "archives": archives}
+
+
+def prune_generated(destination, index):
+    """Remove only generated readiness files no longer referenced by the index."""
+    keep = set()
+    for version in index["versions"]:
+        path = version["overview"]
+        overview = json.loads((destination / path).read_text())
+        keep.add(path)
+        for chunk in overview["history"]:
+            keep.add(chunk["path"])
+            for build in json.loads((destination / chunk["path"]).read_text())["builds"]:
+                if build.get("report_snapshot"):
+                    keep.add(build["report_snapshot"]["path"])
+        for key in ("performance", "execution"):
+            if overview.get(key, {}).get("path"):
+                keep.add(overview[key]["path"])
+    for directory in ("rocm", "reports"):
+        root = destination / directory
+        _require(not root.is_symlink(), "unsafe generated directory")
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            _require(not path.is_symlink(), "unsafe generated file")
+        for path in root.rglob("*.json"):
+            relative = path.relative_to(destination).as_posix()
+            generated = (directory == "reports" and re.fullmatch(r"[a-f0-9]{64}\.json", path.name)) or (
+                directory == "rocm" and re.fullmatch(r"rocm/[0-9.]+/(?:overview|performance|executions|history/\d{4}-\d{2})\.json", relative))
+            if generated and relative not in keep:
+                path.unlink()
+        for path in sorted(root.rglob("*"), reverse=True):
+            if path.is_dir() and not any(path.iterdir()):
+                path.rmdir()
 
 
 def _version_key(value):
@@ -786,7 +845,9 @@ def write_dataset(
     }
     prepared_builds = []
     for row in output["builds"]:
-        if not in_readiness_scope(row, policy):
+        if not in_readiness_scope(row, policy) or not retained(
+            row["generated_at"], output["generated_at"]
+        ):
             continue
         snapshot = row.get("report_snapshot")
         if snapshot is not None:
@@ -824,11 +885,13 @@ def write_dataset(
             key: row
             for key, row in previous.items()
             if _record_in_scope(row, source_configs) and in_readiness_scope(row, policy)
+            and retained(row["generated_at"], output["generated_at"])
         }
         prior_measurements = {
             key: row
             for key, row in prior_measurements.items()
             if _record_in_scope(row, source_configs) and in_readiness_scope(row, policy)
+            and retained(row["measured_at"], output["generated_at"])
         }
         for key, row in compact.items():
             old = previous.get(key)
@@ -865,7 +928,10 @@ def write_dataset(
     current = {}
     comparisons = []
     for raw in output["measurements"]:
-        if not in_readiness_scope(raw, policy):
+        if not in_readiness_scope(raw, policy) or (
+            raw.get("measured_at") is not None
+            and not retained(raw["measured_at"], output["generated_at"])
+        ):
             continue
         row = {field: raw.get(field) for field in MEASUREMENT_FIELDS}
         row["source_url"] = row["source_url"] or source_urls.get(row["source_id"])
@@ -969,7 +1035,9 @@ def write_dataset(
     versions = []
     execution_versions = {}
     for row in output.get("executions", []):
-        if not in_readiness_scope(row, policy):
+        if not in_readiness_scope(row, policy) or not retained(
+            row["measured_at"], output["generated_at"]
+        ):
             continue
         row = {**row, "attribution": dict(row["attribution"])}
         try:
@@ -989,13 +1057,13 @@ def write_dataset(
             )
         execution_versions.setdefault(row["rocm_version"], []).append(row)
     releases = {
-        version: row
+        version: retained_release(row, compact.values())
         for version, row in zip(
             (policy or {}).get("tracks", []), output.get("selected_releases", [])
         )
     }
     for version in sorted(
-        set(grouped) | set(assigned) | set(execution_versions) | set(releases),
+        set(grouped) | set(assigned) | set(execution_versions) | set(releases) | set((policy or {}).get("tracks", [])),
         key=_version_key,
         reverse=policy is None,
     ):
@@ -1070,6 +1138,7 @@ def write_dataset(
         (destination / "performance/unassigned.json").unlink(missing_ok=True)
     if not comparisons:
         (destination / "performance/comparisons.json").unlink(missing_ok=True)
+    prune_generated(destination, index)
     if publish_index:
         _write_json(destination / "index.json", index)
     return index

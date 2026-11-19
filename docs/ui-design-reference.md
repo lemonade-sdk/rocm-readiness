@@ -159,7 +159,9 @@ view. Keep the heading prominent and retain all attempt, success and error detai
   text beside it. Keep headings and table labels available to assistive tools.
 - End the default ROCm Readiness calendars on the current UTC date, even
   when there are no builds that day. Mark today's date with stronger neutral type.
-  Build Qualification also opens historical windows through paging or a date link.
+  Build Qualification uses the same current 14 UTC dates. Date links narrow that
+  window; historical paging controls are omitted. Keep GPU-family names and their
+  performance controls together on one line in a sufficiently wide column.
 - Group consecutive UTC dates under a spanning month name. Show only the day
   number in each column and carry a subtle divider through the month boundary.
   Apply this pattern to Readiness Overview and Upstream CI calendars. Preserve the full UTC date in the accessible labels.

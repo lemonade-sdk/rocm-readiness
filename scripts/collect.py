@@ -27,6 +27,7 @@ if __package__:
         _load_previous,
         write_dataset,
         in_readiness_scope,
+        retained,
     )
     from .validation import PipelineValidationError
     from .sync import load_last_success, publish_sync
@@ -39,7 +40,7 @@ else:
     from executions import collect_executions, select_latest
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
-    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope
+    from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope, retained
     from validation import PipelineValidationError
     from sync import load_last_success, publish_sync
     from upstream import collect_upstream, validate_upstream_dataset
@@ -1002,6 +1003,12 @@ def collect(
             ),
             flush=True,
         )
+    for field, date_key in (
+        ("builds", "generated_at"),
+        ("measurements", "measured_at"),
+        ("executions", "measured_at"),
+    ):
+        output[field] = [row for row in output[field] if retained(row[date_key], now)]
     evidence = list(package_evidence or [])
     previous_measurements = []
     system_matches = None
@@ -1148,9 +1155,7 @@ def main():
     parser.add_argument(
         "--package-evidence",
         type=Path,
-        default=Path(__file__).resolve().parents[1]
-        / "provenance/llamacpp-stable-packages.json",
-        help="Verified package evidence used for stable performance backfill",
+        help="Optional verified package evidence for measurements in the retained window",
     )
     parser.add_argument(
         "--previous-data",
@@ -1171,7 +1176,11 @@ def main():
         last_success = load_last_success(args.output_dir, args.previous_data)
         write_json(args.output_dir / "errors.json", {"errors": []})
         errors_initialized = True
-        evidence = json.loads(args.package_evidence.read_text(encoding="utf-8"))
+        evidence = (
+            json.loads(args.package_evidence.read_text(encoding="utf-8"))
+            if args.package_evidence
+            else {"schema_version": 1, "packages": []}
+        )
         if (
             not isinstance(evidence, dict)
             or evidence.get("schema_version") != 1

@@ -7,7 +7,7 @@ import { FilterReset, FilterScope } from "../FilterReset";
 import { Tooltip, TooltipContent } from "../overview/Tooltip";
 import { PlatformIcon } from "../PlatformIcon";
 import type { Build, Fetcher, Session } from "../data";
-import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref, READINESS_WINDOW_DAYS } from "../overview/buildTimeline";
+import { buildDate, buildIdentity, calendarDays, exactBuildHref, qualificationBuildHref } from "../overview/buildTimeline";
 import { useUtcToday } from "../overview/useUtcToday";
 import {
   comparisonKey, metricValue, systemSummary,
@@ -121,7 +121,8 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   const source = params.get("source");
   const packageIdentity = params.get("package_identity");
   const engineId = params.get("engine");
-  const scopedBuilds = history.filter((build) => !engineId || build.engine === engineId);
+  const days = calendarDays(new Date(today));
+  const scopedBuilds = history.filter((build) => days.includes(buildDate(build)) && (!engineId || build.engine === engineId));
   const availablePlatforms = (["linux", "windows"] as const).filter((value) =>
     scopedBuilds.some((build) => build.os === value),
   );
@@ -142,17 +143,6 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
   ) : [];
   const selected = selectedCandidates.length === 1 ? selectedCandidates[0] : null;
   const focusedDay = focus ?? (selected && params.get("focus") !== "package" ? buildDate(selected) : null);
-  const latestDays = calendarDays(new Date(today));
-  const windowEnd = params.get("through") ?? (focusedDay && focusedDay < latestDays[0] ? focusedDay : null);
-  const parsed = windowEnd && /^\d{4}-\d{2}-\d{2}$/.test(windowEnd) ? new Date(windowEnd) : null;
-  const end = parsed && Number.isFinite(+parsed) && parsed.toISOString().slice(0, 10) === windowEnd
-    && windowEnd < today ? windowEnd : today;
-  const days = end === today ? latestDays : calendarDays(new Date(end));
-  const dates = [...new Set(filtered.map(buildDate))].sort();
-  const older = dates.findLast((day) => day < days[0]);
-  const newer = dates.find((day) => day > end && day <= today);
-  const newerEnd = newer ? new Date(+new Date(newer) + (READINESS_WINDOW_DAYS - 1) * 86_400_000).toISOString().slice(0, 10) : null;
-  const nextWindow = newerEnd && newerEnd < today ? newerEnd : null;
   const stable = session.index.readiness?.stable_anchor;
   const trendTrack = channel === "stable" || channel === "nightly" ? channel : stable && session.version
     ? session.version.localeCompare(stable, "en", { numeric: true }) > 0 ? "nightly" : "stable"
@@ -170,10 +160,6 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       else target.set(key, value);
     }
     return target;
-  }
-
-  function windowLink(through: string | null) {
-    return `?${next({ through, focus: null, day: null, channel: null, build: null, source: null, package_identity: null })}`;
   }
 
   return <section className="build-charts" aria-label="Build qualification history">
@@ -198,10 +184,10 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       </fieldset>
       <label className="build-search">Find build <input type="search" value={query} placeholder="Package tag or build ID"
         onChange={(event) => onNavigate(next({ build_filter: event.target.value || null, build: null, source: null, package_identity: null }), true)} /></label>
-      {selectedBuild && <FilterScope label={`Build: ${selected?.tag ?? selectedBuild}`} onClear={() => onNavigate(next({ through: end === today ? null : end, build: null, source: null, package_identity: null, tier: null, check: null, focus: null }))} />}
-      {focusedDay && <FilterScope label={`Date: ${calendarDate(focusedDay)}`} onClear={() => onNavigate(next({ through: end === today ? null : end, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
+      {selectedBuild && <FilterScope label={`Build: ${selected?.tag ?? selectedBuild}`} onClear={() => onNavigate(next({ through: null, build: null, source: null, package_identity: null, tier: null, check: null, focus: null }))} />}
+      {focusedDay && <FilterScope label={`Date: ${calendarDate(focusedDay)}`} onClear={() => onNavigate(next({ through: null, day: null, focus: null, build: null, source: null, package_identity: null }))} />}
       <FilterReset onReset={() => {
-        const target = next({ through: end === today ? null : end });
+        const target = next({ through: null });
         for (const key of ["platform", "engine", "channel", "performance", "build_filter", "day", "focus", "build", "source", "package_identity", "tier", "check", "report_commit"])
           target.delete(key);
         onNavigate(target);
@@ -223,10 +209,6 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
         </> : <p role="status">No packages recorded</p>;
       }}
       dayHref={(day, track, os) => `?${next({ day, channel: track, platform: os, focus: "day", build: null, source: null, package_identity: null })}`} />
-    {(older || end < today) && <nav className="build-chart-paging" aria-label="Browse qualification dates">
-      {older && <Link className="build-dates-older" to={windowLink(older)}>Older builds</Link>}
-      {end < today && <Link className="build-dates-newer" to={windowLink(nextWindow)}>{nextWindow ? "Newer builds" : "Back to latest dates"}</Link>}
-    </nav>}
     {selectedBuild && !selected && <p role="status">The selected package is unavailable or its identity is ambiguous.</p>}
     {!(inlineDays && focusedDay && days.includes(focusedDay) && visiblePlatforms.length > 0) && (rows.length === 0 ? <div>
       <p role="status">{measuredOnly && performance.message ? performance.message : "No retained packages match this scope."}</p>

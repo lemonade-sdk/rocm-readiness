@@ -1,6 +1,6 @@
 .build-charts, .build-review-panel { display: grid; gap: 1rem; }
 .build-charts { grid-template-columns: minmax(0, 1fr); row-gap: 1.5rem; }
-.build-chart-legend, .build-chart-paging { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.build-chart-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
 .build-chart-legend { font-size: .85rem; }
 .build-chart-legend span { display: inline-flex; align-items: center; gap: .35rem; }
 .build-review-panel h2, .build-review-panel p { margin: 0; }

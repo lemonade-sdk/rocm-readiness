@@ -54,6 +54,8 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await expect(page).toHaveURL(/stack=vulkan/);
   await expect(page.getByText("of 8", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "rocm", exact: true }).click();
+  await expect(page).not.toHaveURL(/stack=/);
+  await expect(page.getByText("of 12", { exact: true })).toBeVisible();
   await page
     .getByRole("region", { name: "Daily activity" })
     .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })

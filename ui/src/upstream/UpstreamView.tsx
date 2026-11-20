@@ -2,6 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useMediaQuery } from "../mobile";
+import { useUtcToday } from "../overview/useUtcToday";
+import { observationDays } from "../overview/observationWindow";
 import { EvidenceRegion } from "../overview/EvidenceRegion";
 import { EvidenceBody } from "../overview/EvidenceDisclosure";
 import { MobileFilters } from "../MobileFilters";
@@ -269,6 +271,13 @@ function UpstreamExplanation({ project, jobs, day }: { project: Project; jobs: J
   }))} />;
 }
 
+function hasRecentObservation(job: Job, days: readonly string[]) {
+  return days.some((day) => {
+    const cell = job.daily[day];
+    return cell && cell.passed + cell.failed + cell.other + cell.running + cell.skipped + cell.stalled > 0;
+  });
+}
+
 /* ---- home: one card per project ------------------------------------------------ */
 
 function ProjectGrid({
@@ -280,10 +289,16 @@ function ProjectGrid({
   params: URLSearchParams;
   onNavigate: (next: URLSearchParams) => void;
 }) {
+  const days = observationDays(useUtcToday());
+  const projects = overview.projects.filter((project) =>
+    !project.coverage.complete || project.coverage.error || project.jobs.some((job) => hasRecentObservation(job, days)),
+  );
   return (
     <section aria-label="Upstream projects" className="up-home">
+      {!projects.length && <p>No upstream observations in the last 14 days.</p>}
       <div className="up-cards">
-        {overview.projects.map((project) => {
+        {projects.map((project) => {
+          const jobs = project.jobs.filter((job) => hasRecentObservation(job, days));
           return (
             <article
               key={project.id}
@@ -305,10 +320,9 @@ function ProjectGrid({
                 </h2>
                 <ProjectLabels project={project} />
               </div>
-              {!project.jobs.length && <p className="muted">
-                No conclusion about upstream support can be drawn from the configured coverage.
-              </p>}
-              {project.jobs.length > 0 && <ProjectActivity project={project} jobs={project.jobs} days={windowDays(overview, 14)} params={params} />}
+              {project.coverage.error ? <CollectionFailure error={project.coverage.error} />
+                : !project.coverage.complete && <p className="up-collection-status" role="status">Collection incomplete — oldest days may be missing</p>}
+              {jobs.length > 0 && <ProjectActivity project={project} jobs={jobs} days={days} params={params} />}
 
             </article>
           );
@@ -600,7 +614,8 @@ function ProjectPage({
   const requestedPlatform = params.get("platform");
   const platform = requestedPlatform && platforms.includes(requestedPlatform as "linux" | "windows") ? requestedPlatform : null;
   const jobs = scopedJobs.filter((job) => platform === null || job.os === platform);
-  const days14 = windowDays(overview, 14);
+  const days14 = observationDays(useUtcToday());
+  const calendarJobs = jobs.filter((job) => hasRecentObservation(job, days14));
   const allDays = windowDays(overview);
   const [runs, setRuns] = useState<{
     rows: Run[] | null;
@@ -737,15 +752,15 @@ function ProjectPage({
         <div className="up-activity-analysis">
           <section className="up-panel" aria-label="Daily activity">
             <h2>Daily activity <span className="muted">Branch {project.default_branch} · last 14 days · UTC</span></h2>
-            {jobs.length === 0 ? <p className="muted">No configured jobs match these filters.</p> : !jobs.some((job) => days14.some((day) => job.daily[day])) && <p className="muted">No collected runs on the default branch in the last 14 days.</p>}
-            <ProjectActivity project={project} jobs={jobs} days={days14} params={params}
+            {jobs.length === 0 ? <p className="muted">No configured jobs match these filters.</p> : !calendarJobs.length && <p className="muted">No collected runs on the default branch in the last 14 days.</p>}
+            <ProjectActivity project={project} jobs={calendarJobs} days={days14} params={params}
               selected={open} onPick={(category, day) => pick(`cat:${category}`, day, [])}
               renderDay={(category, day) => <DayPanel project={project}
                 jobs={jobs.filter((job) => job.category === category)} day={day}
                 runs={runs}
                 onClose={() => setOpen(null)} />} />
             {open?.key.startsWith("cat:") &&
-              (!days14.includes(open.day) || !jobs.some((job) => `cat:${job.category}` === open.key)) && (
+              (!days14.includes(open.day) || !calendarJobs.some((job) => `cat:${job.category}` === open.key)) && (
               <DayPanel project={project} jobs={jobs.filter((job) => `cat:${job.category}` === open.key)}
                 day={open.day} runs={runs}
                 onClose={() => setOpen(null)} />
@@ -793,8 +808,8 @@ function ProjectPage({
         </div>
       </div>
       <section className="up-panel up-jobs" aria-label="CI jobs">
-        <h2>CI jobs <span className="muted">{jobs.length} jobs · {days14.length} days · UTC</span></h2>
-        {vertical ? <div className="up-mobile-jobs">{jobs.map((job) => {
+        <h2>CI jobs <span className="muted">{calendarJobs.length} jobs · {days14.length} days · UTC</span></h2>
+        {vertical ? <div className="up-mobile-jobs">{calendarJobs.map((job) => {
           const key = `job:${job.id}`;
           const passed = days14.reduce((total, day) => total + (job.daily[day]?.passed ?? 0), 0);
           const failed = days14.reduce((total, day) => total + (job.daily[day]?.failed ?? 0), 0);
@@ -832,7 +847,7 @@ function ProjectPage({
               <tr>{days14.map((day, index) => <th key={day} scope="col" aria-label={`${day} UTC`}
                 className={isCalendarMonthBoundary(days14, index) ? "month-boundary" : undefined}><time dateTime={day}>{Number(day.slice(8))}</time></th>)}</tr>
             </thead>
-            <tbody>{jobs.map((job) => {
+            <tbody>{calendarJobs.map((job) => {
               const key = `job:${job.id}`;
               const passed = days14.reduce((total, day) => total + (job.daily[day]?.passed ?? 0), 0);
               const failed = days14.reduce((total, day) => total + (job.daily[day]?.failed ?? 0), 0);
@@ -879,7 +894,7 @@ function ProjectPage({
           { outcome: "pass" }, { outcome: "fail" }, { outcome: "skip" },
           { outcome: "not_run" }, { outcome: "unreported", label: "No observation" }, { outcome: "pending" },
         ]} />
-        {open?.key.startsWith("job:") && !days14.includes(open.day) && jobs.some((job) => `job:${job.id}` === open.key) &&
+        {open?.key.startsWith("job:") && (!days14.includes(open.day) || !calendarJobs.some((job) => `job:${job.id}` === open.key)) && jobs.some((job) => `job:${job.id}` === open.key) &&
           <DayPanel project={project} jobs={jobs.filter((job) => `job:${job.id}` === open.key)} day={open.day}
             runs={runs} onClose={() => setOpen(null)} />}
       </section>

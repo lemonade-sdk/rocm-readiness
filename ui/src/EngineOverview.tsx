@@ -2,6 +2,7 @@ import { calendarDate, producedAt } from "./overview/formatDate";
 import { Link } from "react-router";
 import { useMediaQuery } from "./mobile";
 import { useUtcToday } from "./overview/useUtcToday";
+import { hasObservationDate, observationDays } from "./overview/observationWindow";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
 import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
@@ -12,7 +13,6 @@ import sources from "../../sources.json";
 import {
   buildDate,
   buildIdentity,
-  calendarDays,
   calendarMonthGroups,
   isCalendarMonthBoundary,
   qualificationBuildHref,
@@ -26,7 +26,6 @@ type Props = {
   history?: Build[] | null;
   now?: Date;
   nested?: boolean;
-  emptyChannel?: Build["channel"];
   measurementCounts?: ReadonlyMap<string, number>;
   measurementStatus?: string;
 };
@@ -95,7 +94,6 @@ export function EngineOverview({
   history = null,
   now,
   nested = false,
-  emptyChannel,
   measurementCounts,
   measurementStatus = "Measurements not loaded",
 }: Props) {
@@ -103,7 +101,7 @@ export function EngineOverview({
   const EngineHeading = nested ? "h3" : "h2";
   const OSHeading = nested ? "h5" : "h4";
   const today = useUtcToday(now);
-  const days = calendarDays(new Date(today));
+  const days = observationDays(today);
   const months = calendarMonthGroups(days);
 
   return (
@@ -120,7 +118,8 @@ export function EngineOverview({
             records
               .filter(
                 (build) =>
-                  build.engine === engine.id && build.rocm_version === version,
+                  build.engine === engine.id && build.rocm_version === version &&
+                  hasObservationDate(build.generated_at, days),
               )
               .map((build) => [buildIdentity(build), build]),
           ).values(),
@@ -129,11 +128,10 @@ export function EngineOverview({
             Date.parse(a.generated_at) - Date.parse(b.generated_at) ||
             buildIdentity(a).localeCompare(buildIdentity(b)),
         );
-        if (!builds.length && !emptyChannel) return null;
+        if (!builds.length) return null;
         const channels = [
           ...new Set(builds.map((build) => build.channel)),
         ].sort((a, b) => Number(b === "stable") - Number(a === "stable"));
-        if (!channels.length && emptyChannel) channels.push(emptyChannel);
         return (
           <article
             className="build-timeline-card"
@@ -146,7 +144,6 @@ export function EngineOverview({
               );
               const platforms = [
                 ...new Set([
-                  ...engine.platforms,
                   ...channelBuilds.map((build) => build.os),
                 ]),
               ];

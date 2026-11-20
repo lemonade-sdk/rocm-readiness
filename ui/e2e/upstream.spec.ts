@@ -12,6 +12,7 @@ import {
 import { upstreamOverview, upstreamRuns } from "../src/upstream/fixtures";
 
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-10-29T15:00:00Z"));
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
     const url = route.request().url();
     let data: unknown;
@@ -46,7 +47,8 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goto("./");
   await page.getByRole("link", { name: "Upstream health" }).click();
   await expect(page).toHaveURL(/track=upstream/);
-  await expect(page.getByText("unconfigured")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "llama.cpp", exact: true })).toBeVisible();
+  await expect(page.getByText("unconfigured")).toHaveCount(0);
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12", { exact: true })).toBeVisible();

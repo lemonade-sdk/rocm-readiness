@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { fixtureFetch } from "../src/fixtures";
 
+test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
+});
+
 test("applies a saved theme before the application JavaScript loads", async ({
   page,
 }) => {

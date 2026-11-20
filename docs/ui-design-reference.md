@@ -259,7 +259,14 @@ Do not use rounded project containers or generic View details controls. Project
 headings are neutral primary-text links to that project's CI Activity page; do not
 repeat navigation beneath the calendar. Keep repository/fork information and
 collection notices in CI Activity. Overview keeps aligned project metrics and
-clickable daily activity, retaining unknown/incomplete evidence semantics. CI Activity reuses Build Qualification's grouped filter controls and selected
+clickable daily activity, retaining unknown/incomplete evidence semantics. Summary
+groups and calendar rows require a source observation within today and the prior
+13 UTC dates. Hide inactive readiness versions, engines, channels and platforms,
+and inactive upstream projects and job rows. Unsuccessful observations count as
+data. Retain visible collection/history errors even without recent observations;
+an upstream collection failure may therefore remain on Overview. Retained detail
+links and project-wide collection metrics keep their existing scope.
+CI Activity reuses Build Qualification's grouped filter controls and selected
 states: Project, Platform, Stack, and Target. Stack and Target are independent inclusive
 toggle groups: all included values use the filled selected state, without an
 Everything AMD control. Retain at least one value per group and keep both groups

@@ -172,7 +172,7 @@ it("shows only the last fourteen UTC dates and leaves no-build dates empty", () 
     screen.queryByRole("columnheader", { name: "2026-10-19 UTC" }),
   ).not.toBeInTheDocument();
   expect(screen.getAllByRole("link")).toHaveLength(1);
-  expect(screen.getAllByRole("button", { name: /No observation/ })).toHaveLength(27);
+  expect(screen.getAllByRole("button", { name: /No observation/ })).toHaveLength(13);
   expect(screen.getByRole("list", { name: "llama.cpp stable qualification legend" })).toHaveTextContent("No qualification observation");
 });
 
@@ -204,10 +204,10 @@ it("keeps unknown evidence neutral and respects explicit qualification despite w
     expect(screen.queryByText(text, { exact: true })).not.toBeInTheDocument();
 });
 
-it("keeps expected OS rows without report-date annotations and highlights today", () => {
+it("hides unobserved OS rows without report-date annotations and highlights today", () => {
   mount([build()]);
-  expect(screen.getByRole("heading", { name: "Windows" })).toBeInTheDocument();
-  expect(screen.getByText("No qualification evidence")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Windows" })).not.toBeInTheDocument();
+  expect(screen.queryByText("No qualification evidence")).not.toBeInTheDocument();
   expect(screen.queryByText("2026-10-29")).not.toBeInTheDocument();
   expect(screen.queryByText("Before today")).not.toBeInTheDocument();
   expect(
@@ -251,6 +251,39 @@ it("omits an entire engine when it has no records", () => {
   mount([]);
   expect(screen.queryByRole("article")).not.toBeInTheDocument();
   expect(screen.queryByRole("link")).not.toBeInTheDocument();
+});
+
+it("hides stale channels and platforms while keeping recent failures", () => {
+  mount([
+    build({ channel: "nightly", generated_at: "2026-10-19T23:59:59Z" }),
+    build({ os: "windows", generated_at: "2026-10-19T23:59:59Z" }),
+    build({ build_id: "recent-failure", qualified: false, generated_at: "2026-10-20T00:00:00Z" }),
+  ]);
+  expect(screen.queryByRole("region", { name: "llama.cpp nightly build history" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Windows" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /recent-failure.*Failed/ })).toBeInTheDocument();
+});
+
+it("hides engines whose only records are stale or future-dated", () => {
+  mount([
+    build({ generated_at: "2026-10-19T23:59:59Z" }),
+    build({ build_id: "future", generated_at: "2026-11-03T00:00:00Z" }),
+  ]);
+  expect(screen.queryByRole("article")).not.toBeInTheDocument();
+});
+
+it("expires an engine after the UTC date changes", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-02T23:59:45Z"));
+  try {
+    const records = [build({ generated_at: "2026-10-20T15:00:00Z" })];
+    render(<MemoryRouter><EngineOverview version="10.1" engines={[{ ...overview().engines[0], latest_builds: records }]} history={records} /></MemoryRouter>);
+    expect(screen.getByRole("article")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("renders JSON engine identities and only channels with actual records", () => {

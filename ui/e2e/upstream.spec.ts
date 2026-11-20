@@ -12,7 +12,8 @@ import {
 import { upstreamOverview, upstreamRuns } from "../src/upstream/fixtures";
 
 test.beforeEach(async ({ page }) => {
-  await page.clock.setFixedTime(new Date("2026-10-29T15:00:00Z"));
+  // Keep fixture dates current while allowing history and UI timers to advance.
+  await page.clock.install({ time: new Date("2026-10-29T15:00:00Z") });
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
     const url = route.request().url();
     let data: unknown;
@@ -67,6 +68,8 @@ test("upstream health opens a project, filters it and links a day's runs", async
     "href",
     "https://github.com/ggml-org/llama.cpp/pull/501",
   );
+  // Keep the pointer off the calendar during history traversal.
+  await page.mouse.move(0, 0);
   await page.goBack();
   await expect(page).not.toHaveURL(/day=/);
   await expect(panel).not.toBeVisible();
@@ -378,7 +381,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.getByRole("button", { name: "Measured", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "10.1", exact: true }).focus();
       await expect(page.getByRole("tooltip")).toContainText("Latest stable qualification track");
-      await page.screenshot({ path: testInfo.outputPath("version-help.png"), fullPage: true });
+      await page.screenshot({ path: testInfo.outputPath("version-help.png"), fullPage: false });
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "10.2", exact: true }).hover();
       await expect(page.getByRole("tooltip")).toContainText("Nightly qualification track");

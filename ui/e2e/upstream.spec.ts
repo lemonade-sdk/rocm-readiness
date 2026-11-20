@@ -59,17 +59,17 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.getByRole("button", { name: "rocm", exact: true }).click();
   await expect(page).not.toHaveURL(/stack=/);
   await expect(page.getByText("of 12", { exact: true })).toBeVisible();
-  await page
+  const day = page
     .getByRole("region", { name: "Daily activity" })
-    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })
-    .click();
+    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
+  // Exercise history independently of the separately tested delayed hover opening.
+  await day.focus();
+  await day.press("Enter");
   const panel = page.getByRole("region", { name: "Runs on 2026-10-27" });
   await expect(panel.getByRole("link", { name: "#501" })).toHaveAttribute(
     "href",
     "https://github.com/ggml-org/llama.cpp/pull/501",
   );
-  // Keep the pointer off the calendar during history traversal.
-  await page.mouse.move(0, 0);
   await page.goBack();
   await expect(page).not.toHaveURL(/day=/);
   await expect(panel).not.toBeVisible();

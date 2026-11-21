@@ -53,6 +53,16 @@ Omitting a group includes all its values; legacy `&lens=<stack or target>` links
 
 ## Appearance
 
+Summary groups and calendar rows appear only when they contain source observations
+in the current 14 UTC calendar dates (today and the preceding 13 dates). Readiness
+uses build production dates; Upstream health uses dated job outcomes, including
+failed, skipped, cancelled and running results. Release metadata and zero-count
+cells alone do not keep an item visible. Visibility refreshes after UTC midnight.
+Collection and history errors remain visible. This display rule does not delete
+collected records or prevent opening retained historical evidence through detail
+links; items return automatically when new observations arrive. Upstream project
+metrics and badges continue to describe their declared collection window.
+
 All dashboard UI changes follow [Signal Deck](../docs/ui-design-reference.md), with
 ROCm documentation blues, a side rail for dashboard navigation and dataset
 provenance, and tables with distinct symbols for qualification and CI outcomes.
@@ -141,8 +151,8 @@ model, quantization and workload settings. Missing metadata remains unmatched.
 Package qualification requires exactly one matching retained build record.
 
 The overview reads all referenced monthly history files at one pinned revision.
-Only engines and channels with recorded builds render. Expected OS rows come
-from JSON metadata within populated groups. Each tile has a 14-day UTC calendar
+Only engines, channels and OS rows with builds in the current window render.
+Each tile has a 14-day UTC calendar
 ending today, with one selectable mark per build. Multiple same-day builds stay
 distinct. Explicit producer qualification determines pass/fail; missing verdicts
 are neutral evidence links, and dates without builds use “—” (No observation).

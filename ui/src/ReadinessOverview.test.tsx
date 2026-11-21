@@ -119,7 +119,7 @@ it("keeps the overview focused on qualification even when benchmark evidence exi
   expect(result.container.querySelector(".build-benchmark-issue")).toBeNull();
 });
 
-it("shows a published track when qualification records are unavailable", async () => {
+it("hides a metadata-only published track without qualification records", async () => {
   const releaseUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/tag/b1352";
   const archiveUrl = "https://github.com/lemonade-sdk/llamacpp-rocm/releases/download/b1352/archive.zip";
   mount({
@@ -136,11 +136,41 @@ it("shows a published track when qualification records are unavailable", async (
       },
     }],
   }, { [new URL("rocm/10.2/overview.json", indexUrl).href]: { ...overview("10.2"), engines: [], history: [] } });
-  expect(await screen.findByRole("region", { name: "llama.cpp nightly build history" })).toBeInTheDocument();
+  expect(await screen.findByText("No qualification build records are available in the last 14 days.")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "llama.cpp nightly build history" })).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "b1352" })).not.toBeInTheDocument();
   expect(screen.queryByText("Downloads and reports")).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "archive.zip" })).not.toBeInTheDocument();
-  expect(screen.getByText("Qualification data unavailable")).toBeInTheDocument();
+  expect(screen.queryByText("Qualification data unavailable")).not.toBeInTheDocument();
+});
+
+it("hides stale versions without changing the retained catalog", async () => {
+  const stale = overview("10.2");
+  const oldBuild = { ...stale.engines[0].latest_builds[0], generated_at: "2026-10-19T23:59:59Z" };
+  mount(index, {
+    [new URL("rocm/10.2/overview.json", indexUrl).href]: {
+      ...stale, engines: [{ ...stale.engines[0], latest_builds: [oldBuild] }],
+    },
+    [new URL("rocm/10.2/history/2026-10.json", indexUrl).href]: {
+      ...historyFixture("10.2"), builds: historyFixture("10.2").builds.map((build) => ({ ...build, generated_at: oldBuild.generated_at })),
+    },
+  });
+  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest Stable" });
+  expect(screen.queryByRole("region", { name: "ROCm 10.2" })).not.toBeInTheDocument();
+  expect(index.versions).toHaveLength(2);
+});
+
+it("keeps history read failures visible even when latest evidence is stale", async () => {
+  const stale = overview("10.2");
+  mount({ ...index, versions: [index.versions[1]] }, {
+    [new URL("rocm/10.2/overview.json", indexUrl).href]: {
+      ...stale, engines: [{ ...stale.engines[0], latest_builds: [{ ...stale.engines[0].latest_builds[0], generated_at: "2026-10-01T00:00:00Z" }] }],
+    },
+    [new URL("rocm/10.2/history/2026-10.json", indexUrl).href]: {},
+  });
+  expect(await screen.findByRole("alert")).toHaveTextContent("Qualification history unavailable");
+  expect(screen.getByRole("region", { name: "ROCm 10.2" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Retry history" })).toBeInTheDocument();
 });
 
 

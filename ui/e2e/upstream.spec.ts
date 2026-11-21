@@ -12,6 +12,8 @@ import {
 import { upstreamOverview, upstreamRuns } from "../src/upstream/fixtures";
 
 test.beforeEach(async ({ page }) => {
+  // Keep fixture dates current while allowing history and UI timers to advance.
+  await page.clock.install({ time: new Date("2026-10-29T15:00:00Z") });
   await page.route("https://raw.githubusercontent.com/**", async (route) => {
     const url = route.request().url();
     let data: unknown;
@@ -46,7 +48,8 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.goto("./");
   await page.getByRole("link", { name: "Upstream health" }).click();
   await expect(page).toHaveURL(/track=upstream/);
-  await expect(page.getByText("unconfigured")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "llama.cpp", exact: true })).toBeVisible();
+  await expect(page.getByText("unconfigured")).toHaveCount(0);
   await page.getByRole("link", { name: "llama.cpp" }).click();
   await expect(page).toHaveURL(/project=llamacpp/);
   await expect(page.getByText("of 12", { exact: true })).toBeVisible();
@@ -56,10 +59,12 @@ test("upstream health opens a project, filters it and links a day's runs", async
   await page.getByRole("button", { name: "rocm", exact: true }).click();
   await expect(page).not.toHaveURL(/stack=/);
   await expect(page.getByText("of 12", { exact: true })).toBeVisible();
-  await page
+  const day = page
     .getByRole("region", { name: "Daily activity" })
-    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true })
-    .click();
+    .getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs", exact: true });
+  // Exercise history independently of the separately tested delayed hover opening.
+  await day.focus();
+  await day.press("Enter");
   const panel = page.getByRole("region", { name: "Runs on 2026-10-27" });
   await expect(panel.getByRole("link", { name: "#501" })).toHaveAttribute(
     "href",
@@ -376,7 +381,7 @@ for (const theme of ["light", "dark"] as const) {
       await expect(page.getByRole("button", { name: "Measured", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "10.1", exact: true }).focus();
       await expect(page.getByRole("tooltip")).toContainText("Latest stable qualification track");
-      await page.screenshot({ path: testInfo.outputPath("version-help.png"), fullPage: true });
+      await page.screenshot({ path: testInfo.outputPath("version-help.png"), fullPage: false });
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: "10.2", exact: true }).hover();
       await expect(page.getByRole("tooltip")).toContainText("Nightly qualification track");

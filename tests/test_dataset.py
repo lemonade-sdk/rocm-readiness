@@ -372,7 +372,7 @@ class DatasetTests(unittest.TestCase):
 
     def test_versions_latest_cards_projection_and_comparison_performance(self):
         rows = [
-            build("7-9", rocm_version="7.9", generated_at="2026-08-01T10:00:00Z"),
+            build("7-9", rocm_version="7.9", generated_at="2026-09-30T10:00:00Z"),
             build(
                 "stable-first",
                 generated_at="2026-10-10T10:00:00Z",
@@ -527,10 +527,10 @@ class DatasetTests(unittest.TestCase):
     def test_merges_complete_history_across_source_pruning_and_replaces_reruns(self):
         prior = normalized(
             [
-                build("unchanged", generated_at="2026-09-01T10:00:00Z"),
+                build("unchanged", generated_at="2026-09-29T10:00:00Z"),
                 build(
                     "rerun",
-                    generated_at="2026-09-02T10:00:00Z",
+                    generated_at="2026-09-30T10:00:00Z",
                     overall="fail",
                     qualified=False,
                 ),
@@ -538,7 +538,7 @@ class DatasetTests(unittest.TestCase):
                     "pruned-source",
                     rocm_version="7.13",
                     source_id="legacy-source",
-                    generated_at="2026-08-01T10:00:00Z",
+                    generated_at="2026-09-28T10:00:00Z",
                 ),
             ]
         )
@@ -598,7 +598,7 @@ class DatasetTests(unittest.TestCase):
             )
             self.assertEqual(rerun["overall"], "pass")
             old_version = json.loads(
-                (destination / "rocm/7.13/history/2026-08.json").read_text()
+                (destination / "rocm/7.13/history/2026-09.json").read_text()
             )["builds"]
             self.assertEqual(
                 old_version[0]["source_url"],

@@ -53,6 +53,16 @@ Omitting a group includes all its values; legacy `&lens=<stack or target>` links
 
 ## Appearance
 
+Summary groups and calendar rows appear only when they contain source observations
+in the current 14 UTC calendar dates (today and the preceding 13 dates). Readiness
+uses build production dates; Upstream health uses dated job outcomes, including
+failed, skipped, cancelled and running results. Release metadata and zero-count
+cells alone do not keep an item visible. Visibility refreshes after UTC midnight.
+Collection and history errors remain visible. This display rule does not delete
+collected records or prevent opening retained historical evidence through detail
+links; items return automatically when new observations arrive. Upstream project
+metrics and badges continue to describe their declared collection window.
+
 All dashboard UI changes follow [Signal Deck](../docs/ui-design-reference.md), with
 ROCm documentation blues, a side rail for dashboard navigation and dataset
 provenance, and tables with distinct symbols for qualification and CI outcomes.
@@ -72,8 +82,10 @@ qualified llama.cpp archive. Full dated nightly SDK identifiers remain in each
 build's provenance; numeric SDK version identifiers remain unchanged for package mapping.
 
 Every collection rebuilds readiness from current producer snapshots, without
-carrying forward previous downstream records. Records present in those producer
-snapshots remain available within the selected tracks. The catalog is ordered
+carrying forward previous downstream records. Only the current UTC date and preceding 13 dates are published for build qualification,
+performance measurements and execution attempts. Expired records, unreferenced
+report snapshots and obsolete generated month files are removed on collection.
+Upstream Health uses the same 14-day retention window. The catalog is ordered
 numerically ascending, with stable first. The UI renders that catalog and uses
 `index.readiness.stable_anchor` to label stable. Older datasets without scope
 metadata retain an explicit legacy-scope notice.
@@ -139,8 +151,8 @@ model, quantization and workload settings. Missing metadata remains unmatched.
 Package qualification requires exactly one matching retained build record.
 
 The overview reads all referenced monthly history files at one pinned revision.
-Only engines and channels with recorded builds render. Expected OS rows come
-from JSON metadata within populated groups. Each tile has a 14-day UTC calendar
+Only engines, channels and OS rows with builds in the current window render.
+Each tile has a 14-day UTC calendar
 ending today, with one selectable mark per build. Multiple same-day builds stay
 distinct. Explicit producer qualification determines pass/fail; missing verdicts
 are neutral evidence links, and dates without builds use “—” (No observation).
@@ -207,7 +219,8 @@ performed. Legacy history URL flags no longer alter the table.
 
 Build Qualification and Performance share Find build and Reset filters controls
 in the filter toolbar. Reset clears each view’s selected package/model/day and
-filter scope while keeping the ROCm version (and qualification date window).
+filter scope while keeping the ROCm version. Build Qualification always uses the
+current 14 UTC dates; legacy `through` parameters no longer move the window.
 Performance model-name links open all workloads for that model/package; metric
 bars retain exact-observation links and highlight their recorded workload.
 

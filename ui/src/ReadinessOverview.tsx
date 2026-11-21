@@ -10,7 +10,8 @@ import {
 import { EngineOverview } from "./EngineOverview";
 import { useBuildMeasurements } from "./builds/useBuildMeasurements";
 import { buildIdentity } from "./overview/buildTimeline";
-import sources from "../../sources.json";
+import { hasObservationDate, observationDays } from "./overview/observationWindow";
+import { useUtcToday } from "./overview/useUtcToday";
 
 type VersionEvidence = {
   version: string;
@@ -29,6 +30,8 @@ export function ReadinessOverview({
   fetcher: Fetcher;
   onRetry: () => void;
 }) {
+  const today = useUtcToday();
+  const days = observationDays(today);
   const [state, setState] = useState<{
     revision: string;
     rows: VersionEvidence[];
@@ -80,10 +83,10 @@ export function ReadinessOverview({
     row.session?.overview?.engines.flatMap((engine) => engine.latest_builds) ??
     [];
   const visible = state.rows.filter(
-    (row) => row.release || row.error || row.historyError || records(row).length,
+    (row) => row.error || row.historyError || records(row).some((build) => hasObservationDate(build.generated_at, days)),
   );
   const stable = session.index.readiness?.stable_anchor;
-  const rows = visible; // The collector owns version selection and ordering.
+  const rows = visible; // Preserve the collector's catalog order among active tracks.
   return (
     <div className="readiness-versions">
       {!session.index.readiness && (
@@ -123,28 +126,16 @@ export function ReadinessOverview({
               version={row.version}
               history={row.builds}
               nested
-              emptyChannel={
-                row.release ? (row.version === stable ? "stable" : "nightly") : undefined
-              }
-              engines={(row.release && !row.session.overview.engines.length
-                ? sources.engines.map((engine) => ({ ...engine, build_count: 0, latest_builds: [] }))
-                : row.session.overview.engines
-              ).map((engine) => ({
-                ...engine,
-                platforms:
-                  sources.engines.find(
-                    (configured) => configured.id === engine.id,
-                  )?.platforms ?? engine.platforms,
-              }))}
+              engines={row.session.overview.engines}
             />
           )}
           {row.release && <ReleaseDetails release={row.release} />}
         </section>
       ))}
       {stable && !rows.some((row) => row.version === stable) && (
-        <p>No recorded evidence for configured stable ROCm {stable}.</p>
+        <p>No recorded evidence in the last 14 days for configured stable ROCm {stable}.</p>
       )}
-      {!rows.length && <p>No qualification build records are available.</p>}
+      {!rows.length && <p>No qualification build records are available in the last 14 days.</p>}
     </div>
   );
 }

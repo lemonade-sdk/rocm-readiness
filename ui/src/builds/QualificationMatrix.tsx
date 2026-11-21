@@ -397,7 +397,7 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
                   {[...families].sort(([a], [b]) => checkOrder.compare(a, b)).map(([family, members]) =>
                     <tr key={family}>
                       {showFamilies && <th scope="row">
-                        {family ? <PackageDetails heading={family} packages={members} key={String(opens(members))} initialOpen={opens(members)} dataCommit={dataCommit} coverageFetcher={fetcher} performanceMeasurements={performanceMeasurements} /> : "Shared archive"}
+                        <span className="qualification-family-label">{family ? <PackageDetails heading={family} packages={members} key={String(opens(members))} initialOpen={opens(members)} dataCommit={dataCommit} coverageFetcher={fetcher} performanceMeasurements={performanceMeasurements} /> : "Shared archive"}</span>
                       </th>}
                       {platformCells(members, showFamilies && !family)}
                     </tr>

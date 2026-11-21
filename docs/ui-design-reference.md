@@ -159,7 +159,9 @@ view. Keep the heading prominent and retain all attempt, success and error detai
   text beside it. Keep headings and table labels available to assistive tools.
 - End the default ROCm Readiness calendars on the current UTC date, even
   when there are no builds that day. Mark today's date with stronger neutral type.
-  Build Qualification also opens historical windows through paging or a date link.
+  Build Qualification uses the same current 14 UTC dates. Date links narrow that
+  window; historical paging controls are omitted. Keep GPU-family names and their
+  performance controls together on one line in a sufficiently wide column.
 - Group consecutive UTC dates under a spanning month name. Show only the day
   number in each column and carry a subtle divider through the month boundary.
   Apply this pattern to Readiness Overview and Upstream CI calendars. Preserve the full UTC date in the accessible labels.
@@ -257,7 +259,14 @@ Do not use rounded project containers or generic View details controls. Project
 headings are neutral primary-text links to that project's CI Activity page; do not
 repeat navigation beneath the calendar. Keep repository/fork information and
 collection notices in CI Activity. Overview keeps aligned project metrics and
-clickable daily activity, retaining unknown/incomplete evidence semantics. CI Activity reuses Build Qualification's grouped filter controls and selected
+clickable daily activity, retaining unknown/incomplete evidence semantics. Summary
+groups and calendar rows require a source observation within today and the prior
+13 UTC dates. Hide inactive readiness versions, engines, channels and platforms,
+and inactive upstream projects and job rows. Unsuccessful observations count as
+data. Retain visible collection/history errors even without recent observations;
+an upstream collection failure may therefore remain on Overview. Retained detail
+links and project-wide collection metrics keep their existing scope.
+CI Activity reuses Build Qualification's grouped filter controls and selected
 states: Project, Platform, Stack, and Target. Stack and Target are independent inclusive
 toggle groups: all included values use the filled selected state, without an
 Everything AMD control. Retain at least one value per group and keep both groups

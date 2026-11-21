@@ -1,12 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { fixtureFetch, indexUrl } from "../fixtures";
 import { cellState, keepJob, loadUpstream, type UpstreamOverview } from "./data";
 import { upstreamFetch, upstreamOverview } from "./fixtures";
 import { loadSession } from "../data";
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-29T12:00:00Z"));
+});
+afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 it("expands phone daily evidence inside its own dated row", async () => {
   vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
@@ -94,13 +98,7 @@ it("shows one card per project with its computed upstream badge", async () => {
   expect(await screen.findByRole("tooltip")).toHaveTextContent("gfx1201");
   expect(card.querySelector(".up-status-labels [title]")).toBeNull();
   fireEvent.keyDown(within(card).getByRole("button", { name: /^upstream$/ }), { key: "Escape" });
-  const vllm = screen
-    .getByRole("heading", { name: "vLLM" })
-    .closest("article")!;
-  expect(within(vllm).getByText("unconfigured")).toBeInTheDocument();
-  expect(
-    within(vllm).getByText("No conclusion about upstream support can be drawn from the configured coverage."),
-  ).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "vLLM" })).not.toBeInTheDocument();
   // Overview keeps the calendar prominent; metrics live in CI Activity.
   expect(screen.queryByRole("group", { name: "CI metrics" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Upstream health" })).toHaveAttribute(
@@ -366,8 +364,8 @@ it('does not describe uncollected runs as absent in incomplete project details',
   expect(screen.getByText(/No collected runs/)).toBeInTheDocument();
   expect(screen.getByText(/No collected failing-step details/)).toBeInTheDocument();
   const perDay = screen.getByRole('region', { name: 'Daily activity' });
-  fireEvent.click(within(perDay).getByRole('button', { name: /2026-10-27: No observation/ }));
-  expect(await screen.findByText('No run collected for this date.')).toBeInTheDocument();
+  expect(within(perDay).queryByRole('button', { name: /2026-10-27: No observation/ })).not.toBeInTheDocument();
+  expect(screen.getByText(/Collection incomplete.*oldest days may be missing/)).toBeVisible();
   expect(screen.getByRole('table', { name: 'CI jobs' })).toBeInTheDocument();
   expect(screen.queryByText(/never ran/)).not.toBeInTheDocument();
 });
@@ -761,4 +759,47 @@ it("explains upstream filter scopes and shows OS icons", async () => {
   fireEvent.focus(screen.getByRole("button", { name: "About Stack" }));
   expect(await screen.findByRole("tooltip")).toHaveTextContent(/stack/i);
   expect(screen.queryByRole("button", { name: "About Platform" })).not.toBeInTheDocument();
+});
+
+
+it("hides stale and empty projects but retains incomplete collection notices", async () => {
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  const template = data.projects[0];
+  data.projects = [
+    { ...template, id: "stale", label: "Stale project", jobs: template.jobs.map(job => ({ ...job, daily: { "2026-10-15": { passed: 1, failed: 0, other: 0, running: 0, skipped: 0, stalled: 0, slow: 0 } } })) },
+    { ...template, id: "failed-collection", label: "Collection problem", jobs: [], coverage: { complete: false, error: "API unavailable" } },
+    { ...template, id: "active", label: "Active project" },
+  ];
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  await screen.findByRole("heading", { name: "Active project" });
+  expect(screen.queryByRole("heading", { name: "Stale project" })).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Collection problem" })).toBeVisible();
+  expect(screen.getByText("Collection failed. The displayed results may be incomplete.")).toBeVisible();
+  fireEvent.click(screen.getByText("Technical details"));
+  expect(screen.getByText("API unavailable")).toBeVisible();
+});
+
+it("filters CI job rows by positive observations across the current UTC cutoff", async () => {
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  const template = data.projects[0].jobs[0];
+  const empty = { passed: 0, failed: 0, other: 0, running: 0, skipped: 0, stalled: 0, slow: 0 };
+  data.projects[0].jobs = [
+    ...(["passed", "failed", "other", "running", "skipped", "stalled"] as const).map(state => ({ ...template, id: state, label: state, daily: { "2026-10-16": { ...empty, [state]: 1 } } })),
+    { ...template, id: "stale", label: "Stale job", daily: { "2026-10-15": { ...empty, passed: 1 } } },
+    { ...template, id: "future", label: "Future job", daily: { "2026-10-30": { ...empty, passed: 1 } } },
+    { ...template, id: "zero", label: "Zero job", daily: { "2026-10-29": { ...empty, slow: 1 } } },
+  ];
+  mount("/?track=upstream&view=ci&project=llamacpp", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const table = await screen.findByRole("table", { name: "CI jobs" });
+  for (const state of ["passed", "failed", "other", "running", "skipped", "stalled"]) expect(within(table).getByRole("button", { name: state })).toBeVisible();
+  for (const label of ["Stale job", "Future job", "Zero job"]) expect(within(table).queryByText(label)).not.toBeInTheDocument();
+});
+
+it("uses today's window instead of the collection date for upstream visibility", async () => {
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  data.projects = [data.projects[0]];
+  data.projects[0].jobs = [{ ...data.projects[0].jobs[0], daily: { "2026-10-15": { passed: 1, failed: 0, other: 0, running: 0, skipped: 0, stalled: 0, slow: 0 } } }];
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  expect(await screen.findByText("No upstream observations in the last 14 days.")).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "llama.cpp" })).not.toBeInTheDocument();
 });

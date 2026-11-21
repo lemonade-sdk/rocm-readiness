@@ -72,6 +72,14 @@ reports use `qualified`.
 
 ## What we retain
 
+Published readiness records cover the current UTC date and preceding 13 dates,
+using build `generated_at` and measurement/execution `measured_at`. Previous-data
+reuse cannot extend this window. Only report snapshots referenced by retained
+builds remain; obsolete generated history, performance and execution files are
+removed after rebuilding their summaries. Release asset metadata remains available,
+while qualification links to expired builds are removed. Upstream CI records and
+scanned-run checkpoints use the same 14-day window.
+
 | Source | File ingested | Data retained |
 | --- | --- | --- |
 | `lemonade-sdk/llama.cpp` · `qualification-data` | [qualification/index.json](https://github.com/lemonade-sdk/llama.cpp/blob/qualification-data/qualification/index.json) | Stable build IDs/tags, packages, ROCm/OS, qualification verdicts, test counts, GPU coverage, hardware-validation flags, dates, and evidence links |
@@ -155,11 +163,12 @@ with its qualification build. Older measurements keep their verified tag/package
 when the producer index no longer lists that build.
 Missing or conflicting package evidence fails collection.
 
-The committed [provenance/llamacpp-stable-packages.json](../provenance/llamacpp-stable-packages.json)
-is read by the collector for historical stable mappings when rebuilding from
-scratch. Normal runs can also reuse
-mappings in the previous published dataset.
+Package mappings come from current benchmark-job evidence or matching observations
+in the previous dataset. An optional `--package-evidence` file can supply verified
+mappings for retained observations. A permanent historical bootstrap file is not
+required.
 
 CI saves source copies and a generated `provenance/packages.json` diagnostic copy
-in its artifact. Artifacts expire after 30 days; the
-committed mappings and evidence embedded in published measurements survive them.
+in its artifact. These diagnostic copies are excluded from the published portal
+dataset. Artifacts expire after 14 days; attribution evidence embedded in retained
+measurements remains available with those measurements.

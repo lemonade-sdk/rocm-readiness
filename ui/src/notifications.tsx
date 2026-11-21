@@ -6,6 +6,7 @@ import "./notifications.css";
 
 const time = z.string().refine((value) => Number.isFinite(Date.parse(value)));
 const url = z.url({ protocol: /^https$/ });
+const githubId = z.union([z.number().int().positive(), z.string().regex(/^[1-9]\d{0,19}$/)]);
 const channel = z.object({
   status: z.enum(["pending", "sent", "failed", "disabled", "unavailable", "uncertain"]),
   url: url.optional(),
@@ -39,6 +40,9 @@ export const notificationsSchema = z.object({
     }),
     observed: z.record(z.string(), z.unknown()),
     expected: z.record(z.string(), z.unknown()),
+    provenance: z.object({
+      repository: z.string().optional(), run_id: githubId.optional(), job_id: githubId.optional(),
+    }).optional(),
     evidence: z.array(z.object({ label: z.string(), url })),
     notification: z.object({
       github: channel, email: channel.optional(),
@@ -92,8 +96,7 @@ export function matchesAssessment(assessment: Assessment, scope: AssessmentScope
   return Object.entries(expected).every(([key, value]) => scope[key as keyof AssessmentScope] === value);
 }
 
-export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
-  const { dryRun } = useContext(Notifications);
+function assessmentPresentation(assessment: Assessment, dryRun?: boolean) {
   const dispatch = assessment.notification;
   const github = dispatch?.github.status;
   const cause = assessment.diagnosis?.certainty !== "unknown" ? assessment.diagnosis?.cause : undefined;
@@ -105,18 +108,44 @@ export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
   const needsInvestigation = (
     assessment.actionable || assessment.classification === "explained_abnormal"
   ) && assessment.escalation_required !== false && (githubText || dispatch?.github.url);
+  const provenance = assessment.provenance;
+  const ownJobUrl = provenance?.repository && provenance.repository === assessment.scope.repository &&
+    provenance.run_id && provenance.job_id
+    ? `https://github.com/${provenance.repository}/actions/runs/${provenance.run_id}/job/${provenance.job_id}`
+    : undefined;
+  return {
+    finding,
+    investigation: needsInvestigation ? { text: githubText, url: dispatch?.github.url, status: github } : null,
+    evidence: assessment.evidence.map(item => ({
+      ...item,
+      jobs: item.label === "Job" && item.url === ownJobUrl && assessment.scope.job ? [assessment.scope.job] : [],
+    })),
+  };
+}
+
+type AssessmentPresentation = ReturnType<typeof assessmentPresentation>;
+
+export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
+  const { dryRun } = useContext(Notifications);
+  return <AssessmentExplanation presentation={assessmentPresentation(assessment, dryRun)} />;
+}
+
+function AssessmentExplanation({ presentation }: { presentation: AssessmentPresentation }) {
+  const { finding, investigation, evidence } = presentation;
   return <div className="assessment-explanation">
     <dl>
       <dt>Finding</dt><dd>{finding}</dd>
-      {needsInvestigation && <>
+      {investigation && <>
         <dt>Investigation</dt><dd className="assessment-investigation">
-          {githubText && <span className="assessment-status">{githubText}</span>}
-          {dispatch?.github.url && <> <a href={dispatch.github.url} target="_blank" rel="noreferrer">View investigation</a></>}
+          {investigation.text && <span className="assessment-status">{investigation.text}</span>}
+          {investigation.url && <> <a href={investigation.url} target="_blank" rel="noreferrer">View investigation</a></>}
         </dd>
       </>}
-      {assessment.evidence.length > 0 && <>
-        <dt>Evidence</dt><dd className="assessment-links">{assessment.evidence.map((item, index) =>
-          <a key={`${item.url}:${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label}</a>)}</dd>
+      {evidence.length > 0 && <>
+        <dt>Evidence</dt><dd className="assessment-links">{evidence.map((item, index) =>
+          <a key={`${item.url}:${index}`} href={item.url} target="_blank" rel="noreferrer">
+            {item.label}{item.jobs.length > 0 ? ` · ${item.jobs.join(", ")}` : ""}
+          </a>)}</dd>
       </>}
     </dl>
   </div>;
@@ -132,14 +161,32 @@ export function CellExplanation({ scope, observation, missingObservation = false
     (observation || assessment.actionable || assessment.classification === "explained_abnormal"),
   );
   const actionable = matching.filter((assessment) => assessment.actionable);
-  const normalExplanations = new Set<string>();
-  const matches = (actionable.length ? actionable : matching).filter((assessment) => {
-    if (assessment.classification !== "expected") return true;
-    const key = JSON.stringify([assessment.scope, assessment.explanation, assessment.notification]);
-    if (normalExplanations.has(key)) return false;
-    normalExplanations.add(key);
-    return true;
-  });
+  // Aggregate cells can match separate incidents with the same displayed finding.
+  // Group their presentation, preserving every distinct source link and investigation.
+  const groups = new Map<string, {
+    presentation: AssessmentPresentation;
+    evidenceByKey: Map<string, AssessmentPresentation["evidence"][number]>;
+  }>();
+  for (const assessment of actionable.length ? actionable : matching) {
+    const presentation = assessmentPresentation(assessment, state.dryRun);
+    const key = JSON.stringify([presentation.finding, presentation.investigation]);
+    let group = groups.get(key);
+    if (!group) {
+      group = { presentation: { ...presentation, evidence: [] }, evidenceByKey: new Map() };
+      groups.set(key, group);
+    }
+    for (const item of presentation.evidence) {
+      const evidenceKey = JSON.stringify([item.label, item.url]);
+      const existing = group.evidenceByKey.get(evidenceKey);
+      if (existing) {
+        existing.jobs = [...new Set([...existing.jobs, ...item.jobs])];
+      } else {
+        group.evidenceByKey.set(evidenceKey, item);
+        group.presentation.evidence.push(item);
+      }
+    }
+  }
+  const matches = [...groups];
   if (!observation && !matches.length && !state.message) return null;
   const collectedAt = observation && !matches.length ? state.collectedAt : undefined;
   return <div className="cell-explanation">
@@ -148,6 +195,6 @@ export function CellExplanation({ scope, observation, missingObservation = false
       {state.message && <><dt>Investigation</dt><dd role="status">{state.message}</dd></>}
       {collectedAt && <><dt>Collected</dt><dd><time dateTime={collectedAt}>{producedAt(collectedAt)}</time></dd></>}
     </dl>}
-    {!state.message && matches.map((assessment) => <AssessmentDetails key={assessment.id} assessment={assessment} />)}
+    {!state.message && matches.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
   </div>;
 }

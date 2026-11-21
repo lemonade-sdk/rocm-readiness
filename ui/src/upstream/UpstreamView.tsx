@@ -254,6 +254,18 @@ function allResultsPassed(cell: Cell) {
     cell.failed + cell.other + cell.stalled + cell.skipped + cell.running === 0;
 }
 
+function ActivitySummary({ cell }: { cell: Cell }) {
+  return <dl className="up-run-summary up-tooltip-details">
+    <div className="up-tooltip-detail"><dt>Passed</dt><dd>{cell.passed}</dd></div>
+    <div className="up-tooltip-detail"><dt>Failed</dt><dd>{cell.failed}</dd></div>
+    <div className="up-tooltip-detail"><dt>Total runs</dt><dd>{cell.passed + cell.failed + cell.running + cell.other}</dd></div>
+    {cell.running > 0 && <div className="up-tooltip-detail"><dt>Running</dt><dd>{cell.running}</dd></div>}
+    {cell.other > 0 && <div className="up-tooltip-detail"><dt>Other results</dt><dd>{cell.other}</dd></div>}
+    {cell.skipped > 0 && <div className="up-tooltip-detail"><dt>Skipped</dt><dd>{cell.skipped}</dd></div>}
+    {cell.stalled > 0 && <div className="up-tooltip-detail"><dt>Requested, no runs</dt><dd>{cell.stalled}</dd></div>}
+  </dl>;
+}
+
 function UpstreamExplanation({ project, jobs, day }: { project: Project; jobs: Job[]; day: string }) {
   const cell = sumCells(jobs, day);
   if (allResultsPassed(cell)) return null;
@@ -422,7 +434,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                   </Tooltip> : <Tooltip interactive={!healthy} label={text} triggerClassName="up-tick"
                     to={healthy ? `?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}` : undefined}
                     content={<TooltipContent heading={day} status={activityStates[state].label}>
-                      <span>{text}</span>
+                      <ActivitySummary cell={cell} />
                       <UpstreamExplanation project={project} jobs={jobs.filter((job) => job.category === category)} day={day} />
                       {!healthy && <Link className="overview-summary-details" to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}>View CI activity</Link>}
                     </TooltipContent>}><ActivityMark state={state} /></Tooltip>}
@@ -504,7 +516,7 @@ function ProjectActivity({ project, jobs, days, params, onPick, selected, render
                         <Tooltip side floating interactive={!healthy} label={text} triggerClassName="up-tick"
                           to={healthy ? `?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}` : undefined}
                           content={<TooltipContent heading={day} status={activityStates[state].label}>
-                            <span>{text}</span>
+                            <ActivitySummary cell={cell} />
                             <UpstreamExplanation project={project} jobs={group} day={day} />
                             {!healthy && <Link className="overview-summary-details" to={`?${query(params, { view: "ci", project: project.id, lens: null, stack: null, target: null, platform: null, day, activity: `cat:${category}` })}`}>View CI activity</Link>}
                           </TooltipContent>}>

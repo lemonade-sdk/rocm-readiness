@@ -20,8 +20,10 @@ job log, workflow at that revision, and pinned qualification report when availab
 The model can request bounded log pages/searches, run jobs, workflow, and report.
 It cannot select another incident, execute commands, rerun jobs, or write issues.
 
-Limits are five evidence documents, 2 MiB per document, 48 KiB of selected text,
-and bounded network requests. Credentials, addresses, and terminal controls are
+Limits are five evidence documents, 2 MiB per JSON/workflow document, 8 MiB per
+downloaded job log, 48 KiB of selected text, and bounded network requests.
+Literal backend-operation test aborts in the verified job's failed step can
+identify the affected tests without a model request. Credentials, addresses, and terminal controls are
 redacted. Log redirects receive no GitHub credential; signed URLs are not stored.
 Private repositories and unknown historical attempts remain unavailable evidence.
 Missing builds cannot be explained by inventing a runner outage.

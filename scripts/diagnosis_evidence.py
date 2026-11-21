@@ -14,10 +14,14 @@ from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_ope
 
 MAX_DOCUMENTS = 5
 MAX_DOCUMENT_BYTES = 2 * 1024 * 1024
+MAX_LOG_BYTES = 8 * 1024 * 1024
 MAX_EVIDENCE_BYTES = 48 * 1024
 API = "https://api.github.com"
 REPOSITORY = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 SHA = re.compile(r"[a-fA-F0-9]{40}")
+BACKEND_ABORT = re.compile(
+    r"(?:\d{4}-\d{2}-\d{2}T\S+\s+)?\./ci/run\.sh: line \d+: \d+ Aborted\s+"
+    r"timeout \d+ \./bin/test-backend-ops(?:\s+\$\{args_extra\})?")
 
 
 class EvidenceUnavailable(ValueError):
@@ -117,13 +121,14 @@ class EvidenceCollector:
         except (OSError, HTTPException) as error:
             raise EvidenceUnavailable("network_unavailable") from error
 
-    def _bounded_request(self, url, headers):
+    def _bounded_request(self, url, headers, max_bytes=MAX_DOCUMENT_BYTES):
         if self.requests >= 12 or monotonic() - self.started >= 120 or (self.deadline is not None and monotonic() >= self.deadline):
             raise EvidenceUnavailable("request_budget_exhausted")
         self.requests += 1
-        return self.request(url, headers, MAX_DOCUMENT_BYTES)
+        return self.request(url, headers, max_bytes)
 
     def _fetch(self, url, *, authenticated=False, log=False):
+        max_bytes = MAX_LOG_BYTES if log else MAX_DOCUMENT_BYTES
         headers = {"Accept": "application/vnd.github+json" if authenticated else "text/plain", "User-Agent": "rocm-readiness-diagnosis"}
         if authenticated:
             parsed = urlparse(url)
@@ -131,7 +136,7 @@ class EvidenceCollector:
                 raise EvidenceUnavailable("invalid_api_origin")
             if self.token:
                 headers["Authorization"] = f"Bearer {self.token}"
-        status, response_headers, body = self._bounded_request(url, headers)
+        status, response_headers, body = self._bounded_request(url, headers, max_bytes)
         if log and status in (301, 302, 303, 307, 308):
             target = next((v for k, v in response_headers.items() if k.lower() == "location"), "")
             parsed = urlparse(target)
@@ -140,10 +145,10 @@ class EvidenceCollector:
                     or not (host.endswith(".blob.core.windows.net") or host.endswith(".actions.githubusercontent.com"))):
                 raise EvidenceUnavailable("invalid_log_redirect")
             # A fresh request has no Authorization, cookies, or API credentials.
-            status, _, body = self._bounded_request(target, {"User-Agent": "rocm-readiness-diagnosis"})
+            status, _, body = self._bounded_request(target, {"User-Agent": "rocm-readiness-diagnosis"}, max_bytes)
         if status != 200:
             raise EvidenceUnavailable("evidence_unavailable")
-        if not isinstance(body, bytes) or len(body) > MAX_DOCUMENT_BYTES:
+        if not isinstance(body, bytes) or len(body) > max_bytes:
             raise EvidenceUnavailable("document_too_large")
         return body
 
@@ -160,7 +165,7 @@ class EvidenceCollector:
         raw = loader()
         if not isinstance(raw, str):
             raw = json.dumps(raw, ensure_ascii=False, sort_keys=True)
-        if len(raw.encode("utf-8")) > MAX_DOCUMENT_BYTES:
+        if len(raw.encode("utf-8")) > (MAX_LOG_BYTES if key == "log-initial" else MAX_DOCUMENT_BYTES):
             raise EvidenceUnavailable("document_too_large")
         safe = redact(raw, self.secrets)
         remaining = min(MAX_EVIDENCE_BYTES - self.bytes, max_selected or MAX_EVIDENCE_BYTES)
@@ -182,7 +187,8 @@ class EvidenceCollector:
             general = re.compile(r"fatal|exception|traceback|failed", re.I)
             matches = {}
             for i, line in enumerate(lines):
-                priority = 0 if concrete.search(line) else 1 if general.search(line) else None
+                priority = (-1 if BACKEND_ABORT.fullmatch(line.strip()) else
+                            0 if concrete.search(line) else 1 if general.search(line) else None)
                 if priority is not None:
                     for j in range(max(0, i - 2), min(len(lines), i + 4)):
                         matches[j] = min(matches.get(j, 2), priority)
@@ -387,6 +393,8 @@ class EvidenceCollector:
                 cause = "A required build tool could not be located by the job."
             elif any(unavailable_version.fullmatch(line) and failed_step(line) is not None for line in lines):
                 cause = "The requested software version was unavailable for the selected hardware and operating systems."
+            elif any(BACKEND_ABORT.fullmatch(line) and failed_step(line) is not None for line in lines):
+                cause = "Backend operation tests aborted."
             else:
                 runtime = [re.sub(r"^\d{4}-\d{2}-\d{2}T\S+\s+", "", line).strip() for line in lines]
                 signatures = [i for i, line in enumerate(runtime) if zip_signature.fullmatch(line)]

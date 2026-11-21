@@ -122,13 +122,15 @@ for (const theme of ["light", "dark"] as const) {
       await expect(healthyUpstream).toHaveAttribute("href", /day=2026-10-25/);
       if (width > 540) {
         await healthyUpstream.hover();
-        const compact = page.getByRole("tooltip").filter({ hasText: "2026-10-25: 2 passed, 0 failed of 2 runs" });
+        const compact = page.getByRole("tooltip").filter({ hasText: "2026-10-25" });
         await expect(compact).toContainText("2026-10-25");
+        await expect(compact.locator(".up-run-summary dt")).toHaveText(["Passed", "Failed", "Total runs"]);
+        await expect(compact.locator(".up-run-summary dd")).toHaveText(["2", "0", "2"]);
         await expect(compact.locator(".cell-explanation")).toHaveCount(0);
         await expect(compact).not.toContainText("No applicable assessment");
         await expect(compact).not.toContainText("Snapshot collected");
         const bounds = await compact.boundingBox();
-        expect(bounds?.height).toBeLessThan(140);
+        expect(bounds?.height).toBeLessThan(200);
         await page.keyboard.press("Escape");
         await page.mouse.move(0, 0);
       }

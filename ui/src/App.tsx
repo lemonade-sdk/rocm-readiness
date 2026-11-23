@@ -31,18 +31,30 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const [params, setParams] = useSearchParams();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationButton = useRef<HTMLButtonElement>(null);
+  const navigationPanel = useRef<HTMLElement>(null);
   const compactNavigation = useMediaQuery("(width < 1280px)");
   useEffect(() => setNavigationOpen(false), [params]);
   useEffect(() => {
     if (!navigationOpen || !compactNavigation) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !navigationPanel.current?.contains(event.target) &&
+        !navigationButton.current?.contains(event.target)
+      ) setNavigationOpen(false);
+    };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       setNavigationOpen(false);
       navigationButton.current?.focus();
     };
+    document.addEventListener("pointerdown", closeOnOutsidePointer, true);
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer, true);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [compactNavigation, navigationOpen]);
   const version = params.get("version") || undefined;
   const view = params.get("view") ?? "overview";
@@ -322,7 +334,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           <ThemeControl />
         </div>
       </header>
-      <aside id="workspace-navigation" className="deck-rail" aria-label="Workspaces" data-open={navigationOpen || undefined}
+      <aside ref={navigationPanel} id="workspace-navigation" className="deck-rail" aria-label="Workspaces" data-open={navigationOpen || undefined}
         onClick={(event) => {
           if (compactNavigation && event.target instanceof Element && event.target.closest("a")) {
             setNavigationOpen(false);

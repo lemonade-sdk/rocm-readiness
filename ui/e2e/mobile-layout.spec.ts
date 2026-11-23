@@ -24,6 +24,49 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+for (const input of ["mouse", "touch"] as const) {
+  for (const width of [390, 1024]) {
+    test(`dismisses compact navigation outside with ${input} at ${width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("./?view=performance&version=10.1");
+      const navigation = page.getByRole("button", { name: "Navigation", exact: true });
+      const menu = page.getByRole("complementary", { name: "Workspaces" });
+      const theme = page.getByRole("button", { name: "Change color theme" });
+      const activate = async (target: typeof navigation) => {
+        if (input === "touch") await target.tap();
+        else await target.click();
+      };
+
+      await activate(navigation);
+      await expect(menu).toBeVisible();
+      // The dropdown surface is inside, even when it is not a link.
+      if (input === "touch") await menu.tap({ position: { x: 2, y: 2 } });
+      else await menu.click({ position: { x: 2, y: 2 } });
+      await expect(navigation).toHaveAttribute("aria-expanded", "true");
+      await activate(navigation);
+      await expect(menu).toBeHidden();
+
+      for (const colorScheme of ["light", "dark"] as const) {
+        await page.emulateMedia({ colorScheme });
+        await activate(navigation);
+        await menu.getByRole("link", { name: "Performance", exact: true }).focus();
+        await page.screenshot({ path: testInfo.outputPath(`navigation-open-${colorScheme}.png`) });
+        await activate(theme);
+        await expect(menu).toBeHidden();
+        await expect(navigation).toHaveAttribute("aria-expanded", "false");
+        await expect(navigation).not.toBeFocused();
+        await expect(theme).toHaveAttribute("aria-expanded", "true");
+        await page.screenshot({ path: testInfo.outputPath(`navigation-dismissed-${colorScheme}.png`) });
+        await activate(theme);
+
+        await activate(navigation);
+        await activate(page.getByRole("heading", { level: 1, name: "Performance details", exact: true }));
+        await expect(menu).toBeHidden();
+      }
+    });
+  }
+}
+
 for (const width of [430, 540, 768]) {
   test(`qualification tier disclosures during a failed update at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1024 });

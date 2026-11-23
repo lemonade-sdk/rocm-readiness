@@ -277,7 +277,7 @@ function UpstreamExplanation({ project, jobs, day }: { project: Project; jobs: J
     : state === "stall" ? "Requested; no run observed."
     : state === "none" ? `${cell.running} running; ${cell.other} other results.`
     : undefined;
-  return <CellExplanation observation={observation} scope={jobs.map((job) => ({
+  return <CellExplanation observation={observation} missingObservation={state === "idle"} scope={jobs.map((job) => ({
     repository: project.repository, source_id: `${project.id}-upstream`, workflow: job.workflow,
     job: job.id, platform: job.os, target: job.target, date: day,
   }))} />;

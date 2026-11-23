@@ -407,14 +407,12 @@ observation concise. Observed state remains separate from assessment classificat
 (expected/normal, explained abnormal, unexplained). Absence does not prove a daily
 schedule, retirement, hardware outage or hidden workflow condition.
 
-Place a failed dataset refresh in the applicable empty-day observation's shared
-hover/focus/touch evidence, beside the date and source scope. Explain that the
-refresh did not publish new observations; distinguish this publication failure
-from a producer job failure. A source-specific error explains only its matching
-source, not every empty calendar cell. Link to the exact source or collection
-evidence when recorded, and keep unavailable causes explicit. Do not add a global
-refresh-status block. Existing observations keep their recorded outcomes and
-evidence; a failed refresh does not imply that data was rolled back.
+When a refresh fails, explain the missing update in the shared tooltip for an
+empty observation on the failed attempt’s UTC date. Use a “Dashboard update”
+row to name the source that blocked publication and link to its evidence. That
+source can explain a gap in dashboard coverage across projects. A finding about
+a particular job still requires evidence for that job. Keep the top of the page
+clear and preserve recorded outcomes on days that have observations.
 
 Only exact-scope persisted assessments supply causes and investigation URLs.
 Collection incompleteness must not be relabeled producer inactivity. Team-notified

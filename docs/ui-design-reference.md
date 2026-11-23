@@ -263,8 +263,8 @@ clickable daily activity, retaining unknown/incomplete evidence semantics. Summa
 groups and calendar rows require a source observation within today and the prior
 13 UTC dates. Hide inactive readiness versions, engines, channels and platforms,
 and inactive upstream projects and job rows. Unsuccessful observations count as
-data. Retain visible collection/history errors even without recent observations;
-an upstream collection failure may therefore remain on Overview. Retained detail
+data. Retain visible project-specific collection/history errors even without
+recent observations; an upstream collection failure may therefore remain on Overview. Retained detail
 links and project-wide collection metrics keep their existing scope.
 CI Activity reuses Build Qualification's grouped filter controls and selected
 states: Project, Platform, Stack, and Target. Stack and Target are independent inclusive
@@ -276,7 +276,8 @@ switching sidebar pages. Overview day links open the exact UTC date and category
 in CI Activity; retain that selection in the URL through reload and browser history. Keep
 legacy project-only URLs working. List source repositories directly in the compact project summary, without a
 repository disclosure or breadcrumb. Show incomplete collection as quiet project
-metadata while retaining collection failures as alerts. Keep Overview as the rate-band summary. CI Activity uses the same
+metadata while retaining project-specific collection failures as alerts. Keep
+Overview as the rate-band summary. CI Activity uses the same
 month groups, typography, table rules and scroll behavior, but uses Qualification trend’s stacked outcome bars for each
 category, with a common run-count scale. Show the total through bar height, with
 pass/failure segments proportional to their counts.
@@ -405,6 +406,15 @@ surfaces. Include UTC date, track/job/platform and snapshot freshness; keep the 
 observation concise. Observed state remains separate from assessment classification
 (expected/normal, explained abnormal, unexplained). Absence does not prove a daily
 schedule, retirement, hardware outage or hidden workflow condition.
+
+Place a failed dataset refresh in the applicable empty-day observation's shared
+hover/focus/touch evidence, beside the date and source scope. Explain that the
+refresh did not publish new observations; distinguish this publication failure
+from a producer job failure. A source-specific error explains only its matching
+source, not every empty calendar cell. Link to the exact source or collection
+evidence when recorded, and keep unavailable causes explicit. Do not add a global
+refresh-status block. Existing observations keep their recorded outcomes and
+evidence; a failed refresh does not imply that data was rolled back.
 
 Only exact-scope persisted assessments supply causes and investigation URLs.
 Collection incompleteness must not be relabeled producer inactivity. Team-notified

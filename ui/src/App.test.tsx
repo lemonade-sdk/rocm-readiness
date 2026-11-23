@@ -226,7 +226,7 @@ it("supports retry after initial fetch failure", async () => {
     await screen.findByRole("heading", { name: "ROCm Readiness" }),
   ).toBeInTheDocument();
 });
-it("shows an ingestion failure separately from the usable snapshot", async () => {
+it("keeps a usable snapshot without showing a global ingestion failure banner", async () => {
   mount(
     fixtureFetch({
       "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json":
@@ -248,8 +248,8 @@ it("shows an ingestion failure separately from the usable snapshot", async () =>
     }),
   );
   await screen.findByRole("heading", { name: "ROCm Readiness" });
-  expect(screen.getByText("Dashboard data couldn’t be updated")).toBeInTheDocument();
-  expect(screen.getByText(/Producer unavailable/)).toBeInTheDocument();
+  expect(screen.queryByText("Dashboard data couldn’t be updated")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Producer unavailable/)).not.toBeInTheDocument();
 });
 it("does not show the old version under a newly selected version while loading", async () => {
   let resolve!: (response: Response) => void;

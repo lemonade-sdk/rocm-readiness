@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { upstreamFetch } from "../src/upstream/fixtures";
 
 // Baseline table/popup scenarios use desktop dimensions; responsive cases override this.
 test.use({ viewport: { width: 1440, height: 1000 } });
@@ -203,7 +204,7 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
   await page.goto("./");
   await expect(
     page.getByText("Dashboard data couldn’t be updated", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
@@ -224,30 +225,46 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
 
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
-    test(`explains the published benchmark refresh failure at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+    test(`explains the failed dashboard update only in its empty-day tooltip at ${width}px in ${theme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
-      await page.route("**/main/data/latest.json", route => route.fulfill({ json: {
-        ...pointer, sync: {
-          attempted_at: "2026-11-23T11:04:45.069582+00:00", status: "failed",
-          last_successful_at: "2026-11-20T11:04:54.663841+00:00",
+      const fixture = upstreamFetch({
+        "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json": { ...pointer, sync: {
+          attempted_at: "2026-11-02T11:04:45.069582+00:00", status: "failed",
+          last_successful_at: "2026-10-29T11:04:54.663841+00:00",
           errors: [{ source_id: "lemonade-performance", record: "/by_model_scenario/K2-Horizon-0.9B-GGUF|context-4k/3",
             field: "package_evidence", reason: "run=44854194006 engine=b12576: benchmark job evidence access failed (exit 1, HTTP 404); authenticated GitHub log access may be required" }],
-        },
-      } }));
-      await page.goto("./");
-      const banner = page.getByRole("region", { name: "Dashboard data couldn’t be updated", exact: true });
-      await expect(banner).toContainText("Benchmark measurements could not be refreshed.");
-      await expect(banner).toContainText("K2-Horizon-0.9B-GGUF · 4K context");
-      await expect(banner).toContainText("Showing the last successful dataset");
-      await expect(banner.getByRole("link", { name: /^Lemonade benchmark leaderboard/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json");
-      await expect(banner.getByRole("link", { name: /^Benchmark run/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006");
-      await expect(banner.getByText("package_evidence", { exact: true })).toBeHidden();
-      await banner.getByText("Technical details", { exact: true }).click();
-      await expect(banner.getByText("package_evidence", { exact: true })).toBeVisible();
-      await expect(banner.getByText(/run=44854194006 engine=b12576/)).toBeVisible();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: testInfo.outputPath("benchmark-refresh-failure.png"), fullPage: true });
+        } },
+      });
+      await page.route("https://raw.githubusercontent.com/**", async route => {
+        const response = await fixture(route.request().url());
+        await route.fulfill({ status: response.status, body: await response.text(), contentType: "application/json" });
+      });
+      for (const track of ["readiness", "upstream"]) {
+        await page.goto(track === "upstream" ? "./?track=upstream" : "./");
+        await expect(page.getByRole("heading", { level: 1, name: track === "upstream" ? "Upstream Overview" : "ROCm Readiness", exact: true })).toBeVisible();
+        await expect(page.getByText("Dashboard data couldn’t be updated", { exact: true })).toHaveCount(0);
+        await expect(page.getByText(/which software build was tested/)).toHaveCount(0);
+        const oldLabel = track === "upstream" ? "2026-10-26: No observation" : "2026-10-28 UTC · ROCm 10.1 stable · Linux · No observation";
+        const dayLabel = track === "upstream" ? "2026-11-02: No observation" : "2026-11-02 UTC · ROCm 10.1 stable · Linux · No observation";
+        const controls = track === "upstream" ? page.getByRole("region", { name: "llama.cpp activity calendar", exact: true }) : page;
+        await controls.getByRole("button", { name: oldLabel, exact: true }).first().click();
+        const oldEvidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: oldLabel, exact: true });
+        await expect(oldEvidence).toBeVisible();
+        await expect(oldEvidence.getByText("Dashboard update", { exact: true })).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        await controls.getByRole("button", { name: dayLabel, exact: true }).first().click();
+        const evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: dayLabel, exact: true });
+        await expect(evidence.getByText("Dashboard update", { exact: true })).toBeVisible();
+        await expect(evidence).toContainText("This day’s dashboard update was not published.");
+        await expect(evidence).toContainText("which software build was tested (HTTP 404)");
+        await expect(evidence).toContainText("K2-Horizon-0.9B-GGUF · 4K context");
+        await expect(evidence.getByRole("link", { name: /^Lemonade benchmark leaderboard/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json");
+        await expect(evidence.getByRole("link", { name: /^Benchmark run/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006");
+        await expect(evidence.getByText("Finding", { exact: true })).toHaveCount(0);
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath(`${track}-empty-day-update-context.png`), fullPage: true });
+      }
     });
   }
 }

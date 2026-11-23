@@ -202,7 +202,7 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
   );
   await page.goto("./");
   await expect(
-    page.getByText("Latest ingestion failed", { exact: true }),
+    page.getByText("Dashboard data couldn’t be updated", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "ROCm Readiness" }),
@@ -221,6 +221,36 @@ test("keeps usable data when ingestion fails or a refresh request fails", async 
     page.getByRole("heading", { name: "ROCm Readiness" }),
   ).toBeVisible();
 });
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`explains the published benchmark refresh failure at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      await page.route("**/main/data/latest.json", route => route.fulfill({ json: {
+        ...pointer, sync: {
+          attempted_at: "2026-11-23T11:04:45.069582+00:00", status: "failed",
+          last_successful_at: "2026-11-20T11:04:54.663841+00:00",
+          errors: [{ source_id: "lemonade-performance", record: "/by_model_scenario/K2-Horizon-0.9B-GGUF|context-4k/3",
+            field: "package_evidence", reason: "run=44854194006 engine=b12576: benchmark job evidence access failed (exit 1, HTTP 404); authenticated GitHub log access may be required" }],
+        },
+      } }));
+      await page.goto("./");
+      const banner = page.getByRole("region", { name: "Dashboard data couldn’t be updated", exact: true });
+      await expect(banner).toContainText("Benchmark measurements could not be refreshed.");
+      await expect(banner).toContainText("K2-Horizon-0.9B-GGUF · 4K context");
+      await expect(banner).toContainText("Showing the last successful dataset");
+      await expect(banner.getByRole("link", { name: /^Lemonade benchmark leaderboard/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json");
+      await expect(banner.getByRole("link", { name: /^Benchmark run/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006");
+      await expect(banner.getByText("package_evidence", { exact: true })).toBeHidden();
+      await banner.getByText("Technical details", { exact: true }).click();
+      await expect(banner.getByText("package_evidence", { exact: true })).toBeVisible();
+      await expect(banner.getByText(/run=44854194006 engine=b12576/)).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("benchmark-refresh-failure.png"), fullPage: true });
+    });
+  }
+}
 
 test("recovers from an initial malformed pointer and represents empty data", async ({
   page,

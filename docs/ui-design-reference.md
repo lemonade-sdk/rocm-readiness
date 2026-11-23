@@ -402,17 +402,28 @@ Place a domain-specific legend directly below every overview calendar. Readiness
 labels refer to qualification; upstream bands refer to decided-run pass rates.
 No decided tests is unavailable, never 0% passing. Do not add impossible graph states.
 No-observation controls support hover, focus and touch through shared evidence
-surfaces. Include UTC date, track/job/platform and snapshot freshness; keep the basic
-observation concise. Observed state remains separate from assessment classification
+surfaces. Put UTC date and track/job/platform in the heading and use the shared
+label/value grid for one concise Finding and its Evidence links. Keep refresh
+timestamps and technical source metadata out of this compact explanation.
+Observed state remains separate from assessment classification
 (expected/normal, explained abnormal, unexplained). Absence does not prove a daily
 schedule, retirement, hardware outage or hidden workflow condition.
 
 When a refresh fails, explain the missing update in the shared tooltip for an
-empty observation on the failed attempt’s UTC date. Use a “Dashboard update”
-row to name the source that blocked publication and link to its evidence. That
-source can explain a gap in dashboard coverage across projects. A finding about
+empty observation on the failed attempt’s UTC date. Use one Finding sentence to
+name the source that blocked publication and one Evidence row for its links.
+Do not add Dashboard update, Observation, Collected, attempt, Reason, measurement
+or software-build rows. That source can explain a gap in dashboard coverage across projects. A finding about
 a particular job still requires evidence for that job. Keep the top of the page
-clear and preserve recorded outcomes on days that have observations.
+clear and preserve recorded outcomes on days that have observations. When no
+specific cause is available, keep the Finding concise and explicit about the
+unavailable update; omit an Evidence row when no source links are available.
+
+Every Upstream Overview day outcome uses the same aligned Activity row with a
+“View CI activity” link to its exact project, category and date, including healthy
+and empty days. Desktop evidence closes when the pointer leaves the trigger and
+popup, or keyboard focus leaves them; retain Escape dismissal and omit a Close
+button. Phones use explicit inline disclosures, whose trigger closes the evidence.
 
 Only exact-scope persisted assessments supply causes and investigation URLs.
 Collection incompleteness must not be relabeled producer inactivity. Team-notified
@@ -439,7 +450,8 @@ Overview pages keep the calendars prominent: omit publication-summary lines bene
 readiness calendars and per-project aggregate metric lines on Upstream Overview.
 Put incident notification status and its investigation link inside the matching
 status element's hover/focus/touch evidence; do not add a page-level incident panel.
-Keep healthy tooltips and navigation unchanged. Findings show direct cause text
+Keep healthy recorded outcomes unchanged and use the same evidence layout and
+activity navigation for every outcome. Findings show direct cause text
 without a confidence prefix. Use one Finding sentence and an
 Investigation row in the shared grid only for relevant abnormal results, without generic
 fallback copy or repeated footnotes. Missing titles use `YYYY-MM-DD · Platform`.

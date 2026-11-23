@@ -251,23 +251,52 @@ for (const theme of ["light", "dark"] as const) {
         await controls.getByRole("button", { name: oldLabel, exact: true }).first().click();
         const oldEvidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: oldLabel, exact: true });
         await expect(oldEvidence).toBeVisible();
-        await expect(oldEvidence.getByText("Dashboard update", { exact: true })).toHaveCount(0);
+        await expect(oldEvidence).not.toContainText("No new dashboard data:");
         await page.keyboard.press("Escape");
         await controls.getByRole("button", { name: dayLabel, exact: true }).first().click();
         const evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: dayLabel, exact: true });
-        await expect(evidence.getByText("Dashboard update", { exact: true })).toBeVisible();
-        await expect(evidence).toContainText("This day’s dashboard update was not published.");
-        await expect(evidence).toContainText("which software build was tested (HTTP 404)");
-        await expect(evidence).toContainText("K2-Horizon-0.9B-GGUF · 4K context");
+        await expect(evidence.getByRole("term")).toHaveText(track === "upstream"
+          ? ["Finding", "Evidence", "Activity"] : ["Finding", "Evidence"]);
+        await expect(evidence).toContainText("No new dashboard data: Lemonade’s published benchmark links to a GitHub run the dashboard couldn’t read (HTTP 404).");
+        for (const label of ["Dashboard update", "Observation", "Collected", "Last update attempt", "Reason", "Affected measurement", "Reported software build"]) {
+          await expect(evidence.getByText(label, { exact: true })).toHaveCount(0);
+        }
         await expect(evidence.getByRole("link", { name: /^Lemonade benchmark leaderboard/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json");
         await expect(evidence.getByRole("link", { name: /^Benchmark run/ })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006");
-        await expect(evidence.getByText("Finding", { exact: true })).toHaveCount(0);
+        await expect(evidence.getByText("Finding", { exact: true })).toHaveCount(1);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({ path: testInfo.outputPath(`${track}-empty-day-update-context.png`), fullPage: true });
       }
     });
   }
 }
+
+test("keeps an unrecognized refresh failure concise without inventing evidence links", async ({ page }) => {
+  const fixture = upstreamFetch({
+    "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json": {
+      ...pointer, sync: {
+        attempted_at: "2026-11-02T11:04:45.069582+00:00", status: "failed",
+        last_successful_at: "2026-10-29T11:04:54.663841+00:00",
+        errors: [{ source_id: "unrecognized", record: "", field: "feed",
+          reason: "HTTP 503 fetching https://example.com/private-feed.json" }],
+      },
+    },
+  });
+  await page.route("https://raw.githubusercontent.com/**", async route => {
+    const response = await fixture(route.request().url());
+    await route.fulfill({ status: response.status, body: await response.text(), contentType: "application/json" });
+  });
+  await page.goto("./?track=upstream");
+  const dayLabel = "2026-11-02: No observation";
+  await page.getByRole("region", { name: "llama.cpp activity calendar", exact: true })
+    .getByRole("button", { name: dayLabel, exact: true }).first().click();
+  const evidence = page.getByRole("dialog", { name: dayLabel, exact: true });
+  await expect(evidence.getByRole("term")).toHaveText(["Finding", "Activity"]);
+  await expect(evidence).toContainText("No new dashboard data: unrecognized could not be refreshed.");
+  await expect(evidence.getByRole("link")).toHaveCount(1);
+  await expect(evidence.getByRole("link", { name: "View CI activity", exact: true })).toBeVisible();
+  await expect(evidence).not.toContainText("https://example.com");
+});
 
 test("recovers from an initial malformed pointer and represents empty data", async ({
   page,

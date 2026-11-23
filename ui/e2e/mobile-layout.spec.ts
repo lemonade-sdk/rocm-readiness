@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 for (const width of [430, 540, 768]) {
-  test(`warning spacing and qualification tier disclosures at ${width}px`, async ({ page }, testInfo) => {
+  test(`qualification tier disclosures during a failed update at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1024 });
     await page.route("**/main/data/latest.json", (route) => route.fulfill({ json: {
       ...pointer, sync: { ...pointer.sync, status: "failed", errors: [{ source_id: "stable", record: "", field: "feed", reason: "Controlled feed failure" }] },
@@ -36,15 +36,8 @@ for (const width of [430, 540, 768]) {
       })),
     } }));
     await page.goto("./?view=engine&version=10.1");
-    const notice = page.locator("main > .notice.warning");
-    await expect(notice).toContainText("Controlled feed failure");
-    const spacing = await notice.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return { padding: parseFloat(style.padding), bottom: parseFloat(style.marginBottom), radius: style.borderRadius };
-    });
-    expect(spacing.padding).toBeGreaterThanOrEqual(16);
-    expect(spacing.bottom).toBeGreaterThanOrEqual(16);
-    expect(spacing.radius).toBe("0px");
+    await expect(page.getByRole("region", { name: "Build qualification history" })).toBeVisible();
+    await expect(page.locator("main > .notice.warning")).toHaveCount(0);
     if (width <= 540) {
       const card = page.getByRole("article", { name: "b11972 · Linux", exact: true }).first();
       const tier0 = card.getByText("Tier 0", { exact: true });
@@ -62,7 +55,7 @@ for (const width of [430, 540, 768]) {
       expect(await toggle.evaluate((element) => getComputedStyle(element, "::before").transform)).not.toBe(before.transform);
       await card.screenshot({ path: testInfo.outputPath("tier-card.png") });
     }
-    await page.screenshot({ path: testInfo.outputPath("warning.png") });
+    await page.screenshot({ path: testInfo.outputPath("qualification.png") });
   });
 }
 

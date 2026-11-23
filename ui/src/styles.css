@@ -486,17 +486,6 @@ main {
   border-color: var(--error-line);
   background: var(--error);
 }
-.notice.warning {
-  margin-block: 1rem 1.25rem;
-  padding: 1rem;
-  border: 1px solid var(--line);
-  border-inline-start: 3px solid var(--warning);
-  border-radius: 0;
-  background: var(--subpanel);
-  color: var(--muted);
-}
-.notice.warning > strong { color: var(--text); }
-.notice.warning > p { margin: .5rem 0 0; }
 .actions {
   display: flex;
   gap: 10px;

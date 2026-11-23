@@ -45,7 +45,7 @@ export function Tooltip(props: TooltipProps) {
 
 function StyledTooltip({
   label, content, children, to, triggerClassName, onLinkClick, onOpen, buttonProps,
-  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileIndependent = false, mobileDisclosure = true, hoverOnly = false,
+  interactive = false, contentClassName, initialOpen = false, side = false, isOpen, onOpenChange, mobilePrimary = false, mobileIndependent = false, mobileDisclosure = true, hoverOnly = false, hoverCard = false,
 }: {
   label: string;
   buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
@@ -66,6 +66,8 @@ function StyledTooltip({
   mobileIndependent?: boolean;
   mobileDisclosure?: boolean;
   hoverOnly?: boolean;
+  /** Interactive hover evidence without desktop close controls or click pinning. */
+  hoverCard?: boolean;
 }) {
   const [localOpen, setOpen] = useState(initialOpen);
   const open = isOpen ?? localOpen;
@@ -132,15 +134,15 @@ function StyledTooltip({
   });
   // URL-controlled popups open by hover or activation. Restoring focus after
   // dismissal must not reopen a popup that browser history just closed.
-  const focus = useFocus(context, { visibleOnly: hoverOnly || Boolean(to), enabled: !phone && isOpen === undefined });
-  const click = useClick(context, { enabled: !phone && !to && !hoverOnly, toggle: !interactive, stickIfOpen: true });
+  const focus = useFocus(context, { visibleOnly: hoverOnly || hoverCard || Boolean(to), enabled: !phone && isOpen === undefined });
+  const click = useClick(context, { enabled: !phone && !to && !hoverOnly && !hoverCard, toggle: !interactive, stickIfOpen: true });
   const dismiss = useDismiss(context, { enabled: !phone });
   const role = useRole(context, { role: interactive ? "dialog" : "tooltip" });
   const { getReferenceProps, getFloatingProps } = useInteractions([hover, focus, click, dismiss, role]);
 
   if (phone) {
-    // A navigation link stays a link. Supporting evidence never intercepts it.
-    if (to) return <Link to={to} className={triggerClassName} aria-label={label} onClick={onLinkClick}>{children}</Link>;
+    // Hover cards expose the same evidence on phones; ordinary navigation stays direct.
+    if (to && !hoverCard) return <Link to={to} className={triggerClassName} aria-label={label} onClick={onLinkClick}>{children}</Link>;
     const change = (next: boolean) => {
       if (next) onOpen?.();
       setOpen(next);
@@ -193,7 +195,7 @@ function StyledTooltip({
           <FloatingArrow ref={arrowRef} context={context} className="tooltip-arrow"
             fill="var(--panel)" stroke="var(--line)" strokeWidth={1} tipRadius={1} />
           <span className="tooltip-surface">
-            {interactive && <button type="button" className="tooltip-close" aria-label="Close popup"
+            {interactive && !hoverCard && <button type="button" className="tooltip-close" aria-label="Close popup"
               onClick={(event) => context.onOpenChange(false, event.nativeEvent, "reference-press")}>×</button>}
             <span ref={scrollRef} className="tooltip-scroll-area" onScroll={updateScrollHint}>
               <span ref={contentRef} className="tooltip-content">{content}</span>

@@ -10,6 +10,7 @@ import {
   historyFixture,
 } from "../src/fixtures";
 import { upstreamOverview, upstreamRuns } from "../src/upstream/fixtures";
+import type { UpstreamOverview } from "../src/upstream/data";
 
 test.beforeEach(async ({ page }) => {
   // Keep fixture dates current while allowing history and UI timers to advance.
@@ -157,6 +158,68 @@ test("overview day links restore the selected date and run evidence after reload
   await page.goBack();
   await expect(page.getByRole("region", { name: "Runs on 2026-10-27" })).toBeVisible();
 });
+
+for (const theme of ["light", "dark"] as const) {
+  for (const width of [390, 1440]) {
+    test(`overview activity navigation and hover dismissal are consistent at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      const data = structuredClone(upstreamOverview) as UpstreamOverview;
+      const daily = data.projects[0].jobs[0].daily as Record<string, unknown>;
+      const empty = { passed: 0, failed: 0, other: 0, running: 0, skipped: 0, stalled: 0, slow: 0 };
+      daily["2026-10-25"] = { ...empty, passed: 2 };
+      daily["2026-10-24"] = { ...empty, passed: 19, failed: 1 };
+      await page.route(new URL("upstream/overview.json", indexUrl).href, route => route.fulfill({ json: data }));
+      const cases = [
+        { day: "2026-10-25", label: "2026-10-25: 2 passed, 0 failed of 2 runs", healthy: true },
+        { day: "2026-10-24", label: "2026-10-24: 19 passed, 1 failed of 20 runs", healthy: false },
+        { day: "2026-10-27", label: "2026-10-27: 3 passed, 1 failed of 4 runs", healthy: false },
+        { day: "2026-10-26", label: "2026-10-26: No observation", healthy: false },
+      ];
+      for (const item of cases) {
+        await page.goto("./?track=upstream");
+        const calendar = page.getByRole("region", { name: "llama.cpp activity calendar", exact: true });
+        const trigger = calendar.getByRole(width > 540 && item.healthy ? "link" : "button", { name: item.label, exact: true });
+        if (width <= 540) await trigger.click();
+        else await trigger.hover();
+        const popup = page.getByRole(width <= 540 ? "region" : "dialog", { name: item.label, exact: true });
+        await expect(popup.getByText("Activity", { exact: true })).toBeVisible();
+        const navigation = popup.getByRole("link", { name: /^View CI activity/ });
+        await expect(navigation).toHaveAttribute("href", new RegExp(`day=${item.day}.*activity=cat%3Atests`));
+        await expect(navigation.locator("..")).toHaveJSProperty("tagName", "DD");
+        await expect(popup.getByRole("button", { name: "Close popup" })).toHaveCount(0);
+        if (item.day === "2026-10-26") await expect(popup.locator(".up-run-summary")).toHaveCount(0);
+        if (width > 540) {
+          await navigation.hover();
+          await expect(popup).toBeVisible();
+          // Clicking the trigger's mouse-opened popup must not pin it.
+          if (!item.healthy) await trigger.click();
+          await page.mouse.move(2, 2);
+          await expect(popup).toHaveCount(0);
+          await page.keyboard.press("Tab");
+          await trigger.focus();
+          await expect(popup).toBeVisible();
+          await navigation.focus();
+          await expect(navigation).toBeFocused();
+          await page.keyboard.press("Escape");
+          await expect(popup).toHaveCount(0);
+          await page.mouse.move(2, 2);
+          await trigger.hover();
+        }
+        await expect(popup).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath(`overview-${item.day}.png`), fullPage: true });
+        if (width <= 540) {
+          await trigger.click();
+          await expect(popup).toHaveCount(0);
+          await trigger.click();
+        }
+        await navigation.click();
+        await expect(page).toHaveURL(new RegExp(`view=ci.*project=llamacpp.*day=${item.day}.*activity=cat%3Atests`));
+      }
+    });
+  }
+}
 
 test("independent stack and target selections survive reload and history", async ({ page }) => {
   await page.goto("./?track=upstream&view=ci&project=llamacpp");

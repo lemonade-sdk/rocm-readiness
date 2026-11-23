@@ -53,18 +53,50 @@ it("uses the shared label/value summary for a healthy upstream observation", asy
   const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
   const mark = within(calendar).getByLabelText("2026-10-27: 2 passed, 0 failed of 2 runs");
   fireEvent.mouseEnter(mark);
-  const tooltip = await screen.findByRole("tooltip");
+  const tooltip = await screen.findByRole("dialog");
   expect(within(tooltip).getByText("2026-10-27", { exact: true })).toBeVisible();
   expect(tooltip.querySelector(".up-run-summary")?.textContent).toBe("Passed2Failed0Total runs2");
   expect(tooltip.querySelector(".cell-explanation")).toBeNull();
   expect(within(tooltip).queryByText(/reason is not established|Snapshot collected|notification|Collected CI outcomes/)).not.toBeInTheDocument();
   expect(mark).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+  expect(within(tooltip).getByText("Activity", { selector: "dt" })).toBeVisible();
+  expect(within(tooltip).getByRole("link", { name: "View CI activity" })).toHaveAttribute("href", expect.stringContaining("activity=cat%3Atests"));
+  expect(within(tooltip).queryByRole("button", { name: "Close popup" })).not.toBeInTheDocument();
+});
+
+it("keeps an idle overview day concise with an aligned activity link", async () => {
+  mount();
+  const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
+  fireEvent.focus(within(calendar).getByRole("button", { name: "2026-10-26: No observation" }));
+  const popup = await screen.findByRole("dialog");
+  expect(popup.querySelector(".up-run-summary")).toBeNull();
+  expect(within(popup).getByText("Activity", { selector: "dt" })).toBeVisible();
+  const navigation = within(popup).getByRole("link", { name: "View CI activity" });
+  expect(navigation.closest("dd")).not.toBeNull();
+  expect(navigation).toHaveAttribute("href", expect.stringContaining("day=2026-10-26"));
+  expect(within(popup).queryByRole("button", { name: "Close popup" })).not.toBeInTheDocument();
+});
+
+it("opens a healthy phone day as inline evidence with the same activity link and dismissal", async () => {
+  vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  data.projects[0].jobs[0].daily["2026-10-27"].failed = 0;
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
+  const trigger = within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 0 failed of 3 runs" });
+  fireEvent.click(trigger);
+  const evidence = screen.getByRole("region", { name: "2026-10-27: 3 passed, 0 failed of 3 runs" });
+  expect(within(evidence).getByText("Activity", { selector: "dt" })).toBeVisible();
+  expect(within(evidence).getByRole("link", { name: "View CI activity" })).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+  fireEvent.keyDown(evidence, { key: "Escape" });
+  expect(screen.queryByRole("region", { name: "2026-10-27: 3 passed, 0 failed of 3 runs" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
 });
 
 it("shows structured outcome counts when no failure assessment is available", async () => {
   mount();
   const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
-  fireEvent.click(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  fireEvent.focus(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
   const popup = await screen.findByRole("dialog");
   const summary = popup.querySelector(".up-run-summary")!;
   expect(summary).not.toBeNull();
@@ -72,6 +104,8 @@ it("shows structured outcome counts when no failure assessment is available", as
   expect(within(summary as HTMLElement).getAllByRole("definition").map(item => item.textContent)).toEqual(["3", "1", "4"]);
   expect(within(popup).queryByText("2026-10-27: 3 passed, 1 failed of 4 runs", { exact: true })).not.toBeInTheDocument();
   expect(within(popup).getByRole("link", { name: "View CI activity" })).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+  expect(within(popup).getByText("Activity", { selector: "dt" })).toBeVisible();
+  expect(within(popup).queryByRole("button", { name: "Close popup" })).not.toBeInTheDocument();
 });
 
 it("retains non-verdict outcomes in the overview summary", async () => {
@@ -81,7 +115,7 @@ it("retains non-verdict outcomes in the overview summary", async () => {
   };
   mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
   const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
-  fireEvent.click(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 7 runs, 2 running, 1 other results" }));
+  fireEvent.focus(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 7 runs, 2 running, 1 other results" }));
   const popup = await screen.findByRole("dialog");
   const summary = popup.querySelector(".up-run-summary")!;
   expect(summary).not.toBeNull();
@@ -464,7 +498,7 @@ it("opens overview activity on the selected UTC day with platform filters", asyn
   mount();
   const card = (await screen.findByRole("heading", { name: "llama.cpp" })).closest("article")!;
   expect(screen.queryByText(/Upstream means a test/)).not.toBeInTheDocument();
-  fireEvent.click(within(card).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  fireEvent.focus(within(card).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
   fireEvent.click(await screen.findByRole("link", { name: "View CI activity" }));
   expect(await screen.findByRole("region", { name: "Runs on 2026-10-27" })).toBeInTheDocument();
   const platforms = screen.getByRole("group", { name: "Platform" });

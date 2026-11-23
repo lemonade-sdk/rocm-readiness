@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { Tooltip, TooltipContent, tooltipTiming } from "./Tooltip";
 import { EvidenceRegion } from "./EvidenceRegion";
@@ -125,6 +125,17 @@ it("defaults to shared evidence rows and explicitly supports custom visualizatio
   expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "details");
   rerender(<TooltipContent heading="Model performance" format="custom"><figure>Comparison chart</figure></TooltipContent>);
   expect(container.querySelector(".structured-tooltip-body")).toHaveAttribute("data-format", "custom");
+});
+
+it("supports an interactive hover card without a close button while retaining Escape", async () => {
+  render(<Tooltip interactive hoverCard label="Daily evidence" content={<a href="#activity">View activity</a>}>Day</Tooltip>);
+  const trigger = screen.getByRole("button", { name: "Daily evidence" });
+  fireEvent.focus(trigger);
+  const popup = await screen.findByRole("dialog", { name: "Daily evidence" });
+  expect(within(popup).getByRole("link", { name: "View activity" })).toBeVisible();
+  expect(within(popup).queryByRole("button", { name: "Close popup" })).not.toBeInTheDocument();
+  fireEvent.keyDown(trigger, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 });
 
 it("uses only the styled tooltip by default", async () => {

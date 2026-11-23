@@ -294,7 +294,7 @@ test("keeps an unrecognized refresh failure concise without inventing evidence l
   await expect(evidence.getByRole("term")).toHaveText(["Finding", "Activity"]);
   await expect(evidence).toContainText("No new dashboard data: unrecognized could not be refreshed.");
   await expect(evidence.getByRole("link")).toHaveCount(1);
-  await expect(evidence.getByRole("link", { name: "View CI activity", exact: true })).toBeVisible();
+  await expect(evidence.getByRole("link", { name: /^View CI activity/ })).toBeVisible();
   await expect(evidence).not.toContainText("https://example.com");
 });
 

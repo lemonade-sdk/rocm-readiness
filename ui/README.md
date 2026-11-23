@@ -111,10 +111,14 @@ shows ROCm once, prominent stable-build or nightly GPU-family headings, and chec
 legends beneath each build/family group. The compact header keeps
 the current view title and a filter icon visible; filters and measurement sorting
 expand in place. At 540 CSS pixels and below, CI Activity uses expandable date cards with category selection and run evidence inside
-each card. Project metrics use square tiles in a responsive four/two-column grid. Qualification date rows expand their packages in place. CI jobs open individual dated outcome tables. Wider CI matrices retain horizontal scrolling,
-with selected evidence expanded below the matrix. Below 1280 CSS pixels, the Navigation button reveals
-workspace navigation above the content, regardless of orientation. Tables remain
-above the independent 640 CSS-pixel phone breakpoint; wider layouts retain the sidebar.
+each card. Project metrics use square tiles in a responsive four/two-column grid.
+Qualification date rows expand their packages in place. CI jobs open individual
+dated outcome tables. Wider CI matrices retain horizontal scrolling, with selected
+evidence expanded below the matrix. Below 1280 CSS pixels, the Navigation button
+opens a left-anchored workspace dropdown over the current page, regardless of
+orientation; it does not push content down and scrolls within short viewports.
+Tables remain above the independent 640 CSS-pixel phone breakpoint; wider layouts
+retain the sidebar.
 
 Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
 model-performance details. URLs retain

@@ -60,7 +60,7 @@ for (const width of [430, 540, 768]) {
 }
 
 for (const theme of ["light", "dark"] as const) {
-  for (const [width, height] of [[320, 700], [390, 844], [430, 932], [540, 720], [541, 720], [768, 1024], [834, 1194], [1024, 1366], [1024, 768], [1194, 834], [1279, 800], [1280, 800], [1366, 1024]]) {
+  for (const [width, height] of [[320, 320], [320, 700], [390, 844], [430, 932], [540, 720], [541, 720], [768, 1024], [834, 1194], [1024, 600], [1024, 1366], [1024, 768], [1194, 834], [1279, 800], [1280, 800], [1366, 1024]]) {
     test(`records and navigation fit ${width}x${height} ${theme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height });
       await page.emulateMedia({ colorScheme: theme });
@@ -74,8 +74,16 @@ for (const theme of ["light", "dark"] as const) {
         expect(menuButton!.x + menuButton!.width).toBeLessThanOrEqual(brand!.x);
         expect(Math.abs(menuButton!.y + menuButton!.height / 2 - (brand!.y + brand!.height / 2))).toBeLessThan(2);
         await expect(page.getByRole("complementary", { name: "Workspaces" })).toBeHidden();
+        const mainBefore = await page.locator("main").boundingBox();
+        const header = await page.locator("header.header").boundingBox();
         await navigation.click();
         const menu = page.getByRole("complementary", { name: "Workspaces" });
+        const menuBounds = await menu.boundingBox();
+        expect((await page.locator("main").boundingBox())!.y).toBe(mainBefore!.y);
+        expect(menuBounds!.x).toBeGreaterThanOrEqual(0);
+        expect(menuBounds!.x + menuBounds!.width).toBeLessThanOrEqual(width);
+        expect(menuBounds!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
+        expect(menuBounds!.y + menuBounds!.height).toBeLessThanOrEqual(height);
         const overviewLink = menu.getByRole("link", { name: "Overview", exact: true });
         const qualificationLink = menu.getByRole("link", { name: "Build Qualification", exact: true });
         const performanceLink = menu.getByRole("link", { name: "Performance", exact: true });
@@ -84,11 +92,32 @@ for (const theme of ["light", "dark"] as const) {
         expect(positions[2]!.x).toBeGreaterThan(positions[1]!.x);
         expect(positions[1]!.y).toBeGreaterThan(positions[0]!.y);
         expect(positions[2]!.y).toBeGreaterThan(positions[1]!.y);
+        for (const link of await menu.getByRole("link").all()) {
+          expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+        }
+        const selection = await page.locator("html").evaluate((element) => {
+          const probe = document.createElement("span");
+          probe.style.backgroundColor = "var(--selection-bg)";
+          probe.style.color = "var(--selection-text)";
+          element.append(probe);
+          const style = getComputedStyle(probe);
+          const colors = { background: style.backgroundColor, text: style.color };
+          probe.remove();
+          return colors;
+        });
+        await expect(performanceLink).toHaveCSS("background-color", selection.background);
+        await expect(performanceLink).toHaveCSS("color", selection.text);
+        const surface = await menu.evaluate((element) => getComputedStyle(element).backgroundColor);
+        await expect(menu).toHaveCSS("background-color", surface);
         await expect(menu.getByRole("list", { name: "Overview pages", exact: true }).getByRole("link", { name: "Build Qualification", exact: true })).toBeVisible();
         await page.screenshot({ path: testInfo.outputPath("navigation.png") });
         // Selecting the current page closes the menu too, without needing a URL change.
         await performanceLink.click();
         await expect(menu).toBeHidden();
+        await navigation.click();
+        await page.keyboard.press("Escape");
+        await expect(menu).toBeHidden();
+        await expect(navigation).toBeFocused();
         await navigation.click();
         await menu.getByRole("link", { name: "Overview", exact: true }).focus();
         await page.keyboard.press("Escape");

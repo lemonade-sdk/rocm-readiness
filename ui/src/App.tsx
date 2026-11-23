@@ -33,6 +33,17 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const navigationButton = useRef<HTMLButtonElement>(null);
   const compactNavigation = useMediaQuery("(width < 1280px)");
   useEffect(() => setNavigationOpen(false), [params]);
+  useEffect(() => {
+    if (!navigationOpen || !compactNavigation) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setNavigationOpen(false);
+      navigationButton.current?.focus();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [compactNavigation, navigationOpen]);
   const version = params.get("version") || undefined;
   const view = params.get("view") ?? "overview";
   // Two dashboards over one dataset: ROCm readiness (default) and Upstream
@@ -283,6 +294,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+      <div className="header-shell">
       <header className="header">
           <button ref={navigationButton} type="button" className="mobile-nav-toggle"
           aria-label="Navigation" aria-expanded={navigationOpen} aria-controls="workspace-navigation"
@@ -311,13 +323,6 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </div>
       </header>
       <aside id="workspace-navigation" className="deck-rail" aria-label="Workspaces" data-open={navigationOpen || undefined}
-        onKeyDown={(event) => {
-          if (compactNavigation && event.key === "Escape") {
-            event.preventDefault();
-            setNavigationOpen(false);
-            navigationButton.current?.focus();
-          }
-        }}
         onClick={(event) => {
           if (compactNavigation && event.target instanceof Element && event.target.closest("a")) {
             setNavigationOpen(false);
@@ -389,6 +394,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </ul>
         </nav>}
       </aside>
+      </div>
       <NotificationsProvider session={session} fetcher={fetcher} sync={liveSync}>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&

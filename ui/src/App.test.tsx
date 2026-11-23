@@ -248,7 +248,7 @@ it("shows an ingestion failure separately from the usable snapshot", async () =>
     }),
   );
   await screen.findByRole("heading", { name: "ROCm Readiness" });
-  expect(screen.getByText("Latest ingestion failed")).toBeInTheDocument();
+  expect(screen.getByText("Dashboard data couldn’t be updated")).toBeInTheDocument();
   expect(screen.getByText(/Producer unavailable/)).toBeInTheDocument();
 });
 it("does not show the old version under a newly selected version while loading", async () => {

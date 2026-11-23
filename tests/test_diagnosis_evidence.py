@@ -137,10 +137,60 @@ class EvidenceTests(unittest.TestCase):
         self.assertFalse(any('attacker' in url for url, _ in self.calls))
 
     def test_oversized_document_is_not_accepted(self):
-        self.body = b'a' * (MAX_DOCUMENT_BYTES + 1)
+        self.body = b'a' * (8 * 1024 * 1024 + 1)
         result = self.collector().collect(self.assessment)
         self.assertEqual(result['code'], 'document_too_large')
         self.assertFalse(any(e['url'].endswith('/job/22') for e in result['evidence']))
+
+    def test_large_job_log_has_separate_download_cap_and_keeps_bounded_abort_evidence(self):
+        self.assessment['observed'] = {'status': 'fail'}
+        diagnostic = ('2026-11-18T10:00:00.5876669Z ./ci/run.sh: line 647: 1944379 '
+                      'Aborted                 timeout 3600 ./bin/test-backend-ops ${args_extra}')
+        # More than the generic document cap, with the signal far from head/tail.
+        self.body = (('harmless setup output\n' * 60000) + diagnostic + '\n'
+                     + ('harmless cleanup output\n' * 60000)).encode()
+        self.assertGreater(len(self.body), MAX_DOCUMENT_BYTES)
+        limits = []
+        def request(url, headers, limit):
+            limits.append((url, limit))
+            return self.request(url, headers, limit)
+        collector = EvidenceCollector([REPO], request=request)
+        package = collector.collect(self.assessment)
+        self.assertEqual(package['diagnosis']['cause'], 'Backend operation tests aborted.')
+        self.assertEqual(package['diagnosis']['method'], 'deterministic')
+        self.assertEqual(package['diagnosis']['certainty'], 'verified')
+        selected = next(row for row in package['evidence'] if row['kind'] == 'log')
+        self.assertIn(diagnostic, selected['text'])
+        self.assertEqual(package['diagnosis']['evidence_ids'], [selected['id']])
+        self.assertLessEqual(len(selected['text'].encode()), 16 * 1024)
+        self.assertLessEqual(sum(len(row['text'].encode()) for row in package['evidence']), 48 * 1024)
+        for url, limit in limits:
+            self.assertEqual(limit, 8 * 1024 * 1024 if url == self.redirect or url.endswith('/logs') else MAX_DOCUMENT_BYTES)
+
+    def test_generic_document_still_rejects_more_than_two_mib(self):
+        collector = EvidenceCollector([REPO], request=lambda *_: (200, {}, b'a' * (MAX_DOCUMENT_BYTES + 1)))
+        with self.assertRaisesRegex(EvidenceUnavailable, 'document_too_large'):
+            collector._fetch('https://api.github.com/repos/org/project', authenticated=True)
+
+    def test_backend_abort_rule_rejects_printed_commands_wrong_steps_and_unverified_jobs(self):
+        self.assessment['observed'] = {'status': 'fail'}
+        diagnostic = ('2026-11-18T10:00:00.5876669Z ./ci/run.sh: line 647: 12816 '
+                      'Aborted                 timeout 3600 ./bin/test-backend-ops ${args_extra}')
+        for body in ('##[group]Run script\n' + diagnostic + '\n##[endgroup]',
+                     'echo "' + diagnostic + '"',
+                     diagnostic.replace('10:00:00', '10:03:00'),
+                     diagnostic.replace('test-backend-ops', 'test-something-else'),
+                     diagnostic.removeprefix('2026-11-18T10:00:00.5876669Z ')):
+            with self.subTest(body=body):
+                self.body = body.encode()
+                self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
+        self.body = diagnostic.encode()
+        job = self.data['/repos/org/project/actions/runs/11/attempts/2/jobs?per_page=100']['jobs'][0]
+        job['steps'][0]['conclusion'] = 'success'
+        self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
+        job['steps'][0]['conclusion'] = 'failure'
+        job['run_attempt'] = 1
+        self.assertNotIn('diagnosis', self.collector().collect(self.assessment))
 
     def test_report_snapshot_preferred_and_selected_budget_bounded(self):
         self.assessment['report_snapshot'] = {'source_url': f'https://raw.githubusercontent.com/{REPO}/{SHA}/qualification/reports/report.json', 'report': {'error': 'x' * 100000}}

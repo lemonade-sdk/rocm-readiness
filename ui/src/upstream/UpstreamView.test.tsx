@@ -43,7 +43,7 @@ function mount(entry = "/?track=upstream", fetcher = upstreamFetch()) {
   );
 }
 
-it("preserves the compact date-and-count tooltip for a healthy upstream observation", async () => {
+it("uses the shared label/value summary for a healthy upstream observation", async () => {
   const data = structuredClone(upstreamOverview) as UpstreamOverview;
   data.projects[0].jobs[0].daily["2026-10-27"].passed = 2;
   data.projects[0].jobs[0].daily["2026-10-27"].failed = 0;
@@ -55,10 +55,38 @@ it("preserves the compact date-and-count tooltip for a healthy upstream observat
   fireEvent.mouseEnter(mark);
   const tooltip = await screen.findByRole("tooltip");
   expect(within(tooltip).getByText("2026-10-27", { exact: true })).toBeVisible();
-  expect(within(tooltip).getByText("2026-10-27: 2 passed, 0 failed of 2 runs")).toBeVisible();
+  expect(tooltip.querySelector(".up-run-summary")?.textContent).toBe("Passed2Failed0Total runs2");
   expect(tooltip.querySelector(".cell-explanation")).toBeNull();
   expect(within(tooltip).queryByText(/reason is not established|Snapshot collected|notification|Collected CI outcomes/)).not.toBeInTheDocument();
   expect(mark).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+});
+
+it("shows structured outcome counts when no failure assessment is available", async () => {
+  mount();
+  const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
+  fireEvent.click(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 4 runs" }));
+  const popup = await screen.findByRole("dialog");
+  const summary = popup.querySelector(".up-run-summary")!;
+  expect(summary).not.toBeNull();
+  expect(within(summary as HTMLElement).getAllByRole("term").map(item => item.textContent)).toEqual(["Passed", "Failed", "Total runs"]);
+  expect(within(summary as HTMLElement).getAllByRole("definition").map(item => item.textContent)).toEqual(["3", "1", "4"]);
+  expect(within(popup).queryByText("2026-10-27: 3 passed, 1 failed of 4 runs", { exact: true })).not.toBeInTheDocument();
+  expect(within(popup).getByRole("link", { name: "View CI activity" })).toHaveAttribute("href", expect.stringContaining("day=2026-10-27"));
+});
+
+it("retains non-verdict outcomes in the overview summary", async () => {
+  const data = structuredClone(upstreamOverview) as UpstreamOverview;
+  data.projects[0].jobs[0].daily["2026-10-27"] = {
+    passed: 3, failed: 1, running: 2, other: 1, skipped: 4, stalled: 5, slow: 0,
+  };
+  mount("/?track=upstream", upstreamFetch({ [new URL("upstream/overview.json", indexUrl).href]: data }));
+  const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
+  fireEvent.click(within(calendar).getByRole("button", { name: "2026-10-27: 3 passed, 1 failed of 7 runs, 2 running, 1 other results" }));
+  const popup = await screen.findByRole("dialog");
+  const summary = popup.querySelector(".up-run-summary")!;
+  expect(summary).not.toBeNull();
+  expect(within(summary as HTMLElement).getAllByRole("term").map(item => item.textContent)).toEqual(["Passed", "Failed", "Total runs", "Running", "Other results", "Skipped", "Requested, no runs"]);
+  expect(within(summary as HTMLElement).getAllByRole("definition").map(item => item.textContent)).toEqual(["3", "1", "7", "2", "1", "4", "5"]);
 });
 
 it("shows one card per project with its computed upstream badge", async () => {

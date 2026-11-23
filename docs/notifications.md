@@ -14,7 +14,7 @@ See [alert rules](alert-rules.md) for classifications and
 - Known rule explanations bypass inference and issue creation. Remaining actionable
   failures, warnings, cancellations, skips, and due missing builds are eligible for
   bounded Lemonade diagnosis. Only unresolved cases dispatch a GitHub investigation.
-  Normal/not-yet-due gaps do not. See [CI diagnosis](specs/ci-failure-diagnosis.md).
+  Normal/not-yet-due gaps do not. See the [diagnosis workflow](../.github/workflows/diagnosis.yml).
 - Incidents receive `bug`, `upstream-incident`, and configured engine/project
   labels. All configured targets are mentioned in the initial body; no automatic
   assignment is performed.

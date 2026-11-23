@@ -284,6 +284,123 @@ it("shows a verified-normal explanation once when several anomaly recovery rows 
   expect(screen.queryByText(/GitHub issue creation|Notification could not|Team notified/)).not.toBeInTheDocument();
 });
 
+async function renderAssessments(assessments: Assessment[], dryRun = false) {
+  const session = await loadSession(undefined, fixtureFetch({ [indexUrl]: { ...index, notifications: "notifications.json" } }));
+  render(<NotificationsProvider session={session} fetcher={fixtureFetch({
+    [new URL("notifications.json", indexUrl).href]: { ...document, dry_run: dryRun, assessments },
+  })}><CellExplanation scope={assessments.map(item => item.scope)} observation="Producer failed." /></NotificationsProvider>);
+  await screen.findAllByText("Finding");
+}
+
+it("groups identical job failures once and retains every distinct evidence label and URL", async () => {
+  const first: Assessment = {
+    ...assessment, classification: "explained_abnormal", explanation: "Some tests in the job have failed.",
+    provenance: { repository: "owner/repo", run_id: 1, job_id: 11 },
+    evidence: [{ label: "Job", url: "https://github.com/owner/repo/actions/runs/1/job/11" }],
+    notification: { github: { status: "sent" }, status: "sent" },
+  };
+  const second: Assessment = {
+    ...first, id: "second-job", rule_id: "other-rule", scope: { ...first.scope, job: "other-gpu" },
+    provenance: { ...first.provenance, job_id: 22 },
+    evidence: [...first.evidence,
+      { label: "Job", url: "https://github.com/owner/repo/actions/runs/1/job/22" },
+      { label: "Workflow", url: first.evidence[0].url }],
+  };
+  await renderAssessments([first, second], true);
+  expect(screen.getAllByRole("term").map(term => term.textContent)).toEqual(["Finding", "Investigation", "Evidence"]);
+  expect(screen.getAllByText(first.explanation)).toHaveLength(1);
+  expect(screen.getAllByText("Preview only; no new notification sent.")).toHaveLength(1);
+  expect(screen.getAllByRole("link", { name: /^Job ·/ }).map(link => link.getAttribute("href")))
+    .toEqual([first.evidence[0].url, second.evidence[1].url]);
+  expect(screen.getByRole("link", { name: "Job · linux" })).toHaveAttribute("href", first.evidence[0].url);
+  expect(screen.getByRole("link", { name: "Job · other-gpu" })).toHaveAttribute("href", second.evidence[1].url);
+  expect(screen.getByRole("link", { name: /^Workflow$/ })).toHaveAttribute("href", first.evidence[0].url);
+  expect(first.evidence).toHaveLength(1);
+});
+
+it("names separate job evidence from its exact source scope without duplicating shared URLs", async () => {
+  const first: Assessment = { ...assessment,
+    scope: { ...assessment.scope, job: "gpu-rocm-gfx1151" },
+    provenance: { repository: "owner/repo", run_id: "1", job_id: "11" },
+    evidence: [{ label: "Job", url: "https://github.com/owner/repo/actions/runs/1/job/11" }],
+  };
+  const second: Assessment = { ...first, id: "gfx1201",
+    scope: { ...first.scope, job: "gpu-rocm-gfx1201" },
+    provenance: { ...first.provenance, job_id: "22" },
+    evidence: [{ label: "Job", url: "https://github.com/owner/repo/actions/runs/1/job/22" }],
+  };
+  await renderAssessments([first, second, { ...first, id: "same-evidence-other-rule", rule_id: "other" }]);
+  expect(screen.getAllByRole("link")).toHaveLength(2);
+  expect(screen.getByRole("link", { name: "Job · gpu-rocm-gfx1151" })).toHaveAttribute("href", first.evidence[0].url);
+  expect(screen.getByRole("link", { name: "Job · gpu-rocm-gfx1201" })).toHaveAttribute("href", second.evidence[0].url);
+  expect(screen.getAllByText("Finding")).toHaveLength(1);
+});
+
+it("labels only a skipped child's own job evidence and leaves its parent's job unattributed", async () => {
+  const childUrl = "https://github.com/owner/repo/actions/runs/1/job/22";
+  const parentUrl = "https://github.com/owner/repo/actions/runs/1/job/11";
+  const child = { ...assessment, actionable: false, classification: "explained_abnormal" as const,
+    explanation: "A required job failed, so this job was skipped.",
+    scope: { ...assessment.scope, job: "dependent-tests" },
+    provenance: { repository: "owner/repo", run_id: "1", job_id: "22" },
+    evidence: [{ label: "Job", url: childUrl }, { label: "Job", url: parentUrl }],
+  };
+  await renderAssessments([child]);
+  expect(screen.getByRole("link", { name: "Job · dependent-tests" })).toHaveAttribute("href", childUrl);
+  expect(screen.getByRole("link", { name: /^Job$/ })).toHaveAttribute("href", parentUrl);
+  expect(screen.getAllByRole("link")).toHaveLength(2);
+});
+
+it.each([
+  undefined,
+  { repository: "owner/repo", run_id: 1 },
+  { repository: "other/repo", run_id: 1, job_id: 11 },
+  { repository: "owner/repo", run_id: 2, job_id: 11 },
+  { repository: "owner/repo", run_id: 1, job_id: 22 },
+])("leaves a job link generic without matching persisted identity: %j", async (provenance) => {
+  const url = "https://github.com/owner/repo/actions/runs/1/job/11";
+  await renderAssessments([{ ...assessment, provenance, evidence: [{ label: "Job", url }] }]);
+  expect(screen.getByRole("link", { name: /^Job$/ })).toHaveAttribute("href", url);
+  expect(screen.getAllByRole("link")).toHaveLength(1);
+});
+
+it("groups equivalent unexplained findings using their displayed summary", async () => {
+  await renderAssessments([assessment, { ...assessment, id: "other-rule", rule_id: "other", explanation: "Different hidden detail." }]);
+  expect(screen.getAllByText(assessment.summary)).toHaveLength(1);
+});
+
+it("preserves distinct displayed findings including supported diagnoses", async () => {
+  await renderAssessments([
+    assessment,
+    { ...assessment, id: "diagnosed", diagnosis: { certainty: "verified", cause: "Linker failed." } },
+  ]);
+  expect(screen.getAllByText("Finding")).toHaveLength(2);
+  expect(screen.getByText(assessment.summary)).toBeVisible();
+  expect(screen.getByText("Linker failed.")).toBeVisible();
+});
+
+it("preserves distinct investigation states and URLs for the same finding", async () => {
+  const notified: Assessment = { ...assessment, notification: {
+    github: { status: "sent", url: "https://github.com/owner/repo/issues/1" }, status: "sent",
+  } };
+  await renderAssessments([
+    notified,
+    { ...notified, id: "escalated", escalation_required: true },
+    { ...notified, id: "other-issue", notification: {
+      github: { status: "sent", url: "https://github.com/owner/repo/issues/2" }, status: "sent",
+    } },
+    { ...notified, id: "failed", notification: {
+      github: { status: "failed", url: "https://github.com/owner/repo/issues/1" }, status: "failed",
+    } },
+  ]);
+  expect(screen.getAllByText("Finding")).toHaveLength(4);
+  expect(screen.getAllByText("Team notified.")).toHaveLength(2);
+  expect(screen.getByText("Investigation pending.")).toBeVisible();
+  expect(screen.getAllByRole("link", { name: "View investigation" }).map(link => link.getAttribute("href")))
+    .toEqual(["https://github.com/owner/repo/issues/1", "https://github.com/owner/repo/issues/1",
+      "https://github.com/owner/repo/issues/2", "https://github.com/owner/repo/issues/1"]);
+});
+
 it("adds nothing to existing observed-result tooltips when there is no abnormal assessment", async () => {
   const session = await loadSession(undefined, fixtureFetch({ [indexUrl]: { ...index, notifications: "notifications.json" } }));
   const fetcher = vi.fn(fixtureFetch({

@@ -7,6 +7,7 @@ import {
   loadHistory,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
+import { SyncFailure } from "./SyncFailure";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
@@ -395,24 +396,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           !performanceView && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
-        {liveSync?.status === "failed" && (
-          <div className="notice warning">
-            <strong>Latest ingestion failed</strong>
-            <p>
-              Last attempt: {date(liveSync.attempted_at)}. The last successful
-              dataset remains available.
-            </p>
-            <p>
-              Last successful ingestion: {date(liveSync.last_successful_at)}
-            </p>
-            {liveSync.errors.map((entry, i) => (
-              <p key={i}>
-                {entry.source_id}: {entry.reason}
-                {entry.field && ` (${entry.field})`}
-              </p>
-            ))}
-          </div>
-        )}
+        {liveSync?.status === "failed" && <SyncFailure sync={liveSync} />}
         {error && (
           <div role="alert" className="notice error">
             <strong>Couldn’t load the requested data</strong>

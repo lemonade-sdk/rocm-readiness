@@ -344,7 +344,6 @@ Project findings use neutral, low-contrast notices with a restrained alert symbo
 reserve failure colors for specific outcome evidence. Run tooltips use the shared
 structured header and body, with a date, outcome counts and grouped run/evidence
 links. Keep the selected day fixed: no previous/next controls inside tooltips.
-Follow [Decision 0001: Shared evidence tooltip format](design-decisions/0001-evidence-tooltips.md).
 Qualification check tooltips establish the default: compact headers, a consistent
 label column, left-aligned values and fine dividers beneath each detail row.
 Use shared `TooltipContent` formatting instead of page-specific alignment rules.

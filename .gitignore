@@ -3,5 +3,8 @@ __pycache__/
 /data/
 /.execution-cache/
 
-# Local planning artifacts
+# Local planning and verification artifacts
 /docs/superpowers/
+/docs/specs/
+/docs/evidence/
+/docs/design-decisions/

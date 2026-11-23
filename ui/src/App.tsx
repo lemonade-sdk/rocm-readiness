@@ -7,7 +7,6 @@ import {
   loadHistory,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
-import { SyncFailure } from "./SyncFailure";
 import type { Build, Fetcher, Session, Sync } from "./data";
 import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
@@ -390,13 +389,12 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           </ul>
         </nav>}
       </aside>
-      <NotificationsProvider session={session} fetcher={fetcher}>
+      <NotificationsProvider session={session} fetcher={fetcher} sync={liveSync}>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" &&
           !performanceView && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
-        {liveSync?.status === "failed" && <SyncFailure sync={liveSync} />}
         {error && (
           <div role="alert" className="notice error">
             <strong>Couldn’t load the requested data</strong>

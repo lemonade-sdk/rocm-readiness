@@ -161,7 +161,7 @@ it("retains an existing investigation link without displaying transient notifica
 
 it("uses the existing evidence-table structure for a missing observation without inventing dispatch", () => {
   render(<CellExplanation scope={assessment.scope} observation="No result collected." />);
-  expect(screen.getAllByRole("term").map(term => term.textContent)).toEqual(["Observation"]);
+  expect(screen.getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
   expect(screen.getByRole("definition")).toHaveTextContent("No result collected.");
   expect(screen.queryByText(/reason is not established|notification|Issue dispatch/)).not.toBeInTheDocument();
 });

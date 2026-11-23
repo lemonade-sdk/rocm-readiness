@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { readJson, resolveDatasetPath, type Fetcher, type Session, type Sync } from "./data";
-import { producedAt } from "./overview/formatDate";
 import sources from "../../sources.json";
 import "./notifications.css";
 
@@ -85,39 +84,35 @@ export function NotificationsProvider({ session, fetcher, children, sync }: {
   return <Notifications value={{ ...state, collectedAt: session?.index.generated_at, sync: sync ?? session?.pointer.sync }}>{children}</Notifications>;
 }
 
-function CollectionFailureReason({ entry }: { entry: Sync["errors"][number] }) {
+function collectionFailurePresentation(entry?: Sync["errors"][number]): AssessmentPresentation {
+  if (!entry) return { finding: "No new dashboard data: the dashboard update could not be published.", investigation: null, evidence: [] };
   const source = sources.sources.find(source => source.id === entry.source_id);
   const benchmark = source?.adapter === "lemonade-leaderboard-v1" && entry.field === "package_evidence";
   const accessFailure = benchmark && entry.reason.includes("benchmark job evidence access failed");
   // Reason text supplies identifiers only; links always use the configured producer.
   const runEvidence = accessFailure ? /^run=([1-9]\d{0,19}) engine=([A-Za-z0-9._-]+): benchmark job evidence access failed(?:\s|$)/.exec(entry.reason) : null;
   const httpStatus = accessFailure ? /\bHTTP ([45]\d{2})\b/.exec(entry.reason)?.[1] : undefined;
-  const measurement = benchmark ? /^\/by_model_scenario\/([^/|]{1,160})\|([^/]{1,80})\/\d+$/.exec(entry.record) : null;
-  const workload = measurement?.[2].replace(/^context-(\d+)k$/, "$1K context");
   const sourceUrl = benchmark && source?.ref && source.path
     ? `https://github.com/${source.repository}/blob/${encodeURIComponent(source.ref)}/${source.path.split("/").map(encodeURIComponent).join("/")}`
     : undefined;
-  return <dl>
-    {!accessFailure && <><dt>Source</dt><dd>{entry.source_id}</dd></>}
-    <dt>Reason</dt><dd>{accessFailure
-      ? `Lemonade published a benchmark result, but the dashboard couldn’t open the GitHub job that records which software build was tested${httpStatus ? ` (HTTP ${httpStatus})` : ""}.`
-      : entry.reason}</dd>
-    {measurement && <><dt>Affected measurement</dt><dd>{measurement[1]} · {workload}</dd></>}
-    {runEvidence && <><dt>Reported software build</dt><dd>{runEvidence[2]}</dd></>}
-    {sourceUrl && <><dt>Evidence</dt><dd className="assessment-links">
-      <a href={sourceUrl} target="_blank" rel="noreferrer">Lemonade benchmark leaderboard</a>
-      {runEvidence && <a href={`https://github.com/${source!.repository}/actions/runs/${runEvidence[1]}`} target="_blank" rel="noreferrer">Benchmark run</a>}
-    </dd></>}
-  </dl>;
+  const reason = entry.reason.trim();
+  const plainReason = reason.length > 0 && reason.length <= 160 &&
+    !/https?:\/\/|[\r\n]|(?:^|\s)(?:run|engine)=/.test(reason);
+  const finding = accessFailure
+    ? `No new dashboard data: Lemonade’s published benchmark links to a GitHub run the dashboard couldn’t read${httpStatus ? ` (HTTP ${httpStatus})` : ""}.`
+    : `No new dashboard data: ${plainReason ? reason : `${entry.source_id} could not be refreshed`}${plainReason && /[.!?]$/.test(reason) ? "" : "."}`;
+  const evidence: AssessmentPresentation["evidence"] = [];
+  if (sourceUrl) {
+    evidence.push({ label: "Lemonade benchmark leaderboard", url: sourceUrl, jobs: [] });
+    if (runEvidence) evidence.push({ label: "Benchmark run", url: `https://github.com/${source!.repository}/actions/runs/${runEvidence[1]}`, jobs: [] });
+  }
+  return { finding, investigation: null, evidence };
 }
 
 function CollectionFailureDetails({ sync }: { sync: Sync }) {
+  const presentations = groupPresentations((sync.errors.length ? sync.errors : [undefined]).map(collectionFailurePresentation));
   return <div className="collection-failure">
-    <dl>
-      <dt>Dashboard update</dt><dd>This day’s dashboard update was not published.</dd>
-      <dt>Last update attempt</dt><dd><time dateTime={sync.attempted_at}>{producedAt(sync.attempted_at)}</time></dd>
-    </dl>
-    {sync.errors.map((entry, index) => <CollectionFailureReason key={index} entry={entry} />)}
+    {presentations.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
   </div>;
 }
 
@@ -167,9 +162,9 @@ export function AssessmentDetails({ assessment }: { assessment: Assessment }) {
   return <AssessmentExplanation presentation={assessmentPresentation(assessment, dryRun)} />;
 }
 
-function AssessmentExplanation({ presentation }: { presentation: AssessmentPresentation }) {
+function AssessmentExplanation({ presentation, status = false }: { presentation: AssessmentPresentation; status?: boolean }) {
   const { finding, investigation, evidence } = presentation;
-  return <div className="assessment-explanation">
+  return <div className="assessment-explanation" role={status ? "status" : undefined}>
     <dl>
       <dt>Finding</dt><dd>{finding}</dd>
       {investigation && <>
@@ -188,24 +183,14 @@ function AssessmentExplanation({ presentation }: { presentation: AssessmentPrese
   </div>;
 }
 
-export function CellExplanation({ scope, observation, missingObservation = false }: {
-  scope: AssessmentScope | AssessmentScope[]; observation?: string; missingObservation?: boolean;
-}) {
-  const state = useContext(Notifications);
-  const scopes = Array.isArray(scope) ? scope : [scope];
-  const matching = state.assessments.filter((assessment) =>
-    scopes.some((item) => matchesAssessment(assessment, item, missingObservation)) &&
-    (observation || assessment.actionable || assessment.classification === "explained_abnormal"),
-  );
-  const actionable = matching.filter((assessment) => assessment.actionable);
+function groupPresentations(presentations: AssessmentPresentation[]) {
   // Aggregate cells can match separate incidents with the same displayed finding.
   // Group their presentation, preserving every distinct source link and investigation.
   const groups = new Map<string, {
     presentation: AssessmentPresentation;
     evidenceByKey: Map<string, AssessmentPresentation["evidence"][number]>;
   }>();
-  for (const assessment of actionable.length ? actionable : matching) {
-    const presentation = assessmentPresentation(assessment, state.dryRun);
+  for (const presentation of presentations) {
     const key = JSON.stringify([presentation.finding, presentation.investigation]);
     let group = groups.get(key);
     if (!group) {
@@ -223,20 +208,29 @@ export function CellExplanation({ scope, observation, missingObservation = false
       }
     }
   }
-  const matches = [...groups];
+  return [...groups];
+}
+
+export function CellExplanation({ scope, observation, missingObservation = false }: {
+  scope: AssessmentScope | AssessmentScope[]; observation?: string; missingObservation?: boolean;
+}) {
+  const state = useContext(Notifications);
+  const scopes = Array.isArray(scope) ? scope : [scope];
+  const matching = state.assessments.filter((assessment) =>
+    scopes.some((item) => matchesAssessment(assessment, item, missingObservation)) &&
+    (observation || assessment.actionable || assessment.classification === "explained_abnormal"),
+  );
+  const actionable = matching.filter((assessment) => assessment.actionable);
+  const matches = groupPresentations((actionable.length ? actionable : matching).map(assessment => assessmentPresentation(assessment, state.dryRun)));
   const attemptedAt = state.sync?.status === "failed" ? Date.parse(state.sync.attempted_at) : NaN;
   const collectionFailure = missingObservation && !matches.length && scopes.length > 0 &&
     Number.isFinite(attemptedAt) && state.collectedAt && Date.parse(state.collectedAt) <= attemptedAt &&
     scopes.every(item => item.date === new Date(attemptedAt).toISOString().slice(0, 10))
     ? state.sync : undefined;
   if (!observation && !matches.length && !state.message && !collectionFailure) return null;
-  const collectedAt = observation && !matches.length && !collectionFailure ? state.collectedAt : undefined;
+  const finding = state.message ?? (!matches.length ? observation : undefined);
   return <div className="cell-explanation">
-    {(!matches.length && observation || state.message || collectedAt) && <dl>
-      {!matches.length && observation && <><dt>Observation</dt><dd>{observation}</dd></>}
-      {state.message && <><dt>Investigation</dt><dd role="status">{state.message}</dd></>}
-      {collectedAt && <><dt>Collected</dt><dd><time dateTime={collectedAt}>{producedAt(collectedAt)}</time></dd></>}
-    </dl>}
+    {!collectionFailure && finding && <AssessmentExplanation status={Boolean(state.message)} presentation={{ finding, investigation: null, evidence: [] }} />}
     {collectionFailure && <CollectionFailureDetails sync={collectionFailure} />}
     {!state.message && matches.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
   </div>;

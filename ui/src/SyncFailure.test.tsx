@@ -29,7 +29,7 @@ function mount(sync = failure, track = "readiness", extra: Record<string, unknow
 async function openMissingDay(track: string, day = "2026-11-02") {
   if (track === "upstream") {
     const calendar = await screen.findByRole("region", { name: "llama.cpp activity calendar" });
-    fireEvent.click(within(calendar).getByRole("button", { name: `${day}: No observation` }));
+    fireEvent.focus(within(calendar).getByRole("button", { name: `${day}: No observation` }));
   } else {
     const control = await screen.findByRole("button", { name: `${day} UTC · ROCm 10.1 stable · Linux · No observation` });
     fireEvent.click(control);
@@ -43,22 +43,22 @@ it.each(["readiness", "upstream"])("explains dashboard-wide benchmark collection
   expect(screen.queryByRole("region", { name: "Dashboard data couldn’t be updated" })).not.toBeInTheDocument();
   expect(screen.queryByText(/which software build was tested/)).not.toBeInTheDocument();
   const tooltip = await openMissingDay(track);
-  expect(within(tooltip).getByText("Dashboard update", { selector: "dt" })).toBeVisible();
-  expect(within(tooltip).getByText(/which software build was tested \(HTTP 404\)/)).toBeVisible();
-  expect(tooltip).toHaveTextContent("K2-Horizon-0.9B-GGUF");
-  expect(tooltip).toHaveTextContent("b12576");
+  expect(within(tooltip.querySelector(".collection-failure")!).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding", "Evidence"]);
+  expect(within(tooltip).getByText("No new dashboard data: Lemonade’s published benchmark links to a GitHub run the dashboard couldn’t read (HTTP 404).")).toBeVisible();
+  expect(tooltip).not.toHaveTextContent("K2-Horizon-0.9B-GGUF");
+  expect(tooltip).not.toHaveTextContent("b12576");
   expect(within(tooltip).getByRole("link", { name: "Benchmark run" })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006");
   expect(within(tooltip).getByRole("link", { name: "Lemonade benchmark leaderboard" })).toHaveAttribute("href", "https://github.com/lemonade-sdk/lemonade/blob/benchmark-data/leaderboard.json");
-  expect(within(tooltip).queryByText("Finding", { selector: "dt" })).not.toBeInTheDocument();
   expect(within(tooltip).queryByText("Collected", { selector: "dt" })).not.toBeInTheDocument();
-  expect(within(tooltip).getByText("Last update attempt", { selector: "dt" })).toBeVisible();
+  expect(within(tooltip).queryByText("Last update attempt", { selector: "dt" })).not.toBeInTheDocument();
 });
 
 it("keeps an older empty date free of unrelated collection context", async () => {
   mount();
   const tooltip = await openMissingDay("readiness", "2026-10-28");
   expect(within(tooltip).getByText("No qualification result collected for this date.")).toBeVisible();
-  expect(within(tooltip).queryByText("Dashboard update", { selector: "dt" })).not.toBeInTheDocument();
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
   expect(within(tooltip).queryByRole("link", { name: "Benchmark run" })).not.toBeInTheDocument();
 });
 
@@ -68,15 +68,16 @@ it("does not add collection context to a recorded healthy build", async () => {
   fireEvent.focus(healthy);
   const tooltip = await screen.findByRole("dialog");
   expect(within(tooltip).getByText("Produced", { selector: "dt" })).toBeVisible();
-  expect(within(tooltip).queryByText("Dashboard update", { selector: "dt" })).not.toBeInTheDocument();
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
 });
 
 it("keeps unknown collection failures honest without inventing links", async () => {
   const reason = "run=123 https://malicious.invalid/ — unexpected source response";
   mount({ ...failure, errors: [{ source_id: "unrecognized", field: "feed", record: "/item", reason }] });
   const tooltip = await openMissingDay("readiness");
-  expect(within(tooltip).getByText("Dashboard update", { selector: "dt" })).toBeVisible();
-  expect(tooltip).toHaveTextContent(reason);
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
+  expect(tooltip).toHaveTextContent("No new dashboard data: unrecognized could not be refreshed.");
+  expect(tooltip).not.toHaveTextContent(reason);
   expect(within(tooltip).queryByRole("link")).not.toBeInTheDocument();
 });
 
@@ -89,18 +90,46 @@ it("does not fabricate a run link for a malformed run identifier", async () => {
 it("ignores a failed attempt older than the active dataset", async () => {
   mount(failure, "readiness", { [indexUrl]: { ...index, generated_at: "2026-11-02T12:00:00Z" } });
   const tooltip = await openMissingDay("readiness");
-  expect(within(tooltip).queryByText("Dashboard update", { selector: "dt" })).not.toBeInTheDocument();
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
 });
 
 it("does not add failure context after a successful collection", async () => {
   mount({ ...failure, status: "success", errors: [], last_successful_at: failure.attempted_at });
   const tooltip = await openMissingDay("readiness");
-  expect(within(tooltip).queryByText("Dashboard update", { selector: "dt" })).not.toBeInTheDocument();
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
 });
 
 it("handles missing last-success metadata without claiming a successful dataset", async () => {
   mount({ ...failure, last_successful_at: null, errors: [] });
   const tooltip = await openMissingDay("readiness");
-  expect(within(tooltip).getByText("Dashboard update", { selector: "dt" })).toBeVisible();
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
+  expect(tooltip).toHaveTextContent("No new dashboard data: the dashboard update could not be published.");
   expect(tooltip).not.toHaveTextContent("Showing the last successful dataset");
+});
+
+it("keeps a concise plain collection reason in the single shared finding", async () => {
+  mount({ ...failure, errors: [{ source_id: "source-a", field: "feed", record: "", reason: "Source timed out" }] });
+  const tooltip = await openMissingDay("readiness");
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
+  expect(tooltip).toHaveTextContent("No new dashboard data: Source timed out.");
+});
+
+it("groups repeated collection findings while preserving distinct run evidence", async () => {
+  mount({ ...failure, errors: [...failure.errors, {
+    ...failure.errors[0], reason: failure.errors[0].reason.replace("44854194006", "44854194007"),
+  }] });
+  const tooltip = await openMissingDay("readiness");
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding", "Evidence"]);
+  expect(within(tooltip).getAllByRole("link", { name: "Lemonade benchmark leaderboard" })).toHaveLength(1);
+  expect(within(tooltip).getAllByRole("link", { name: "Benchmark run" }).map(link => link.getAttribute("href"))).toEqual([
+    "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006",
+    "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194007",
+  ]);
+});
+
+it("matches the failed attempt's UTC date rather than its written local date", async () => {
+  mount({ ...failure, attempted_at: "2026-11-02T23:30:00-03:00" });
+  const tooltip = await openMissingDay("readiness");
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
+  expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
 });

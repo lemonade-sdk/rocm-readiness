@@ -72,8 +72,10 @@ neutral tint, and retain the existing status foregrounds in both themes.
   headings and subordinate build metadata. Put the check legend beneath each
   build/family group's platform cards, with clear spacing between groups.
 - Collapse the navigation rail below 1280 CSS pixels, regardless of height or
-  orientation. The header Navigation button reveals the same workspace/view
-  hierarchy above the content. Use nested lists with modest indentation:
+  orientation. The header Navigation button opens a left-anchored dropdown over
+  the current page; opening it does not move the content. Constrain it to the
+  viewport and allow its contents to scroll in short viewports. Use nested lists
+  with modest indentation and no vertical tree lines:
   workspace → Overview → Build Qualification → Performance, and Upstream health
   → Overview → CI Activity. Keep touch rows at least 44 CSS pixels high. Selection
   closes navigation, including selecting the current page. Escape closes it and

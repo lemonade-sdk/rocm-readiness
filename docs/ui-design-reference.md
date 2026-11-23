@@ -79,7 +79,9 @@ neutral tint, and retain the existing status foregrounds in both themes.
   workspace → Overview → Build Qualification → Performance, and Upstream health
   → Overview → CI Activity. Keep touch rows at least 44 CSS pixels high. Selection
   closes navigation, including selecting the current page. Escape closes it and
-  returns focus to the Navigation button.
+  returns focus to the Navigation button. Clicking or tapping outside the dropdown
+  also closes it without interrupting the target's action or moving focus back
+  to the Navigation button.
   At 1280 CSS pixels and above, retain the sidebar.
   Keep tables above the independent 640 CSS-pixel phone breakpoint.
 - Check light/dark themes at 320/390/430 phone widths, 768/834/1024 portrait tablet

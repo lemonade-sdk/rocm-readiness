@@ -117,6 +117,8 @@ dated outcome tables. Wider CI matrices retain horizontal scrolling, with select
 evidence expanded below the matrix. Below 1280 CSS pixels, the Navigation button
 opens a left-anchored workspace dropdown over the current page, regardless of
 orientation; it does not push content down and scrolls within short viewports.
+Clicking or tapping outside the dropdown dismisses it without blocking the
+selected control. Escape closes it and returns focus to the Navigation button.
 Tables remain above the independent 640 CSS-pixel phone breakpoint; wider layouts
 retain the sidebar.
 

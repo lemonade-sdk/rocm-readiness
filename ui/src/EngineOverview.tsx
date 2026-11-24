@@ -169,12 +169,16 @@ export function EngineOverview({
                     {channels.length > 1 && (
                       <span>{channel === "stable" ? "Stable" : "Nightly"}</span>
                     )}
-                    {repositories.map((repository) => (
-                      <a key={repository} href={`https://github.com/${repository}`} target="_blank" rel="noreferrer"
-                        aria-label={`Source repository for ${engine.label} ${channel}: ${repository}`}>
-                        {repository}
-                      </a>
-                    ))}
+                    {repositories.length > 0 && (
+                      <div className="engine-repositories">
+                        {repositories.map((repository) => (
+                          <a key={repository} href={`https://github.com/${repository}`} target="_blank" rel="noreferrer"
+                            aria-label={`Source repository for ${engine.label} ${channel}: ${repository}`}>
+                            {repositories.length === 1 ? "View repository" : repository}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {platforms.length > 0 && (
                     <EvidenceRegion>

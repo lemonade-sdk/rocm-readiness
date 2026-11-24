@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 if __package__:
     from .config import load_config
-    from .readiness import release_policy, select_releases, window_start
+    from .readiness import release_policy, select_releases
     from .release_inventory import INVENTORY, match_archive, validate_inventory
     from .execution_dataset import (
         validate_execution_file,
@@ -27,7 +27,7 @@ if __package__:
     from .qualification_outcomes import qualification_labels
 else:
     from config import load_config
-    from readiness import release_policy, select_releases, window_start
+    from readiness import release_policy, select_releases
     from release_inventory import INVENTORY, match_archive, validate_inventory
     from execution_dataset import (
         validate_execution_file,
@@ -650,11 +650,7 @@ def validate_dataset(
         inventory = read(INVENTORY)
         try:
             releases = validate_inventory(inventory, repositories)
-            # Older runtime datasets intentionally selected only the current anchor.
-            history = bool((policy or {}).get("historical_stable_tracks"))
-            generated = _time(index["generated_at"], "index.json", "/generated_at")
-            since = window_start(generated.astimezone(timezone.utc).date())
-            selected = select_releases(releases, None, stable_since=since if history else None)
+            selected = select_releases(releases, None)
             if release_policy(selected) != policy or len(selected) != len(versions):
                 raise ValueError(
                     "release selection does not match published readiness scope"
@@ -754,9 +750,7 @@ def validate_dataset(
                 isinstance(tracks, list)
                 and bool(tracks)
                 and ("release_inventory" in index or len(tracks) <= 3)
-                and policy["stable_anchor"] in tracks
-                and tracks[:tracks.index(policy["stable_anchor"])]
-                == policy.get("historical_stable_tracks", [])
+                and tracks[0] == policy["stable_anchor"]
                 and tracks
                 == sorted(
                     set(tracks),
@@ -803,10 +797,7 @@ def validate_dataset(
     )
     if anchor_key is not None:
         _check(
-            all(
-                key >= anchor_key or version in policy.get("historical_stable_tracks", [])
-                for key, version in order
-            ),
+            all(value[0] >= anchor_key for value in order),
             "index.json",
             "/versions",
             "historical ROCm tracks are outside configured app scope",
@@ -823,13 +814,10 @@ def validate_dataset(
                 "unindexed ROCm track directory in generated output",
             )
     _check(
-        index.get("default_version") == (
-            policy["stable_anchor"] if (policy or {}).get("historical_stable_tracks")
-            else version_names[0] if version_names else None
-        ),
+        index.get("default_version") == (version_names[0] if version_names else None),
         "index.json",
         "/default_version",
-        "default must match the selected stable anchor or first supplied track",
+        "default must be the first supplied ROCm track",
     )
     all_build_ids = set()
     stable_count = 0

@@ -372,13 +372,21 @@ export async function loadVersion(
   return { ...session, version, overview };
 }
 
+/** The collector selects nightly SDKs only from major/minor tracks newer than stable. */
+export function isCurrentReadinessTrack(version: string, stable?: string) {
+  if (!stable || version === stable) return true;
+  const minorTrack = (value: string) => value.split(".").slice(0, 2).join(".");
+  return minorTrack(version).localeCompare(minorTrack(stable), "en", { numeric: true }) > 0;
+}
+
 /** Recover observation dates once per pinned legacy dataset when opening detail filters. */
 export async function withBuildDays(session: Session, fetcher: Fetcher, signal: AbortSignal): Promise<Session> {
   if (session.versionFilterErrors || session.index.versions.every((row) => row.build_days !== undefined))
     return session;
   const errors: string[] = [];
   const versions = await Promise.all(session.index.versions.map(async (row) => {
-    if (row.build_days !== undefined) return row;
+    if (row.build_days !== undefined || !isCurrentReadinessTrack(row.rocm_version, session.index.readiness?.stable_anchor))
+      return row;
     if (!row.build_count) return { ...row, build_days: [] };
     try {
       const scoped = row.rocm_version === session.version

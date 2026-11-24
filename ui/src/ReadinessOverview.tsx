@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentProps } from "react";
 import {
   loadVersion,
   loadHistory,
+  isCurrentReadinessTrack,
   type Build,
   type Fetcher,
   type PublishedRelease,
@@ -39,7 +40,9 @@ export function ReadinessOverview({
   useEffect(() => {
     const controller = new AbortController();
     void Promise.all(
-      session.index.versions.map(async (entry): Promise<VersionEvidence> => {
+      session.index.versions.filter((entry) =>
+        isCurrentReadinessTrack(entry.rocm_version, session.index.readiness?.stable_anchor),
+      ).map(async (entry): Promise<VersionEvidence> => {
         const row: VersionEvidence = {
           version: entry.rocm_version,
           builds: null,
@@ -105,7 +108,7 @@ export function ReadinessOverview({
             ROCm {row.version}
             {row.version === stable ? (
               <>{" · "}<span className="readiness-track">Latest Stable</span></>
-            ) : stable && row.version.localeCompare(stable, "en", { numeric: true }) > 0 ? (
+            ) : stable ? (
               <>{" · "}<span className="readiness-track">Nightly</span></>
             ) : null}
           </h2>

@@ -394,6 +394,18 @@ it.each(["engine", "performance"])("offers versions with visible builds and fall
   expect(filter.getByRole("button", { name: "10.2" })).toHaveAttribute("aria-pressed", "true");
 });
 
+it.each(["engine", "performance"])("omits populated historical stable tracks from %s filters", async (view) => {
+  const nightly = { ...index.versions[1], rocm_version: "10.10", overview: "rocm/10.10/overview.json" };
+  mount(fixtureFetch({ [indexUrl]: {
+    ...index, readiness: { stable_anchor: "10.2", historical_stable_tracks: ["10.1"] },
+    versions: [...index.versions, nightly],
+  } }), `/?view=${view}`);
+  await screen.findByRole("heading", { level: 1, name: view === "engine" ? "Build Qualification" : "Performance details" });
+  const filter = within(screen.getByRole("group", { name: "ROCm version" }));
+  expect(filter.getAllByRole("button").map((button) => button.textContent)).toEqual(["10.2", "10.10"]);
+  expect(filter.getByRole("button", { name: "10.2" })).toHaveAttribute("aria-pressed", "true");
+});
+
 it("derives older datasets' version buttons from dated history and preserves explicit inactive URLs", async () => {
   const versions = index.versions.map(({ build_days: _days, ...row }) => row);
   const old = historyFixture();

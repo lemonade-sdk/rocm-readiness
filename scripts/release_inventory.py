@@ -7,9 +7,9 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 
 if __package__:
-    from .readiness import release_minor, select_releases, window_start
+    from .readiness import release_minor, select_releases
 else:
-    from readiness import release_minor, select_releases, window_start
+    from readiness import release_minor, select_releases
 
 INVENTORY = "release-inventory.json"
 REPOSITORY = re.compile(r"[\w.-]+/[\w.-]+")
@@ -134,7 +134,7 @@ def discover(repositories, nightly_limit, fetch, previous=None, *, today=None):
             ]
             for channel in repositories
         }
-        selected = select_releases(rows, nightly_limit, stable_since=window_start(today))
+        selected = select_releases(rows, nightly_limit)
         pending = [
             row for row in selected if (row["channel"], row["tag"]) not in confirmed
         ]

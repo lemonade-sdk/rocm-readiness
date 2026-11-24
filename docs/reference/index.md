@@ -16,7 +16,7 @@ is **2** and the current package association contract is `attribution_version: 2
 | `/reference_model` | JSON value, required | Configuration value copied unchanged; null when absent. |
 | `/default_version` | ROCm version string or null, required | Latest stable anchor for release-backed readiness. Other datasets use the first supplied version, or null when empty. |
 | `/versions` | array of version entries, required | Union of versions with in-scope builds, assigned measurements or executions. Configured readiness scope emits anchor/newer tracks in numeric ascending order; legacy unscoped datasets use descending order. |
-| `/readiness` | object, optional | Resolved metadata, e.g. `{ "stable_anchor": "10.1", "tracks": ["10.1", "10.2", "10.3"] }`. Production selects the latest stable SDK and newer nightly tracks from published releases. `historical_stable_tracks`, when present, lists older tracks that were the latest stable within the retained 14 UTC dates. Legacy numeric-anchor policies omit `tracks`. |
+| `/readiness` | object, optional | Resolved metadata, e.g. `{ "stable_anchor": "10.1", "tracks": ["10.1", "10.2", "10.3"] }`. Production selects one stable SDK, the latest available, plus newer nightly tracks from published releases. The 14-day history follows those selected tracks. Legacy numeric-anchor policies omit `tracks`. |
 | `/versions/*/rocm_version` | string, required | Dotted nonnegative integer version components, e.g. `10.1`. |
 | `/versions/*/overview` | relative path string, required | `rocm/<version>/overview.json`. |
 | `/versions/*/build_count` | nonnegative integer, required | Count of retained, merged, in-scope build records for this version across engines. |

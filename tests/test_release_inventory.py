@@ -6,7 +6,7 @@ from scripts import readiness
 
 
 class PublishedSelectionTests(unittest.TestCase):
-    def test_retains_tracks_that_were_latest_stable_within_window(self):
+    def test_only_latest_stable_is_selected_even_when_older_tracks_still_ship(self):
         releases = [
             {"channel": "stable", "version": version, "published_at": day + "T12:00:00Z", "tag": tag}
             for version, day, tag in [
@@ -17,13 +17,8 @@ class PublishedSelectionTests(unittest.TestCase):
                 ("10.2", "2026-11-21", "b3"),
             ]
         ]
-        def policy(since):
-            return readiness.release_policy(readiness.select_releases(releases, None, stable_since=since))
-        self.assertEqual(policy(date(2026, 11, 11)), {
-            "stable_anchor": "10.2", "tracks": ["10.1", "10.2"], "historical_stable_tracks": ["10.1"]
-        })
-        self.assertEqual(policy(date(2026, 11, 21))["historical_stable_tracks"], ["10.1"])
-        self.assertEqual(policy(date(2026, 11, 22)), {"stable_anchor": "10.2", "tracks": ["10.2"]})
+        selected = readiness.select_releases(releases, None)
+        self.assertEqual(readiness.release_policy(selected), {"stable_anchor": "10.2", "tracks": ["10.2"]})
 
     def test_selects_latest_publication_in_each_available_track(self):
         def release(channel, version, day, tag):

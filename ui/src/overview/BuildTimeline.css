@@ -181,3 +181,16 @@
 .build-calendar-vertical .build-no-data { min-width: 44px; min-height: 44px; }
 
 .overview-summary-details { display: inline-block; margin: .75rem 1.125rem 1rem; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+.engine-repositories {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .5rem;
+  margin-inline-start: auto;
+}
+.engine-repositories a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

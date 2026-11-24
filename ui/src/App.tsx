@@ -6,6 +6,7 @@ import {
   loadVersion,
   loadHistory,
   withBuildDays,
+  isCurrentReadinessTrack,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
@@ -32,7 +33,9 @@ function date(value: string | null) {
 }
 function visibleVersions(session: Session, today: string) {
   const days = observationDays(today);
-  return session.index.versions.filter((row) => row.build_days?.some((day) => days.includes(day)));
+  return session.index.versions.filter((row) =>
+    isCurrentReadinessTrack(row.rocm_version, session.index.readiness?.stable_anchor) &&
+    row.build_days?.some((day) => days.includes(day)));
 }
 
 function defaultDetailVersion(session: Session, view: string, today: string) {
@@ -280,8 +283,10 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
   const versionOptions = session ? visibleVersions(session, today) : [];
-  const inactiveLabel = session?.index.versions.find((row) => row.rocm_version === version)?.build_days
-    ? `${version} · no recent builds` : `${version} · unavailable`;
+  const requestedTrack = session?.index.versions.find((row) => row.rocm_version === version);
+  const inactiveLabel = requestedTrack && !isCurrentReadinessTrack(requestedTrack.rocm_version, session?.index.readiness?.stable_anchor)
+    ? `${version} · historical track`
+    : requestedTrack?.build_days ? `${version} · no recent builds` : `${version} · unavailable`;
   const performanceView = ["performance", "model", "build-performance"].includes(view);
   const versionFilter = qualificationView || performanceView ? (
     <fieldset className="build-filter-options version-filter-options">
@@ -294,9 +299,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         const stable = session?.index.readiness?.stable_anchor;
         let track = "Release track classification unavailable";
         if (stable) {
-          track = rocm_version === stable ? "Latest stable qualification track"
-            : rocm_version.localeCompare(stable, "en", { numeric: true }) > 0
-              ? "Nightly qualification track" : "Historical qualification track";
+          track = rocm_version === stable ? "Latest stable qualification track" : "Nightly qualification track";
         }
         return <Tooltip mobileDisclosure={false} key={rocm_version} label={rocm_version}
           triggerClassName="filter-tooltip-trigger"

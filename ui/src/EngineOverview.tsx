@@ -1,3 +1,4 @@
+import { GitHubIcon } from "./GitHubIcon";
 import { calendarDate, producedAt } from "./overview/formatDate";
 import { Link } from "react-router";
 import { useMediaQuery } from "./mobile";
@@ -174,6 +175,7 @@ export function EngineOverview({
                         {repositories.map((repository) => (
                           <a key={repository} href={`https://github.com/${repository}`} target="_blank" rel="noreferrer"
                             aria-label={`Source repository for ${engine.label} ${channel}: ${repository}`}>
+                            <GitHubIcon size="1em" />
                             {repositories.length === 1 ? "View repository" : repository}
                           </a>
                         ))}

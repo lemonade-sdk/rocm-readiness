@@ -9,6 +9,14 @@
         "linux",
         "windows"
       ]
+    },
+    {
+      "id": "sdcpp",
+      "label": "stable-diffusion.cpp",
+      "platforms": [
+        "linux",
+        "windows"
+      ]
     }
   ],
   "sources": [
@@ -24,6 +32,19 @@
       "stale_after_hours": 72,
       "type": "readiness",
       "project": "llamacpp"
+    },
+    {
+      "id": "sdcpp-stable-qualification",
+      "engine": "sdcpp",
+      "adapter": "qualification-v1",
+      "report_details": true,
+      "repository": "lemonade-sdk/stable-diffusion.cpp",
+      "ref": "qualification-data",
+      "path": "qualification/index.json",
+      "channel": "stable",
+      "stale_after_hours": 72,
+      "type": "readiness",
+      "project": "sdcpp"
     },
     {
       "id": "llamacpp-nightly-qualification",
@@ -475,6 +496,7 @@
       },
       "sources": [
         "llamacpp-stable-qualification",
+        "sdcpp-stable-qualification",
         "llamacpp-nightly-qualification",
         "lemonade-performance"
       ]

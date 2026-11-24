@@ -5,6 +5,7 @@ import {
   loadSession,
   loadVersion,
   loadHistory,
+  withBuildDays,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
 import type { Build, Fetcher, Session, Sync } from "./data";
@@ -14,6 +15,8 @@ import { PerformanceView } from "./performance/PerformanceView";
 import { uiCommit } from "./version";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import { ThemeControl } from "./ThemeControl";
+import { useUtcToday } from "./overview/useUtcToday";
+import { observationDays } from "./overview/observationWindow";
 import { UpstreamView } from "./upstream/UpstreamView";
 import { useMediaQuery } from "./mobile";
 import { NotificationsProvider } from "./notifications";
@@ -27,7 +30,19 @@ function date(value: string | null) {
       }).format(new Date(value)) + " UTC"
     : "No successful ingestion";
 }
+function visibleVersions(session: Session, today: string) {
+  const days = observationDays(today);
+  return session.index.versions.filter((row) => row.build_days?.some((day) => days.includes(day)));
+}
+
+function defaultDetailVersion(session: Session, view: string, today: string) {
+  const options = visibleVersions(session, today);
+  const preferred = (view === "engine" ? session.index.readiness?.stable_anchor : null) ?? session.index.default_version;
+  return options.find((row) => row.rocm_version === preferred)?.rocm_version ?? options[0]?.rocm_version;
+}
+
 export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
+  const today = useUtcToday();
   const [params, setParams] = useSearchParams();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const navigationButton = useRef<HTMLButtonElement>(null);
@@ -99,7 +114,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             setSession(current);
           }
         }
-        const selected = version ?? (view === "engine" ? current.index.readiness?.stable_anchor : null) ?? current.index.default_version;
+        if (track === "readiness" && view !== "overview") {
+          const catalog = await withBuildDays(current, fetcher, controller.signal);
+          if (controller.signal.aborted) return;
+          if (current !== catalog) {
+            current = catalog;
+            sessionRef.current = current;
+            setSession(current);
+          }
+        }
+        const selected = version ?? defaultDetailVersion(current, view, today);
         if (
           track === "readiness" &&
           view !== "overview" &&
@@ -116,6 +140,8 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           sessionRef.current = current;
           setSession(current);
         }
+        if (track === "readiness" && view !== "overview" && !selected && current.version)
+          current = { ...current, version: null, overview: null };
         sessionRef.current = current;
         completedRefresh.current = refresh;
         setSession(current);
@@ -134,7 +160,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     };
     void run();
     return () => controller.abort();
-  }, [version, track, view, refresh, fetcher]);
+  }, [version, track, view, refresh, fetcher, today]);
 
   const needsHistory = track === "readiness" && view !== "overview";
   useEffect(() => {
@@ -158,7 +184,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     return () => controller.abort();
   }, [session, needsHistory, fetcher]);
   const currentHistory = history?.session === session ? history : null;
-  const selected = version ?? (view === "engine" ? session?.index.readiness?.stable_anchor ?? session?.index.default_version : null) ?? session?.version ?? "";
+  const selected = version ?? (session && view !== "overview" ? defaultDetailVersion(session, view, today) : session?.version) ?? "";
   const scopeMatches =
     session && (view === "overview" || !selected || session.version === selected);
   const overview = scopeMatches ? session.overview : null;
@@ -199,6 +225,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     else next.delete("version");
     next.delete("build");
     next.delete("source");
+    next.delete("engine");
     next.delete("model");
     next.delete("observation");
     next.delete("day");
@@ -252,14 +279,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
     view === "build-performance" ? "Performance details" :
     view === "performance" || view === "model" ? "Performance details" :
     "ROCm Readiness";
-  const versionOptions = session?.index.versions ?? [];
+  const versionOptions = session ? visibleVersions(session, today) : [];
+  const inactiveLabel = session?.index.versions.find((row) => row.rocm_version === version)?.build_days
+    ? `${version} · no recent builds` : `${version} · unavailable`;
   const performanceView = ["performance", "model", "build-performance"].includes(view);
   const versionFilter = qualificationView || performanceView ? (
     <fieldset className="build-filter-options version-filter-options">
       <legend>ROCm version</legend>
       {!session && <span className="muted">Loading…</span>}
-      {selected && !versionOptions.some((row) => row.rocm_version === selected) && (
-        <button type="button" aria-pressed="true" disabled>{selected} · unavailable</button>
+      {version && !busy && !versionOptions.some((row) => row.rocm_version === selected) && (
+        <span className="muted">{inactiveLabel}</span>
       )}
       {versionOptions.map(({ rocm_version, build_count }) => {
         const stable = session?.index.readiness?.stable_anchor;
@@ -283,16 +312,16 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       ROCm version
       <select
         value={selected}
-        disabled={!session?.index.versions.length}
+        disabled={!versionOptions.length}
         onChange={(event) => changeVersion(event.target.value)}
       >
         {!session && <option value="">Loading…</option>}
         {version &&
           session &&
-          !session.index.versions.some(
+          !versionOptions.some(
             (row) => row.rocm_version === version,
-          ) && <option value={version}>{version} · unavailable</option>}
-        {session?.index.versions.map((row) => (
+          ) && <option disabled value={version}>{inactiveLabel}</option>}
+        {versionOptions.map((row) => (
           <option key={row.rocm_version} value={row.rocm_version}>
             {row.rocm_version}
           </option>
@@ -314,7 +343,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         <Link className="brand" to={href("overview")}>
           ROCm Readiness
           <span className="deck-label">Signal Deck</span>
-          <span className="mobile-engine">{track === "readiness" ? "llama.cpp" : "Upstream health"}</span>
+          <span className="mobile-engine">{track === "readiness" ? "Engine readiness" : "Upstream health"}</span>
         </Link>
         <div className="header-page">
           <div className="header-page-heading">
@@ -409,8 +438,15 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
       </div>
       <NotificationsProvider session={session} fetcher={fetcher} sync={liveSync}>
       <main id="main" tabIndex={-1}>
+        {track === "readiness" && view !== "overview" && !!session?.versionFilterErrors?.length && (
+          <div role="alert" className="notice error">
+            <strong>Some ROCm version filters could not be loaded</strong>
+            {session.versionFilterErrors.map((message) => <p key={message}>{message}</p>)}
+            <button onClick={refreshData}>Retry version filters</button>
+          </div>
+        )}
         {track === "readiness" && view !== "overview" &&
-          !performanceView && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
+          (!performanceView || !hasViewData) && (!qualificationView || !currentHistory?.builds || !hasViewData || !platformValid) && (
             <div className="build-browser-toolbar build-filters">{versionFilter}</div>
           )}
         {error && (
@@ -462,14 +498,13 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
           session &&
           scopeMatches &&
           !overview &&
-          !session.index.versions.length &&
+          (!session.index.versions.length || (view !== "overview" && !versionOptions.length && !session.versionFilterErrors?.length)) &&
           !busy &&
           !error && (
             <div className="empty">
               <h1>No ROCm versions available</h1>
               <p>
-                The dataset contains no published versions. Refresh to check
-                again.
+                {session.index.versions.length ? "No qualification builds were recorded in the last 14 days." : "The dataset contains no published versions."}
               </p>
             </div>
           )}

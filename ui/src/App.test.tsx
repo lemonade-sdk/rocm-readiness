@@ -380,3 +380,38 @@ it.each(["10.1", "10.2"])("explains ROCm tracks from the dataset stable anchor %
   act(() => within(versions).getByRole("button", { name: anchor }).focus());
   expect(await screen.findByRole("tooltip")).toHaveTextContent("Latest stable qualification track");
 });
+
+it.each(["engine", "performance"])("offers versions with visible builds and falls back from an inactive default in %s", async (view) => {
+  const versions = [
+    { ...index.versions[0], build_days: ["2026-10-19"] },
+    { ...index.versions[1], build_days: ["2026-10-20"] },
+    { rocm_version: "10.3", overview: "rocm/10.3/overview.json", build_days: [], build_count: 0 },
+  ];
+  mount(fixtureFetch({ [indexUrl]: { ...index, versions } }), `/?view=${view}`);
+  await screen.findByRole("heading", { level: 1, name: view === "engine" ? "Build Qualification" : "Performance details" });
+  const filter = within(screen.getByRole("group", { name: "ROCm version" }));
+  expect(filter.getAllByRole("button").map((button) => button.textContent)).toEqual(["10.2"]);
+  expect(filter.getByRole("button", { name: "10.2" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it("derives older datasets' version buttons from dated history and preserves explicit inactive URLs", async () => {
+  const versions = index.versions.map(({ build_days: _days, ...row }) => row);
+  const old = historyFixture();
+  for (const build of old.builds) build.generated_at = "2026-10-19T23:59:59Z";
+  mount(fixtureFetch({
+    [indexUrl]: { ...index, versions },
+    [new URL("rocm/10.1/history/2026-10.json", indexUrl).href]: old,
+  }), "/?view=engine&version=10.1");
+  const region = within(await screen.findByRole("region", { name: "Build qualification history" }));
+  const filter = within(region.getByRole("group", { name: "ROCm version" }));
+  expect(filter.getAllByRole("button").map((button) => button.textContent)).toEqual(["10.2"]);
+  expect(region.getByText("No retained packages match this scope.")).toBeInTheDocument();
+  expect(filter.getByText("10.1 · no recent builds")).toBeInTheDocument();
+});
+
+it("shows an empty state when every build has aged out", async () => {
+  const versions = index.versions.map((row) => ({ ...row, build_days: ["2026-10-19"] }));
+  mount(fixtureFetch({ [indexUrl]: { ...index, versions } }), "/?view=engine");
+  await screen.findByText("No qualification builds were recorded in the last 14 days.");
+  expect(within(screen.getByRole("group", { name: "ROCm version" })).queryAllByRole("button")).toHaveLength(0);
+});

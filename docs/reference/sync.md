@@ -28,12 +28,18 @@ The timestamps and diagnostics are local run metadata, rather than copied
 producer measurements.
 
 CI completion and collection outcome are separate. Known source HTTP/network
-access failures (including unavailable benchmark job evidence) produce failed
+access failures affecting required inputs produce failed
 sync diagnostics and a degraded artifact, but collection exits successfully
 after saving that evidence. The publication command likewise succeeds when it
 publishes fresh, valid failure metadata from a successful collection job; it
 retains the last-good dataset and records the failed attempt for the dashboard.
 It does not turn a failed collection into `sync.status: success`.
+
+For release-backed readiness, an inaccessible optional benchmark feed or a leaderboard that fails source validation is marked
+`awaiting_data`. When a benchmark run's package evidence is inaccessible, its
+unverified observations are omitted and the source records the run, fork, and
+diagnostic under `unavailable_benchmarks`. Independent builds and verified
+measurements can still publish successfully.
 
 Invalid source data, ambiguous package evidence, failed tests, unexpected tool
 errors, diagnostic-write failures, and invalid or stale publication output

@@ -6,6 +6,25 @@ from scripts import readiness
 
 
 class PublishedSelectionTests(unittest.TestCase):
+    def test_retains_tracks_that_were_latest_stable_within_window(self):
+        releases = [
+            {"channel": "stable", "version": version, "published_at": day + "T12:00:00Z", "tag": tag}
+            for version, day, tag in [
+                ("10.0", "2026-09-01", "b1"),
+                ("10.1", "2026-10-10", "b2"),
+                ("10.0", "2026-11-24", "b4"),
+                ("10.1", "2026-11-24", "b4"),
+                ("10.2", "2026-11-21", "b3"),
+            ]
+        ]
+        def policy(since):
+            return readiness.release_policy(readiness.select_releases(releases, None, stable_since=since))
+        self.assertEqual(policy(date(2026, 11, 11)), {
+            "stable_anchor": "10.2", "tracks": ["10.1", "10.2"], "historical_stable_tracks": ["10.1"]
+        })
+        self.assertEqual(policy(date(2026, 11, 21))["historical_stable_tracks"], ["10.1"])
+        self.assertEqual(policy(date(2026, 11, 22)), {"stable_anchor": "10.2", "tracks": ["10.2"]})
+
     def test_selects_latest_publication_in_each_available_track(self):
         def release(channel, version, day, tag):
             return dict(
@@ -138,6 +157,14 @@ class ReleaseDiscoveryTests(unittest.TestCase):
         config = CurrentTracksTests().config()
         config["readiness"].pop("nightly_limit")
         config["readiness"]["release_repositories"] = self.repositories
+        from tests.test_collect import fixture
+        performance = fixture("performance-source.json")
+        performance.update(
+            id="performance", channel="from-fork", engine="llamacpp",
+            repository="lemonade-sdk/lemonade", ref="benchmark-data",
+            path="leaderboard.json", stale_after_hours=72, execution_details=True,
+        )
+        config["sources"].append(performance)
         extra = self.release("b1366", "10.4.0a20261104", 4)
         stable_report = {
             "name": "qualification-llama-b12109-bin-ubuntu-rocm-10.1-x64.json",
@@ -150,6 +177,8 @@ class ReleaseDiscoveryTests(unittest.TestCase):
             nightly = f"/{self.nightly_repo}/" in url
             if "/commits/" in url:
                 return {"sha": "a" * 40}
+            if url.endswith("leaderboard.json"):
+                return {"history": [], "by_model_scenario": {}, "systems": []}
             if url.endswith("qualification/index.json"):
                 if nightly:
                     raise HTTPError(url, 404, "missing feed", None, None)
@@ -192,6 +221,8 @@ class ReleaseDiscoveryTests(unittest.TestCase):
             self.assertEqual(newest["release"]["tag"], "b1366")
             self.assertIs(stable["release"]["archives"][0]["qualified"], True)
             self.assertEqual(output["sources"][1]["status"], "awaiting_data")
+            self.assertEqual(output["sources"][2]["status"], "awaiting_data")
+            self.assertEqual(output["sources"][2]["diagnostic"]["source_id"], "performance")
             self.assertEqual(stable["release"]["tag"], "b12109")
             self.assertEqual(older["release"]["version"], "10.2.0a20261022")
             self.assertEqual(older["build_count"], 0)

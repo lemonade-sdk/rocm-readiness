@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { buildDate } from "./overview/buildTimeline";
 
 export const POINTER_URL =
   "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json";
@@ -124,6 +125,7 @@ const indexSchema = z.object({
       rocm_version: z.string().min(1),
       overview: z.string(),
       build_count: count,
+      build_days: z.array(z.iso.date()).optional(),
       release: releaseSchema.optional(),
     }),
   ),
@@ -235,6 +237,7 @@ export type Session = {
   indexUrl: string;
   version: string | null;
   overview: Overview | null;
+  versionFilterErrors?: string[];
 };
 export type Fetcher = typeof fetch;
 
@@ -367,6 +370,29 @@ export async function loadVersion(
     }
   }
   return { ...session, version, overview };
+}
+
+/** Recover observation dates once per pinned legacy dataset when opening detail filters. */
+export async function withBuildDays(session: Session, fetcher: Fetcher, signal: AbortSignal): Promise<Session> {
+  if (session.versionFilterErrors || session.index.versions.every((row) => row.build_days !== undefined))
+    return session;
+  const errors: string[] = [];
+  const versions = await Promise.all(session.index.versions.map(async (row) => {
+    if (row.build_days !== undefined) return row;
+    if (!row.build_count) return { ...row, build_days: [] };
+    try {
+      const scoped = row.rocm_version === session.version
+        ? session
+        : await loadVersion(session, row.rocm_version, fetcher, signal);
+      const builds = await loadHistory(scoped, fetcher, signal);
+      if (builds.length !== row.build_count) throw new Error("Build count does not match retained history");
+      return { ...row, build_days: [...new Set(builds.map(buildDate))].sort() };
+    } catch (error) {
+      errors.push(`ROCm ${row.rocm_version}: ${error instanceof Error ? error.message : "Unable to read build history"}`);
+      return row;
+    }
+  }));
+  return { ...session, index: { ...session.index, versions }, versionFilterErrors: errors };
 }
 
 export async function loadSession(

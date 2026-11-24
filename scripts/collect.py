@@ -755,7 +755,7 @@ def write_json(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(text, encoding="utf-8")
+    temporary.write_bytes(text.encode("utf-8"))
     temporary.replace(path)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -827,6 +827,7 @@ def collect(
         fetch_url = None
         try:
             repo, ref = source["repository"], source["ref"]
+            state.update(repository=repo, ref=ref)
             key = (repo, ref)
             if key not in commits:
                 fetch_url = (
@@ -930,13 +931,19 @@ def collect(
                     sid, "", "source", f"{type(error).__name__}: {error}"
                 ).diagnostic
             if (
-                release_repositories
-                and source["adapter"] == "qualification-v1"
-                and (fetch_url or not isinstance(error, OSError))
+                release_repositories and (
+                    source["adapter"] == "qualification-v1"
+                    and (fetch_url or not isinstance(error, OSError))
+                    or source["adapter"] == "lemonade-leaderboard-v1"
+                    and (
+                        isinstance(error, (URLError, TimeoutError))
+                        or isinstance(error, PipelineValidationError) and diagnostic["source_id"] == sid
+                    )
+                )
             ):
                 state.update(status="awaiting_data", diagnostic=diagnostic)
                 print(
-                    f"{sid}: qualification unavailable: {diagnostic}",
+                    f"{sid}: source unavailable: {diagnostic}",
                     file=sys.stderr,
                     flush=True,
                 )
@@ -1040,17 +1047,25 @@ def collect(
                 )
             )
 
+    # An inaccessible benchmark run cannot establish a package identity. Omit its
+    # observations while preserving independent, validated qualification builds.
+    unavailable = {} if release_repositories else None
     attribute_stable(
-        output, evidence, resolve_packages, previous_measurements, system_matches
+        output, evidence, resolve_packages, previous_measurements, system_matches,
+        unavailable=unavailable,
     )
     if output["executions"]:
         execution_output = {"measurements": output["executions"]}
         attribute_stable(
             execution_output, output["package_evidence"], resolve_packages,
-            previous_measurements, system_matches,
+            previous_measurements, system_matches, unavailable=unavailable,
         )
         output["package_evidence"] = execution_output["package_evidence"]
-        output["executions"] = select_latest(output["executions"], per_version=True)
+        output["executions"] = select_latest(execution_output["measurements"], per_version=True)
+    for exclusion in (unavailable or {}).values():
+        source = next(s for s in output["sources"] if s["id"] == exclusion["source_id"])
+        source.setdefault("unavailable_benchmarks", []).append(exclusion)
+        print(f"Benchmark omitted: {exclusion['reason']}", file=sys.stderr, flush=True)
     for field in ("builds", "measurements", "executions"):
         output[field] = [
             row
@@ -1079,6 +1094,9 @@ def collect(
         {
             "schema_version": 1,
             "packages": output["package_evidence"],
+            "unavailable_benchmarks": [
+                entry for source in output["sources"] for entry in source.get("unavailable_benchmarks", [])
+            ],
         },
     )
     output["dataset"] = write_dataset(

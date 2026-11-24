@@ -210,6 +210,25 @@ describe("BuildBrowser", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("matches the stable-diffusion.cpp producer's package tag to the selected build", async () => {
+    const repository = "https://raw.githubusercontent.com/lemonade-sdk/stable-diffusion.cpp/" + "d".repeat(40);
+    const build = buildFixture({
+      engine: "sdcpp",
+      tag: "master-1117-5519d71",
+      build_id: "45171893682-ubuntu-rocm-10.2",
+      artifact: "sd-master-5519d71-bin-Linux-Ubuntu-24.04-x86_64-rocm-10.2.0.zip",
+      rocm_version: "10.2",
+      source_url: `${repository}/qualification/index.json`,
+      report_url: `${repository}/qualification/reports/45171893682-ubuntu-rocm-10.2.json`,
+    });
+    fetchMock.mockResolvedValue(response(producerReport(build, { build: {
+      llamacpp_tag: undefined, sdcpp_tag: build.tag,
+    } })));
+    mount({ history: [build], selectedBuildId: build.build_id });
+    expect(await screen.findByText("T0.1")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("opens the exact check in a future producer tier even when check IDs repeat", async () => {
     const repository = "https://raw.githubusercontent.com/example/vllm-rocm/" + "d".repeat(40);
     const build = buildFixture({

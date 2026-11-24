@@ -19,7 +19,8 @@ class RetentionTests(unittest.TestCase):
             current = normalized([old, build('boundary', generated_at='2026-11-01T00:00:00Z'),
                                   build('recent', generated_at='2026-11-14T10:00:00Z')])
             current['generated_at'] = '2026-11-14T12:00:00Z'
-            write_dataset(current, root)
+            index = write_dataset(current, root)
+            self.assertEqual(index['versions'][0]['build_days'], ['2026-11-01', '2026-11-14'])
             overview = json.loads((root / 'rocm/7.14/overview.json').read_text())
             self.assertEqual(overview['engines'][0]['build_count'], 2)
             self.assertFalse((root / 'rocm/7.14/history/2026-10.json').exists())
@@ -64,7 +65,7 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(cleaned['archives'], [{'name': 'asset', 'attached_report': 'https://example.test/asset'}])
         self.assertIn('qualified', release['archives'][0])
 
-    def test_current_tracks_remain_selectable_when_all_builds_have_expired(self):
+    def test_current_tracks_remain_in_catalog_when_all_builds_have_expired(self):
         output = normalized([build()])
         output['generated_at'] = '2026-11-14T12:00:00Z'
         output['readiness'] = {'stable_anchor': '7.14', 'tracks': ['7.14']}
@@ -72,6 +73,7 @@ class RetentionTests(unittest.TestCase):
             index = write_dataset(output, Path(folder))
             self.assertEqual(index['versions'][0]['rocm_version'], '7.14')
             self.assertEqual(index['versions'][0]['build_count'], 0)
+            self.assertEqual(index['versions'][0]['build_days'], [])
 
     def test_retained_measurements_release_expired_build_links_without_losing_proof(self):
         from scripts.attribution import attribute_stable

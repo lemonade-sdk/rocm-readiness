@@ -1,6 +1,6 @@
 """Write the compact, versioned dataset consumed by the readiness UI."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -12,11 +12,13 @@ from typing import Dict, Optional
 from urllib.parse import urlparse
 
 if __package__:
+    from .readiness import window_start
     from .execution_dataset import summarize, validate_execution_file
     from .attribution import RUN, validate_measurement_package
     from .validation import PipelineValidationError
     from .qualification_outcomes import qualification_labels
 else:
+    from readiness import window_start
     from execution_dataset import summarize, validate_execution_file
     from attribution import RUN, validate_measurement_package
     from validation import PipelineValidationError
@@ -58,14 +60,9 @@ def _timestamp(value):
     return parsed
 
 
-RETENTION_DAYS = 14
-
-
 def retained(value, generated_at):
     """The current UTC calendar date and preceding thirteen dates."""
-    cutoff = _timestamp(generated_at).astimezone(timezone.utc).date() - timedelta(
-        days=RETENTION_DAYS - 1
-    )
+    cutoff = window_start(_timestamp(generated_at).astimezone(timezone.utc).date())
     return _timestamp(value).astimezone(timezone.utc).date() >= cutoff
 
 
@@ -228,7 +225,7 @@ def _write_json(path, value):
         dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
     )
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(value, handle, **JSON_OPTIONS)
             handle.write("\n")
         os.replace(temporary, path)
@@ -1089,6 +1086,10 @@ def write_dataset(
                 "rocm_version": version,
                 "overview": f"rocm/{version}/overview.json",
                 "build_count": count,
+                "build_days": sorted({
+                    _timestamp(build["generated_at"]).astimezone(timezone.utc).date().isoformat()
+                    for build in grouped.get(version, [])
+                }),
                 **({"release": releases[version]} if version in releases else {}),
             }
         )
@@ -1107,7 +1108,10 @@ def write_dataset(
         "engines": engines,
         "sources": output["sources"],
         "reference_model": output.get("reference_model"),
-        "default_version": versions[0]["rocm_version"] if versions else None,
+        "default_version": (
+            policy["stable_anchor"] if (policy or {}).get("historical_stable_tracks")
+            else versions[0]["rocm_version"] if versions else None
+        ),
         "versions": versions,
         "stable_performance": {
             "assigned_count": sum(

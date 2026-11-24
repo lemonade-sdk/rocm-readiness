@@ -5,6 +5,7 @@ import { useUtcToday } from "./overview/useUtcToday";
 import { hasObservationDate, observationDays } from "./overview/observationWindow";
 import { Tooltip, TooltipContent } from "./overview/Tooltip";
 import type { Build, Overview } from "./data";
+import { buildRepository } from "./builds/packageLinks";
 import { BuildOutcomeIcon } from "./overview/BuildOutcomeIcon";
 import { OutcomeLegend } from "./overview/OutcomeLegend";
 import { EvidenceRegion } from "./overview/EvidenceRegion";
@@ -142,6 +143,14 @@ export function EngineOverview({
               const channelBuilds = builds.filter(
                 (build) => build.channel === channel,
               );
+              const configured = sources.sources.filter((source) =>
+                source.adapter === "qualification-v1" && source.engine === engine.id && source.channel === channel);
+              const repositories = [...new Set(channelBuilds.flatMap((build) => {
+                const repository = buildRepository(build) ?? (build.source_id
+                  ? configured.find((source) => source.id === build.source_id)
+                  : configured.length === 1 ? configured[0] : undefined)?.repository;
+                return repository ? [repository] : [];
+              }))].sort();
               const platforms = [
                 ...new Set([
                   ...channelBuilds.map((build) => build.os),
@@ -160,6 +169,12 @@ export function EngineOverview({
                     {channels.length > 1 && (
                       <span>{channel === "stable" ? "Stable" : "Nightly"}</span>
                     )}
+                    {repositories.map((repository) => (
+                      <a key={repository} href={`https://github.com/${repository}`} target="_blank" rel="noreferrer"
+                        aria-label={`Source repository for ${engine.label} ${channel}: ${repository}`}>
+                        {repository}
+                      </a>
+                    ))}
                   </div>
                   {platforms.length > 0 && (
                     <EvidenceRegion>

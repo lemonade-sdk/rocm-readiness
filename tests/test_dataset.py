@@ -137,6 +137,7 @@ class DatasetTests(unittest.TestCase):
                         "rocm_version": "7.14",
                         "overview": "rocm/7.14/overview.json",
                         "build_count": 1,
+                        "build_days": ["2026-10-01"],
                     }
                 ],
             )

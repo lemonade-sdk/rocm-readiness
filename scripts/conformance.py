@@ -4,7 +4,7 @@ This reader deliberately does not call the dataset writer or its selection helpe
 Diagnostics name the output file, JSON pointer and independent mapping evidence.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import hashlib
 import math
@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 if __package__:
     from .config import load_config
-    from .readiness import release_policy, select_releases
+    from .readiness import release_policy, select_releases, window_start
     from .release_inventory import INVENTORY, match_archive, validate_inventory
     from .execution_dataset import (
         validate_execution_file,
@@ -27,7 +27,7 @@ if __package__:
     from .qualification_outcomes import qualification_labels
 else:
     from config import load_config
-    from readiness import release_policy, select_releases
+    from readiness import release_policy, select_releases, window_start
     from release_inventory import INVENTORY, match_archive, validate_inventory
     from execution_dataset import (
         validate_execution_file,
@@ -621,11 +621,21 @@ def validate_dataset(
     needs_execution = (
         require_execution_evidence
         and config is not None
-        and any(s.get("execution_details") for s in config["sources"])
+        and any(
+            s.get("execution_details") and source_map[s["id"]]["status"] != "awaiting_data"
+            for s in config["sources"]
+        )
     )
     if needs_execution or (root / "provenance/executions.json").exists():
         raw_execution = read("provenance/executions.json")
         package_execution = read("provenance/packages.json")
+        _check(
+            package_execution.get("unavailable_benchmarks", []) == [
+                entry for source in sources for entry in source.get("unavailable_benchmarks", [])
+            ],
+            "provenance/packages.json", "/unavailable_benchmarks",
+            "unavailable execution evidence must match published source diagnostics",
+        )
     version_names = [row.get("rocm_version") for row in versions]
     policy = index.get("readiness")
     configured_policy = config.get("readiness") if config is not None else None
@@ -640,7 +650,11 @@ def validate_dataset(
         inventory = read(INVENTORY)
         try:
             releases = validate_inventory(inventory, repositories)
-            selected = select_releases(releases, None)
+            # Older runtime datasets intentionally selected only the current anchor.
+            history = bool((policy or {}).get("historical_stable_tracks"))
+            generated = _time(index["generated_at"], "index.json", "/generated_at")
+            since = window_start(generated.astimezone(timezone.utc).date())
+            selected = select_releases(releases, None, stable_since=since if history else None)
             if release_policy(selected) != policy or len(selected) != len(versions):
                 raise ValueError(
                     "release selection does not match published readiness scope"
@@ -740,7 +754,9 @@ def validate_dataset(
                 isinstance(tracks, list)
                 and bool(tracks)
                 and ("release_inventory" in index or len(tracks) <= 3)
-                and tracks[0] == policy["stable_anchor"]
+                and policy["stable_anchor"] in tracks
+                and tracks[:tracks.index(policy["stable_anchor"])]
+                == policy.get("historical_stable_tracks", [])
                 and tracks
                 == sorted(
                     set(tracks),
@@ -787,7 +803,10 @@ def validate_dataset(
     )
     if anchor_key is not None:
         _check(
-            all(value[0] >= anchor_key for value in order),
+            all(
+                key >= anchor_key or version in policy.get("historical_stable_tracks", [])
+                for key, version in order
+            ),
             "index.json",
             "/versions",
             "historical ROCm tracks are outside configured app scope",
@@ -804,10 +823,13 @@ def validate_dataset(
                 "unindexed ROCm track directory in generated output",
             )
     _check(
-        index.get("default_version") == (version_names[0] if version_names else None),
+        index.get("default_version") == (
+            policy["stable_anchor"] if (policy or {}).get("historical_stable_tracks")
+            else version_names[0] if version_names else None
+        ),
         "index.json",
         "/default_version",
-        "default must be the first supplied ROCm track",
+        "default must match the selected stable anchor or first supplied track",
     )
     all_build_ids = set()
     stable_count = 0
@@ -836,6 +858,7 @@ def validate_dataset(
         )
         history = sequence(overview.get("history"), overview_path, "/history")
         builds, months = [], []
+        build_days = set()
         for hpos, chunk_entry in enumerate(history):
             month = chunk_entry.get("month")
             _check(
@@ -901,6 +924,7 @@ def validate_dataset(
                     row["source_id"],
                 )
                 instant = _time(row.get("generated_at"), path, ptr + "/generated_at")
+                build_days.add(instant.astimezone(timezone.utc).date().isoformat())
                 _check(
                     instant.strftime("%Y-%m") == month,
                     path,
@@ -1088,6 +1112,13 @@ def validate_dataset(
             f"/versions/{vpos}/build_count",
             f"count must equal {len(builds)} retained identities in {overview_path} history",
         )
+        if "build_days" in entry:
+            _check(
+                entry["build_days"] == sorted(build_days),
+                "index.json",
+                f"/versions/{vpos}/build_days",
+                "build days must match the unique UTC production dates in retained history",
+            )
         if "release_inventory" in index:
             release = entry["release"]
             for archive in release["archives"]:

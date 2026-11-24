@@ -1,6 +1,14 @@
 """Resolve the app's current ROCm tracks from validated producer records."""
 
+from datetime import timedelta
 import re
+
+
+RETENTION_DAYS = 14
+
+
+def window_start(today):
+    return today - timedelta(days=RETENTION_DAYS - 1)
 
 
 def track(version):
@@ -52,7 +60,7 @@ def release_minor(release):
     return release_version_key(release)[:2]
 
 
-def select_releases(releases, nightly_limit):
+def select_releases(releases, nightly_limit, *, stable_since=None):
     latest = {"stable": {}, "nightly": {}}
     for release in releases:
         by_minor = latest[release["channel"]]
@@ -68,9 +76,24 @@ def select_releases(releases, nightly_limit):
     if not latest["stable"]:
         raise ValueError("release discovery found no published stable ROCm binaries")
     anchor = max(latest["stable"])
+    stable_tracks = {anchor}
+    if stable_since is not None:
+        # Keep a former stable only while it was the latest stable within the
+        # retained calendar window. Older, concurrently shipped SDKs do not qualify.
+        events = {}
+        cutoff = stable_since.isoformat() + "T00:00:00Z"
+        for release in releases:
+            if release["channel"] == "stable":
+                when = max(release["published_at"], cutoff)
+                minor = release_minor(release)
+                events[when] = max(events.get(when, minor), minor)
+        newest = ()
+        for when in sorted(events):
+            newest = max(newest, events[when])
+            stable_tracks.add(newest)
     nightly = latest["nightly"]
     return [
-        latest["stable"][anchor],
+        *[latest["stable"][minor] for minor in sorted(stable_tracks)],
         *[nightly[minor] for minor in sorted(nightly) if minor > anchor][
             :nightly_limit
         ],
@@ -79,4 +102,8 @@ def select_releases(releases, nightly_limit):
 
 def release_policy(selected):
     tracks = [numeric_version(row["version"]) for row in selected]
-    return {"stable_anchor": tracks[0], "tracks": tracks}
+    stable = [numeric_version(row["version"]) for row in selected if row["channel"] == "stable"]
+    policy = {"stable_anchor": stable[-1], "tracks": tracks}
+    if len(stable) > 1:
+        policy["historical_stable_tracks"] = stable[:-1]
+    return policy

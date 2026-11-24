@@ -367,6 +367,10 @@ class ConformanceTests(unittest.TestCase):
         )
         self.rejects("latest.json", "/sync")
 
+    def test_version_build_days_must_match_dated_history(self):
+        self.mutate("index.json", lambda d: d["versions"][0].update(build_days=[]))
+        self.rejects("index.json", "/versions/0/build_days")
+
     def test_cli_returns_contextual_failure(self):
         self.mutate("index.json", lambda d: d["versions"][0].update(build_count=999))
         result = subprocess.run(

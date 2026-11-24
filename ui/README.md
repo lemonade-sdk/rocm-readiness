@@ -122,7 +122,10 @@ selected control. Escape closes it and returns focus to the Navigation button.
 Tables remain above the independent 640 CSS-pixel phone breakpoint; wider layouts
 retain the sidebar.
 
-Detail views select only tracks in the supplied catalog and retain inline qualification evidence and
+Detail version filters include tracks with qualification builds in the current 14 UTC dates.
+Release-only tracks and tracks whose builds have aged out drop out of the filter. Legacy
+datasets derive the dates from pinned build history. Explicit version URLs still open the
+recorded scope, including historical evidence. Detail views retain inline qualification evidence and
 model-performance details. URLs retain
 the selected version, view, platform, model, hardware, workload and detail context.
 Internal navigation keeps the active dataset revision; reloading reads the latest

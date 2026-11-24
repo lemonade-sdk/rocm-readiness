@@ -338,6 +338,10 @@ def validate_execution_completeness(attempts, evidence, packages, version, gener
         )
 
     proofs = [(p, validate_evidence(p)) for p in packages["packages"]]
+    unavailable = {
+        (row["source_id"], row["run_url"], row["engine_version"], row["fork_id"])
+        for row in packages.get("unavailable_benchmarks", [])
+    }
     expected = {}
     for source in evidence["sources"]:
         inventory = source["inventory"]
@@ -370,6 +374,10 @@ def validate_execution_completeness(attempts, evidence, packages, version, gener
                         <= stamp(p["completed_at"])
                     )
                 ]
+                if not matches and (
+                    source["source_id"], raw["run_url"], raw["fork_version"], raw["fork_id"]
+                ) in unavailable:
+                    continue
                 require(
                     len(matches) == 1, "raw execution lacks unique package attribution"
                 )

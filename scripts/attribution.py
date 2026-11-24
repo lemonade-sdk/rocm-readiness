@@ -543,7 +543,8 @@ def resolve_package(row, run=_gh):
 
 
 def attribute_stable(
-    output, evidence, resolve=None, previous_measurements=(), system_matches=None
+    output, evidence, resolve=None, previous_measurements=(), system_matches=None, *,
+    unavailable=None,
 ):
     _require(isinstance(evidence, list), "package evidence must be an array")
     records = []
@@ -641,7 +642,8 @@ def attribute_stable(
     for previous in previous_measurements:
         key = tuple(previous.get(field) for field in identity_fields)
         prior.setdefault(key, []).append(previous)
-    for row in output["measurements"]:
+    omitted = set()
+    for pos, row in enumerate(output["measurements"]):
         if not (row["engine"] == "llamacpp" and row["backend"] == "rocm"):
             continue
         key = (row.get("run_url"), row.get("engine_version"), row.get("fork_id"))
@@ -727,6 +729,10 @@ def attribute_stable(
                     ]
                 continue
         if not candidates and resolve is not None:
+            source_key = (row["source_id"], *key)
+            if unavailable is not None and source_key in unavailable:
+                omitted.add(pos)
+                continue
             try:
                 item = resolve(row)
                 validate_evidence(item)
@@ -748,12 +754,22 @@ def attribute_stable(
                     if isinstance(error, EvidenceUnavailable)
                     else PipelineValidationError
                 )
-                raise error_type(
+                failure = error_type(
                     row["source_id"],
                     row["source_pointer"],
                     "package_evidence",
                     f"run={row.get('run_id')} engine={row.get('engine_version')}: {error}",
-                ) from error
+                )
+                if unavailable is not None and isinstance(failure, CollectionUnavailable):
+                    unavailable[source_key] = {
+                        "run_url": key[0],
+                        "engine_version": key[1],
+                        "fork_id": key[2],
+                        **failure.diagnostic,
+                    }
+                    omitted.add(pos)
+                    continue
+                raise failure from error
         if not candidates:
             raise PipelineValidationError(
                 row["source_id"],
@@ -795,4 +811,8 @@ def attribute_stable(
             row["attribution"]["runtime_evidence"] = copy.deepcopy(
                 item["runtime_evidence"]
             )
+    if omitted:
+        output["measurements"] = [
+            row for pos, row in enumerate(output["measurements"]) if pos not in omitted
+        ]
     output["package_evidence"] = records

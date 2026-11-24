@@ -47,6 +47,8 @@ class ScopeTests(unittest.TestCase):
                 return {"sha": "a" * 40}
             if "llamacpp-rocm" in url and url.endswith("qualification/index.json"):
                 return {"schema_version": 1, "repo": "lemonade-sdk/llamacpp-rocm", "builds": []}
+            if "stable-diffusion.cpp" in url and url.endswith("qualification/index.json"):
+                return {"schema_version": 2, "repo": "lemonade-sdk/stable-diffusion.cpp", "builds": []}
             if url.endswith("qualification/index.json"):
                 return fixture("llama.json")
             if url.endswith("leaderboard.json"):
@@ -67,7 +69,7 @@ class ScopeTests(unittest.TestCase):
             )
             self.assertEqual(result["collection_status"], "complete")
             self.assertEqual(
-                [e["id"] for e in result["dataset"]["engines"]], ["llamacpp"]
+                [e["id"] for e in result["dataset"]["engines"]], ["llamacpp", "sdcpp"]
             )
             self.assertEqual(
                 [v["rocm_version"] for v in result["dataset"]["versions"]], ["10.0"]

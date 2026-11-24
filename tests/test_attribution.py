@@ -7,11 +7,12 @@ import subprocess
 
 from scripts.attribution import (
     _gh,
+    EvidenceUnavailable,
     attribute_stable,
     resolve_package,
     validate_measurement_package,
 )
-from scripts.validation import PipelineValidationError
+from scripts.validation import CollectionUnavailable, PipelineValidationError
 
 PACKAGE = "https://github.com/lemonade-sdk/llama.cpp/releases/download/b123/llama-b123-bin-ubuntu-rocm-10.1-x64.tar.gz"
 
@@ -797,6 +798,53 @@ class AttributionTests(unittest.TestCase):
 
 
 class GitHubEvidenceRetryTests(unittest.TestCase):
+    def test_only_known_access_failures_are_handled(self):
+        for status in (401, 403, 404, 408, 410, 429, 500, 502, 503, 504):
+            with self.subTest(status=status), patch(
+                "scripts.attribution.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 1, "", f"HTTP {status}"),
+            ), patch("time.sleep"):
+                with self.assertRaises(EvidenceUnavailable):
+                    _gh(["api", "repos/a/b/actions/runs/42/jobs"])
+        for stderr in ("HTTP 422", "unknown flag: --invalid", "gh is not authenticated"):
+            with self.subTest(stderr=stderr), patch(
+                "scripts.attribution.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 1, "", stderr),
+            ):
+                with self.assertRaises(OSError) as caught:
+                    _gh(["api", "repos/a/b/actions/runs/42/jobs"])
+                self.assertNotIsInstance(caught.exception, EvidenceUnavailable)
+
+    def test_evidence_timeout_is_handled_but_missing_cli_is_not(self):
+        for stderr in ("dial tcp: lookup api.github.com: no such host",
+                       "error connecting to api.github.com", "TLS handshake timeout"):
+            with self.subTest(stderr=stderr), patch(
+                "scripts.attribution.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 1, "", stderr),
+            ):
+                with self.assertRaises(EvidenceUnavailable):
+                    _gh(["api", "repos/a/b/actions/runs/42/jobs"])
+        with patch("scripts.attribution.subprocess.run", side_effect=subprocess.TimeoutExpired("gh", 60)):
+            with self.assertRaises(EvidenceUnavailable):
+                _gh(["api", "repos/a/b/actions/runs/42/jobs"])
+        with patch("scripts.attribution.subprocess.run", side_effect=FileNotFoundError("gh")):
+            with self.assertRaises(FileNotFoundError):
+                _gh(["api", "repos/a/b/actions/runs/42/jobs"])
+
+    def test_access_classification_survives_attribution_without_hiding_invalid_evidence(self):
+        for failure, handled in [
+            (EvidenceUnavailable("HTTP 404"), True),
+            (OSError("unexpected local failure"), False),
+            (ValueError("ambiguous package"), False),
+        ]:
+            def unavailable(row):
+                raise failure
+
+            with self.subTest(failure=failure), self.assertRaises(PipelineValidationError) as caught:
+                attribute_stable({"measurements": [measurement()]}, [], unavailable)
+            self.assertEqual(isinstance(caught.exception, CollectionUnavailable), handled)
+            self.assertEqual(caught.exception.diagnostic["field"], "package_evidence")
+
     def test_temporary_errors_retry_then_return_evidence(self):
         for status in (500, 502, 503, 504):
             with (

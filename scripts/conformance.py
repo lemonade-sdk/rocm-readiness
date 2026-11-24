@@ -1696,11 +1696,13 @@ def validate_dataset(
     def sync(value, path, prefix="/sync"):
         _check(
             isinstance(value, dict)
-            and set(value)
-            == {"attempted_at", "status", "last_successful_at", "errors"},
+            and set(value) in (
+                {"attempted_at", "status", "last_successful_at", "errors"},
+                {"attempted_at", "status", "last_successful_at", "errors", "attempts"},
+            ),
             path,
             prefix,
-            "sync requires exact attempt/status/last-success/errors fields",
+            "sync requires attempt/status/last-success/errors and optional attempts",
         )
         _time(value["attempted_at"], path, prefix + "/attempted_at")
         if value["last_successful_at"] is not None:
@@ -1714,7 +1716,8 @@ def validate_dataset(
         errors = sequence(value["errors"], path, prefix + "/errors")
         _check(
             all(
-                set(err) == {"source_id", "record", "field", "reason"}
+                isinstance(err, dict)
+                and set(err) == {"source_id", "record", "field", "reason"}
                 and all(isinstance(x, str) for x in err.values())
                 for err in errors
             ),
@@ -1729,6 +1732,23 @@ def validate_dataset(
                 prefix,
                 "successful attempts have no errors and set last_successful_at to attempted_at",
             )
+        if "attempts" in value:
+            for i, attempt in enumerate(sequence(value["attempts"], path, prefix + "/attempts")):
+                location = f"{prefix}/attempts/{i}"
+                _check(
+                    isinstance(attempt, dict)
+                    and set(attempt) == {"attempted_at", "status", "errors"},
+                    path, location, "attempt requires timestamp/status/errors",
+                )
+                sync({
+                    **attempt,
+                    "last_successful_at": attempt["attempted_at"] if attempt["status"] == "success" else None,
+                }, path, location)
+                _check(
+                    datetime.fromisoformat(attempt["attempted_at"].replace("Z", "+00:00"))
+                    <= datetime.fromisoformat(value["attempted_at"].replace("Z", "+00:00")),
+                    path, location, "recorded attempt cannot follow latest attempt",
+                )
 
     if "sync" in index:
         sync(index["sync"], "index.json")

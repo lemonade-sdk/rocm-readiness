@@ -10,9 +10,9 @@ import time
 from urllib.parse import urlparse
 
 if __package__:
-    from .validation import PipelineValidationError
+    from .validation import CollectionUnavailable, PipelineValidationError
 else:
-    from validation import PipelineValidationError
+    from validation import CollectionUnavailable, PipelineValidationError
 
 PACKAGE = re.compile(
     r"https://github\.com/([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)/releases/download/"
@@ -230,18 +230,38 @@ def _matches(row, evidence):
     )
 
 
+class EvidenceUnavailable(OSError):
+    """GitHub could not provide the requested benchmark evidence."""
+
+
 def _gh(args):
     for attempt in range(3):
-        process = subprocess.run(
-            ["gh", *args], capture_output=True, text=True, timeout=60, check=False
-        )
+        try:
+            process = subprocess.run(
+                ["gh", *args], capture_output=True, text=True, timeout=60, check=False
+            )
+        except subprocess.TimeoutExpired as error:
+            raise EvidenceUnavailable("benchmark job evidence access timed out") from error
         transient = re.search(r"\bHTTP (500|502|503|504)\b", process.stderr)
         if process.returncode == 0 or not transient or attempt == 2:
             break
         time.sleep(2 ** attempt)
     if process.returncode:
         http_status = re.search(r"HTTP [0-9]{3}", process.stderr)
-        raise OSError(
+        transport_error = re.search(
+            r"dial tcp|TLS handshake timeout|i/o timeout|connection reset by peer|"
+            r"error connecting to api\.github\.com",
+            process.stderr,
+        )
+        error_type = (
+            EvidenceUnavailable
+            if transport_error or (
+                http_status and int(http_status[0].split()[1]) in
+                (401, 403, 404, 408, 410, 429, 500, 502, 503, 504)
+            )
+            else OSError
+        )
+        raise error_type(
             f"benchmark job evidence access failed (exit {process.returncode}"
             + (f", {http_status[0]}" if http_status else "")
             + "); authenticated GitHub log access may be required"
@@ -723,7 +743,12 @@ def attribute_stable(
                 TypeError,
                 subprocess.TimeoutExpired,
             ) as error:
-                raise PipelineValidationError(
+                error_type = (
+                    CollectionUnavailable
+                    if isinstance(error, EvidenceUnavailable)
+                    else PipelineValidationError
+                )
+                raise error_type(
                     row["source_id"],
                     row["source_pointer"],
                     "package_evidence",

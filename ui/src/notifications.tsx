@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
-import { readJson, resolveDatasetPath, type Fetcher, type Session, type Sync } from "./data";
+import { readJson, resolveDatasetPath, type CollectionAttempt, type Fetcher, type Session, type Sync } from "./data";
 import sources from "../../sources.json";
 import "./notifications.css";
 
@@ -109,10 +109,21 @@ function collectionFailurePresentation(entry?: Sync["errors"][number]): Assessme
   return { finding, investigation: null, evidence };
 }
 
-function CollectionFailureDetails({ sync }: { sync: Sync }) {
-  const presentations = groupPresentations((sync.errors.length ? sync.errors : [undefined]).map(collectionFailurePresentation));
+function CollectionFailureDetails({ attempts, current, recovered }: {
+  attempts: CollectionAttempt[]; current: boolean; recovered: boolean;
+}) {
+  const presentations = groupPresentations(attempts.flatMap(attempt =>
+    (attempt.errors.length ? attempt.errors : [undefined]).map(entry => {
+      const presentation = collectionFailurePresentation(entry);
+      return { ...presentation, finding: current ? presentation.finding :
+        presentation.finding.replace(/^No new dashboard data:/, "Collection attempt failed:") };
+    }),
+  ));
   return <div className="collection-failure">
     {presentations.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
+    {recovered && <AssessmentExplanation presentation={{
+      finding: "A later collection attempt succeeded on this date.", investigation: null, evidence: [],
+    }} />}
   </div>;
 }
 
@@ -223,15 +234,24 @@ export function CellExplanation({ scope, observation, missingObservation = false
   const actionable = matching.filter((assessment) => assessment.actionable);
   const matches = groupPresentations((actionable.length ? actionable : matching).map(assessment => assessmentPresentation(assessment, state.dryRun)));
   const attemptedAt = state.sync?.status === "failed" ? Date.parse(state.sync.attempted_at) : NaN;
-  const collectionFailure = missingObservation && !matches.length && scopes.length > 0 &&
+  const currentFailure =
     Number.isFinite(attemptedAt) && state.collectedAt && Date.parse(state.collectedAt) <= attemptedAt &&
-    scopes.every(item => item.date === new Date(attemptedAt).toISOString().slice(0, 10))
-    ? state.sync : undefined;
-  if (!observation && !matches.length && !state.message && !collectionFailure) return null;
+    scopes.every(item => item.date === new Date(attemptedAt).toISOString().slice(0, 10));
+  const attempts = state.sync ? [...(state.sync.attempts ?? []), state.sync] : [];
+  const datedAttempts = missingObservation && !matches.length && scopes.length > 0
+    ? attempts.filter(attempt => scopes.every(item =>
+      item.date === new Date(attempt.attempted_at).toISOString().slice(0, 10)))
+    : [];
+  const failures = datedAttempts.filter(attempt => attempt.status === "failed" &&
+    (state.sync?.attempts !== undefined || currentFailure));
+  const recovered = failures.length > 0 && datedAttempts.some(attempt =>
+    attempt.status === "success" && failures.every(failure =>
+      Date.parse(attempt.attempted_at) > Date.parse(failure.attempted_at)));
+  if (!observation && !matches.length && !state.message && !failures.length) return null;
   const finding = state.message ?? (!matches.length ? observation : undefined);
   return <div className="cell-explanation">
-    {!collectionFailure && finding && <AssessmentExplanation status={Boolean(state.message)} presentation={{ finding, investigation: null, evidence: [] }} />}
-    {collectionFailure && <CollectionFailureDetails sync={collectionFailure} />}
+    {!failures.length && finding && <AssessmentExplanation status={Boolean(state.message)} presentation={{ finding, investigation: null, evidence: [] }} />}
+    {failures.length > 0 && <CollectionFailureDetails attempts={failures} current={Boolean(currentFailure)} recovered={recovered} />}
     {!state.message && matches.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
   </div>;
 }

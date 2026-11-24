@@ -21,7 +21,7 @@ if __package__:
         _validate_comparison,
         _systems_for,
     )
-    from .sync import load_last_success
+    from .sync import load_last_success, retain_attempts
     from .upstream import validate_upstream_dataset
 else:
     from diagnosis import validate_cache
@@ -33,7 +33,7 @@ else:
         _validate_comparison,
         _systems_for,
     )
-    from sync import load_last_success
+    from sync import load_last_success, retain_attempts
     from upstream import validate_upstream_dataset
 
 
@@ -504,9 +504,16 @@ def publish(
                 ],
             }
 
+        handled_failure = False
         try:
             sync = valid_sync(dataset)
-            if collection_result != "success" and (
+            if prior_sync and datetime.fromisoformat(
+                sync["attempted_at"].replace("Z", "+00:00")
+            ) < datetime.fromisoformat(
+                prior_sync["attempted_at"].replace("Z", "+00:00")
+            ):
+                raise ValueError("stale sync attempt predates the published status")
+            if (collection_result != "success" or sync["status"] == "failed") and (
                 sync["status"] != "failed"
                 or (
                     prior_sync
@@ -519,14 +526,9 @@ def publish(
                 )
             ):
                 raise ValueError("fresh failure metadata unavailable")
-            if prior_sync and datetime.fromisoformat(
-                sync["attempted_at"].replace("Z", "+00:00")
-            ) < datetime.fromisoformat(
-                prior_sync["attempted_at"].replace("Z", "+00:00")
-            ):
-                raise ValueError("stale sync attempt predates the published status")
             if sync["status"] == "failed":
                 sync = {**sync, "last_successful_at": last_success}
+                handled_failure = collection_result == "success"
         except (ValueError, KeyError, TypeError, OSError) as error:
             if collection_result != "success":
                 error = f"collection job {collection_result}; fresh failure metadata unavailable: {error}"
@@ -540,6 +542,7 @@ def publish(
             except (ValueError, KeyError, TypeError, OSError) as error:
                 success = False
                 sync = failure(error)
+        sync = retain_attempts(sync, prior_sync)
         if success:
             git(root, "switch", "-c", "dashboard-data")
             data_root = root / "data"
@@ -573,6 +576,7 @@ def publish(
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if relative == "index.json":
                     index = read_json(dataset / relative)
+                    index["sync"] = sync
                     for source in index.get("sources", []):
                         source.pop("snapshot", None)
                     write(target, index)
@@ -626,7 +630,8 @@ def publish(
             resolved,
             f"HEAD:{ref}",
         )
-        return success
+        # A recorded acquisition failure is a published result, not a CI defect.
+        return success or handled_failure
     finally:
         tmp.cleanup()
 

@@ -3,6 +3,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from scripts import publish
 from scripts.attribution import attribute_stable
 from tests.test_attribution import evidence, measurement
 from scripts.dataset import write_dataset
+from scripts.sync import publish_sync
 from tests.test_dataset import build, normalized
 
 
@@ -43,6 +45,66 @@ def seed_remote(root):
 
 
 class PublicationTest(unittest.TestCase):
+    def test_failure_history_survives_publication_restore_and_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = seed_remote(root)
+            dataset = root / "dataset"
+            state = root / "state.json"
+            previous = root / "previous"
+            error = {
+                "source_id": "lemonade-performance", "record": "/item",
+                "field": "package_evidence", "reason": "run=42 engine=b123: offline",
+            }
+
+            def cycle(time, status, collection_result="success"):
+                publish.restore(str(remote), "main", root / "work", previous, state)
+                sync = publish_sync(dataset, time, status, None,
+                                    [error] if status == "failed" else [])
+                if status == "success":
+                    (dataset / "index.json").write_text(json.dumps({
+                        "schema_version": 2, "attribution_version": 2,
+                        "generated_at": time, "collection_status": "complete",
+                        "versions": [], "sources": [], "sync": sync,
+                    }))
+                self.assertEqual(
+                    publish.publish(str(remote), "main", "owner/repo", root / "work",
+                                    dataset, state, collection_result=collection_result),
+                    status == "success" or collection_result == "success",
+                )
+                publish.restore(str(remote), "main", root / "work", previous, state)
+                return json.loads((previous / "latest.json").read_text())
+
+            good = cycle("2026-11-22T11:00:00Z", "success")
+            failed = cycle("2026-11-23T11:00:00Z", "failed", "failure")
+            next_day = cycle("2026-11-24T11:00:00Z", "failed")
+            self.assertEqual(next_day["data_commit"], good["data_commit"])
+            self.assertEqual(next_day["sync"]["last_successful_at"], "2026-11-22T11:00:00Z")
+            self.assertEqual(next_day["sync"]["attempts"][-2]["errors"], [error])
+            self.assertEqual(
+                json.loads((previous / "sync.json").read_text())["sync"],
+                next_day["sync"],
+            )
+            recovered = cycle("2026-11-24T12:00:00Z", "success")
+            self.assertNotEqual(recovered["data_commit"], failed["data_commit"])
+            self.assertEqual(recovered["sync"]["attempts"][:-1], next_day["sync"]["attempts"])
+            pinned = json.loads((previous / "index.json").read_text())
+            self.assertEqual(pinned["sync"], recovered["sync"])
+            # An unusable collection artifact must still retain the live history.
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            with patch.object(publish, "datetime") as clock:
+                clock.now.return_value = datetime(2026, 11, 24, 13, tzinfo=timezone.utc)
+                clock.fromisoformat = datetime.fromisoformat
+                self.assertFalse(publish.publish(
+                    str(remote), "main", "owner/repo", root / "work",
+                    root / "missing-artifact", state, collection_result="failure",
+                ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            latest = json.loads((previous / "latest.json").read_text())
+            self.assertEqual(latest["data_commit"], recovered["data_commit"])
+            self.assertEqual(latest["sync"]["attempts"][:-1], recovered["sync"]["attempts"])
+            self.assertEqual(latest["sync"]["attempts"][-1]["errors"][0]["field"], "publication")
+
     def test_two_cycles_and_failure_preserve_data(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -53,8 +115,9 @@ class PublicationTest(unittest.TestCase):
             prev = root / "previous"
 
             def write(status):
+                time = "2026-01-01T00:00:00Z" if status == "success" else "2026-01-02T00:00:00Z"
                 sync = {
-                    "attempted_at": "2026-01-01T00:00:00Z",
+                    "attempted_at": time,
                     "status": status,
                     "last_successful_at": (
                         "2026-01-01T00:00:00Z" if status == "success" else None
@@ -177,7 +240,7 @@ class PublicationTest(unittest.TestCase):
             self.assertNotEqual(first, second)
             before_failure = publish.remote_head(str(remote), "main")
             write("failed")
-            self.assertFalse(
+            self.assertTrue(
                 publish.publish(
                     str(remote),
                     "main",
@@ -228,9 +291,10 @@ class PublicationTest(unittest.TestCase):
             )
             sync_path = dataset / "sync.json"
             failed = json.loads(sync_path.read_text())
+            failed["sync"]["attempted_at"] = "2026-01-03T00:00:00Z"
             failed["sync"]["last_successful_at"] = "2099-01-01T00:00:00Z"
             sync_path.write_text(json.dumps(failed))
-            self.assertFalse(
+            self.assertTrue(
                 publish.publish(
                     str(remote),
                     "main",
@@ -267,6 +331,26 @@ class PublicationTest(unittest.TestCase):
                 latest["sync"]["attempted_at"], pointer["sync"]["attempted_at"]
             )
             self.assertIn("stale", latest["sync"]["errors"][0]["reason"])
+
+    def test_successful_job_cannot_republish_stale_failure_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = seed_remote(root)
+            dataset = root / "dataset"
+            state = root / "state.json"
+            previous = root / "previous"
+            publish_sync(dataset, "2026-01-01T00:00:00Z", "failed", None, [])
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertTrue(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", dataset, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertFalse(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", dataset, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            sync = json.loads((previous / "sync.json").read_text())["sync"]
+            self.assertIn("fresh failure metadata unavailable", sync["errors"][0]["reason"])
 
     def test_version_history_and_snapshot_allowlist(self):
         with tempfile.TemporaryDirectory() as tmp:

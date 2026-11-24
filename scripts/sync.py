@@ -1,6 +1,6 @@
 """Read and publish collection synchronization status."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -31,6 +31,79 @@ def _read(path):
         ) from error
 
 
+def _valid_attempt(value):
+    return (
+        isinstance(value, dict)
+        and set(value) == {"attempted_at", "status", "errors"}
+        and _valid_time(value["attempted_at"])
+        and value["status"] in ("success", "failed")
+        and isinstance(value["errors"], list)
+        and all(
+            isinstance(error, dict)
+            and set(error) == {"source_id", "record", "field", "reason"}
+            and all(isinstance(item, str) for item in error.values())
+            for error in value["errors"]
+        )
+        and (value["status"] != "success" or not value["errors"])
+    )
+
+
+def validate_sync(sync, path):
+    good = (
+        isinstance(sync, dict)
+        and set(sync) in (
+            {"attempted_at", "status", "last_successful_at", "errors"},
+            {"attempted_at", "status", "last_successful_at", "errors", "attempts"},
+        )
+        and _valid_attempt({key: sync[key] for key in ("attempted_at", "status", "errors")})
+        and (
+            sync["last_successful_at"] is None
+            or _valid_time(sync["last_successful_at"])
+        )
+        and (
+            sync["status"] != "success"
+            or sync["last_successful_at"] == sync["attempted_at"]
+        )
+    )
+    if good and "attempts" in sync:
+        good = isinstance(sync["attempts"], list) and all(
+            _valid_attempt(attempt)
+            and datetime.fromisoformat(attempt["attempted_at"].replace("Z", "+00:00"))
+            <= datetime.fromisoformat(sync["attempted_at"].replace("Z", "+00:00"))
+            for attempt in sync["attempts"]
+        )
+    if not good:
+        raise PipelineValidationError(
+            "pipeline", str(path), "sync", "invalid sync metadata"
+        )
+    return sync
+
+
+def retain_attempts(sync, *previous):
+    """Keep observed attempts in the calendar's 14 UTC dates, not daily verdicts."""
+    now = datetime.fromisoformat(sync["attempted_at"].replace("Z", "+00:00"))
+    start = now.date() - timedelta(days=13)
+    attempts = {}
+    for record in (*previous, sync):
+        if record is None:
+            continue
+        current = {key: record[key] for key in ("attempted_at", "status", "errors")}
+        for attempt in [*record.get("attempts", []), current]:
+            when = datetime.fromisoformat(attempt["attempted_at"].replace("Z", "+00:00"))
+            if start <= when.date() <= now.date() and when <= now:
+                key = json.dumps(attempt, sort_keys=True)
+                attempts[key] = attempt
+    return {
+        **sync,
+        "attempts": sorted(
+            attempts.values(),
+            key=lambda attempt: datetime.fromisoformat(
+                attempt["attempted_at"].replace("Z", "+00:00")
+            ),
+        ),
+    }
+
+
 def load_last_success(destination, previous_data=None):
     roots = [Path(destination)]
     if previous_data is not None and Path(previous_data) != roots[0]:
@@ -40,39 +113,12 @@ def load_last_success(destination, previous_data=None):
         if not path.exists():
             continue
         data = _read(path)
-        sync = (
+        sync = validate_sync(
             data.get("sync")
             if isinstance(data, dict) and data.get("schema_version") == 1
-            else None
+            else None,
+            path,
         )
-        good = (
-            isinstance(sync, dict)
-            and set(sync) == {"attempted_at", "status", "last_successful_at", "errors"}
-            and sync.get("status") in ("success", "failed")
-            and _valid_time(sync.get("attempted_at"))
-            and (
-                sync.get("last_successful_at") is None
-                or _valid_time(sync["last_successful_at"])
-            )
-            and isinstance(sync.get("errors"), list)
-        )
-        good = good and all(
-            isinstance(error, dict)
-            and set(error) == {"source_id", "record", "field", "reason"}
-            and all(isinstance(value, str) for value in error.values())
-            for error in sync.get("errors", [])
-        )
-        good = good and (
-            sync["status"] != "success"
-            or (
-                sync["last_successful_at"] == sync["attempted_at"]
-                and not sync["errors"]
-            )
-        )
-        if not good:
-            raise PipelineValidationError(
-                "pipeline", str(path), "sync", "invalid sync metadata"
-            )
         if sync["last_successful_at"] is not None:
             return sync["last_successful_at"]
     for root in roots:

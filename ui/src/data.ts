@@ -43,10 +43,9 @@ const testsSchema = z
       value.missing !== undefined;
     return complete ? sum === value.total : sum <= value.total;
   }, "Check counts do not match the total");
-export const syncSchema = z.object({
+const collectionAttemptSchema = z.object({
   attempted_at: time,
   status: z.enum(["success", "failed"]),
-  last_successful_at: time.nullable(),
   errors: z.array(
     z.object({
       source_id: z.string(),
@@ -56,6 +55,16 @@ export const syncSchema = z.object({
     }),
   ),
 });
+export const syncSchema = collectionAttemptSchema.extend({
+  last_successful_at: time.nullable(),
+  attempts: z.array(collectionAttemptSchema.refine(
+    attempt => attempt.status !== "success" || attempt.errors.length === 0,
+    "Successful collection attempts cannot contain errors",
+  )).optional(),
+}).refine(sync => !sync.attempts?.some(
+  attempt => Date.parse(attempt.attempted_at) > Date.parse(sync.attempted_at),
+), "Recorded collection attempt cannot follow latest attempt");
+export type CollectionAttempt = z.infer<typeof collectionAttemptSchema>;
 const pointerSchema = z.object({
   schema_version: z.literal(1),
   data_commit: z

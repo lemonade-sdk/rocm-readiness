@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
-import type { Sync } from "./data";
+import { syncSchema, type Sync } from "./data";
 import { fixtureFetch, index, indexUrl, pointer } from "./fixtures";
 import { upstreamFetch } from "./upstream/fixtures";
 
@@ -60,6 +60,57 @@ it("keeps an older empty date free of unrelated collection context", async () =>
   expect(within(tooltip).getAllByRole("term").map(term => term.textContent)).toEqual(["Finding"]);
   expect(tooltip).not.toHaveTextContent("No new dashboard data:");
   expect(within(tooltip).queryByRole("link", { name: "Benchmark run" })).not.toBeInTheDocument();
+});
+
+it.each(["readiness", "upstream"])("retains yesterday's observed collection evidence after rollover in %s", async track => {
+  vi.setSystemTime(new Date("2026-11-03T15:00:00Z"));
+  mount({ ...failure, attempted_at: "2026-11-03T11:00:00Z", attempts: [failure] }, track);
+  const tooltip = await openMissingDay(track, "2026-11-02");
+  expect(tooltip).toHaveTextContent("Collection attempt failed:");
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
+  expect(within(tooltip).getByRole("link", { name: "Benchmark run" })).toHaveAttribute(
+    "href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006",
+  );
+});
+
+it("retains same-day failures and distinct run evidence after successful recovery", async () => {
+  const success: Sync = { ...failure, attempted_at: "2026-11-02T13:00:00Z",
+    last_successful_at: "2026-11-02T13:00:00Z", status: "success", errors: [] };
+  mount({ ...success, attempts: [failure, {
+    ...failure, attempted_at: "2026-11-02T12:00:00Z",
+    errors: [{ ...failure.errors[0], reason: failure.errors[0].reason.replace("44854194006", "44854194007") }],
+  }, success] }, "readiness", { [indexUrl]: { ...index, generated_at: success.attempted_at } });
+  const tooltip = await openMissingDay("readiness");
+  expect(tooltip).toHaveTextContent("Collection attempt failed:");
+  expect(tooltip).toHaveTextContent("A later collection attempt succeeded on this date.");
+  expect(tooltip).not.toHaveTextContent("No new dashboard data:");
+  expect(within(tooltip).getAllByRole("link", { name: "Benchmark run" }).map(link => link.getAttribute("href")))
+    .toEqual(["https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006",
+      "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194007"]);
+});
+
+it("does not claim recovery when another failure followed the success", async () => {
+  mount({ ...failure, attempted_at: "2026-11-02T14:00:00Z", attempts: [failure, {
+    attempted_at: "2026-11-02T13:00:00Z", status: "success", errors: [],
+  }] });
+  const tooltip = await openMissingDay("readiness");
+  expect(tooltip).toHaveTextContent("No new dashboard data:");
+  expect(tooltip).not.toHaveTextContent("A later collection attempt succeeded");
+});
+
+it("does not copy recorded history to an unobserved date", async () => {
+  mount({ ...failure, attempts: [failure] });
+  const tooltip = await openMissingDay("readiness", "2026-11-01");
+  expect(tooltip).not.toHaveTextContent("Collection attempt failed:");
+  expect(within(tooltip).queryByRole("link", { name: "Benchmark run" })).not.toBeInTheDocument();
+});
+
+it("rejects malformed and future attempt history while accepting legacy sync", () => {
+  expect(syncSchema.parse(failure)).toEqual(failure);
+  for (const attempts of [[{}], [{ ...failure, attempted_at: "2026-11-03T11:00:00Z" }],
+    [{ ...failure, status: "success" }]]) {
+    expect(syncSchema.safeParse({ ...failure, attempts }).success).toBe(false);
+  }
 });
 
 it("does not add collection context to a recorded healthy build", async () => {

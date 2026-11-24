@@ -845,6 +845,18 @@ class GitHubEvidenceRetryTests(unittest.TestCase):
             self.assertEqual(isinstance(caught.exception, CollectionUnavailable), handled)
             self.assertEqual(caught.exception.diagnostic["field"], "package_evidence")
 
+    def test_optional_benchmark_excludes_only_inaccessible_runs(self):
+        good = measurement()
+        missing = measurement(run_id="43", run_url=good["run_url"].replace("/42", "/43"))
+        output = {"measurements": [missing, good, dict(missing)]}
+        unavailable = {}
+        with patch("scripts.attribution.resolve_package", side_effect=EvidenceUnavailable("HTTP 404")) as resolver:
+            attribute_stable(output, [evidence()], resolver, unavailable=unavailable)
+            resolver.assert_called_once_with(missing)
+        self.assertEqual(output["measurements"], [good])
+        self.assertEqual(good["package_url"], PACKAGE)
+        self.assertEqual(next(iter(unavailable.values()))["run_url"], missing["run_url"])
+
     def test_temporary_errors_retry_then_return_evidence(self):
         for status in (500, 502, 503, 504):
             with (

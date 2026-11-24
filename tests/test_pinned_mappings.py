@@ -237,6 +237,7 @@ class PinnedMappingTests(unittest.TestCase):
                         "rocm_version": "10.1",
                         "overview": "rocm/10.1/overview.json",
                         "build_count": 5,
+                        "build_days": ["2026-10-27", "2026-10-29"],
                     }
                 ],
             )

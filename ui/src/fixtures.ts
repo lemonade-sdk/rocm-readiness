@@ -22,11 +22,13 @@ export const index = {
       rocm_version: "10.1",
       overview: "rocm/10.1/overview.json",
       build_count: 26,
+      build_days: ["2026-10-29"],
     },
     {
       rocm_version: "10.2",
       overview: "rocm/10.2/overview.json",
       build_count: 12,
+      build_days: ["2026-10-29"],
     },
   ],
 };

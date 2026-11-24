@@ -228,7 +228,7 @@ def _write_json(path, value):
         dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
     )
     try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
             json.dump(value, handle, **JSON_OPTIONS)
             handle.write("\n")
         os.replace(temporary, path)
@@ -1089,6 +1089,10 @@ def write_dataset(
                 "rocm_version": version,
                 "overview": f"rocm/{version}/overview.json",
                 "build_count": count,
+                "build_days": sorted({
+                    _timestamp(build["generated_at"]).astimezone(timezone.utc).date().isoformat()
+                    for build in grouped.get(version, [])
+                }),
                 **({"release": releases[version]} if version in releases else {}),
             }
         )

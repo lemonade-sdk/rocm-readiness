@@ -218,8 +218,9 @@ function PackageCell({ build, selected, fetcher, checkLink }: {
   </div>;
 }
 
-export function QualificationMatrix({ builds, fetcher, selected, performanceMeasurements, openPackage, dataCommit, checkLink }: {
+export function QualificationMatrix({ builds, engines = [], fetcher, selected, performanceMeasurements, openPackage, dataCommit, checkLink }: {
   builds: Build[];
+  engines?: { id: string; label: string }[];
   fetcher: Fetcher;
   selected: Build | null;
   openPackage?: boolean;
@@ -229,6 +230,7 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
 }) {
   const phone = usePhoneLayout();
   const title = useId();
+  const engineLabel = (id: string) => engines.find((engine) => engine.id === id)?.label ?? id;
   const selectedId = selected ? buildIdentity(selected) : null;
   const reference = selected && checkLink?.revision ? pinnedReport(selected) : null;
   const revisionMismatch = checkLink?.revision && (typeof reference === "string" || reference?.commit !== checkLink.revision);
@@ -327,13 +329,13 @@ export function QualificationMatrix({ builds, fetcher, selected, performanceMeas
           {versionRuns.filter(([, packages]) => packages[0].channel === "stable").map(([key, packages]) => {
             const build = packages[0];
             return <section className="qualification-mobile-release" key={key} aria-label={`Build ${build.tag ?? build.build_id}`}>
-              <header className="qualification-mobile-group-heading"><h4>{build.tag ?? build.build_id}</h4><p>{build.engine === "llamacpp" ? "llama.cpp" : build.engine} · Stable · {calendarDate(build.generated_at)}</p></header>
+              <header className="qualification-mobile-group-heading"><h4>{build.tag ?? build.build_id}</h4><p>{engineLabel(build.engine)} · Stable · {calendarDate(build.generated_at)}</p></header>
               {mobileCards(packages, false)}
               {checkLegend}
             </section>;
           })}
           {[...families].sort(([a], [b]) => checkOrder.compare(a, b)).map(([family, packages]) => <section className="qualification-mobile-release" key={family} aria-label={`GPU family ${family}`}>
-            <header className="qualification-mobile-group-heading"><h4>{family}</h4><p>{[...new Set(packages.map((build) => build.engine === "llamacpp" ? "llama.cpp" : build.engine))].join(", ")} · {[...new Set(packages.map((build) => build.channel === "nightly" ? "Nightly" : build.channel))].join(", ")}</p></header>
+            <header className="qualification-mobile-group-heading"><h4>{family}</h4><p>{[...new Set(packages.map((build) => engineLabel(build.engine)))].join(", ")} · {[...new Set(packages.map((build) => build.channel === "nightly" ? "Nightly" : build.channel))].join(", ")}</p></header>
             {mobileCards(packages, true)}
             {checkLegend}
           </section>)}

@@ -4,7 +4,7 @@ This reader deliberately does not call the dataset writer or its selection helpe
 Diagnostics name the output file, JSON pointer and independent mapping evidence.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import hashlib
 import math
@@ -621,11 +621,21 @@ def validate_dataset(
     needs_execution = (
         require_execution_evidence
         and config is not None
-        and any(s.get("execution_details") for s in config["sources"])
+        and any(
+            s.get("execution_details") and source_map[s["id"]]["status"] != "awaiting_data"
+            for s in config["sources"]
+        )
     )
     if needs_execution or (root / "provenance/executions.json").exists():
         raw_execution = read("provenance/executions.json")
         package_execution = read("provenance/packages.json")
+        _check(
+            package_execution.get("unavailable_benchmarks", []) == [
+                entry for source in sources for entry in source.get("unavailable_benchmarks", [])
+            ],
+            "provenance/packages.json", "/unavailable_benchmarks",
+            "unavailable execution evidence must match published source diagnostics",
+        )
     version_names = [row.get("rocm_version") for row in versions]
     policy = index.get("readiness")
     configured_policy = config.get("readiness") if config is not None else None
@@ -836,6 +846,7 @@ def validate_dataset(
         )
         history = sequence(overview.get("history"), overview_path, "/history")
         builds, months = [], []
+        build_days = set()
         for hpos, chunk_entry in enumerate(history):
             month = chunk_entry.get("month")
             _check(
@@ -901,6 +912,7 @@ def validate_dataset(
                     row["source_id"],
                 )
                 instant = _time(row.get("generated_at"), path, ptr + "/generated_at")
+                build_days.add(instant.astimezone(timezone.utc).date().isoformat())
                 _check(
                     instant.strftime("%Y-%m") == month,
                     path,
@@ -1088,6 +1100,13 @@ def validate_dataset(
             f"/versions/{vpos}/build_count",
             f"count must equal {len(builds)} retained identities in {overview_path} history",
         )
+        if "build_days" in entry:
+            _check(
+                entry["build_days"] == sorted(build_days),
+                "index.json",
+                f"/versions/{vpos}/build_days",
+                "build days must match the unique UTC production dates in retained history",
+            )
         if "release_inventory" in index:
             release = entry["release"]
             for archive in release["archives"]:

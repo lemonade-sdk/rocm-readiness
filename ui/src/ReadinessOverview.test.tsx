@@ -38,19 +38,21 @@ function mount(catalog: unknown, fixtures: Record<string, unknown> = {}) {
   );
 }
 
-it("renders supplied catalog order without choosing a release anchor or filtering versions", async () => {
+it("renders only the declared latest stable and newer populated nightlies in a historical catalog", async () => {
   const versions = ["10.1", "10.2", "10.10"];
   const fixtures: Record<string, unknown> = {};
   for (const version of versions) {
     fixtures[new URL(`rocm/${version}/overview.json`, indexUrl).href] =
       overview(version);
-    fixtures[new URL(`rocm/${version}/history/2026-10.json`, indexUrl).href] =
-      historyFixture(version);
+    const history = historyFixture(version);
+    if (version === "10.10")
+      for (const build of history.builds) build.channel = "nightly";
+    fixtures[new URL(`rocm/${version}/history/2026-10.json`, indexUrl).href] = history;
   }
   mount(
     {
       ...index,
-      readiness: { stable_anchor: "10.1" },
+      readiness: { stable_anchor: "10.2", historical_stable_tracks: ["10.1"] },
       versions: versions.map((v) => ({
         rocm_version: v,
         overview: `rocm/${v}/overview.json`,
@@ -59,10 +61,10 @@ it("renders supplied catalog order without choosing a release anchor or filterin
     },
     fixtures,
   );
-  await screen.findByRole("heading", { name: "ROCm 10.1 · Latest Stable" });
+  await screen.findByRole("heading", { name: "ROCm 10.2 · Latest Stable" });
   expect(
     screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent),
-  ).toEqual(["ROCm 10.1 · Latest Stable", "ROCm 10.2 · Nightly", "ROCm 10.10 · Nightly"]);
+  ).toEqual(["ROCm 10.2 · Latest Stable", "ROCm 10.10 · Nightly"]);
   expect(
     within(screen.getByRole("region", { name: "ROCm 10.2" })).getByRole(
       "heading",

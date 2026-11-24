@@ -201,7 +201,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       renderDay={(day, os) => {
         const packages = trendBuilds.filter((build) => buildDate(build) === day && build.os === os && build.channel === trendTrack);
         return packages.length ? <>
-          <QualificationMatrix builds={packages} fetcher={fetcher} selected={selected && packages.includes(selected) ? selected : null}
+          <QualificationMatrix builds={packages} engines={session.overview?.engines} fetcher={fetcher} selected={selected && packages.includes(selected) ? selected : null}
             openPackage={params.get("view") === "build" && !check}
             checkLink={tier && check ? { tier, check, revision: params.get("report_commit") } : undefined}
             dataCommit={session.pointer.data_commit} performanceMeasurements={performance.matches} />
@@ -215,6 +215,7 @@ export function EngineBuilds({ session, history, params, fetcher, onNavigate, ve
       {measuredOnly && performance.retry && <button type="button" onClick={performance.retry}>Retry performance</button>}
     </div> : <QualificationMatrix
       builds={rows}
+      engines={session.overview?.engines}
       fetcher={fetcher}
       selected={selected && rows.includes(selected) ? selected : null}
       openPackage={params.get("view") === "build" && !check}

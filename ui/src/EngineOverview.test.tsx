@@ -171,7 +171,9 @@ it("shows only the last fourteen UTC dates and leaves no-build dates empty", () 
   expect(
     screen.queryByRole("columnheader", { name: "2026-10-19 UTC" }),
   ).not.toBeInTheDocument();
-  expect(screen.getAllByRole("link")).toHaveLength(1);
+  expect(screen.getAllByRole("link", { name: /Open package qualification/ })).toHaveLength(1);
+  expect(screen.getByRole("link", { name: /Source repository for llama.cpp stable/ }))
+    .toHaveAttribute("href", "https://github.com/lemonade-sdk/llama.cpp");
   expect(screen.getAllByRole("button", { name: /No observation/ })).toHaveLength(13);
   expect(screen.getByRole("list", { name: "llama.cpp stable qualification legend" })).toHaveTextContent("No qualification observation");
 });

@@ -19,7 +19,10 @@ class ConfigurationTests(unittest.TestCase):
     def test_repository_unified_config_projects_views(self):
         readiness, upstream = self.load(json.loads((ROOT / "sources.json").read_text()))
         self.assertEqual(readiness["schema_version"], 1)
-        self.assertEqual(len(readiness["sources"]), 3)
+        sd = [source for source in readiness["sources"] if source["engine"] == "sdcpp"]
+        self.assertEqual([source["channel"] for source in sd], ["stable"])
+        self.assertEqual(sd[0]["repository"], "lemonade-sdk/stable-diffusion.cpp")
+        self.assertTrue(sd[0]["report_details"])
         self.assertEqual(len(upstream["projects"]), 6)
         self.assertEqual(upstream["projects"][0]["id"], "llamacpp")
 
@@ -84,7 +87,7 @@ class ConfigurationTests(unittest.TestCase):
             lambda c: c["sources"][0].update(project="unknown"),
             lambda c: c["sources"][0].update(adapter="github-actions-v1"),
             lambda c: c["sources"].append(
-                {**copy.deepcopy(c["sources"][3]), "id": "other-upstream"}
+                {**next(s for s in c["sources"] if s["type"] == "upstream"), "id": "other-upstream"}
             ),
             lambda c: c["views"]["readiness"]["sources"].append("unknown"),
             lambda c: c["views"]["upstream"]["sources"].append(

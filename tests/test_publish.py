@@ -70,14 +70,14 @@ class PublicationTest(unittest.TestCase):
                 self.assertEqual(
                     publish.publish(str(remote), "main", "owner/repo", root / "work",
                                     dataset, state, collection_result=collection_result),
-                    status == "success",
+                    status == "success" or collection_result == "success",
                 )
                 publish.restore(str(remote), "main", root / "work", previous, state)
                 return json.loads((previous / "latest.json").read_text())
 
             good = cycle("2026-11-22T11:00:00Z", "success")
             failed = cycle("2026-11-23T11:00:00Z", "failed", "failure")
-            next_day = cycle("2026-11-24T11:00:00Z", "failed", "failure")
+            next_day = cycle("2026-11-24T11:00:00Z", "failed")
             self.assertEqual(next_day["data_commit"], good["data_commit"])
             self.assertEqual(next_day["sync"]["last_successful_at"], "2026-11-22T11:00:00Z")
             self.assertEqual(next_day["sync"]["attempts"][-2]["errors"], [error])
@@ -115,8 +115,9 @@ class PublicationTest(unittest.TestCase):
             prev = root / "previous"
 
             def write(status):
+                time = "2026-01-01T00:00:00Z" if status == "success" else "2026-01-02T00:00:00Z"
                 sync = {
-                    "attempted_at": "2026-01-01T00:00:00Z",
+                    "attempted_at": time,
                     "status": status,
                     "last_successful_at": (
                         "2026-01-01T00:00:00Z" if status == "success" else None
@@ -239,7 +240,7 @@ class PublicationTest(unittest.TestCase):
             self.assertNotEqual(first, second)
             before_failure = publish.remote_head(str(remote), "main")
             write("failed")
-            self.assertFalse(
+            self.assertTrue(
                 publish.publish(
                     str(remote),
                     "main",
@@ -290,9 +291,10 @@ class PublicationTest(unittest.TestCase):
             )
             sync_path = dataset / "sync.json"
             failed = json.loads(sync_path.read_text())
+            failed["sync"]["attempted_at"] = "2026-01-03T00:00:00Z"
             failed["sync"]["last_successful_at"] = "2099-01-01T00:00:00Z"
             sync_path.write_text(json.dumps(failed))
-            self.assertFalse(
+            self.assertTrue(
                 publish.publish(
                     str(remote),
                     "main",
@@ -329,6 +331,26 @@ class PublicationTest(unittest.TestCase):
                 latest["sync"]["attempted_at"], pointer["sync"]["attempted_at"]
             )
             self.assertIn("stale", latest["sync"]["errors"][0]["reason"])
+
+    def test_successful_job_cannot_republish_stale_failure_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            remote = seed_remote(root)
+            dataset = root / "dataset"
+            state = root / "state.json"
+            previous = root / "previous"
+            publish_sync(dataset, "2026-01-01T00:00:00Z", "failed", None, [])
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertTrue(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", dataset, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            self.assertFalse(publish.publish(
+                str(remote), "main", "owner/repo", root / "work", dataset, state,
+            ))
+            publish.restore(str(remote), "main", root / "work", previous, state)
+            sync = json.loads((previous / "sync.json").read_text())["sync"]
+            self.assertIn("fresh failure metadata unavailable", sync["errors"][0]["reason"])
 
     def test_version_history_and_snapshot_allowlist(self):
         with tempfile.TemporaryDirectory() as tmp:

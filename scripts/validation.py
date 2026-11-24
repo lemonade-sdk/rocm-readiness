@@ -10,3 +10,7 @@ class PipelineValidationError(ValueError):
             "reason": reason,
         }
         super().__init__(f"source={source_id} record={record} field={field}: {reason}")
+
+
+class CollectionUnavailable(PipelineValidationError):
+    """An expected source access failure, not invalid data or a pipeline defect."""

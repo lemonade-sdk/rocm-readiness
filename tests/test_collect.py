@@ -6,7 +6,9 @@ import subprocess
 import sys
 import unittest
 from unittest.mock import patch
+from urllib.error import URLError
 
+from scripts.attribution import EvidenceUnavailable
 from scripts.collect import collect, normalize_qualification, normalize_performance
 from scripts.validation import PipelineValidationError
 
@@ -535,6 +537,38 @@ class CollectionTests(unittest.TestCase):
                 "https://api.github.com/repos/a/b/commits/", diagnostic["reason"]
             )
 
+    def test_cli_handles_source_access_but_not_invalid_data_or_output_write_failure(self):
+        from scripts.collect import main
+
+        for failure, expected in [(URLError("offline"), 0), (ValueError("invalid JSON"), 1)]:
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                config = self.config()
+                (root / "sources.json").write_text(json.dumps(config))
+
+                def injected(config, destination, **kwargs):
+                    def fetch(url):
+                        raise failure
+                    return collect(config, destination, fetch=fetch, now="2026-10-29T12:00:00Z")
+
+                with patch("sys.argv", [
+                    "collect", "--sources", str(root / "sources.json"),
+                    "--output-dir", str(root / "data"),
+                ]), patch("scripts.collect.collect", side_effect=injected):
+                    self.assertEqual(main(), expected)
+                sync = json.loads((root / "data/sync.json").read_text())["sync"]
+                self.assertEqual(sync["status"], "failed")
+                self.assertTrue(sync["errors"])
+
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "sources.json").write_text(json.dumps(self.config()))
+            with patch("sys.argv", [
+                "collect", "--sources", str(root / "sources.json"),
+                "--output-dir", str(root / "data"),
+            ]), patch("scripts.collect.write_json", side_effect=OSError("disk full")):
+                self.assertEqual(main(), 1)
+
     def test_malformed_root_evidence_file_overwrites_stale_complete(self):
         from scripts.collect import main
 
@@ -856,7 +890,7 @@ class StableIntegrationTests(unittest.TestCase):
             return original_collect(config, destination, fetch=fetch, **kwargs)
 
         def denied(*args, **kwargs):
-            raise PermissionError("logs unavailable")
+            raise EvidenceUnavailable("benchmark job evidence access failed (HTTP 404)")
 
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -875,7 +909,7 @@ class StableIntegrationTests(unittest.TestCase):
             ), patch("scripts.collect.collect", side_effect=injected), patch(
                 "scripts.collect.resolve_package", side_effect=denied
             ):
-                self.assertEqual(main(), 1)
+                self.assertEqual(main(), 0)
             index = json.loads((output / "index.json").read_text())
             error = json.loads((output / "errors.json").read_text())["errors"][0]
             self.assertEqual(index["collection_status"], "degraded")

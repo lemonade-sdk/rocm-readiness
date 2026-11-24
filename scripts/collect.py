@@ -29,7 +29,7 @@ if __package__:
         in_readiness_scope,
         retained,
     )
-    from .validation import PipelineValidationError
+    from .validation import CollectionUnavailable, PipelineValidationError
     from .sync import load_last_success, publish_sync
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
@@ -41,7 +41,7 @@ else:
     from attribution import attribute_stable, resolve_package
     from conformance import validate_dataset
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope, retained
-    from validation import PipelineValidationError
+    from validation import CollectionUnavailable, PipelineValidationError
     from sync import load_last_success, publish_sync
     from upstream import collect_upstream, validate_upstream_dataset
 
@@ -800,6 +800,7 @@ def collect(
     if "readiness" in config:
         output["readiness"] = dict(config["readiness"])
     commits = {}
+    unexpected_errors = False
     for source in config["sources"]:
         sid = source["id"]
         state = {
@@ -941,6 +942,9 @@ def collect(
                 )
                 continue
             output["errors"].append(diagnostic)
+            unexpected_errors |= not (
+                fetch_url and isinstance(error, (URLError, TimeoutError))
+            )
             state.update(status="error", error=str(error), diagnostic=diagnostic)
             output["collection_status"] = "degraded"
             print(f"{sid}: ERROR {diagnostic}", file=sys.stderr, flush=True)
@@ -1145,6 +1149,7 @@ def collect(
         f"{stable['awaiting_evidence_count']} awaiting evidence",
         flush=True,
     )
+    output["unexpected_errors"] = unexpected_errors
     return output
 
 
@@ -1245,12 +1250,18 @@ def main():
             )
         except OSError as write_error:
             print(f"Could not write diagnostic index: {write_error}", file=sys.stderr)
+            return 1
+        handled = (
+            isinstance(error, (CollectionUnavailable, URLError, TimeoutError))
+            and errors == [diagnostic]
+        )
         if os.environ.get("GITHUB_STEP_SUMMARY"):
             with open(
                 os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8"
             ) as handle:
-                handle.write(f"## Data collection failed\n\n{error}\n")
-        return 1
+                heading = "Data collection unavailable (recorded)" if handled else "Data collection failed"
+                handle.write(f"## {heading}\n\n{error}\n")
+        return 0 if handled else 1
     lines = [
         "## Data collection",
         "",
@@ -1280,7 +1291,7 @@ def main():
     if os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as handle:
             handle.write(summary)
-    return 0 if output["collection_status"] == "complete" else 1
+    return 0 if not output["unexpected_errors"] else 1
 
 
 if __name__ == "__main__":

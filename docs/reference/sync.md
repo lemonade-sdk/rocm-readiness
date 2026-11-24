@@ -9,7 +9,7 @@ is embedded in the [live pointer](latest.md) and successful [catalog](index.md).
 | Pointer | Type / presence | Rule |
 | --- | --- | --- |
 | `/schema_version` | integer, required; `1` | File format constant. |
-| `/sync` | object, required | Exactly the four properties below. |
+| `/sync` | object, required | The four latest-attempt properties below, plus optional `attempts`. |
 | `/sync/attempted_at` | UTC timestamp string, required | Attempt time; timezone must represent UTC. |
 | `/sync/status` | string, required | `success` or `failed`. |
 | `/sync/last_successful_at` | UTC timestamp string or null, required | Equals `attempted_at` on success. On failure, preserve the prior successful time, or null if none. |
@@ -18,10 +18,30 @@ is embedded in the [live pointer](latest.md) and successful [catalog](index.md).
 | `/sync/errors/*/record` | string, required | Source record JSON pointer or relevant file/location; may be empty for document-level errors. |
 | `/sync/errors/*/field` | string, required | Invalid/missing field or operation such as `fetch`, `tests`, or `publication`. |
 | `/sync/errors/*/reason` | string, required | Human-readable validation/access failure. |
+| `/sync/attempts` | array, optional | Observed collection attempts retained for the latest attempt's UTC date and preceding 13 dates. |
+| `/sync/attempts/*/attempted_at` | UTC timestamp string, required | Actual attempt time, no later than `/sync/attempted_at`. |
+| `/sync/attempts/*/status` | string, required | `success` or `failed`, describing this attempt, not the whole date. |
+| `/sync/attempts/*/errors` | array, required | Same structured diagnostics as `/sync/errors`; empty on success. |
 
 A diagnostic contains exactly `source_id`, `record`, `field`, and `reason`.
 The timestamps and diagnostics are local run metadata, rather than copied
 producer measurements.
+
+The publisher merges prior live attempts (including the single latest attempt in
+older metadata) with the current attempt before publishing either success or
+failure. It removes exact duplicates, preserves same-day failures and successes,
+and expires attempts outside the existing 14-date calendar window. Each attempt
+contains exactly `attempted_at`, `status`, and `errors`; tooltip prose is not
+stored. Missing or invalid collection output produces a new publication failure
+without dropping previous live evidence or replacing the last-good dataset.
+
+Calendars show failure evidence only on its recorded UTC date and only in empty
+observation cells without a matching assessment. Earlier failures remain visible
+after success, labelled as failed attempts rather than a whole-day outage; a
+same-date success after all failures is shown as recovery. Producer/run links
+continue to be derived from configured sources and validated diagnostic identifiers.
+Dates without observed attempts are not backfilled. Older metadata without
+`attempts` retains its latest-attempt-only behavior.
 
 ## Example
 

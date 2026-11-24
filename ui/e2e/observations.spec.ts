@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { fixtureFetch, index, indexUrl, pointer } from "../src/fixtures";
 import { upstreamOverview } from "../src/upstream/fixtures";
 import type { UpstreamOverview } from "../src/upstream/data";
+import type { Sync } from "../src/data";
+import { upstreamFetch } from "../src/upstream/fixtures";
 
 const live = "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/notifications.json";
 const assessment = {
@@ -34,6 +36,55 @@ async function expectConsistentStatusIconSize(page: Page) {
 test.use({ hasTouch: true });
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
+    test(`dated collection history survives rollover and recovery at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+      await page.clock.setFixedTime(new Date("2026-11-03T15:00:00Z"));
+      await page.setViewportSize({ width, height: 1000 });
+      await page.emulateMedia({ colorScheme: theme });
+      const failed: Sync = {
+        attempted_at: "2026-11-02T11:00:00Z", status: "failed",
+        last_successful_at: index.generated_at,
+        errors: [{ source_id: "lemonade-performance", record: "/item", field: "package_evidence",
+          reason: "run=44854194006 engine=b12576: benchmark job evidence access failed (HTTP 404)" }],
+      };
+      const today = { ...failed, attempted_at: "2026-11-03T11:00:00Z" };
+      let sync: Sync = { ...today, attempts: [failed, today] };
+      await page.route("https://raw.githubusercontent.com/**", async route => {
+        const fixture = upstreamFetch({
+          "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json": { ...pointer, sync },
+        });
+        const response = await fixture(route.request().url());
+        await route.fulfill({ status: response.status, body: await response.text(), contentType: "application/json" });
+      });
+      await page.goto("./?track=upstream");
+      const calendar = page.getByRole("region", { name: "llama.cpp activity calendar", exact: true });
+      const yesterday = calendar.getByRole("button", { name: "2026-11-02: No observation", exact: true });
+      if (width <= 540) await yesterday.tap();
+      else await yesterday.focus();
+      let evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: "2026-11-02: No observation", exact: true });
+      await expect(evidence).toContainText("Collection attempt failed:");
+      await expect(evidence.getByRole("link", { name: "Benchmark run" })).toHaveAttribute(
+        "href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006",
+      );
+      await expect(evidence).not.toContainText("No run collected for this date.");
+      await page.screenshot({ path: testInfo.outputPath("dated-collection-before-recovery.png"), fullPage: true });
+      sync = { attempted_at: "2026-11-03T13:00:00Z", status: "success",
+        last_successful_at: "2026-11-03T13:00:00Z", errors: [], attempts: [failed, today] };
+      await page.reload();
+      if (width <= 540) await yesterday.tap();
+      else await yesterday.focus();
+      await expect(evidence.getByRole("link", { name: "Benchmark run" })).toBeVisible();
+      if (width > 540) await page.keyboard.press("Escape");
+      const currentDay = calendar.getByRole("button", { name: "2026-11-03: No observation", exact: true });
+      if (width <= 540) await currentDay.tap();
+      else await currentDay.focus();
+      evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: "2026-11-03: No observation", exact: true });
+      await expect(evidence).toContainText("Collection attempt failed:");
+      await expect(evidence).toContainText("A later collection attempt succeeded on this date.");
+      await expect(evidence).not.toContainText("No new dashboard data:");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath("dated-collection-after-recovery.png"), fullPage: true });
+    });
+
     test(`missing observations and exact dispatch evidence at ${width}px in ${theme}`, async ({ page }, testInfo) => {
       await page.clock.setFixedTime(new Date("2026-11-02T15:00:00Z"));
       await page.setViewportSize({ width, height: 1000 });

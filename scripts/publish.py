@@ -21,7 +21,7 @@ if __package__:
         _validate_comparison,
         _systems_for,
     )
-    from .sync import load_last_success
+    from .sync import load_last_success, retain_attempts
     from .upstream import validate_upstream_dataset
 else:
     from diagnosis import validate_cache
@@ -33,7 +33,7 @@ else:
         _validate_comparison,
         _systems_for,
     )
-    from sync import load_last_success
+    from sync import load_last_success, retain_attempts
     from upstream import validate_upstream_dataset
 
 
@@ -540,6 +540,7 @@ def publish(
             except (ValueError, KeyError, TypeError, OSError) as error:
                 success = False
                 sync = failure(error)
+        sync = retain_attempts(sync, prior_sync)
         if success:
             git(root, "switch", "-c", "dashboard-data")
             data_root = root / "data"
@@ -573,6 +574,7 @@ def publish(
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if relative == "index.json":
                     index = read_json(dataset / relative)
+                    index["sync"] = sync
                     for source in index.get("sources", []):
                         source.pop("snapshot", None)
                     write(target, index)

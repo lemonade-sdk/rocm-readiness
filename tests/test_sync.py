@@ -3,11 +3,55 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.sync import load_last_success, publish_sync
+from scripts.sync import load_last_success, publish_sync, retain_attempts, validate_sync
 from scripts.validation import PipelineValidationError
 
 
 class SyncTests(unittest.TestCase):
+    def test_retains_observed_dates_retries_and_recovery_in_calendar_window(self):
+        def attempt(time, status="success", reason="offline"):
+            return {
+                "attempted_at": time,
+                "status": status,
+                "last_successful_at": time if status == "success" else None,
+                "errors": [] if status == "success" else [{
+                    "source_id": "source", "record": "/item", "field": "fetch",
+                    "reason": reason,
+                }],
+            }
+
+        first = retain_attempts(attempt("2026-11-23T11:00:00Z", "failed"))
+        second = retain_attempts(attempt("2026-11-24T11:00:00Z", "failed"), first)
+        recovered = retain_attempts(attempt("2026-11-24T12:00:00Z"), second)
+        retried = retain_attempts(
+            attempt("2026-11-24T13:00:00Z", "failed", "timeout"), recovered
+        )
+        self.assertEqual(
+            [(row["attempted_at"], row["status"]) for row in retried["attempts"]],
+            [
+                ("2026-11-23T11:00:00Z", "failed"),
+                ("2026-11-24T11:00:00Z", "failed"),
+                ("2026-11-24T12:00:00Z", "success"),
+                ("2026-11-24T13:00:00Z", "failed"),
+            ],
+        )
+        self.assertEqual(retried["attempts"][0]["errors"], first["errors"])
+        self.assertEqual(retain_attempts(retried, retried), retried)
+        pruned = retain_attempts(attempt("2026-12-07T11:00:00Z"), retried)
+        self.assertEqual(
+            [row["attempted_at"] for row in pruned["attempts"]],
+            ["2026-11-24T11:00:00Z", "2026-11-24T12:00:00Z",
+             "2026-11-24T13:00:00Z", "2026-12-07T11:00:00Z"],
+        )
+        validate_sync(pruned, "sync.json")
+        for bad in [
+            {**pruned, "attempts": [{}]},
+            {**pruned, "attempts": [attempt("2026-12-08T11:00:00Z")]},
+            {**pruned, "attempts": [{**pruned["attempts"][0], "message": "rendered prose"}]},
+        ]:
+            with self.assertRaises(PipelineValidationError):
+                validate_sync(bad, "sync.json")
+
     def test_success_failure_success_keeps_last_success(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

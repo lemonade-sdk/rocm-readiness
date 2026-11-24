@@ -64,6 +64,30 @@ class ConformanceTests(unittest.TestCase):
         )
         self.assertIn("rocm/7.14/history/2026-09.json", validate_dataset(self.root))
 
+    def test_sync_history_is_optional_and_validates_each_attempt(self):
+        index = json.loads((self.root / "index.json").read_text())
+        sync = {
+            "attempted_at": index["generated_at"], "status": "success",
+            "last_successful_at": index["generated_at"], "errors": [],
+        }
+        self.mutate("index.json", lambda data: data.update(sync=sync))
+        validate_dataset(self.root)
+        sync["attempts"] = [{
+            "attempted_at": "2026-09-30T12:00:00Z", "status": "failed",
+            "errors": [{"source_id": "pipeline", "record": "", "field": "fetch", "reason": "offline"}],
+        }]
+        self.mutate("index.json", lambda data: data.update(sync=sync))
+        validate_dataset(self.root)
+        for change in [
+            {"errors": [None]},
+            {"status": "success"},
+            {"attempted_at": "2099-01-01T00:00:00Z"},
+        ]:
+            bad = copy.deepcopy(sync)
+            bad["attempts"][0].update(change)
+            self.mutate("index.json", lambda data: data.update(sync=bad))
+            self.rejects("index.json", "/sync/attempts/0")
+
     def test_wrong_index_count_is_rejected(self):
         self.mutate("index.json", lambda d: d["versions"][0].update(build_count=99))
         self.rejects("index.json", "/versions/0/build_count")

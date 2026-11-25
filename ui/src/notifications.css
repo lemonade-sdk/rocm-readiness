@@ -2,10 +2,3 @@
 .structured-tooltip-body:has(> .cell-explanation) { row-gap: 0; }
 .assessment-explanation .assessment-status { display: inline; }
 .assessment-links { display: flex; flex-wrap: wrap; gap: .75rem; }
-.structured-tooltip-body:has(.build-tooltip-details) .cell-explanation { padding: 0 1.125rem .5rem; }
-@media (min-width: 541px) {
-  .structured-tooltip-body[data-format="details"]:has(.build-tooltip-details) .cell-explanation dl {
-    grid-template-columns: 88px minmax(0, 1fr);
-    gap: 0;
-  }
-}

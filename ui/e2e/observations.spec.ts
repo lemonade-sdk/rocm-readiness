@@ -130,7 +130,7 @@ for (const theme of ["light", "dark"] as const) {
         await warning.hover();
         const warningEvidence = page.getByRole("dialog");
         await expect(warningEvidence).toContainText("Compiler warning.");
-        const existingValue = await warningEvidence.locator(".build-tooltip-details dd").first().boundingBox();
+        const existingValue = await warningEvidence.locator(".structured-tooltip-body > dl dd").first().boundingBox();
         const addedValue = await warningEvidence.locator(".assessment-explanation dd").first().boundingBox();
         expect(Math.abs(existingValue!.x - addedValue!.x)).toBeLessThan(1);
         await expect(warningEvidence.getByRole("link", { name: "View investigation" })).toHaveAttribute(

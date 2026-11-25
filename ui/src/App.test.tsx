@@ -360,7 +360,7 @@ it("opens legacy build links in Build Qualification and keeps Performance in its
   expect(within(navigation).queryByRole("link", { name: "Builds" })).not.toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "Build Qualification", level: 1 })).toBeInTheDocument();
   expect(within(await screen.findByRole("dialog")).getByText("linux-build")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Close popup" }));
+  fireEvent.keyDown(document, { key: "Escape" });
   expect(screen.getAllByRole("group", { name: "ROCm version" })).toHaveLength(1);
   fireEvent.change(screen.getByRole("searchbox", { name: "Find build" }), { target: { value: "does-not-exist" } });
   expect(await screen.findByText("No retained packages match this scope.")).toBeInTheDocument();

@@ -66,7 +66,7 @@ test("overview build marks open qualification and the exact package popup", asyn
   const popup = page.getByRole("dialog");
   await expect(popup.getByText("linux-build", { exact: true })).toBeVisible();
   await expect(popup.getByRole("link", { name: /View record source/ })).toHaveAttribute("href", historyFixture().builds[0].report_url);
-  await popup.getByRole("button", { name: "Close popup" }).click();
+  await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Build Qualification", exact: true }).click();
   await expect(page.getByRole("button", { name: "Linux", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Windows", exact: true })).toHaveAttribute("aria-pressed", "true");

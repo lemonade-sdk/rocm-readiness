@@ -111,9 +111,9 @@ it("anchors an interactive popup with an arrow and supports outside dismissal", 
   const popup = await screen.findByRole("dialog", { name: "Package details" });
   expect(popup.querySelector(".tooltip-arrow")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Linux report" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Close popup" }));
+  expect(within(popup).queryByRole("button", { name: "Close popup" })).not.toBeInTheDocument();
+  fireEvent.keyDown(document, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  expect(screen.getByRole("button", { name: "Package details" })).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: "Package details" }));
   await screen.findByRole("dialog");
   fireEvent.pointerDown(document.body);

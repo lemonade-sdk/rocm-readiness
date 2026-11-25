@@ -59,7 +59,7 @@ function BuildMark({ build, packages, measurementCounts, measurementStatus }: {
     triggerClassName={outcome === null ? "build-evidence-missing" : `build-mark ${outcome}`}
     content={<TooltipContent heading={`${calendarDate(build.generated_at)} · ${platformLabel(build.os)}`}
       status={<span className={`build-tooltip-status ${outcome ?? "unknown"}`}>{status}</span>}>
-      <dl className="build-tooltip-details">
+      <dl>
         <dt>{packages.length > 1 ? "Latest build" : "Build"}</dt><dd>{build.tag ?? build.build_id}</dd>
         {packages.length > 1 && <><dt>Packages</dt><dd>{packages.length}</dd></>}
         {outcome === "fail" && <><dt>Failure reason</dt><dd>{failureReasons.join("; ") || "Not reported"}</dd></>}
@@ -69,7 +69,7 @@ function BuildMark({ build, packages, measurementCounts, measurementStatus }: {
         <dt>Measured</dt><dd>{measurementCount ? `${measurementCount} benchmark ${measurementCount === 1 ? "measurement" : "measurements"}` : measurementStatus || "No matched measurements"}</dd>
       </dl>
       {needsExplanation && <CellExplanation scope={readinessScope(build.engine, build.channel, build.rocm_version, build.os, buildDate(build), build.source_id ?? undefined, build.gfx_target ?? undefined)} />}
-      <Link className="overview-summary-details" to={qualificationBuildHref(build, "day")}>View qualification details</Link>
+      <dl><dt>Qualification</dt><dd><Link to={qualificationBuildHref(build, "day")}>View qualification details</Link></dd></dl>
     </TooltipContent>}
   ><BuildOutcomeIcon outcome={mark} /></Tooltip>;
 }

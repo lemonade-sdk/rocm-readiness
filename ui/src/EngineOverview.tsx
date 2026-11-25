@@ -107,7 +107,7 @@ export function EngineOverview({
   const months = calendarMonthGroups(days);
 
   return (
-    <section aria-label="Engine readiness" className="grid items-start gap-6">
+    <section aria-label="Engine readiness" className="engine-readiness grid items-start">
       {history === null && (
         <p role="status">
           History loading or unavailable; showing latest recorded builds only.

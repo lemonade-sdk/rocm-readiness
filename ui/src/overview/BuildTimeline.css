@@ -79,15 +79,19 @@
 .build-timeline-card {
   min-width: 0;
 }
+.engine-readiness > .build-timeline-card:not(:last-child) {
+  padding-bottom: var(--overview-section-space);
+}
+.engine-readiness > .build-timeline-card + .build-timeline-card {
+  padding-top: var(--overview-section-space);
+  border-top: 1px solid var(--line);
+}
 .build-no-data {
   color: var(--muted);
   font-size: 0.65rem;
 }
 .build-timeline-card .table-status .comparison-trigger {
   text-decoration: none;
-}
-.readiness-version {
-  margin: 2.5rem 0;
 }
 .readiness-version > h2 {
   margin-bottom: 0.65rem;

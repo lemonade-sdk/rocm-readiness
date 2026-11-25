@@ -56,6 +56,7 @@
   --radius-control: 6px;
   --surface: var(--panel);
   --border: var(--line);
+  --overview-section-space: 2rem;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -1088,7 +1089,11 @@ main {
   .header-page .deck-context { font-size: 0.55rem; }
 }
 .readiness-version {
-  margin: 1.4rem 0;
+  margin: 2.5rem 0;
+}
+.readiness-version:not(:last-child) {
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--line);
 }
 .card {
   border-radius: 0;

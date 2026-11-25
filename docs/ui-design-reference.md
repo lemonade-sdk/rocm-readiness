@@ -90,6 +90,11 @@ neutral tint, and retain the existing status foregrounds in both themes.
 
 ### Shared layout conventions
 
+Overview engine and project groups have 2rem of space on each side of their
+shared divider, including below calendar legends. ROCm version groups use a
+larger 2.5rem separation and a matching divider. Use the shared line color in
+both themes, with no trailing divider after the final group.
+
 Link arrows come from CSS with a subdued opacity. Do not append arrow glyphs to
 link text or add duplicate arrow elements. External links use the shared external
 indicator; tooltip navigation uses the shared internal indicator.

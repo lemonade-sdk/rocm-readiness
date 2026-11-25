@@ -4,12 +4,12 @@
     "stable": {
       "repository": "lemonade-sdk/llama.cpp",
       "tag": "b12655",
-      "full_scan": "2026-11-18"
+      "full_scan": "2026-11-25"
     },
     "nightly": {
       "repository": "lemonade-sdk/llamacpp-rocm",
       "tag": "b1387",
-      "full_scan": "2026-11-18"
+      "full_scan": "2026-11-25"
     }
   },
   "releases": [

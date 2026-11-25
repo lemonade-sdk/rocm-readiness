@@ -344,9 +344,66 @@
       "queue_seconds": 275,
       "runner": "GitHub Actions 1001713531",
       "url": "https://github.com/unslothai/unsloth/actions/runs/45416435391/job/138543067601"
+    },
+    {
+      "job": "rocm-image",
+      "run_id": "45631732976",
+      "job_id": "139270863732",
+      "attempt": 1,
+      "day": "2026-11-25",
+      "created_at": "2026-11-25T14:13:37Z",
+      "completed_at": "2026-11-25T14:39:43Z",
+      "event": "push",
+      "ref": "v0.1.925-beta",
+      "sha": "25475d9f2d29dfc72a850c2a813e070c46de278d",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 27,
+      "runner": "GitHub Actions 1001722754",
+      "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139270863732"
+    },
+    {
+      "job": "rocm-smoke-test",
+      "run_id": "45631732976",
+      "job_id": "139304179733",
+      "attempt": 1,
+      "day": "2026-11-25",
+      "created_at": "2026-11-25T14:13:37Z",
+      "completed_at": "2026-11-25T15:11:40Z",
+      "event": "push",
+      "ref": "v0.1.925-beta",
+      "sha": "25475d9f2d29dfc72a850c2a813e070c46de278d",
+      "status": "completed",
+      "conclusion": "skipped",
+      "state": "skipped",
+      "failed_step": null,
+      "queue_seconds": null,
+      "runner": null,
+      "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139304179733"
+    },
+    {
+      "job": "rocm-studio-image",
+      "run_id": "45631732976",
+      "job_id": "139283175760",
+      "attempt": 1,
+      "day": "2026-11-25",
+      "created_at": "2026-11-25T14:13:37Z",
+      "completed_at": "2026-11-25T15:03:29Z",
+      "event": "push",
+      "ref": "v0.1.925-beta",
+      "sha": "25475d9f2d29dfc72a850c2a813e070c46de278d",
+      "status": "completed",
+      "conclusion": "success",
+      "state": "passed",
+      "failed_step": null,
+      "queue_seconds": 148,
+      "runner": "GitHub Actions 1001723028",
+      "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139283175760"
     }
   ],
   "scanned_runs": [
-    "45416435391#1@2026-11-24"
+    "45631732976#1@2026-11-25"
   ]
 }

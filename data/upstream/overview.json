@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-11-25T11:04:55Z",
+  "generated_at": "2026-11-25T16:27:51Z",
   "window": {
     "start": "2026-11-12",
     "end": "2026-11-25",
@@ -87,9 +87,9 @@
         "merged_red": "Across the 14-day collection window, for jobs included by the current filters. Number of distinct merged pull requests with a recorded failed configured check on the pull request head commit, completed by merge time. A pull request is counted once even if several checks failed."
       },
       "kpis": {
-        "decided": 2023,
-        "passed": 1836,
-        "pass_rate": 90.8,
+        "decided": 2056,
+        "passed": 1868,
+        "pass_rate": 90.9,
         "not_running": 0,
         "merged_red": 37
       },
@@ -223,41 +223,41 @@
               "slow": 0
             },
             "2026-11-25": {
-              "passed": 11,
+              "passed": 17,
               "failed": 1,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 0,
-              "slow": 8
+              "running": 1,
+              "slow": 13
             }
           },
-          "decided": 324,
-          "passed": 240,
-          "started": 324,
+          "decided": 330,
+          "passed": 246,
+          "started": 331,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T10:59:50Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45593562160/job/139133682540",
-            "runner": "ephemeral-devlab-x2-la03-s04-d01-139133682540"
+            "at": "2026-11-25T16:11:56Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45648944521/job/139327756576",
+            "runner": "ephemeral-devlab-x2-la03-s01-d05-139327756576"
           },
           "devlab_observed": true,
           "runner_evidence_text": "Observed on devlab · 14-day collection window",
           "quiet_days": [],
-          "median_queue_seconds": 11,
+          "median_queue_seconds": 12,
           "failed_steps": {
             "Test": 83
           },
           "gate": {
-            "merged": 321,
+            "merged": 328,
             "passed": 83,
             "failed": 22,
-            "not_triggered": 203,
-            "no_result": 13,
+            "not_triggered": 209,
+            "no_result": 14,
             "red": [
               {
                 "number": 32837,
@@ -1095,7 +1095,7 @@
               "slow": 1
             },
             "2026-11-25": {
-              "passed": 11,
+              "passed": 18,
               "failed": 1,
               "other": 0,
               "stalled": 0,
@@ -1104,18 +1104,18 @@
               "slow": 6
             }
           },
-          "decided": 324,
-          "passed": 237,
-          "started": 324,
+          "decided": 331,
+          "passed": 244,
+          "started": 331,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T10:34:29Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45593562160/job/139133682482",
-            "runner": "ephemeral-devlab-sm-01-02-r9700s-7-139133682482"
+            "at": "2026-11-25T16:11:27Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45649545293/job/139329963987",
+            "runner": "ephemeral-devlab-sm-01-02-r9700s-6-139329683804"
           },
           "devlab_observed": true,
           "runner_evidence_text": "Observed on devlab · 14-day collection window",
@@ -1125,11 +1125,11 @@
             "Test": 87
           },
           "gate": {
-            "merged": 321,
+            "merged": 328,
             "passed": 83,
             "failed": 26,
-            "not_triggered": 203,
-            "no_result": 9,
+            "not_triggered": 209,
+            "no_result": 10,
             "red": [
               {
                 "number": 32971,
@@ -2030,7 +2030,7 @@
               "slow": 4
             },
             "2026-11-25": {
-              "passed": 9,
+              "passed": 12,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -2039,18 +2039,18 @@
               "slow": 0
             }
           },
-          "decided": 222,
-          "passed": 215,
-          "started": 222,
+          "decided": 225,
+          "passed": 218,
+          "started": 225,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T10:02:56Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45588926716/job/139117648768",
-            "runner": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-blzn6-runner-kr4bv"
+            "at": "2026-11-25T16:04:31Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45649545566/job/139329965396",
+            "runner": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-blzn6-runner-kzhj7"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -2062,8 +2062,8 @@
             "Install dependencies": 1
           },
           "gate": {
-            "merged": 222,
-            "passed": 205,
+            "merged": 225,
+            "passed": 208,
             "failed": 2,
             "not_triggered": 7,
             "no_result": 8,
@@ -2229,7 +2229,7 @@
               "slow": 4
             },
             "2026-11-25": {
-              "passed": 9,
+              "passed": 12,
               "failed": 0,
               "other": 0,
               "stalled": 0,
@@ -2238,18 +2238,18 @@
               "slow": 0
             }
           },
-          "decided": 222,
-          "passed": 215,
-          "started": 222,
+          "decided": 225,
+          "passed": 218,
+          "started": 225,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T10:02:10Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45588926716/job/139117648774",
-            "runner": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-blzn6-runner-frrl7"
+            "at": "2026-11-25T16:06:58Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45649545566/job/139329965959",
+            "runner": "ggml-hfc-amd-r9700-1gpu-use1-hybrid-80-blzn6-runner-ckr6m"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -2261,8 +2261,8 @@
             "ccache-buckets-save": 1
           },
           "gate": {
-            "merged": 222,
-            "passed": 208,
+            "merged": 225,
+            "passed": 211,
             "failed": 1,
             "not_triggered": 7,
             "no_result": 6,
@@ -2419,27 +2419,27 @@
               "slow": 24
             },
             "2026-11-25": {
-              "passed": 10,
+              "passed": 17,
               "failed": 0,
               "other": 0,
               "stalled": 2,
               "skipped": 0,
               "running": 0,
-              "slow": 6
+              "slow": 10
             }
           },
-          "decided": 321,
-          "passed": 320,
-          "started": 321,
+          "decided": 328,
+          "passed": 327,
+          "started": 328,
           "skipped": 0,
           "stalled": 2,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T11:06:08Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45580696298/job/139089701833",
-            "runner": "GitHub Actions 1001262748"
+            "at": "2026-11-25T15:17:48Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45642333691/job/139304041833",
+            "runner": "GitHub Actions 1001263708"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -2449,10 +2449,10 @@
             "Build with native CMake HIP support": 1
           },
           "gate": {
-            "merged": 320,
+            "merged": 327,
             "passed": 42,
             "failed": 3,
-            "not_triggered": 271,
+            "not_triggered": 278,
             "no_result": 4,
             "red": [
               {
@@ -2783,27 +2783,27 @@
               "slow": 6
             },
             "2026-11-25": {
-              "passed": 1,
+              "passed": 4,
               "failed": 0,
               "other": 0,
-              "stalled": 0,
+              "stalled": 1,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 3
             }
           },
-          "decided": 298,
-          "passed": 297,
-          "started": 298,
+          "decided": 301,
+          "passed": 300,
+          "started": 301,
           "skipped": 0,
-          "stalled": 1,
+          "stalled": 2,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T09:51:01Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45520179374/job/139082020115",
-            "runner": "GitHub Actions 1001262632"
+            "at": "2026-11-25T14:54:48Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45577535281/job/139285319256",
+            "runner": "GitHub Actions 1001263597"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -2943,33 +2943,35 @@
               "slow": 1
             },
             "2026-11-25": {
-              "passed": 1,
-              "failed": 0,
+              "passed": 4,
+              "failed": 1,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
               "running": 0,
-              "slow": 1
+              "slow": 3
             }
           },
-          "decided": 298,
-          "passed": 298,
-          "started": 298,
+          "decided": 302,
+          "passed": 301,
+          "started": 302,
           "skipped": 0,
           "stalled": 1,
           "last_ran": "2026-11-25",
           "latest": {
-            "state": "passed",
-            "conclusion": "success",
-            "at": "2026-11-25T08:10:41Z",
-            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45520179374/job/139057245033",
-            "runner": "GitHub Actions 1001262325"
+            "state": "failed",
+            "conclusion": "failure",
+            "at": "2026-11-25T16:19:03Z",
+            "url": "https://github.com/ggml-org/llama.cpp/actions/runs/45578173279/job/139308982819",
+            "runner": "GitHub Actions 1001263835"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
           "median_queue_seconds": 4,
-          "failed_steps": {},
+          "failed_steps": {
+            "ccache-clear": 1
+          },
           "gate": null
         }
       ],
@@ -2999,19 +3001,19 @@
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm-gfx1151",
-          "head": "gpu-rocm (gfx1151) never ran on 203 of 321 merged pull requests.",
+          "head": "gpu-rocm (gfx1151) never ran on 209 of 328 merged pull requests.",
           "body": "56 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "gpu-rocm-gfx1201",
-          "head": "gpu-rocm (gfx1201) never ran on 203 of 321 merged pull requests.",
+          "head": "gpu-rocm (gfx1201) never ran on 209 of 328 merged pull requests.",
           "body": "59 merged pull requests with no run or an unknown historical result then failed on main."
         },
         {
           "kind": "not_on_pr",
           "job": "hip-build",
-          "head": "hip build never ran on 271 of 320 merged pull requests.",
+          "head": "hip build never ran on 278 of 327 merged pull requests.",
           "body": "1 merged pull requests with no run or an unknown historical result then failed on main."
         }
       ],
@@ -3019,7 +3021,7 @@
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": "2026-11-12T00:18:28Z",
         "cache_identity": "5be4541e98d609a1e3ec787fd489f45ff79420ae0f4b8ee3a257ff01a648776c",
         "source_identity": {
@@ -3148,7 +3150,7 @@
         {
           "month": "2026-11",
           "path": "upstream/llamacpp/ci/2026-11.json",
-          "run_count": 2028
+          "run_count": 2063
         }
       ]
     },
@@ -3477,7 +3479,7 @@
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": "2026-11-13T07:04:41Z",
         "cache_identity": "f5320d6c42cbdf31a16c47317cab21206c22f43d7133d45775b446f12ae63e08",
         "source_identity": {
@@ -3571,9 +3573,9 @@
         "merged_red": "Across the 14-day collection window, for jobs included by the current filters. Number of distinct merged pull requests with a recorded failed configured check on the pull request head commit, completed by merge time. A pull request is counted once even if several checks failed."
       },
       "kpis": {
-        "decided": 12,
-        "passed": 11,
-        "pass_rate": 91.7,
+        "decided": 14,
+        "passed": 13,
+        "pass_rate": 92.9,
         "not_running": 1,
         "merged_red": 0
       },
@@ -3624,25 +3626,34 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-25": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 6,
-          "passed": 6,
-          "started": 6,
+          "decided": 7,
+          "passed": 7,
+          "started": 7,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-24",
+          "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-24T15:07:26Z",
-            "url": "https://github.com/unslothai/unsloth/actions/runs/45416435391/job/138528449483",
-            "runner": "GitHub Actions 1001713425"
+            "at": "2026-11-25T14:39:43Z",
+            "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139270863732",
+            "runner": "GitHub Actions 1001722754"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": 114,
+          "median_queue_seconds": 92,
           "failed_steps": {},
           "gate": null
         },
@@ -3692,25 +3703,34 @@
               "skipped": 0,
               "running": 0,
               "slow": 1
+            },
+            "2026-11-25": {
+              "passed": 1,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 0,
+              "slow": 0
             }
           },
-          "decided": 6,
-          "passed": 5,
-          "started": 6,
+          "decided": 7,
+          "passed": 6,
+          "started": 7,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-24",
+          "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-24T15:33:44Z",
-            "url": "https://github.com/unslothai/unsloth/actions/runs/45416435391/job/138543067601",
-            "runner": "GitHub Actions 1001713531"
+            "at": "2026-11-25T15:03:29Z",
+            "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139283175760",
+            "runner": "GitHub Actions 1001723028"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
-          "median_queue_seconds": 393,
+          "median_queue_seconds": 310,
           "failed_steps": {
             "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1": 1
           },
@@ -3762,19 +3782,28 @@
               "skipped": 2,
               "running": 0,
               "slow": 0
+            },
+            "2026-11-25": {
+              "passed": 0,
+              "failed": 0,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 1,
+              "running": 0,
+              "slow": 0
             }
           },
           "decided": 0,
           "passed": 0,
           "started": 0,
-          "skipped": 6,
+          "skipped": 7,
           "stalled": 0,
           "last_ran": null,
           "latest": {
             "state": "skipped",
             "conclusion": "skipped",
-            "at": "2026-11-24T15:48:54Z",
-            "url": "https://github.com/unslothai/unsloth/actions/runs/45416435391/job/138571811477",
+            "at": "2026-11-25T15:11:40Z",
+            "url": "https://github.com/unslothai/unsloth/actions/runs/45631732976/job/139304179733",
             "runner": null
           },
           "devlab_observed": false,
@@ -3788,7 +3817,7 @@
       "platforms": {
         "linux": {
           "built": true,
-          "built_rate": 92,
+          "built_rate": 93,
           "tested": false,
           "tested_rate": null,
           "shipped": "ROCm docker images"
@@ -3806,14 +3835,14 @@
           "kind": "never_ran",
           "job": "rocm-smoke-test",
           "head": "rocm gpu smoke test has not run once in the window.",
-          "body": "It was skipped 6 times by its own condition."
+          "body": "It was skipped 7 times by its own condition."
         }
       ],
       "coverage": {
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": "2026-11-16T15:04:20Z",
         "cache_identity": "305eddca38e13a94d49b207e2247510506e28739653f033e56dcc27eaba9ee15",
         "source_identity": {
@@ -3872,7 +3901,7 @@
         {
           "month": "2026-11",
           "path": "upstream/unsloth/ci/2026-11.json",
-          "run_count": 18
+          "run_count": 21
         }
       ]
     },
@@ -3924,9 +3953,9 @@
         "merged_red": "Across the 14-day collection window, for jobs included by the current filters. Number of distinct merged pull requests with a recorded failed configured check on the pull request head commit, completed by merge time. A pull request is counted once even if several checks failed."
       },
       "kpis": {
-        "decided": 356,
-        "passed": 341,
-        "pass_rate": 95.8,
+        "decided": 363,
+        "passed": 348,
+        "pass_rate": 95.9,
         "not_running": 0,
         "merged_red": 0
       },
@@ -4060,27 +4089,27 @@
               "slow": 0
             },
             "2026-11-25": {
-              "passed": 5,
+              "passed": 8,
               "failed": 0,
               "other": 0,
               "stalled": 0,
               "skipped": 0,
-              "running": 1,
+              "running": 0,
               "slow": 0
             }
           },
-          "decided": 120,
-          "passed": 120,
-          "started": 121,
+          "decided": 123,
+          "passed": 123,
+          "started": 123,
           "skipped": 0,
           "stalled": 1,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T09:21:23Z",
-            "url": "https://github.com/pytorch/pytorch/actions/runs/45579505052/job/139085805887",
-            "runner": "mt-l-x86iavx512-8-64-42gfg-runner-67546"
+            "at": "2026-11-25T15:06:22Z",
+            "url": "https://github.com/pytorch/pytorch/actions/runs/45638107445/job/139289101760",
+            "runner": "mt-l-x86iavx512-8-64-42gfg-runner-flgpx"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -4218,27 +4247,27 @@
               "slow": 0
             },
             "2026-11-25": {
-              "passed": 6,
+              "passed": 10,
               "failed": 2,
-              "other": 0,
+              "other": 2,
               "stalled": 0,
               "skipped": 0,
               "running": 2,
               "slow": 0
             }
           },
-          "decided": 236,
-          "passed": 221,
-          "started": 240,
+          "decided": 240,
+          "passed": 225,
+          "started": 246,
           "skipped": 0,
           "stalled": 0,
           "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-25T10:49:05Z",
-            "url": "https://github.com/pytorch/pytorch/actions/runs/45563630597/job/139062515652",
-            "runner": "linux.rocm.gpu.rx7900.1-2rp5k-runner-zwsfz"
+            "at": "2026-11-25T15:33:30Z",
+            "url": "https://github.com/pytorch/pytorch/actions/runs/45617226530/job/139226361988",
+            "runner": "linux.rocm.gpu.rx7900.1-2rp5k-runner-5rr6n"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
@@ -4279,7 +4308,7 @@
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": "2026-11-12T00:53:14Z",
         "cache_identity": "c98b786c44c238c14d88c53152d8e514f2b5ffe08764d7112fe6abbe59ae5f53",
         "source_identity": {
@@ -4324,7 +4353,7 @@
         {
           "month": "2026-11",
           "path": "upstream/pytorch/ci/2026-11.json",
-          "run_count": 362
+          "run_count": 370
         }
       ]
     },
@@ -4376,9 +4405,9 @@
         "merged_red": "Across the 14-day collection window, for jobs included by the current filters. Number of distinct merged pull requests with a recorded failed configured check on the pull request head commit, completed by merge time. A pull request is counted once even if several checks failed."
       },
       "kpis": {
-        "decided": 56,
-        "passed": 56,
-        "pass_rate": 100.0,
+        "decided": 64,
+        "passed": 62,
+        "pass_rate": 96.9,
         "not_running": 0,
         "merged_red": 0
       },
@@ -4456,29 +4485,40 @@
               "skipped": 0,
               "running": 0,
               "slow": 2
+            },
+            "2026-11-25": {
+              "passed": 3,
+              "failed": 1,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
+              "slow": 1
             }
           },
-          "decided": 28,
-          "passed": 28,
-          "started": 28,
+          "decided": 32,
+          "passed": 31,
+          "started": 33,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-24",
+          "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-24T14:49:20Z",
-            "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/45413867754/job/138514657479",
-            "runner": "GitHub Actions 1000042150"
+            "at": "2026-11-25T15:19:19Z",
+            "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/45642625079/job/139305060508",
+            "runner": "GitHub Actions 1000042262"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
           "median_queue_seconds": 2,
-          "failed_steps": {},
+          "failed_steps": {
+            "Build": 1
+          },
           "gate": {
-            "merged": 26,
-            "passed": 19,
+            "merged": 31,
+            "passed": 24,
             "failed": 0,
             "not_triggered": 5,
             "no_result": 2,
@@ -4559,29 +4599,40 @@
               "skipped": 0,
               "running": 0,
               "slow": 2
+            },
+            "2026-11-25": {
+              "passed": 3,
+              "failed": 1,
+              "other": 0,
+              "stalled": 0,
+              "skipped": 0,
+              "running": 1,
+              "slow": 3
             }
           },
-          "decided": 28,
-          "passed": 28,
-          "started": 28,
+          "decided": 32,
+          "passed": 31,
+          "started": 33,
           "skipped": 0,
           "stalled": 0,
-          "last_ran": "2026-11-24",
+          "last_ran": "2026-11-25",
           "latest": {
             "state": "passed",
             "conclusion": "success",
-            "at": "2026-11-24T15:03:06Z",
-            "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/45413867754/job/138514658962",
-            "runner": "GitHub Actions 1000042160"
+            "at": "2026-11-25T15:16:55Z",
+            "url": "https://github.com/leejet/stable-diffusion.cpp/actions/runs/45642625079/job/139305060535",
+            "runner": "GitHub Actions 1000042263"
           },
           "devlab_observed": false,
           "runner_evidence_text": null,
           "quiet_days": [],
           "median_queue_seconds": 2,
-          "failed_steps": {},
+          "failed_steps": {
+            "Build": 1
+          },
           "gate": {
-            "merged": 26,
-            "passed": 18,
+            "merged": 31,
+            "passed": 23,
             "failed": 0,
             "not_triggered": 5,
             "no_result": 3,
@@ -4593,14 +4644,14 @@
       "platforms": {
         "linux": {
           "built": true,
-          "built_rate": 100,
+          "built_rate": 97,
           "tested": false,
           "tested_rate": null,
           "shipped": "Linux ROCm archive in every master release"
         },
         "windows": {
           "built": true,
-          "built_rate": 100,
+          "built_rate": 97,
           "tested": false,
           "tested_rate": null,
           "shipped": "win-rocm archive in every master release"
@@ -4611,7 +4662,7 @@
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": "2026-11-12T15:10:52Z",
         "cache_identity": "79d8b80dc51eadd50b08a2b1236f51a4a736779516b6fb43a07390fc21dbff57",
         "source_identity": {
@@ -4656,7 +4707,7 @@
         {
           "month": "2026-11",
           "path": "upstream/sdcpp/ci/2026-11.json",
-          "run_count": 56
+          "run_count": 66
         }
       ]
     },
@@ -4736,7 +4787,7 @@
         "complete": true,
         "since": "2026-11-12T00:00:00Z",
         "listed_since": "2026-11-12T00:00:00Z",
-        "collected_at": "2026-11-25T11:04:55Z",
+        "collected_at": "2026-11-25T16:27:51Z",
         "oldest_run_at": null,
         "cache_identity": "f581be8b08118e8eb4261350bbeb6c513bd6825e7b9c68e5d879185835322d74",
         "source_identity": {

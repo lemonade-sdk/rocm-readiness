@@ -66,6 +66,20 @@ export const syncSchema = collectionAttemptSchema.extend({
   attempt => Date.parse(attempt.attempted_at) > Date.parse(sync.attempted_at),
 ), "Recorded collection attempt cannot follow latest attempt");
 export type CollectionAttempt = z.infer<typeof collectionAttemptSchema>;
+/** CI decides which cells a finding explains; the UI only matches its scopes. */
+export const findingSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  applies_to: z.literal("missing_observation"),
+  scopes: z.array(z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    source_id: z.string().optional(),
+  })).min(1),
+  finding: z.string().min(1),
+  status: z.string().min(1).optional(),
+  evidence: z.array(z.object({ label: z.string(), url: z.url({ protocol: /^https$/ }) })),
+});
+export type Finding = z.infer<typeof findingSchema>;
 const pointerSchema = z.object({
   schema_version: z.literal(1),
   data_commit: z
@@ -75,6 +89,7 @@ const pointerSchema = z.object({
   index_url: z.string().nullable(),
   notifications_url: z.literal("https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/notifications.json").optional(),
   sync: syncSchema,
+  findings: z.array(findingSchema).optional(),
 });
 const httpsUrl = z.url({ protocol: /^https$/ });
 const releaseSchema = z.object({
@@ -98,6 +113,7 @@ const indexSchema = z.object({
   default_version: z.string().nullable(),
   readiness: z.object({ stable_anchor: z.string().min(1) }).optional(),
   notifications: z.string().optional(),
+  findings: z.array(findingSchema).optional(),
   sources: z
     .array(
       z.object({
@@ -493,6 +509,7 @@ async function loadLocalSession(
       last_successful_at: index.generated_at,
       errors: [],
     },
+    findings: index.findings ?? [],
   };
   onPointer?.(pointer);
   const session: Session = {

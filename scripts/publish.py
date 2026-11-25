@@ -22,6 +22,7 @@ if __package__:
         _systems_for,
     )
     from .sync import load_last_success, retain_attempts
+    from .findings import collection_findings
     from .upstream import validate_upstream_dataset
 else:
     from diagnosis import validate_cache
@@ -34,6 +35,7 @@ else:
         _systems_for,
     )
     from sync import load_last_success, retain_attempts
+    from findings import collection_findings
     from upstream import validate_upstream_dataset
 
 
@@ -543,6 +545,17 @@ def publish(
                 success = False
                 sync = failure(error)
         sync = retain_attempts(sync, prior_sync)
+
+        def live_findings(index_path):
+            try:
+                catalog = read_json(index_path).get("sources", [])
+            except (ValueError, OSError, AttributeError):
+                catalog = []
+            return collection_findings(sync, catalog if isinstance(catalog, list) else [])
+
+        findings = live_findings(
+            dataset / "index.json" if success else root / "data/index.json"
+        )
         if success:
             git(root, "switch", "-c", "dashboard-data")
             data_root = root / "data"
@@ -577,6 +590,7 @@ def publish(
                 if relative == "index.json":
                     index = read_json(dataset / relative)
                     index["sync"] = sync
+                    index["findings"] = findings
                     for source in index.get("sources", []):
                         source.pop("snapshot", None)
                     write(target, index)
@@ -600,6 +614,7 @@ def publish(
             "data_commit": prior["data_commit"],
             "index_url": prior["index_url"],
             "sync": sync,
+            "findings": findings,
         }
         if (root / "data/notifications.json").is_file():
             latest["notifications_url"] = (

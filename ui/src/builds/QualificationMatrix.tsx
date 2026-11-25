@@ -116,16 +116,15 @@ function PackageDetails({ heading, packages, coverageFetcher, run, performanceMe
               <dt>Qualification record</dt><dd>{typeof reference !== "string"
                 ? <a href={reference.url} target="_blank" rel="noreferrer">View record source</a> : "Unavailable"}</dd>
               {!sharedSource && build.source_url && <><dt>Data source</dt><dd><a href={build.source_url} target="_blank" rel="noreferrer">View data source</a></dd></>}
+              {coverageFetcher && <><dt>Compiled GPU targets</dt><dd>
+                {targets?.length ? <ul className="qualification-target-list" aria-label="Compiled GPU targets">
+                  {targets.map((target) => <li key={target}><code>{target}</code></li>)}
+                </ul> : <span className="muted">{!evidence ? "Loading…" : targets ? "None recorded" :
+                  build.gfx?.present != null ? `${build.gfx.present} compiled · exact list unavailable` : "Unavailable"}</span>}
+              </dd></>}
+              {coverageFetcher && build.hardware_validated && build.gfx_target &&
+                <><dt>Runtime validated on</dt><dd><code>{build.gfx_target}</code></dd></>}
             </dl>
-            {coverageFetcher && <div className="qualification-compiled-targets">
-              <h5>Compiled GPU targets</h5>
-              {targets?.length ? <ul aria-label="Compiled GPU targets">
-                {targets.map((target) => <li key={target}><code>{target}</code></li>)}
-              </ul> : <span className="muted">{!evidence ? "Loading…" : targets ? "None recorded" :
-                build.gfx?.present != null ? `${build.gfx.present} compiled · exact list unavailable` : "Unavailable"}</span>}
-            </div>}
-            {coverageFetcher && build.hardware_validated && build.gfx_target &&
-              <p className="qualification-runtime muted">Runtime validated on <code>{build.gfx_target}</code></p>}
             {report ? <ReportEvidence report={report} summaryOnly /> : evidence && typeof reference !== "string" &&
               <p className="muted">Pinned producer summary unavailable.</p>}
           </li>;

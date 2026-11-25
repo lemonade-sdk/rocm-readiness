@@ -31,6 +31,7 @@ if __package__:
     )
     from .validation import CollectionUnavailable, PipelineValidationError
     from .sync import load_last_success, publish_sync
+    from .findings import collection_findings
     from .upstream import collect_upstream, validate_upstream_dataset
 else:
     from qualification_reports import collect_reports
@@ -43,6 +44,7 @@ else:
     from dataset import SYSTEM_FIELDS, _load_previous, write_dataset, in_readiness_scope, retained
     from validation import CollectionUnavailable, PipelineValidationError
     from sync import load_last_success, publish_sync
+    from findings import collection_findings
     from upstream import collect_upstream, validate_upstream_dataset
 
 ADAPTERS = {"qualification-v1", "lemonade-leaderboard-v1"}
@@ -192,6 +194,58 @@ def _check(
 ):
     if not condition:
         raise PipelineValidationError(source["id"], record, field, reason)
+
+
+def last_check(source, data, clock=None):
+    """Validate a producer's latest upstream check, which no build row records."""
+    check = data.get("last_check")
+    if check is None:
+        return None
+    _check(source, "/last_check", "record", isinstance(check, dict), "expected object")
+    _check(
+        source,
+        "/last_check",
+        "status",
+        check.get("status") in ("built", "unchanged"),
+        "expected built or unchanged",
+    )
+    try:
+        checked = timestamp(check.get("checked_at"))
+    except (AttributeError, TypeError, ValueError):
+        checked = None
+    _check(source, "/last_check", "checked_at", checked is not None, "expected timestamp")
+    _check(
+        source,
+        "/last_check",
+        "checked_at",
+        clock is None or checked <= clock,
+        "check timestamp is in the future",
+    )
+    result = {"status": check["status"], "checked_at": check["checked_at"]}
+    run = check.get("run_url")
+    prefix = f"https://github.com/{source.get('repository')}/actions/runs/"
+    if run is not None:
+        _check(
+            source,
+            "/last_check",
+            "run_url",
+            isinstance(run, str) and re.fullmatch(re.escape(prefix) + r"[1-9][0-9]*", run),
+            "expected the producer's workflow run URL",
+        )
+        result["run_url"] = run
+    sha = check.get("upstream_sha")
+    if sha is not None:
+        _check(
+            source,
+            "/last_check",
+            "upstream_sha",
+            isinstance(sha, str) and re.fullmatch(r"[a-f0-9]{40}", sha),
+            "expected upstream commit SHA",
+        )
+        result["upstream_sha"] = sha
+    if isinstance(check.get("tag"), str) and check["tag"]:
+        result["tag"] = check["tag"]
+    return result
 
 
 def normalize_qualification(source, data, url, policy=None):
@@ -850,6 +904,9 @@ def collect(
                     source, data, url, None if dynamic else config.get("readiness")
                 )
                 state["schema_version"] = data["schema_version"]
+                check = last_check(source, data, clock)
+                if check:
+                    state["last_check"] = check
                 if dynamic:
                     state["rocm_tracks"] = sorted(
                         {row["rocm_version"] for row in rows},
@@ -890,7 +947,10 @@ def collect(
                 snapshot=snapshot, sha256=write_json(destination / snapshot, data)
             )
             latest = max((timestamp(row[date_key]) for row in rows), default=None)
-            age = (clock - latest).total_seconds() / 3600 if latest else None
+            # A producer check that found nothing to build keeps the feed current.
+            checked = timestamp(state["last_check"]["checked_at"]) if "last_check" in state else None
+            current = max(filter(None, (latest, checked)), default=None)
+            age = (clock - current).total_seconds() / 3600 if current else None
             require(age is None or age >= 0, "observation timestamp is in the future")
             state.update(
                 status=(
@@ -1149,6 +1209,9 @@ def collect(
         last_success,
         output["errors"],
     )
+    output["dataset"]["findings"] = collection_findings(
+        output["dataset"]["sync"], output["dataset"].get("sources", [])
+    )
     write_json(destination / "index.json", output["dataset"])
     if output["collection_status"] == "complete":
         validate_dataset(
@@ -1263,6 +1326,7 @@ def main():
                     "error": str(error),
                     "errors": errors,
                     "sync": sync,
+                    "findings": collection_findings(sync, []),
                     "versions": [],
                 },
             )

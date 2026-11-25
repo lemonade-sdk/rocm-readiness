@@ -10,7 +10,7 @@ import {
   isCurrentReadinessTrack,
 } from "./data";
 import { ReadinessOverview } from "./ReadinessOverview";
-import type { Build, Fetcher, Session, Sync } from "./data";
+import type { Build, Fetcher, Finding, Session } from "./data";
 import "./styles.css";
 import { BuildReview, EngineBuilds } from "./builds/BuildViews";
 import { PerformanceView } from "./performance/PerformanceView";
@@ -82,7 +82,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
   const track = params.get("track") === "upstream" ? "upstream" : "readiness";
   const platform = params.get("platform") ?? "all";
   const [session, setSession] = useState<Session | null>(null);
-  const [liveSync, setLiveSync] = useState<Sync | null>(null);
+  const [liveFindings, setLiveFindings] = useState<Finding[] | null>(null);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
@@ -107,7 +107,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
             fetcher,
             controller.signal,
             (pointer) => {
-              if (!controller.signal.aborted) setLiveSync(pointer.sync);
+              if (!controller.signal.aborted) setLiveFindings(pointer.findings ?? null);
             },
             false,
           );
@@ -440,7 +440,7 @@ export function App({ fetcher = fetch }: { fetcher?: Fetcher }) {
         </nav>}
       </aside>
       </div>
-      <NotificationsProvider session={session} fetcher={fetcher} sync={liveSync}>
+      <NotificationsProvider session={session} fetcher={fetcher} findings={liveFindings}>
       <main id="main" tabIndex={-1}>
         {track === "readiness" && view !== "overview" && !!session?.versionFilterErrors?.length && (
           <div role="alert" className="notice error">

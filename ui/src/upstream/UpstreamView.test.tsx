@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "../App";
@@ -555,8 +555,8 @@ it("shows exact daily pass and failure counts and opens run evidence in a popup"
   expect(await within(popup).findByRole("link", { name: "Job log at 10:00 UTC · failed" })).toBeInTheDocument();
   expect(within(popup).queryByRole("button", { name: "Previous day" })).not.toBeInTheDocument();
   expect(within(popup).queryByRole("button", { name: "Next day" })).not.toBeInTheDocument();
-  fireEvent.click(within(popup).getByRole("button", { name: "Close popup" }));
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.keyDown(document, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 });
 
 it("keeps one daily failure visible even when more than 95 percent passed", async () => {

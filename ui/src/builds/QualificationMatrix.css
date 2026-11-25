@@ -64,7 +64,7 @@
 }
 .qualification-popup-packages a { display: inline; }
 
-.qualification-runtime { margin: .35rem 0 0; font-size: .75rem; }
+.qualification-target-list { display: flex; flex-wrap: wrap; gap: .15rem .55rem; max-inline-size: 30rem; margin: 0; padding: 0; list-style: none; }
 
 .qualification-compiled-targets { display: grid; gap: .2rem; margin-block-start: .45rem; font-size: .75rem; }
 .qualification-compiled-targets ul { display: flex; flex-wrap: wrap; gap: .15rem .55rem; margin: 0; padding: 0; list-style: none; }

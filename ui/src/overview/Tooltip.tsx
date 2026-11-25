@@ -66,7 +66,7 @@ function StyledTooltip({
   mobileIndependent?: boolean;
   mobileDisclosure?: boolean;
   hoverOnly?: boolean;
-  /** Interactive hover evidence without desktop close controls or click pinning. */
+  /** Interactive hover evidence without click pinning. */
   hoverCard?: boolean;
 }) {
   const [localOpen, setOpen] = useState(initialOpen);
@@ -195,8 +195,6 @@ function StyledTooltip({
           <FloatingArrow ref={arrowRef} context={context} className="tooltip-arrow"
             fill="var(--panel)" stroke="var(--line)" strokeWidth={1} tipRadius={1} />
           <span className="tooltip-surface">
-            {interactive && !hoverCard && <button type="button" className="tooltip-close" aria-label="Close popup"
-              onClick={(event) => context.onOpenChange(false, event.nativeEvent, "reference-press")}>×</button>}
             <span ref={scrollRef} className="tooltip-scroll-area" onScroll={updateScrollHint}>
               <span ref={contentRef} className="tooltip-content">{content}</span>
             </span>

@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { fixtureFetch, index, indexUrl, pointer } from "../src/fixtures";
 import { upstreamOverview } from "../src/upstream/fixtures";
 import type { UpstreamOverview } from "../src/upstream/data";
-import type { Sync } from "../src/data";
+import type { Finding } from "../src/data";
 import { upstreamFetch } from "../src/upstream/fixtures";
 
 const live = "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/notifications.json";
@@ -36,50 +36,47 @@ async function expectConsistentStatusIconSize(page: Page) {
 test.use({ hasTouch: true });
 for (const theme of ["light", "dark"] as const) {
   for (const width of [390, 1440]) {
-    test(`dated collection history survives rollover and recovery at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+    test(`published findings follow each publication at ${width}px in ${theme}`, async ({ page }, testInfo) => {
       await page.clock.setFixedTime(new Date("2026-11-03T15:00:00Z"));
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme });
-      const failed: Sync = {
-        attempted_at: "2026-11-02T11:00:00Z", status: "failed",
-        last_successful_at: index.generated_at,
-        errors: [{ source_id: "lemonade-performance", record: "/item", field: "package_evidence",
-          reason: "run=44854194006 engine=b12576: benchmark job evidence access failed (HTTP 404)" }],
+      const failed: Finding = {
+        id: "collection_failed:1", kind: "collection_failed", applies_to: "missing_observation",
+        scopes: [{ date: "2026-11-02" }], finding: "Collection attempt failed: the dashboard update could not be published.",
+        evidence: [{ label: "Collection run", url: "https://github.com/lemonade-sdk/rocm-readiness/actions/runs/1" }],
       };
-      const today = { ...failed, attempted_at: "2026-11-03T11:00:00Z" };
-      let sync: Sync = { ...today, attempts: [failed, today] };
+      const today: Finding = { ...failed, id: "collection_failed:2", scopes: [{ date: "2026-11-03" }],
+        finding: "No new dashboard data: the dashboard update could not be published." };
+      let findings: Finding[] = [failed, today];
       await page.route("https://raw.githubusercontent.com/**", async route => {
         const fixture = upstreamFetch({
-          "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json": { ...pointer, sync },
+          "https://raw.githubusercontent.com/lemonade-sdk/rocm-readiness/main/data/latest.json": { ...pointer, findings },
         });
         const response = await fixture(route.request().url());
         await route.fulfill({ status: response.status, body: await response.text(), contentType: "application/json" });
       });
       await page.goto("./?track=upstream");
       const calendar = page.getByRole("region", { name: "llama.cpp activity calendar", exact: true });
-      const yesterday = calendar.getByRole("button", { name: "2026-11-02: No observation", exact: true });
-      if (width <= 540) await yesterday.tap();
-      else await yesterday.focus();
-      let evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: "2026-11-02: No observation", exact: true });
-      await expect(evidence).toContainText("Collection attempt failed:");
-      await expect(evidence.getByRole("link", { name: "Benchmark run" })).toHaveAttribute(
-        "href", "https://github.com/lemonade-sdk/lemonade/actions/runs/44854194006",
-      );
+      const open = async (day: string) => {
+        const button = calendar.getByRole("button", { name: `${day}: No observation`, exact: true });
+        if (width <= 540) await button.tap();
+        else await button.focus();
+        return page.getByRole(width <= 540 ? "region" : "dialog", { name: `${day}: No observation`, exact: true });
+      };
+      let evidence = await open("2026-11-02");
+      await expect(evidence).toContainText(failed.finding);
+      await expect(evidence.getByRole("link", { name: "Collection run" })).toHaveAttribute("href", failed.evidence[0].url);
       await expect(evidence).not.toContainText("No run collected for this date.");
       await page.screenshot({ path: testInfo.outputPath("dated-collection-before-recovery.png"), fullPage: true });
-      sync = { attempted_at: "2026-11-03T13:00:00Z", status: "success",
-        last_successful_at: "2026-11-03T13:00:00Z", errors: [], attempts: [failed, today] };
+      findings = [failed, { ...today, finding: "Collection attempt failed: the dashboard update could not be published.",
+        status: "A later collection attempt on this date succeeded." }];
       await page.reload();
-      if (width <= 540) await yesterday.tap();
-      else await yesterday.focus();
-      await expect(evidence.getByRole("link", { name: "Benchmark run" })).toBeVisible();
+      evidence = await open("2026-11-02");
+      await expect(evidence.getByRole("link", { name: "Collection run" })).toBeVisible();
       if (width > 540) await page.keyboard.press("Escape");
-      const currentDay = calendar.getByRole("button", { name: "2026-11-03: No observation", exact: true });
-      if (width <= 540) await currentDay.tap();
-      else await currentDay.focus();
-      evidence = page.getByRole(width <= 540 ? "region" : "dialog", { name: "2026-11-03: No observation", exact: true });
-      await expect(evidence).toContainText("Collection attempt failed:");
-      await expect(evidence).toContainText("A later collection attempt succeeded on this date.");
+      evidence = await open("2026-11-03");
+      await expect(evidence.getByRole("term")).toContainText(["Finding", "Status"]);
+      await expect(evidence).toContainText("A later collection attempt on this date succeeded.");
       await expect(evidence).not.toContainText("No new dashboard data:");
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath("dated-collection-after-recovery.png"), fullPage: true });
@@ -133,7 +130,7 @@ for (const theme of ["light", "dark"] as const) {
         await warning.hover();
         const warningEvidence = page.getByRole("dialog");
         await expect(warningEvidence).toContainText("Compiler warning.");
-        const existingValue = await warningEvidence.locator(".build-tooltip-details dd").first().boundingBox();
+        const existingValue = await warningEvidence.locator(".structured-tooltip-body > dl dd").first().boundingBox();
         const addedValue = await warningEvidence.locator(".assessment-explanation dd").first().boundingBox();
         expect(Math.abs(existingValue!.x - addedValue!.x)).toBeLessThan(1);
         await expect(warningEvidence.getByRole("link", { name: "View investigation" })).toHaveAttribute(

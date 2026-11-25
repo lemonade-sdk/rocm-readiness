@@ -820,6 +820,35 @@ class CollectionTests(unittest.TestCase):
             self.assertEqual(output["sources"][0]["status"], "empty")
             self.assertIsNone(output["sources"][0]["latest_observation_at"])
 
+    def test_upstream_check_contributes_to_source_freshness(self):
+        data = fixture("llama.json")
+        data["builds"][0]["generated_at"] = "2026-10-20T12:00:00Z"
+        data["last_check"] = {
+            "status": "unchanged",
+            "checked_at": "2026-10-27T15:00:00Z",
+        }
+
+        def fetch(url):
+            return {"sha": "a" * 40} if "/commits/" in url else data
+
+        with tempfile.TemporaryDirectory() as folder:
+            output = collect(
+                self.config(), Path(folder), fetch, now="2026-10-27T16:00:00Z"
+            )
+            source = output["sources"][0]
+            self.assertEqual(source["status"], "fresh")
+            self.assertEqual(source["latest_observation_at"], "2026-10-20T12:00:00+00:00")
+            self.assertEqual(source["age_hours"], 1.0)
+            self.assertEqual(source["last_check"]["status"], "unchanged")
+
+        data["last_check"]["checked_at"] = "2026-10-24T00:00:00Z"
+        with tempfile.TemporaryDirectory() as folder:
+            output = collect(
+                self.config(), Path(folder), fetch, now="2026-10-27T16:00:00Z"
+            )
+            self.assertEqual(output["sources"][0]["status"], "stale")
+            self.assertEqual(output["sources"][0]["age_hours"], 88.0)
+
     def test_failed_normalization_does_not_leak_partial_records(self):
         data = fixture("llama.json")
         data["builds"].append({"build_id": "bad"})

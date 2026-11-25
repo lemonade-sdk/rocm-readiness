@@ -194,7 +194,8 @@ view. Keep the heading prominent and retain all attempt, success and error detai
   to its outcome block.
   Use Floating UI for anchored tooltips and interactive package popups, with an
   arrow to the trigger, viewport-aware positioning, keyboard and touch access,
-  Escape and outside dismissal, and a visible close control for interactive panels.
+  and Escape and outside dismissal. Desktop tooltips have no close control.
+  Put navigation links and supplementary facts in labeled detail rows, not below the table.
   Table evidence popups open to the right and flip left when space requires it;
   keep them beside the row so readers can scan vertically between triggers.
   Keep the tooltip open while the pointer or keyboard focus is within its trigger
@@ -360,8 +361,8 @@ Use shared `TooltipContent` formatting instead of page-specific alignment rules.
 Each CI run has a small job/time heading and explicit labeled result, log, failed
 step, commit and pull-request fields. Model performance explicitly uses the custom
 body format for comparison graphs while retaining the same tooltip shell.
-Use the shared popup close control, with a close button on standalone saved-day
-fallbacks. Match qualification evidence links with inherited text color, dotted
+Desktop popups close on pointer leave, Escape or an outside press; keep a close
+button only on phone evidence panels and standalone saved-day fallbacks. Match qualification evidence links with inherited text color, dotted
 underlines and a small external navigation mark.
 
 ## Shared outcome icons and legends

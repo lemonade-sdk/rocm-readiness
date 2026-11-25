@@ -231,7 +231,7 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(popup.getByRole("heading", { name: /^Windows / })).toBeVisible();
   await expect(popup.getByRole("heading", { name: /^Linux / })).toBeVisible();
   await expect(popup.locator(".performance-preview")).toHaveCount(0);
-  await popup.getByRole("button", { name: "Close popup" }).click();
+  await page.keyboard.press("Escape");
   const performanceTrigger = page.getByRole("button", { name: "Performance data for b100", exact: true });
   expect(await performanceTrigger.evaluate((element) => parseFloat(getComputedStyle(element).marginInlineStart))).toBeGreaterThan(0);
   expect(await performanceTrigger.evaluate((element) => parseFloat(getComputedStyle(element).borderInlineStartWidth))).toBe(0);
@@ -283,7 +283,7 @@ test("anchors package performance popups and keeps model names readable", async 
   await expect(performanceTrigger).toBeFocused();
   await performanceTrigger.click();
   await expect(popup).toBeVisible();
-  await popup.getByRole("button", { name: "Close popup" }).click();
+  await page.keyboard.press("Escape");
   await expect(popup).toHaveCount(0);
   await performanceTrigger.click();
   await popup.getByRole("button", { name: "Windows", exact: true }).click();

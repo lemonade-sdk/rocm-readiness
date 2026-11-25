@@ -25,6 +25,7 @@ if __package__:
     from .upstream import validate_upstream_dataset
     from .validation import PipelineValidationError
     from .qualification_outcomes import qualification_labels
+    from .findings import finding_errors
 else:
     from config import load_config
     from readiness import release_policy, select_releases
@@ -38,6 +39,7 @@ else:
     from upstream import validate_upstream_dataset
     from validation import PipelineValidationError
     from qualification_outcomes import qualification_labels
+    from findings import finding_errors
 
 RAW = re.compile(
     r"https://raw\.githubusercontent\.com/([^/]+/[^/]+)/([a-f0-9]{40})/[^?#]+"
@@ -317,6 +319,20 @@ def validate_dataset(
                 "index.json",
                 f"/sources/{pos}/latest_observation_at",
             )
+        if "last_check" in source:
+            check = source["last_check"]
+            _check(
+                isinstance(check, dict)
+                and {"status", "checked_at"} <= set(check)
+                <= {"status", "checked_at", "run_url", "upstream_sha", "tag"}
+                and check["status"] in ("built", "unchanged")
+                and all(isinstance(value, str) for value in check.values()),
+                "index.json",
+                f"/sources/{pos}/last_check",
+                "expected the producer's latest check status",
+                key,
+            )
+            _time(check["checked_at"], "index.json", f"/sources/{pos}/last_check/checked_at")
         if "include_forks" in source:
             _check(
                 isinstance(source["include_forks"], list)
@@ -1790,6 +1806,12 @@ def validate_dataset(
             "/sync/last_successful_at",
             "live status must retain the successful dataset timestamp",
         )
+    def findings(value, path):
+        for pointer, reason in finding_errors(value):
+            _fail(path, "/findings" + pointer, reason)
+
+    if "findings" in index:
+        findings(index["findings"], "index.json")
     if "upstream" in index:
         paths.update(validate_upstream_dataset(root, index["upstream"]))
     if check_live_pointer and (root / "latest.json").exists():
@@ -1822,6 +1844,8 @@ def validate_dataset(
             "published live pointer must include attempt status",
         )
         sync(latest["sync"], "latest.json")
+        if "findings" in latest:
+            findings(latest["findings"], "latest.json")
         _check(
             live_sync is None or latest["sync"] == live_sync,
             "latest.json",

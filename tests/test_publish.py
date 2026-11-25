@@ -104,6 +104,8 @@ class PublicationTest(unittest.TestCase):
             self.assertEqual(latest["data_commit"], recovered["data_commit"])
             self.assertEqual(latest["sync"]["attempts"][:-1], recovered["sync"]["attempts"])
             self.assertEqual(latest["sync"]["attempts"][-1]["errors"][0]["field"], "publication")
+            current = [item for item in latest["findings"] if item["finding"].startswith("No new dashboard data")]
+            self.assertEqual([item["scopes"] for item in current], [[{"date": "2026-11-24"}]])
 
     def test_two_cycles_and_failure_preserve_data(self):
         with tempfile.TemporaryDirectory() as tmp:

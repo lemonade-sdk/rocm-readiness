@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
-import { readJson, resolveDatasetPath, type CollectionAttempt, type Fetcher, type Session, type Sync } from "./data";
-import sources from "../../sources.json";
+import { readJson, resolveDatasetPath, type Fetcher, type Finding, type Session } from "./data";
 import "./notifications.css";
 
 const time = z.string().refine((value) => Number.isFinite(Date.parse(value)));
@@ -52,7 +51,7 @@ export const notificationsSchema = z.object({
 });
 export type Assessment = z.infer<typeof notificationsSchema>["assessments"][number];
 export type AssessmentScope = Assessment["scope"];
-type State = { assessments: Assessment[]; collectedAt?: string; message?: string; dryRun?: boolean; sync?: Sync };
+type State = { assessments: Assessment[]; message?: string; dryRun?: boolean; findings?: Finding[] };
 const Notifications = createContext<State>({ assessments: [] });
 
 export async function loadNotifications(session: Session, fetcher: Fetcher, signal?: AbortSignal): Promise<State> {
@@ -63,8 +62,8 @@ export async function loadNotifications(session: Session, fetcher: Fetcher, sign
   return { assessments: data.assessments, dryRun: data.dry_run };
 }
 
-export function NotificationsProvider({ session, fetcher, children, sync }: {
-  session: Session | null; fetcher: Fetcher; children: ReactNode; sync?: Sync | null;
+export function NotificationsProvider({ session, fetcher, children, findings }: {
+  session: Session | null; fetcher: Fetcher; children: ReactNode; findings?: Finding[] | null;
 }) {
   const [loaded, setLoaded] = useState<{ key: string; state: State }>();
   const key = session ? `${session.indexUrl}:${session.pointer.notifications_url ?? ""}:${session.index.notifications ?? ""}` : "";
@@ -81,50 +80,15 @@ export function NotificationsProvider({ session, fetcher, children, sync }: {
     return () => controller.abort();
   }, [session, key, fetcher]);
   const state = loaded?.key === key ? loaded.state : { assessments: [] };
-  return <Notifications value={{ ...state, collectedAt: session?.index.generated_at, sync: sync ?? session?.pointer.sync }}>{children}</Notifications>;
+  const published = findings ?? session?.pointer.findings ?? session?.index.findings;
+  return <Notifications value={{ ...state, findings: published }}>{children}</Notifications>;
 }
 
-function collectionFailurePresentation(entry?: Sync["errors"][number]): AssessmentPresentation {
-  if (!entry) return { finding: "No new dashboard data: the dashboard update could not be published.", investigation: null, evidence: [] };
-  const source = sources.sources.find(source => source.id === entry.source_id);
-  const benchmark = source?.adapter === "lemonade-leaderboard-v1" && entry.field === "package_evidence";
-  const accessFailure = benchmark && entry.reason.includes("benchmark job evidence access failed");
-  // Reason text supplies identifiers only; links always use the configured producer.
-  const runEvidence = accessFailure ? /^run=([1-9]\d{0,19}) engine=([A-Za-z0-9._-]+): benchmark job evidence access failed(?:\s|$)/.exec(entry.reason) : null;
-  const httpStatus = accessFailure ? /\bHTTP ([45]\d{2})\b/.exec(entry.reason)?.[1] : undefined;
-  const sourceUrl = benchmark && source?.ref && source.path
-    ? `https://github.com/${source.repository}/blob/${encodeURIComponent(source.ref)}/${source.path.split("/").map(encodeURIComponent).join("/")}`
-    : undefined;
-  const reason = entry.reason.trim();
-  const plainReason = reason.length > 0 && reason.length <= 160 &&
-    !/https?:\/\/|[\r\n]|(?:^|\s)(?:run|engine)=/.test(reason);
-  const finding = accessFailure
-    ? `No new dashboard data: Lemonade’s published benchmark links to a GitHub run the dashboard couldn’t read${httpStatus ? ` (HTTP ${httpStatus})` : ""}.`
-    : `No new dashboard data: ${plainReason ? reason : `${entry.source_id} could not be refreshed`}${plainReason && /[.!?]$/.test(reason) ? "" : "."}`;
-  const evidence: AssessmentPresentation["evidence"] = [];
-  if (sourceUrl) {
-    evidence.push({ label: "Lemonade benchmark leaderboard", url: sourceUrl, jobs: [] });
-    if (runEvidence) evidence.push({ label: "Benchmark run", url: `https://github.com/${source!.repository}/actions/runs/${runEvidence[1]}`, jobs: [] });
-  }
-  return { finding, investigation: null, evidence };
-}
-
-function CollectionFailureDetails({ attempts, current, recovered }: {
-  attempts: CollectionAttempt[]; current: boolean; recovered: boolean;
-}) {
-  const presentations = groupPresentations(attempts.flatMap(attempt =>
-    (attempt.errors.length ? attempt.errors : [undefined]).map(entry => {
-      const presentation = collectionFailurePresentation(entry);
-      return { ...presentation, finding: current ? presentation.finding :
-        presentation.finding.replace(/^No new dashboard data:/, "Collection attempt failed:") };
-    }),
-  ));
-  return <div className="collection-failure">
-    {presentations.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
-    {recovered && <AssessmentExplanation presentation={{
-      finding: "A later collection attempt succeeded on this date.", investigation: null, evidence: [],
-    }} />}
-  </div>;
+/** A finding names the cells it explains; match its published scope fields exactly. */
+export function matchesFinding(finding: Finding, scope: AssessmentScope, missingObservation = false): boolean {
+  if (finding.applies_to === "missing_observation" && !missingObservation) return false;
+  return finding.scopes.some(expected => Object.entries(expected).every(
+    ([key, value]) => scope[key as keyof AssessmentScope] === value));
 }
 
 /** Match every persisted constraint; never borrow a nearby incident for a cell. */
@@ -158,6 +122,7 @@ function assessmentPresentation(assessment: Assessment, dryRun?: boolean) {
     : undefined;
   return {
     finding,
+    status: undefined as string | undefined,
     investigation: needsInvestigation ? { text: githubText, url: dispatch?.github.url, status: github } : null,
     evidence: assessment.evidence.map(item => ({
       ...item,
@@ -178,6 +143,7 @@ function AssessmentExplanation({ presentation, status = false }: { presentation:
   return <div className="assessment-explanation" role={status ? "status" : undefined}>
     <dl>
       <dt>Finding</dt><dd>{finding}</dd>
+      {presentation.status && <><dt>Status</dt><dd>{presentation.status}</dd></>}
       {investigation && <>
         <dt>Investigation</dt><dd className="assessment-investigation">
           {investigation.text && <span className="assessment-status">{investigation.text}</span>}
@@ -233,25 +199,16 @@ export function CellExplanation({ scope, observation, missingObservation = false
   );
   const actionable = matching.filter((assessment) => assessment.actionable);
   const matches = groupPresentations((actionable.length ? actionable : matching).map(assessment => assessmentPresentation(assessment, state.dryRun)));
-  const attemptedAt = state.sync?.status === "failed" ? Date.parse(state.sync.attempted_at) : NaN;
-  const currentFailure =
-    Number.isFinite(attemptedAt) && state.collectedAt && Date.parse(state.collectedAt) <= attemptedAt &&
-    scopes.every(item => item.date === new Date(attemptedAt).toISOString().slice(0, 10));
-  const attempts = state.sync ? [...(state.sync.attempts ?? []), state.sync] : [];
-  const datedAttempts = missingObservation && !matches.length && scopes.length > 0
-    ? attempts.filter(attempt => scopes.every(item =>
-      item.date === new Date(attempt.attempted_at).toISOString().slice(0, 10)))
-    : [];
-  const failures = datedAttempts.filter(attempt => attempt.status === "failed" &&
-    (state.sync?.attempts !== undefined || currentFailure));
-  const recovered = failures.length > 0 && datedAttempts.some(attempt =>
-    attempt.status === "success" && failures.every(failure =>
-      Date.parse(attempt.attempted_at) > Date.parse(failure.attempted_at)));
-  if (!observation && !matches.length && !state.message && !failures.length) return null;
-  const finding = state.message ?? (!matches.length ? observation : undefined);
+  const findings = (state.findings ?? []).filter(finding =>
+    scopes.every(item => matchesFinding(finding, item, missingObservation)));
+  if (!observation && !matches.length && !state.message && !findings.length) return null;
+  const finding = state.message ?? (!matches.length && !findings.length ? observation : undefined);
   return <div className="cell-explanation">
-    {!failures.length && finding && <AssessmentExplanation status={Boolean(state.message)} presentation={{ finding, investigation: null, evidence: [] }} />}
-    {failures.length > 0 && <CollectionFailureDetails attempts={failures} current={Boolean(currentFailure)} recovered={recovered} />}
+    {finding && <AssessmentExplanation status={Boolean(state.message)} presentation={{ finding, status: undefined, investigation: null, evidence: [] }} />}
+    {findings.map(item => <AssessmentExplanation key={item.id} presentation={{
+      finding: item.finding, status: item.status, investigation: null,
+      evidence: item.evidence.map(link => ({ ...link, jobs: [] })),
+    }} />)}
     {!state.message && matches.map(([key, { presentation }]) => <AssessmentExplanation key={key} presentation={presentation} />)}
   </div>;
 }

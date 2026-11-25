@@ -85,3 +85,24 @@ The sync file at the pinned successful data commit and `/sync` in its catalog
 remain immutable. A newer live failure does not rewrite either successful
 snapshot. Collection failure output in a local artifact may be degraded; the
 publisher never replaces the last-good manifest with that output.
+
+## Collection findings
+
+`scripts/findings.py::collection_findings()` turns `/sync/attempts`, the latest
+attempt and each source's `last_check` into the `findings` array published in
+`index.json` and `latest.json`. The dashboard does not derive explanations from
+sync diagnostics; it shows a finding in an empty cell only when every scope
+entry of the finding equals the cell's corresponding fields.
+
+| Pointer under `/findings/*` | Type / presence | Rule |
+| --- | --- | --- |
+| `/id` | string, required | `<kind>:<16 hex>` content hash. |
+| `/kind` | string, required | `collection_failed` or `upstream_unchanged`. |
+| `/applies_to` | string, required; `missing_observation` | Shown only on cells without an observation. |
+| `/scopes` | nonempty array, required | Each entry has a UTC `date` and optional `source_id`. A failed source scopes to itself; a Lemonade benchmark failure scopes to qualification sources of the same engine; pipeline and unknown failures scope to the date only. |
+| `/finding` | string, required | Display text, prefixed `No new dashboard data:` when the latest attempt failed and this failure came after the last successful attempt, otherwise `Collection attempt failed:`. Repeated failures with the same reason for one cell are merged. Unrecognized reasons become `<source_id> could not be refreshed.` |
+| `/status` | string, optional | Set when a later attempt that date succeeded after the day's last failure. |
+| `/evidence` | array, required | `{label, url}` HTTPS links recognized from the diagnostics or check run. |
+
+An `upstream_unchanged` finding is scoped to the source and the UTC date of its
+`last_check.checked_at`, with the check run as evidence.

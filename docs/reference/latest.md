@@ -10,6 +10,7 @@ schema version is **1**. It is not an input to the collector adapters.
 | `/data_commit` | lowercase 40-character Git SHA string or null, required | Successful staged dataset commit; preserve the previous value on failure. Null before any successful dataset. |
 | `/index_url` | HTTPS string or null, required | `https://raw.githubusercontent.com/<repository>/<data_commit>/data/index.json`; null exactly when the commit is null. |
 | `/sync` | object, required | Latest attempt's [sync object](sync.md), identical to live `data/sync.json`'s `/sync`. |
+| `/findings` | array, optional | [Collection findings](sync.md#collection-findings) for the live attempt history and the active dataset's source checks. |
 
 Read the live file from `main`, then read `index_url`. Resolve catalog, overview,
 history and performance paths relative to this pinned URL. Do not combine the

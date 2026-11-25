@@ -26,6 +26,7 @@ is **2** and the current package association contract is `attribution_version: 2
 | `/stable_performance/awaiting_evidence_count` | integer, required; `0` | Current writer rejects missing stable package evidence rather than publishing an unassigned stable partition. |
 | `/sync` | object, required in collected/published catalog | [Attempt-status object](sync.md), describing this dataset's successful attempt. |
 | `/errors` | array of diagnostics, optional | Collection failure artifact only; [sync diagnostic shape](sync.md). |
+| `/findings` | array, optional | [Collection findings](sync.md#collection-findings) computed by the collector or publisher. The dashboard renders these as-is. |
 
 The generic writer can also emit optional `/comparison_performance` with required
 integer `count` and relative `path: "performance/comparisons.json"` for configured
@@ -55,8 +56,9 @@ configured location fields without a resolved commit or URL.
 | `/url` | HTTPS string, required after resolution | Raw producer entry URL at `/commit`. |
 | `/sha256` | lowercase 64-character digest string, required after successful fetch | SHA-256 of collector's serialized source snapshot, rather than a checksum of arbitrary upstream HTTP formatting. |
 | `/latest_observation_at` | timestamp string or null, required after normalization | Maximum selected build `generated_at` or measurement `measured_at`; null when empty. |
-| `/age_hours` | number or null, required after normalization | `(attempt time − newest observation) / 3600`, rounded to two decimals; null when empty; future timestamps fail validation. |
+| `/age_hours` | number or null, required after normalization | `(attempt time − max(newest observation, /last_check/checked_at)) / 3600`, rounded to two decimals; null when empty; future timestamps fail validation. |
 | `/stale_after_hours` | positive number, required after normalization | Configuration threshold. |
+| `/last_check` | object, optional, qualification-v1 only | Producer's most recent upstream check from its `index.json`. `status` is `built` or `unchanged`; `checked_at` is a UTC timestamp no later than the attempt; optional `run_url` (`https://github.com/<repository>/actions/runs/<id>`), `upstream_sha` (40 hex) and `tag` are kept. Unrecognized keys are dropped. An `unchanged` check means upstream did not move, so no build is expected that day. |
 | `/destination` | string, required after normalization | Qualification `rocm/*/history/*.json` or performance `rocm/*/performance.json`. |
 | `/snapshot` | relative path string, optional, artifact only | `raw/<source-id>.json`; removed from committed catalog. |
 | `/error` | string, optional | Failure text on a degraded artifact. |

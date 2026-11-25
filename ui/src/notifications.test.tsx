@@ -166,26 +166,28 @@ it("uses the existing evidence-table structure for a missing observation without
   expect(screen.queryByText(/reason is not established|notification|Issue dispatch/)).not.toBeInTheDocument();
 });
 
-it("does not attach dated collection history to mixed-date aggregates or observed results", async () => {
+it("does not attach published findings to mixed-date aggregates or observed results", async () => {
   const session = await loadSession(undefined, fixtureFetch());
-  const failed = {
-    attempted_at: "2026-11-17T13:00:00Z", status: "failed" as const,
-    last_successful_at: null,
-    errors: [{ source_id: "pipeline", record: "", field: "fetch", reason: "Source timed out" }],
-  };
-  const { rerender } = render(<NotificationsProvider session={session} fetcher={fixtureFetch()}
-    sync={{ ...failed, attempts: [failed] }}>
+  const findings = [{
+    id: "collection_failed:1", kind: "collection_failed", applies_to: "missing_observation" as const,
+    scopes: [{ date: "2026-11-17" }], finding: "Collection attempt failed: Source timed out.", evidence: [],
+  }];
+  const { rerender } = render(<NotificationsProvider session={session} fetcher={fixtureFetch()} findings={findings}>
     <CellExplanation scope={[assessment.scope, { ...assessment.scope, date: "2026-11-16" }]}
       observation="No result collected." missingObservation />
   </NotificationsProvider>);
   expect(screen.getByText("No result collected.")).toBeVisible();
   expect(screen.queryByText(/Source timed out/)).not.toBeInTheDocument();
-  rerender(<NotificationsProvider session={session} fetcher={fixtureFetch()}
-    sync={{ ...failed, attempts: [failed] }}>
+  rerender(<NotificationsProvider session={session} fetcher={fixtureFetch()} findings={findings}>
     <CellExplanation scope={assessment.scope} observation="Producer passed." />
   </NotificationsProvider>);
   expect(screen.getByText("Producer passed.")).toBeVisible();
   expect(screen.queryByText(/Source timed out/)).not.toBeInTheDocument();
+  rerender(<NotificationsProvider session={session} fetcher={fixtureFetch()} findings={findings}>
+    <CellExplanation scope={assessment.scope} observation="No result collected." missingObservation />
+  </NotificationsProvider>);
+  expect(screen.getByText("Collection attempt failed: Source timed out.")).toBeVisible();
+  expect(screen.queryByText("No result collected.")).not.toBeInTheDocument();
 });
 
 it.each(["pending", "sent", "failed", "disabled", "unavailable", "uncertain"] as const)(
